@@ -25,6 +25,7 @@
 
 ## 1. Project Structure (IMPORTANT)
 
+To ensure portability, the accounts app is built as a standalone module with zero business-logic dependencies.
 This structure is **deliberate**. Do not flatten it.
 
 ```
@@ -59,8 +60,15 @@ auth_platform/
 ---
 
 ## 2. Zero‑Trust Design Principles (Why This Looks “Heavy”)
+In a Zero-Trust architecture, we never trust, always verify.
 
-We assume:
+Identity is Decoupled: Authentication verifies who you are; Authorization verifies what you can do within a specific context (Tenant).
+
+Stateless Enforcement: No implicit trust in IP addresses or networks. Every request must prove its validity.
+
+Trust Boundaries: Security begins at the application layer. No service trusts the session cookie without re-verifying the user's current permissions and tenant context.
+
+Assumptions:
 
 * Cookies can be stolen
 * Sessions can be replayed
@@ -86,7 +94,9 @@ If you use Django’s default `User`, you:
 
 ---
 
-### 3.1 User Model
+### 3.1 Atomic User Model
+
+The User model contains only the credentials required for identification. Business data belongs in the Profile model to prevent future migration pain.
 
 ```python
 # accounts/models/user.py
@@ -141,6 +151,8 @@ class UserManager(BaseUserManager):
 
 ## 4. User Profile (Why We Do NOT Stuff Everything into User)
 
+Profiles allow the platform to be reusable while permitting each project to define its own user metadata.
+
 ### Design Rule
 
 **User = identity**
@@ -191,6 +203,8 @@ class AccountsConfig(AppConfig):
 
 ## 5. Multi‑Tenant Core Models
 
+Authorization is the process of matching Identity against a Resource Context (Tenant).
+
 ### 5.1 Tenant
 
 ```python
@@ -209,6 +223,7 @@ class Tenant(models.Model):
 ---
 
 ### 5.2 Membership (User ↔ Tenant)
+A user can belong to multiple tenants with different roles in each.
 
 ```python
 # accounts/models/membership.py
@@ -237,6 +252,7 @@ class Membership(models.Model):
 ---
 
 ## 6. Role‑Based Permission System (FULL)
+Roles are converted into specific granular permissions.
 
 ### 6.1 Permission Map
 
@@ -662,7 +678,7 @@ CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
 
 ---
 
-### 18.2 Nginx Zero‑Trust Config
+### 18.2 Production Hardening & Compliance: Nginx Zero‑Trust Config
 
 ```nginx
 server {
@@ -685,6 +701,13 @@ server {
 }
 ```
 
+The reverse proxy must enforce security headers to prevent token leakage and UI redressing (Clickjacking).
+```
+# Nginx Hardening
+add_header X-Frame-Options DENY;
+add_header X-Content-Type-Options nosniff;
+ssl_protocols TLSv1.2 TLSv1.3;
+```
 ---
 
 ### 18.3 Django Security Settings
@@ -700,8 +723,15 @@ SECURE_HSTS_SECONDS = 31536000
 
 ---
 
-## 19. 🧠 Threat‑Modeling Worksheets (Training‑Ready)
-
+## 19. 🧠 Threat‑Modeling Worksheets 
+We analyze the platform against the STRIDE model to identify potential gaps:
+```
+Category                    Threat                        Mitigation
+Spoofing                    Stolen session cookies        Session rotation & WebAuthn
+Tampering                   Modifying user roles          Server-side permission checks only
+Repudiation                 Denying a billing action      Immutable Audit Logs
+Information Disclosure      Leaking tenant data           Strict QuerySet scoping in Middleware
+```
 These worksheets are designed for:
 
 * security reviews
@@ -787,6 +817,7 @@ This is **enterprise‑grade Django security engineering**, not just authenticat
 # 🔐 MFA & WebAuthn Integration
 
 ## Zero-Trust, Phishing-Resistant Authentication in Django
+Passwords alone are insufficient for Zero-Trust. We implement WebAuthn to provide hardware-backed, phishing-resistant security.
 
 This section extends the existing **Zero-Trust Django Authentication Platform** with **Multi-Factor Authentication (MFA)** and **WebAuthn (Passkeys / Security Keys)**.
 
@@ -796,6 +827,15 @@ This section extends the existing **Zero-Trust Django Authentication Platform** 
 ---
 
 ## 1. Why MFA & WebAuthn Matter (Threat Perspective)
+WebAuthn uses public-key cryptography and is bound to the origin (domain), making it impossible to "replay" or "phish" a token.
+
+```
+Factor Type                  Security Level    Resistance to Phishing
+Password                     Low               None
+SMS OTP                      Medium            Low (SIM Swapping)
+TOTP (App)                   Medium-High       Medium (MITM)
+WebAuthn (YubiKey/FaceID)    Maximum           Total
+```
 
 ### Threats MFA/WebAuthn Defend Against
 
