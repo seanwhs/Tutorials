@@ -14,7 +14,10 @@ If authentication is:
 This guide documents how to build **a reusable, production-grade authentication app for Django REST Framework** that can be dropped into **any DRF project**, scaled across teams, and extended for OAuth, multi-tenancy, and zero-trust architectures.
 
 ---
+## **The Zero-Trust Philosophy**
 
+In a Zero-Trust architecture, we never trust, always verify. 1. Identity is Decoupled: Authentication verifies who you are; Authorization verifies what you can do within a specific context (Tenant). 2. Stateless Enforcement: No session affinity. Every request must prove its validity via a signed JWT. 3. Trust Boundaries: No service trusts the network; security begins at the application layer.
+---
 ## **Design Goals**
 
 This authentication platform must:
@@ -32,6 +35,7 @@ This authentication platform must:
 
 # **1. Application Layout (Reusable Auth App)**
 
+To ensure portability, the platform is built as a standalone Django app with zero business-logic dependencies.
 Create a **standalone Django app** called `auth_platform`.
 
 ```
@@ -74,7 +78,9 @@ You **cannot change the user model later** without pain.
 
 ---
 
-## **2.1 User Model**
+## **2.1 Atomic User Model**
+
+The User model contains only the credentials required for identification. Business data belongs in the Profile model to prevent future migration pain.
 
 ```python
 # users/models.py
@@ -126,10 +132,11 @@ class UserManager(BaseUserManager):
 
 ---
 
-# **3. User Profiles (Domain-Extensible Identity)**
+# **3. Decoupled User Profiles (Domain-Extensible Identity)**
 
 ### Why Profiles Exist
 
+Profiles allow the platform to be reusable while permitting each project to define its own user metadata.
 Authentication data must be **stable**.
 Profile data must be **flexible**.
 
@@ -206,8 +213,9 @@ class LoginSerializer(serializers.Serializer):
 
 ---
 
-# **5. JWT Token Issuance**
+# **5. Stateless JWT Token Issuance**
 
+Using djangorestframework-simplejwt, we inject authorization context directly into the token payload.
 Using `djangorestframework-simplejwt`.
 
 ---
@@ -235,6 +243,8 @@ def issue_tokens(user, tenant_id=None, role=None):
 ---
 
 # **6. Multi-Tenant Authentication & Permissions**
+
+Authorization is the process of matching the JWT Claims against the Resource Context.
 
 ## **6.1 Tenant Model**
 
@@ -341,7 +351,14 @@ token_generator = PasswordResetTokenGenerator()
 
 ---
 
-# **9. Security Review Checklist (Production)**
+# **9. Security Review & Production Hardening Checklist**
+
+### Red-Team Checklist
+Threat            Mitigation Strategy
+Token Forgery     Asymmetric Signing (RS256): Prevents forgery even if a service is compromised.
+Token Theft       Short-lived Access (≤15m): Minimizes the window of abuse.
+Replay Attacks    Refresh Rotation: Each refresh issues a new token and blacklists the old one.
+CSRF/XSS          HttpOnly Cookies: Prevents JavaScript from accessing the token.
 
 ### JWT
 
@@ -362,6 +379,15 @@ token_generator = PasswordResetTokenGenerator()
 * [ ] No implicit trust
 * [ ] Tenant context required
 
+### Hardened Infrastructure
+Deploy using a non-root Docker environment and a security-tuned Nginx reverse proxy to enforce HSTS and prevent header leakage.
+
+```
+# nginx.conf snippets
+add_header X-Frame-Options DENY;
+add_header X-Content-Type-Options nosniff;
+proxy_hide_header Authorization; # Prevent accidental upstream leakage
+```
 ---
 
 # **10. Integrating This Auth App Into Any DRF Project**
@@ -448,10 +474,9 @@ This section ensures the authentication system is:
 
 ---
 
-# **1. End-to-End (E2E) Tests**
-
+# **1. End-to-End (E2E) Tests (The Proof of Security)**
+We do not mock security. Our tests perform real cryptographic validation to ensure that tenant boundaries cannot be crossed.
 End-to-end tests validate **real user flows**, not isolated components.
-
 These tests should be runnable **unchanged** in every project that imports this auth app.
 
 ---
