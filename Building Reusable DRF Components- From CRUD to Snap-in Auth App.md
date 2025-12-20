@@ -1,3 +1,15 @@
+# **Modular Django REST Framework Project with JWT Auth**
+
+This tutorial demonstrates a **modular architecture** using Django REST Framework:
+
+* **1_crud_project** – a standalone CRUD API (`Post` model) protected by JWT authentication.
+* **2_standalone_auth_app** – a reusable authentication app with **custom user**, **user profiles**, **tenants**, **JWT login/register**, designed to be dropped into any Django project.
+* **3_crud_with_auth** – integration of CRUD API + standalone auth app, fully functional with JWT-secured endpoints.
+
+This approach allows you to maintain independent projects and snap in auth functionality without modifying existing CRUD logic.
+
+---
+
 ## **Step 1: Create the CRUD Django Project**
 
 ### **1.1 Project Setup**
@@ -11,7 +23,7 @@ pip install django djangorestframework
 django-admin startproject crud_project .
 ```
 
-> ✅ Sets up a new Django project named `crud_project` with DRF installed.
+> ✅ Sets up a Django project with DRF installed.
 
 ---
 
@@ -67,7 +79,7 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 ```
 
-> Uses DRF ViewSet; all endpoints require JWT authentication.
+> DRF ViewSet; all CRUD endpoints require JWT authentication.
 
 ---
 
@@ -116,7 +128,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-> ✅ CRUD API accessible at `http://127.0.0.1:8000/api/posts/`.
+> ✅ CRUD API available at `http://127.0.0.1:8000/api/posts/`.
 
 ---
 
@@ -206,7 +218,7 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, UserSerializer, JWTTokenSerializer
+from .serializers import RegisterSerializer, UserSerializer
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -216,7 +228,7 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 class LoginView(generics.GenericAPIView):
-    serializer_class = RegisterSerializer  # just for input
+    serializer_class = RegisterSerializer  # input serializer
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username')
@@ -314,9 +326,8 @@ urlpatterns = [
 ]
 ```
 
-5. CRUD API now requires JWT authentication; use `Authorization: Bearer <access_token>` in headers.
-
-6. Run migrations:
+5. CRUD API now requires JWT authentication (`Authorization: Bearer <access_token>`).
+6. Run migrations and create superuser:
 
 ```bash
 python manage.py makemigrations
@@ -360,11 +371,11 @@ django-modular-tutorial/
 
 ---
 
-### **Notes**
+### **Summary Notes**
 
-* **1_crud_project**: Standalone DRF CRUD API.
-* **2_standalone_auth_app**: Standalone DRF JWT auth with custom user, tenants, profiles.
-* **3_crud_with_auth**: CRUD + auth combined; JWT-secured endpoints.
+* **1_crud_project**: DRF CRUD API, independent of auth.
+* **2_standalone_auth_app**: DRF JWT auth, custom user, profiles, tenants.
+* **3_crud_with_auth**: Integrated CRUD + auth API with JWT protection.
 
 ---
 
@@ -377,7 +388,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-> JWT tokens are used for authentication on all API endpoints.
+> All endpoints secured via JWT. Projects are independent; auth app can be snapped into any DRF project seamlessly.
 
 ---
 
