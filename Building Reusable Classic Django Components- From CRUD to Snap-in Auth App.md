@@ -1,3 +1,15 @@
+# **Modular Django Project with CRUD and Standalone Auth**
+
+This tutorial demonstrates how to build a **modular Django application** that separates concerns into independent projects:
+
+* **1_crud_project** – a simple CRUD app for `Post` objects with classic Django views and templates.
+* **2_standalone_auth_app** – a reusable authentication app with **custom user**, **user profiles**, **tenants**, and **login/register forms**.
+* **3_crud_with_auth** – integration of the CRUD project with the standalone auth app, fully functional with authentication protection.
+
+This structure allows you to maintain independent projects, reuse the auth app across multiple projects, and integrate authentication seamlessly without modifying existing CRUD logic.
+
+---
+
 ## **Step 1: Create the CRUD Django Project**
 
 ### **1.1 Project Setup**
@@ -38,7 +50,7 @@ class Post(models.Model):
         return self.title
 ```
 
-> Simple Post model with title, content, and timestamps.
+> Simple `Post` model with title, content, and timestamps.
 
 ---
 
@@ -103,7 +115,7 @@ def post_delete(request, pk):
     return render(request, 'blog/post_confirm_delete.html', {'post': post})
 ```
 
-> CRUD views protected with `login_required`.
+> CRUD views are protected with `@login_required`.
 
 ---
 
@@ -145,15 +157,14 @@ Create `templates/blog/`:
 * `post_form.html`
 * `post_confirm_delete.html`
 
-> Use basic HTML forms and loops for posts.
+> Use basic HTML forms and loops to display and manipulate posts.
 
 ---
 
 ### **1.8 Settings**
 
 Add `'blog'` to `INSTALLED_APPS`.
-
-No auth needed yet.
+Authentication is not required yet for this standalone CRUD project.
 
 ---
 
@@ -165,7 +176,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-> ✅ CRUD project accessible at `http://127.0.0.1:8000/blog/`.
+> ✅ CRUD project is accessible at `http://127.0.0.1:8000/blog/`.
 
 ---
 
@@ -310,7 +321,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 ```
 
-> Auth app is standalone, reusable, and includes tenants, profiles, and custom user.
+> The auth app is standalone, reusable, and includes tenants, profiles, and custom user.
 
 ---
 
@@ -338,7 +349,7 @@ urlpatterns = [
 ```
 
 5. Protect CRUD views using `@login_required`.
-6. Run migrations and create superuser:
+6. Run migrations and create a superuser:
 
 ```bash
 python manage.py makemigrations
@@ -347,7 +358,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-> ✅ CRUD project now includes **classic Django standalone auth** with **custom user, profiles, tenants, login/register forms**.
+> ✅ CRUD project now includes **classic Django standalone auth** with **custom user, profiles, tenants, and login/register forms**.
 
 ---
 
@@ -389,9 +400,9 @@ django-modular-tutorial/
 
 ### **Notes**
 
-* **1_crud_project**: Standalone CRUD app, no auth.
-* **2_standalone_auth_app**: Classic Django reusable auth app with custom user, profiles, tenants, login/register.
-* **3_crud_with_auth**: CRUD + auth integrated, ready to run.
+* **1_crud_project** – Standalone CRUD app without authentication.
+* **2_standalone_auth_app** – Reusable Django auth app with **custom user, tenants, and profiles**.
+* **3_crud_with_auth** – Integrated CRUD + auth project, ready to run with authentication.
 
 ---
 
@@ -404,6 +415,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-> All projects are independent; the auth app can be snapped in without touching CRUD logic.
+> All projects are independent; the auth app can be snapped into any project without changing CRUD logic.
 
 ---
+
