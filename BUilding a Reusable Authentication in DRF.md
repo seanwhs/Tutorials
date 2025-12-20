@@ -805,6 +805,744 @@ If you remember nothing else:
 ✔ Auditable, testable code
 
 ---
+# **Reference Threat Model Diagrams**
+
+## Django REST Framework JWT Authentication Platform
+
+These diagrams are **conceptual threat models**, not implementation diagrams.
+They are designed to answer the auditor’s core question:
+
+> *“Where can this system fail, and what prevents that?”*
+
+---
+
+## **1. System Trust Boundaries (High-Level)**
+
+```
+┌─────────────────────┐
+│      Client         │
+│  (Browser / Mobile) │
+└─────────┬───────────┘
+          │ HTTPS + JWT
+          ▼
+┌─────────────────────┐
+│   API Gateway /     │
+│   Django DRF API    │
+│                     │  ← Zero Trust Boundary
+└─────────┬───────────┘
+          │ JWT Claims
+          ▼
+┌─────────────────────┐
+│ Protected Services  │
+│ (Business Logic)    │
+└─────────┬───────────┘
+          │ ORM
+          ▼
+┌─────────────────────┐
+│     Database        │
+│ (Users, Tenants)   │
+└─────────────────────┘
+```
+
+### Threats at This Layer
+
+* Token theft
+* Unauthorized access
+* Replay attacks
+* Privilege escalation
+
+### Controls
+
+* HTTPS
+* JWT signature validation
+* Short-lived access tokens
+* Permission enforcement
+* Tenant scoping
+
+---
+
+## **2. Authentication Flow Threat Model**
+
+```
+User
+ │
+ │ Credentials
+ ▼
+Login Endpoint
+ │
+ │ Password Check
+ │ Rate Limiting
+ │ MFA (optional)
+ ▼
+JWT Issuance
+ │
+ │ Access Token (short)
+ │ Refresh Token (rotated)
+ ▼
+Client Storage
+```
+
+### Threats
+
+| Threat              | Risk             |
+| ------------------- | ---------------- |
+| Credential stuffing | Account takeover |
+| Brute force         | Service abuse    |
+| Token leakage       | Impersonation    |
+
+### Mitigations
+
+* Rate limiting
+* Password hashing (Argon2 / PBKDF2)
+* Token expiration
+* Refresh token rotation
+
+---
+
+## **3. JWT Forgery vs JWT Theft Diagram**
+
+```
+Attacker Modifies Payload
+   │
+   ▼
+Signature Invalid ❌
+Request Rejected
+```
+
+```
+Attacker Steals Token
+   │
+   ▼
+Valid Signature ✔
+Temporary Access Granted
+```
+
+### Key Insight
+
+JWTs are **tamper-proof**, not **theft-proof**.
+
+Security depends on:
+
+* Token lifetime
+* Storage strategy
+* Monitoring & revocation
+
+---
+
+## **4. Multi-Tenant Threat Model**
+
+```
+JWT:
+{
+  user_id,
+  tenant_id,
+  role
+}
+
+Request →
+Signature Check →
+Tenant Match →
+Role Permission →
+ALLOW / DENY
+```
+
+### Primary Risk
+
+* Cross-tenant data access
+
+### Required Controls
+
+* Tenant ID in JWT
+* Server-side tenant enforcement
+* No client-controlled tenant switching
+
+---
+
+## **5. OAuth Threat Model**
+
+```
+OAuth Provider
+ │
+ │ Authorization Code
+ ▼
+Auth Callback
+ │
+ │ Validate Provider
+ │ Validate Email
+ │ Enforce Tenant Rules
+ ▼
+Local Account Linking
+```
+
+### Threats
+
+* Email spoofing
+* Provider compromise
+* Unauthorized tenant access
+
+### Mitigations
+
+* Domain allowlists
+* Explicit tenant membership checks
+* Role assignment server-side only
+
+---
+
+# **Production Hardening Guide**
+
+## SOC 2 & ISO 27001 Aligned
+
+This section maps **technical controls** to **compliance expectations**.
+
+---
+
+## **1. Identity & Access Control (SOC 2 CC6, ISO A.9)**
+
+### Required Controls
+
+✔ Custom user model
+✔ Strong password policy
+✔ Role-based access control
+✔ Tenant-aware permissions
+
+### Implementation Checklist
+
+* [ ] Password hashing: Argon2 / PBKDF2
+* [ ] No plaintext secrets
+* [ ] Role assignment server-side only
+* [ ] Least-privilege default roles
+
+---
+
+## **2. Authentication Security (SOC 2 CC7, ISO A.10)**
+
+### JWT Configuration
+
+| Setting          | Recommendation         |
+| ---------------- | ---------------------- |
+| Access Token TTL | ≤ 15 minutes           |
+| Refresh Token    | Rotated                |
+| Algorithm        | RS256 (preferred)      |
+| Storage          | HttpOnly cookies (web) |
+
+---
+
+## **3. Logging & Monitoring (SOC 2 CC7.2, ISO A.12)**
+
+### Events to Log
+
+* Login success/failure
+* Token refresh
+* Password reset
+* Permission denial
+* OAuth account linking
+
+### Example Log Policy
+
+```text
+Timestamp
+User ID (if known)
+Tenant ID
+Action
+Outcome
+IP Address
+User Agent
+```
+
+⚠️ Never log:
+
+* Passwords
+* Tokens
+* Secrets
+
+---
+
+## **4. Data Protection (SOC 2 CC6.1, ISO A.8)**
+
+### Controls
+
+✔ HTTPS everywhere
+✔ Encrypted secrets
+✔ Database access controls
+✔ No sensitive data in JWT payload
+
+---
+
+## **5. Secure Development Lifecycle (SOC 2 CC8, ISO A.14)**
+
+### Mandatory Practices
+
+* Code reviews for auth changes
+* Automated tests for permissions
+* Dependency vulnerability scanning
+* Security linting
+
+---
+
+## **6. Incident Response Readiness (SOC 2 CC7.4, ISO A.16)**
+
+### Required Capabilities
+
+* Token revocation
+* Forced logout
+* Password reset
+* Audit trail reconstruction
+
+---
+
+## **7. Zero Trust Enforcement**
+
+### Principles Applied
+
+| Zero Trust Principle | Implementation             |
+| -------------------- | -------------------------- |
+| Never trust          | All requests authenticated |
+| Always verify        | JWT signature & claims     |
+| Least privilege      | Role-based permissions     |
+| Assume breach        | Short-lived tokens         |
+
+---
+
+## **8. Production Go-Live Checklist**
+
+### Authentication
+
+* [ ] JWT expiry verified
+* [ ] Refresh rotation enabled
+* [ ] OAuth tested end-to-end
+* [ ] Email verification enforced
+
+### Authorization
+
+* [ ] Tenant checks everywhere
+* [ ] Role enforcement audited
+* [ ] No public endpoints unintentionally exposed
+
+### Compliance
+
+* [ ] Logs retained per policy
+* [ ] Secrets managed externally
+* [ ] Incident response documented
+
+---
+
+# **Final Auditor-Ready Summary**
+
+This authentication platform demonstrates:
+
+✔ Defense-in-depth
+✔ Zero trust architecture
+✔ Tenant isolation
+✔ Standards-aligned controls
+✔ Repeatable, auditable design
+
+It is suitable for:
+
+* Enterprise DRF systems
+* SaaS platforms
+* Regulated environments
+* Security training programs
+
+---
+
+# 🔴 Red-Team Security Test Cases
+
+## Django REST Framework JWT Authentication Platform
+
+These test cases assume a **black-box attacker** and later escalate to **gray-box** (limited knowledge).
+
+---
+
+## **Threat Model Categories Covered**
+
+| Category       | Focus                     |
+| -------------- | ------------------------- |
+| Authentication | Identity compromise       |
+| Authorization  | Privilege escalation      |
+| Session        | Token abuse               |
+| Multi-tenant   | Cross-tenant access       |
+| OAuth          | Trust boundary violations |
+| Infrastructure | Misconfiguration          |
+
+---
+
+## **1. Authentication Attacks**
+
+### **1.1 Credential Stuffing**
+
+**Objective:** Test resistance to leaked credentials.
+
+**Attack**
+
+```bash
+for pw in passwords.txt; do
+  curl -X POST /api/token/ \
+    -d "username=victim&password=$pw"
+done
+```
+
+**Expected Defense**
+
+* Rate limiting triggers
+* IP throttling
+* Account lockout after N attempts
+* Logs generated
+
+✅ **PASS Criteria**
+
+* 429 responses
+* No token issuance
+
+---
+
+### **1.2 Brute Force Timing Attack**
+
+**Objective:** Detect password validation leaks.
+
+**Attack**
+
+* Compare response time between:
+
+  * valid username + wrong password
+  * invalid username
+
+**Expected Defense**
+
+* Constant-time password checks
+* Identical response latency
+
+---
+
+## **2. JWT Attacks**
+
+### **2.1 Token Forgery Attempt**
+
+**Attack**
+
+```json
+{
+  "user_id": 1,
+  "role": "admin"
+}
+```
+
+(Sign with random key)
+
+**Expected Result**
+
+```http
+401 Unauthorized
+```
+
+✅ Signature validation rejects tampering
+
+---
+
+### **2.2 Algorithm Confusion Attack**
+
+**Attack**
+
+```json
+{
+  "alg": "none"
+}
+```
+
+**Expected Defense**
+
+* Explicit algorithm whitelist
+* Reject `none`
+
+---
+
+### **2.3 Token Replay Attack**
+
+**Attack**
+
+* Reuse captured JWT after logout
+
+**Expected Defense**
+
+* Short expiry
+* Refresh token blacklist
+* Access token expires naturally
+
+---
+
+## **3. Authorization Attacks**
+
+### **3.1 Privilege Escalation**
+
+**Attack**
+
+```http
+POST /api/admin/users/
+Authorization: Bearer <user-token>
+```
+
+**Expected Defense**
+
+* PermissionDenied
+* Role enforcement at view level
+
+---
+
+### **3.2 Insecure Direct Object Reference (IDOR)**
+
+**Attack**
+
+```http
+GET /api/orders/9999/
+```
+
+**Expected Defense**
+
+* Object ownership checks
+* Tenant isolation
+
+---
+
+## **4. Multi-Tenant Attacks**
+
+### **4.1 Tenant Switching**
+
+**Attack**
+
+```json
+{
+  "tenant_id": "other-company"
+}
+```
+
+**Expected Defense**
+
+* Server ignores client tenant claims
+* Tenant resolved server-side
+
+---
+
+### **4.2 Cross-Tenant Enumeration**
+
+**Attack**
+
+```http
+GET /api/users/
+```
+
+**Expected Defense**
+
+* Querysets always tenant-scoped
+* No global reads
+
+---
+
+## **5. OAuth Attacks**
+
+### **5.1 OAuth Account Takeover**
+
+**Attack**
+
+* OAuth login with email matching existing user
+
+**Expected Defense**
+
+* Email verification
+* Domain allowlist
+* Explicit tenant approval
+
+---
+
+### **5.2 Authorization Code Replay**
+
+**Attack**
+
+* Reuse OAuth authorization code
+
+**Expected Defense**
+
+* Single-use codes
+* Provider validation
+
+---
+
+## **6. Infrastructure Attacks**
+
+### **6.1 Missing HTTPS**
+
+**Attack**
+
+* MITM sniffing
+
+**Expected Defense**
+
+* HTTPS enforced
+* HSTS enabled
+
+---
+
+### **6.2 Token Leakage via Logs**
+
+**Attack**
+
+* Search logs for tokens
+
+**Expected Defense**
+
+* No JWTs logged
+* Redacted headers
+
+---
+
+## ✅ Security Test Coverage Summary
+
+| Area         | Covered |
+| ------------ | ------- |
+| Auth         | ✅       |
+| JWT          | ✅       |
+| OAuth        | ✅       |
+| Multi-Tenant | ✅       |
+| Infra        | ✅       |
+
+---
+
+# 🧱 Hardened Docker + Nginx Configuration
+
+## Django REST Framework (Production)
+
+This setup enforces **defense-in-depth**.
+
+---
+
+## **1. Hardened Dockerfile**
+
+```dockerfile
+FROM python:3.12-slim
+
+# Prevent Python from writing pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# System hardening
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN addgroup --system app && adduser --system --group app
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN chown -R app:app /app
+USER app
+
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+```
+
+### Security Wins
+
+✔ Non-root container
+✔ Minimal base image
+✔ No cached secrets
+
+---
+
+## **2. Hardened Nginx Configuration**
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name api.example.com;
+
+    ssl_certificate     /etc/ssl/fullchain.pem;
+    ssl_certificate_key /etc/ssl/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Referrer-Policy strict-origin;
+
+    location / {
+        proxy_pass http://django:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+
+        # Prevent token leakage
+        proxy_hide_header Authorization;
+    }
+}
+```
+
+---
+
+## **3. Docker Compose (Secure Defaults)**
+
+```yaml
+services:
+  django:
+    build: .
+    env_file:
+      - .env
+    restart: always
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - django
+```
+
+---
+
+## **4. Production Security Checklist**
+
+### Containers
+
+* [ ] Non-root user
+* [ ] Read-only filesystem
+* [ ] No secrets baked in
+
+### Network
+
+* [ ] HTTPS enforced
+* [ ] HSTS enabled
+* [ ] No internal ports exposed
+
+### Django
+
+* [ ] `DEBUG=False`
+* [ ] `SECURE_SSL_REDIRECT=True`
+* [ ] `CSRF_COOKIE_SECURE=True`
+* [ ] `SESSION_COOKIE_SECURE=True`
+
+---
+
+## **Final Outcome**
+
+You now have:
+
+✅ Red-team security test cases
+✅ Hardened containerized deployment
+✅ Zero-trust network posture
+✅ SOC2 / ISO-aligned controls
+
+---
+
 
 
 
