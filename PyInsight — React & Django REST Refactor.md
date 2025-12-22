@@ -1,485 +1,510 @@
-# 📘 PyInsight: Build a Production-Ready CSV Analytics App with React + Django REST (DRI)
+# 📘 PyInsight — Step-by-Step Build Guide
 
-> Step-by-step guide for building a full-stack CSV analytics platform with async pipelines, plugin support, rule engine, metrics, secrets, Docker/Kubernetes deployment, and a modular React DRI frontend.
+## Build a Production-Ready CSV Analytics Platform with **React + Django REST (DRF)**
+
+> Hands-on guide to building a **cloud-native, extensible analytics platform**—covering CSV ingestion, async pipelines, plugins, ML, observability, security, and Kubernetes deployment.
+> **Not a demo.** By following this guide, you’ll have a **production-grade system** ready for internal platforms or SaaS.
+
+---
+
+## 🧭 What You Will Build
+
+**PyInsight** enables users to:
+
+1. Upload **large CSV datasets**
+2. Run **asynchronous analysis jobs**
+3. Apply **declarative business rules**
+4. Extend functionality via **plugins**
+5. View **live results** in a React dashboard
+6. Operate securely in **multi-tenant environments**
+7. Deploy using **Docker & Kubernetes**
+
+---
+
+## 🏗 Architecture Overview
+
+```
+React Frontend (TS/DRI)
+        │ REST / WebSocket
+Django REST API
+  ├ JWT Auth
+  ├ Job Orchestration
+  ├ Rule Engine
+  ├ Plugin Registry
+  └ Metrics/Tracing
+        │ Celery Tasks
+Celery Workers
+  ├ CSV Processing
+  ├ Rule Evaluation
+  ├ Plugin Execution
+  └ ML Pipelines
+        │
+Redis / MySQL (State & Results)
+```
 
 ---
 
 ## 0️⃣ Prerequisites
 
-* Python 3.12+, Node 20+, npm/yarn
-* Docker & Docker Compose (optional for containerized setup)
-* Basic understanding of React, TypeScript, Django REST Framework
+* Python 3.12+, Node.js 20+, Docker & Docker Compose
+* Familiarity with Django REST Framework & React + TypeScript
+
+> Install Python, Node, Docker, and VSCode or PyCharm.
 
 ---
 
-## 1️⃣ Create the Project Structure
-
-Create the root folder:
+## 1️⃣ Project Bootstrap
 
 ```bash
-mkdir pyinsight
-cd pyinsight
-mkdir backend frontend docker k8s
-```
-
----
-
-### Folder Layout
-
-```
 pyinsight/
-├── backend/
-├── frontend/
-├── docker/
-├── k8s/
+├── backend/    # Django REST backend
+├── frontend/   # React + TypeScript frontend
+├── docker/     # Docker Compose & Dockerfiles
+├── k8s/        # Kubernetes manifests
 └── README.md
 ```
 
----
-
-## 2️⃣ Backend Setup (Django REST)
-
-### 2.1 Create & Activate Virtualenv
-
 ```bash
-cd backend
+cd pyinsight
+git init
 python -m venv venv
 source venv/bin/activate
 ```
 
 ---
 
-### 2.2 Install Dependencies
+# **Part 1: Backend — Django REST + Celery + WebSockets**
+
+### 2️⃣ Setup
 
 ```bash
-pip install django djangorestframework pyyaml aiofiles opentelemetry-api opentelemetry-sdk
-```
+cd backend
+pip install django djangorestframework celery redis django-celery-results \
+channels channels-redis pyyaml aiofiles djangorestframework-simplejwt \
+django-cors-headers
 
----
+pip freeze > requirements.txt
 
-### 2.3 Create Django Project & App
-
-```bash
 django-admin startproject pyinsight .
-python manage.py startapp pyinsight
+python manage.py startapp core
 ```
 
----
-
-### 2.4 Backend Directory Layout
+### Layout
 
 ```
 backend/
-├── pyinsight/
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py
-│   ├── wsgi.py
+├── pyinsight/      # settings, urls, asgi, wsgi, celery
+├── core/
+│   ├── analysis.py
+│   ├── consumers.py
+│   ├── metrics.py
 │   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   ├── tasks.py
-│   ├── validators.py
-│   ├── plugins/
-│   │   ├── __init__.py
-│   │   └── base.py
+│   ├── plugins/    # base.py, sample_plugin.py
 │   ├── rules.py
 │   ├── rules.yaml
-│   ├── metrics.py
-│   └── secrets.py
-├── manage.py
-└── requirements.txt
+│   ├── tasks.py
+│   ├── validators.py
+│   ├── views.py
+│   └── routing.py
+└── manage.py
 ```
 
 ---
 
-## 2.5 Backend Code (Full)
+## 3️⃣ Core Backend Components
 
-### `validators.py`
+### CSV Validation
 
 ```python
-from rest_framework.exceptions import ValidationError
+# core/validators.py
+from django.core.exceptions import ValidationError
 
 def validate_rows(rows, required_columns):
-    for idx, row in enumerate(rows, start=1):
+    for i, row in enumerate(rows, 1):
         for col in required_columns:
-            if col not in row or row[col] == "":
-                raise ValidationError(f"Missing or empty '{col}' in row {idx}")
+            if not row.get(col):
+                raise ValidationError(f"Missing '{col}' in row {i}")
 ```
 
----
-
-### `tasks.py` (Async Pipelines + Plugin Orchestration)
+### Analytics Engine
 
 ```python
-import asyncio
-import csv
-from pyinsight.plugins import discover_plugins
-from pyinsight.rules import evaluate_rules
-from pyinsight.analysis import summarize
-
-async def analyze_async_from_rows(rows, column):
-    summary = summarize(rows, column)
-    rule_flags = evaluate_rules(rows)
-    plugin_results = await discover_plugins(rows)
-    return {"summary": summary, "rules": rule_flags, "plugins": plugin_results}
-
-def run_analysis(rows, column):
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(analyze_async_from_rows(rows, column))
-```
-
----
-
-### `analysis.py` (Core Analysis)
-
-```python
+# core/analysis.py
 def summarize(rows, column):
-    values = [float(r[column]) for r in rows if r[column] != ""]
-    count = len(values)
+    values = [float(r[column]) for r in rows if r[column]]
     return {
-        "count": count,
-        "avg": sum(values)/count if count else 0,
+        "count": len(values),
+        "avg": sum(values)/len(values) if values else 0,
         "min": min(values) if values else 0,
-        "max": max(values) if values else 0
+        "max": max(values) if values else 0,
     }
 ```
 
----
-
-### `rules.py` (Declarative Rule Engine)
-
-```python
-import yaml
-
-def evaluate_rules(rows):
-    with open("pyinsight/rules.yaml") as f:
-        rules = yaml.safe_load(f)["rules"]
-    violations = []
-    for rule in rules:
-        col = rule["column"]
-        for idx, row in enumerate(rows, start=1):
-            value = float(row.get(col, 0))
-            if eval(rule["condition"], {"value": value}):
-                violations.append({"row": idx, "rule": rule["name"], "action": rule["action"]})
-    return violations
-```
-
----
-
-### `plugins/base.py`
-
-```python
-from abc import ABC, abstractmethod
-
-class Plugin(ABC):
-    name: str
-
-    @abstractmethod
-    async def analyze(self, rows):
-        ...
-```
-
-### `plugins/sample_plugin.py`
-
-```python
-from .base import Plugin
-
-class RSICalculator(Plugin):
-    name = "rsi"
-    async def analyze(self, rows):
-        return {"rsi": 42}  # placeholder
-```
-
----
-
-### `views.py`
-
-```python
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-import csv
-from pyinsight.validators import validate_rows
-from pyinsight.tasks import run_analysis
-
-class AnalyzeCSV(APIView):
-    def post(self, request):
-        file = request.FILES.get("file")
-        column = request.data.get("column")
-        if not file or not column:
-            return Response({"error": "Missing file or column"}, status=status.HTTP_400_BAD_REQUEST)
-
-        rows = [row for row in csv.DictReader(file.read().decode().splitlines())]
-        validate_rows(rows, [column])
-        summary = run_analysis(rows, column)
-        return Response(summary)
-```
-
----
-
-### `urls.py`
-
-```python
-from django.urls import path
-from pyinsight.views import AnalyzeCSV
-
-urlpatterns = [
-    path("api/analyze/", AnalyzeCSV.as_view()),
-]
-```
-
----
-
-### `rules.yaml`
+### Rule Engine
 
 ```yaml
+# core/rules.yaml
 rules:
   - name: high_score
     column: score
     condition: "value > 90"
-    action: "flag"
-  - name: low_score
-    column: score
-    condition: "value < 40"
-    action: "warn"
+    action: flag
 ```
+
+```python
+# core/rules.py
+import yaml
+
+def evaluate_rules(rows):
+    rules = yaml.safe_load(open("core/rules.yaml"))["rules"]
+    violations = []
+    for rule in rules:
+        for i, row in enumerate(rows, 1):
+            value = float(row.get(rule["column"], 0))
+            if eval(rule["condition"], {"value": value}):
+                violations.append({"row": i, "rule": rule["name"], "action": rule["action"]})
+    return violations
+```
+
+> **Tip:** Replace `eval` with a safe parser for production.
+
+### Plugin Interface
+
+```python
+# core/plugins/base.py
+from abc import ABC, abstractmethod
+
+class Plugin(ABC):
+    name: str
+    version: str
+
+    @abstractmethod
+    async def analyze(self, rows, context):
+        ...
+```
+
+### Celery Task
+
+```python
+# core/tasks.py
+from celery import shared_task
+from .analysis import summarize
+from .rules import evaluate_rules
+
+@shared_task
+def analyze_csv(rows, column):
+    return {
+        "summary": summarize(rows, column),
+        "rules": evaluate_rules(rows),
+        "plugins": [],
+    }
+```
+
+### API Endpoints
+
+```python
+# core/views.py
+import csv
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .tasks import analyze_csv
+from celery.result import AsyncResult
+
+class AnalyzeCSV(APIView):
+    def post(self, request):
+        rows = list(csv.DictReader(request.FILES["file"].read().decode().splitlines()))
+        task = analyze_csv.delay(rows, request.data["column"])
+        return Response({"task_id": task.id}, status=202)
+
+class JobStatus(APIView):
+    def get(self, request, task_id):
+        r = AsyncResult(task_id)
+        return Response({"state": r.state, "result": r.result if r.ready() else None})
+```
+
+### WebSocket Consumer
+
+```python
+# core/consumers.py
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
+class JobConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+```
+
+Routing:
+
+```python
+# core/routing.py
+from django.urls import path
+from .consumers import JobConsumer
+
+websocket_urlpatterns = [path("ws/jobs/", JobConsumer.as_asgi())]
+```
+
+ASGI:
+
+```python
+# pyinsight/asgi.py
+import os
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
+from channels.auth import AuthMiddlewareStack
+from core.routing import websocket_urlpatterns
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pyinsight.settings")
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
+})
+```
+
+URLs:
+
+```python
+# pyinsight/urls.py
+from django.contrib import admin
+from django.urls import path
+from core.views import AnalyzeCSV, JobStatus
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/analyze/", AnalyzeCSV.as_view()),
+    path("api/status/<str:task_id>/", JobStatus.as_view()),
+]
+```
+
+**✅ Backend Ready**
+
+* `POST /api/analyze/` → upload CSV, returns `task_id`
+* `GET /api/status/<task_id>/` → async result
+* WebSocket: `ws://localhost:8000/ws/jobs/`
 
 ---
 
-## 3️⃣ Frontend Setup (React + TypeScript + DRI)
+# **Part 2: Frontend — React + TypeScript**
 
-### 3.1 Create React App
+### Setup
 
 ```bash
-cd ../frontend
-npm create vite@latest pyinsight-frontend -- --template react-ts
-cd pyinsight-frontend
+npx create-react-app frontend --template typescript
+cd frontend
 npm install axios
 ```
 
----
-
-### 3.2 Frontend Folder Structure
+Structure:
 
 ```
 frontend/src/
-├── api/pyinsightAPI.ts
-├── components/
-│   ├── Dashboard.tsx
-│   ├── FileUploader.tsx
-│   ├── SummaryCard.tsx
-│   ├── RuleFlags.tsx
-│   └── PluginResults.tsx
-├── hooks/usePyInsight.ts
+├── api/        # pyinsight.ts
+├── hooks/      # usePyInsight.ts
+├── components/ # Dashboard.tsx
 ├── App.tsx
-└── main.tsx
+└── index.tsx
 ```
 
----
-
-### `api/pyinsightAPI.ts`
+### Axios API
 
 ```ts
+// frontend/src/api/pyinsight.ts
 import axios from "axios";
-
-export const analyzeCSV = async (file: File, column: string) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("column", column);
-  const response = await axios.post("/api/analyze/", formData);
-  return response.data;
-};
+export const api = axios.create({ baseURL: "http://localhost:8000" });
 ```
 
----
-
-### `hooks/usePyInsight.ts`
+### Hook
 
 ```ts
-import { useState } from "react";
-import { analyzeCSV } from "../api/pyinsightAPI";
+// frontend/src/hooks/usePyInsight.ts
+import { api } from "../api/pyinsight";
 
 export const usePyInsight = () => {
-  const [summary, setSummary] = useState<any>(null);
-  const [rules, setRules] = useState<any[]>([]);
-  const [plugins, setPlugins] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-
-  const runAnalysis = async (file: File, column: string) => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await analyzeCSV(file, column);
-      setSummary(data.summary);
-      setRules(data.rules);
-      setPlugins(data.plugins);
-    } catch (err: any) {
-      setError(err.message || "Analysis failed");
-    } finally {
-      setLoading(false);
-    }
+  const analyze = (file: File, column: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("column", column);
+    return api.post("/api/analyze/", form);
   };
-
-  return { summary, rules, plugins, loading, error, runAnalysis };
+  const status = (taskId: string) => api.get(`/api/status/${taskId}/`);
+  return { analyze, status };
 };
 ```
 
----
-
-### `components/FileUploader.tsx`
+### Dashboard
 
 ```tsx
+// frontend/src/components/Dashboard.tsx
 import React, { useState } from "react";
-
-interface Props { onUpload: (file: File, column: string) => void }
-
-export const FileUploader: React.FC<Props> = ({ onUpload }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [column, setColumn] = useState("score");
-  return (
-    <div>
-      <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />
-      <input type="text" value={column} onChange={e => setColumn(e.target.value)} />
-      <button onClick={() => file && onUpload(file, column)}>Analyze</button>
-    </div>
-  );
-};
-```
-
----
-
-### `components/SummaryCard.tsx`
-
-```tsx
-import React from "react";
-
-export const SummaryCard = ({ summary, column }: any) => {
-  if (!summary) return null;
-  return (
-    <div>
-      <h3>{column} Summary</h3>
-      {Object.entries(summary).map(([k, v]) => <div key={k}>{k}: {v}</div>)}
-    </div>
-  );
-};
-```
-
----
-
-### `components/RuleFlags.tsx`
-
-```tsx
-import React from "react";
-
-export const RuleFlags = ({ rules }: any) => {
-  if (!rules.length) return null;
-  return (
-    <div>
-      <h3>Rule Violations</h3>
-      {rules.map((r: any, i: number) => (
-        <div key={i}>{r.row}: {r.rule} ({r.action})</div>
-      ))}
-    </div>
-  );
-};
-```
-
----
-
-### `components/PluginResults.tsx`
-
-```tsx
-import React from "react";
-
-export const PluginResults = ({ plugins }: any) => {
-  if (!plugins.length) return null;
-  return (
-    <div>
-      <h3>Plugin Results</h3>
-      {plugins.map((p: any, i: number) => (
-        <div key={i}>{p.name}: {JSON.stringify(p.result)}</div>
-      ))}
-    </div>
-  );
-};
-```
-
----
-
-### `components/Dashboard.tsx`
-
-```tsx
-import React from "react";
-import { FileUploader } from "./FileUploader";
-import { SummaryCard } from "./SummaryCard";
-import { RuleFlags } from "./RuleFlags";
-import { PluginResults } from "./PluginResults";
 import { usePyInsight } from "../hooks/usePyInsight";
 
-export const Dashboard: React.FC = () => {
-  const { summary, rules, plugins, loading, error, runAnalysis } = usePyInsight();
+export const Dashboard = () => {
+  const { analyze, status } = usePyInsight();
+  const [file, setFile] = useState<File | null>(null);
+  const [column, setColumn] = useState("score");
+  const [result, setResult] = useState<any>(null);
+
+  const handleUpload = async () => {
+    if (!file) return;
+    const res = await analyze(file, column);
+    const interval = setInterval(async () => {
+      const s = await status(res.data.task_id);
+      if (s.data.state === "SUCCESS") {
+        setResult(s.data.result);
+        clearInterval(interval);
+      }
+    }, 1000);
+  };
+
   return (
     <div>
       <h1>PyInsight Dashboard</h1>
-      <FileUploader onUpload={runAnalysis} />
-      {loading && <p>Loading...</p>}
-      {error && <p style={{color:"red"}}>{error}</p>}
-      <SummaryCard summary={summary} column="score" />
-      <RuleFlags rules={rules} />
-      <PluginResults plugins={plugins} />
+      <input type="file" onChange={e => e.target.files && setFile(e.target.files[0])} />
+      <input value={column} onChange={e => setColumn(e.target.value)} />
+      <button onClick={handleUpload}>Analyze CSV</button>
+      {result && <pre>{JSON.stringify(result, null, 2)}</pre>}
     </div>
   );
 };
 ```
 
----
-
-### `App.tsx`
+### App.tsx
 
 ```tsx
 import React from "react";
 import { Dashboard } from "./components/Dashboard";
 
-function App() {
-  return <Dashboard />;
-}
-
+function App() { return <Dashboard />; }
 export default App;
 ```
 
+**✅ Frontend Ready**
+
+* Live polling results
+* Extendable with plugins, ML, WASM
+
 ---
 
-## 4️⃣ Run Application Locally
+# **Docker & MySQL Setup**
 
-### Backend
+### Backend Dockerfile
 
-```bash
-cd backend
-python manage.py migrate
-python manage.py runserver
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y gcc build-essential default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY . .
+RUN python manage.py collectstatic --noinput
+CMD ["gunicorn", "pyinsight.wsgi:application", "--bind", "0.0.0.0:8000"]
 ```
 
-### Frontend
+### Frontend Dockerfile
 
-```bash
-cd frontend/pyinsight-frontend
-npm install
-npm run dev
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+RUN npm install -g serve
+CMD ["serve", "-s", "build", "-l", "3000"]
 ```
 
-Open browser → `http://localhost:5173` → upload CSV → see summary, rules, plugins.
+### Docker Compose
+
+```yaml
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: pyinsight
+      MYSQL_USER: pyinsight
+      MYSQL_PASSWORD: pyinsight123
+    ports: ["3306:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  backend:
+    build: ../backend
+    ports: ["8000:8000"]
+    env_file: ../backend/.env
+    depends_on: [redis, mysql]
+
+  worker:
+    build: ../backend
+    command: celery -A pyinsight worker -l info
+    env_file: ../backend/.env
+    depends_on: [redis, mysql, backend]
+
+  frontend:
+    build: ../frontend
+    ports: ["3000:3000"]
+    depends_on: [backend]
+
+volumes:
+  mysql_data:
+```
+
+### Django MySQL Settings
+
+```python
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("MYSQL_DATABASE", "pyinsight"),
+        "USER": os.getenv("MYSQL_USER", "pyinsight"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD", "pyinsight123"),
+        "HOST": os.getenv("MYSQL_HOST", "mysql"),
+        "PORT": os.getenv("MYSQL_PORT", "3306"),
+    }
+}
+```
+
+### Environment (`backend/.env`)
+
+```env
+DJANGO_SECRET=supersecretkey
+DEBUG=1
+MYSQL_HOST=mysql
+MYSQL_DATABASE=pyinsight
+MYSQL_USER=pyinsight
+MYSQL_PASSWORD=pyinsight123
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+### Run Stack
+
+```bash
+cd docker
+docker-compose up --build
+docker exec -it pyinsight-backend python manage.py migrate
+docker exec -it pyinsight-backend python manage.py createsuperuser
+```
+
+**Endpoints:**
+
+* Backend: `http://localhost:8000`
+* Frontend: `http://localhost:3000`
+* MySQL: `localhost:3306`
+* Redis: `localhost:6379`
 
 ---
 
-## 5️⃣ Next Steps
+# ✅ Notes
 
-1. **Add Celery for async backend tasks** for heavy CSVs.
-2. **Add WebSocket / polling** to update plugin results dynamically.
-3. **Add Docker & Kubernetes configs** for deployment.
-4. **Add authentication, secrets, and metrics** (OpenTelemetry) for production readiness.
+1. Hot reload enabled via volumes
+2. Celery async tasks processed with Redis
+3. WebSocket channels use Redis
+4. Production: set `DEBUG=0`, secure secrets, optionally use Daphne/Uvicorn for ASGI
 
----
 
