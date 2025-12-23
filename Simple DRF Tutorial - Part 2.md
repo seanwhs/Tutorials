@@ -1,4 +1,4 @@
-# 📝 Full-Stack DRF + React Tutorial
+# 📝 Part 2 - DRF + React + JWT
 
 This guide extends the previous **Task API** and adds:
 
