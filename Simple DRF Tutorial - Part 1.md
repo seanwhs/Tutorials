@@ -1,4 +1,4 @@
-# 📝 Django REST Framework (DRF) Tutorial — Building a Simple Task API
+# 📝 Part 1 - Building a Simple Task API
 
 This guide walks you through creating a **RESTful API** using Django and DRF to manage a list of tasks.
 
