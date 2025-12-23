@@ -1,4 +1,4 @@
-# 📝 Full-Stack DRF + React with Real-Time WebSocket Updates
+# 📝 Part 3 - Real-Time WebSocket Updates
 
 ---
 
