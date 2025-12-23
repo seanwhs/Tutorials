@@ -274,6 +274,3 @@ npm start
 
 ---
 
-I can also **upgrade this tutorial with live WebSocket updates** from Django Channels so React sees task updates in real-time — essentially mimicking the PyInsight incremental dashboard behavior.
-
-Do you want me to add the **WebSocket/real-time layer next**?
