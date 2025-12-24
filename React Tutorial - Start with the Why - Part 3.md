@@ -1,151 +1,123 @@
-# 📜 Security Audit Report: Project PyInsight
+# 📜 Production Security & Secrets Management
 
 **Audit Date:** December 24, 2025
+**Status:** 🟢 **RESILIENT**
+**Architecture:** Decoupled React (Vite) + Django REST Framework (DRF)
 
-**Status:** 🟢 **RESILIENT** **Architecture:** Decoupled React (Vite) + Django REST Framework (DRF)
+This section extends previous security layers into **enterprise-grade operational security**, secrets management, and CI/CD integration.
+
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/8bb42db0-7353-4c53-a41c-5d797d2ef684" />
 
 ---
 
-## 1. Authentication & Session Integrity
+## 1️⃣ Authentication & Session Integrity
 
 **Standard:** OWASP A01:2021 – Broken Access Control
 
-| Control | Implementation Details | Status |
-| --- | --- | --- |
-| **Token Storage** | Refresh tokens stored in `HttpOnly`, `Secure`, `SameSite=Strict` cookies. | ✅ |
-| **Session Lifetime** | Access Tokens: 15m | Refresh Tokens: 7d. | ✅ |
-| **Revocation** | Redis-backed JTI (JWT ID) Deny-List for instant session termination. | ✅ |
-| **Rotation** | Refresh Token Rotation (RTR) enabled on every token exchange. | ✅ |
+| Control              | Implementation Details                                                    | Status |
+| -------------------- | ------------------------------------------------------------------------- | ------ |
+| **Token Storage**    | Refresh tokens stored in `HttpOnly`, `Secure`, `SameSite=Strict` cookies. | ✅      |
+| **Session Lifetime** | Access Tokens: 15m; Refresh Tokens: 7d                                    | ✅      |
+| **Revocation**       | Redis-backed JTI (JWT ID) deny list for instant session termination.      | ✅      |
+| **Rotation**         | Refresh Token Rotation enabled on every token exchange.                   | ✅      |
+
+> **Notes:** This hybrid stateful-stateless approach minimizes XSS and token theft risk. Access tokens expire quickly, refresh tokens are inaccessible to JS, and all tokens can be revoked centrally.
 
 ---
 
-## 2. Browser-Side Runtime Protection
+## 2️⃣ Browser-Side Runtime Protection
 
 **Standard:** OWASP A03:2021 – Injection (XSS)
 
-| Control | Implementation Details | Status |
-| --- | --- | --- |
-| **CSP** | Nonce-based Content Security Policy (Strict). | ✅ |
-| **Data Flow** | Zero use of `dangerouslySetInnerHTML` without `DOMPurify` scrubbing. | ✅ |
-| **Clickjacking** | `X-Frame-Options: DENY` enforced globally. | ✅ |
-| **MIME Sniffing** | `X-Content-Type-Options: nosniff` active. | ✅ |
+| Control            | Implementation Details                                         | Status |
+| ------------------ | -------------------------------------------------------------- | ------ |
+| **CSP**            | Nonce-based Content Security Policy (strict).                  | ✅      |
+| **Safe Rendering** | No `dangerouslySetInnerHTML` without `DOMPurify` sanitization. | ✅      |
+| **Clickjacking**   | `X-Frame-Options: DENY` enforced globally.                     | ✅      |
+| **MIME Sniffing**  | `X-Content-Type-Options: nosniff`.                             | ✅      |
+
+> **Tip:** Always validate third-party scripts to prevent accidental CSP bypasses.
 
 ---
 
-## 3. API & Intent Verification
+## 3️⃣ API & Intent Verification
 
-**Standard:** OWASP A01 & A05: Security Misconfiguration
+**Standards:** OWASP A01 & A05
 
-| Control | Implementation Details | Status |
-| --- | --- | --- |
-| **CSRF Defense** | Double-submit cookie pattern with Axios interceptors. | ✅ |
-| **Throttling** | IP-based Anon Throttling + User-based Burst/Sustained limits. | ✅ |
-| **Payload Scan** | WAF-level inspection for directory traversal and SQL signatures. | ✅ |
-| **CORS** | Strict Origin Allow-list; no wildcard (`*`) usage in production. | ✅ |
+| Control          | Implementation Details                                          | Status |
+| ---------------- | --------------------------------------------------------------- | ------ |
+| **CSRF Defense** | Double-submit cookie pattern with Axios interceptors.           | ✅      |
+| **Throttling**   | IP-based anonymous + user-based burst/sustained limits.         | ✅      |
+| **Payload Scan** | WAF-level inspection for directory traversal and SQL injection. | ✅      |
+| **CORS**         | Explicit allowlist; no wildcard (`*`) in production.            | ✅      |
 
 ---
 
-## 4. Input/Output Data Hardening
+## 4️⃣ Input & Output Hardening
 
 **Standard:** OWASP A03 – Injection
 
-| Control | Implementation Details | Status |
-| --- | --- | --- |
-| **Validation** | DRF Serializers acting as a type-safe gatekeeper for all mutations. | ✅ |
-| **ORM Usage** | Strict "No-Raw SQL" policy enforced via linting and code review. | ✅ |
-| **Sanitization** | Server-side scrubbing of HTML inputs via `bleach` library. | ✅ |
+| Control          | Implementation Details                                | Status |
+| ---------------- | ----------------------------------------------------- | ------ |
+| **Validation**   | DRF serializers enforce type-safe data validation.    | ✅      |
+| **ORM Policy**   | Strict "No-Raw SQL" enforced via linting/code review. | ✅      |
+| **Sanitization** | Server-side scrubbing of HTML inputs with `bleach`.   | ✅      |
 
 ---
 
-## 5. Resilience & Incident Response
+## 5️⃣ Observability & Incident Response
 
-**Standard:** OWASP A09:2021 – Security Logging and Monitoring Failures
+**Standard:** OWASP A09:2021 – Logging & Monitoring Failures
 
-| Control | Implementation Details | Status |
-| --- | --- | --- |
-| **Observability** | Sentry logging for `SuspiciousOperation` and `403 Forbidden` spikes. | ✅ |
-| **Kill-Switch** | Redis-triggered `EmergencyLockdownMiddleware` for instant API halt. | ✅ |
-| **Audit Trail** | Immutable database logs for sensitive data mutations. | ✅ |
-
----
-
-## 🛠️ Executive Summary & Recommendations
-
-The PyInsight platform currently operates at a **Senior-Tier Security Maturity Level**. The implementation of a hybrid stateful-stateless authentication model significantly reduces the risk of session hijacking, while the nonce-based CSP provides a robust secondary defense against XSS.
-
-**Next Strategic Steps:**
-
-1. **Automated DAST:** Integrate a Dynamic Application Security Testing tool (like OWASP ZAP) into the CI/CD pipeline.
-2. **MFA Expansion:** Implement WebAuthn/FIDO2 support for administrative accounts.
-3. **Secrets Management:** Transition from `.env` files to a dedicated provider like **HashiCorp Vault** or **AWS Secrets Manager**.
+| Control           | Implementation Details                                                 | Status |
+| ----------------- | ---------------------------------------------------------------------- | ------ |
+| **Observability** | Sentry logs for `SuspiciousOperation` & `403` spikes.                  | ✅      |
+| **Kill-Switch**   | Redis-triggered `EmergencyLockdownMiddleware` halts the API instantly. | ✅      |
+| **Audit Trail**   | Immutable database logs for sensitive mutations.                       | ✅      |
 
 ---
 
-### 🎓 Moving Forward
+## 6️⃣ Secrets Management: Eliminating Secret Sprawl
 
-You have now documented a system that is not only secure but **defensible**. This report can be included in your project documentation or presented during technical interviews to demonstrate your mastery of Fullstack Security Engineering.
+**Problem:** `.env` files scattered across servers expose secrets if a node is compromised.
 
----
-Moving from `.env` files to a dedicated secret vault like **HashiCorp Vault** or **AWS Secrets Manager** is the final step in enterprise-grade hardening. This eliminates "Secret Sprawl" and enables **Dynamic Secrets** (credentials that are generated on the fly and expire automatically).
+**Solution:** Centralized secret vaults:
 
----
+* **HashiCorp Vault**
+* **AWS Secrets Manager**
 
-# 🗝️ Secrets Management Migration Plan
+| Feature             | `.env`            | Vault / AWS              |
+| ------------------- | ----------------- | ------------------------ |
+| **Storage**         | Plaintext on disk | Encrypted in memory/HSM  |
+| **Rotation**        | Manual            | Automatic & programmatic |
+| **Audit**           | None              | Full access logs         |
+| **Dynamic Secrets** | Static            | Just-in-time, expiring   |
 
-## 1. The "Secret Sprawl" Problem vs. The Vault Solution
+### Phase I — Audit & Categorization
 
-In a standard setup, secrets live in `.env` files on various servers. If a server is compromised, all secrets are exposed. Centralized management changes this.
+* **Static secrets:** `SECRET_KEY`, API keys, OAuth secrets
+* **Infrastructure secrets:** `DATABASE_URL`, Redis passwords
+* **Non-secret config:** `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
 
-| Feature | Legacy (.env) | Enterprise (Vault/AWS) |
-| --- | --- | --- |
-| **Storage** | Plaintext on Disk | Encrypted in Memory/HSM |
-| **Rotation** | Manual (High Risk) | Automatic & Programmatic |
-| **Audit** | None | Full log of "Who accessed what" |
-| **Dynamic** | Static Passwords | Just-in-Time Credentials |
+### Phase II — Integration (Django + hvac)
 
----
-
-## 2. Phase I: Extraction & Mapping
-
-Before moving to a vault, you must audit your existing environment variables and categorize them.
-
-* **Static Secrets:** `SECRET_KEY`, API Keys, OAuth client secrets.
-* **Infrastructure Secrets:** `DATABASE_URL`, Redis passwords, AWS credentials.
-* **Non-Secret Config:** `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` (These should stay as env vars or in a config file).
-
----
-
-## 3. Phase II: Implementation (Django + hvac)
-
-The most common way to integrate Django with HashiCorp Vault is using the `hvac` library.
-
-### ⚙️ The Vault Utility Helper
-
-Instead of reading from `os.getenv`, we create a utility that fetches from the Vault API during the Django boot process.
+**Vault utility helper:**
 
 ```python
-import hvac
-import os
+import hvac, os
 
 def get_vault_secret(path):
     client = hvac.Client(url=os.getenv('VAULT_ADDR'), token=os.getenv('VAULT_TOKEN'))
     if not client.is_authenticated():
         raise Exception("Vault Authentication Failed")
-    
-    response = client.secrets.kv.v2.read_secret_path(path=path)
-    return response['data']['data']
-
+    return client.secrets.kv.v2.read_secret_path(path=path)['data']['data']
 ```
 
-### ⚙️ Updating `settings.py`
-
-We load the secrets once at startup. For highly dynamic secrets (like DB passwords), we use a wrapper that refreshes the credentials periodically.
+**settings.py integration:**
 
 ```python
-# settings.py
 from .vault_utils import get_vault_secret
 
-# Fetch all production secrets in one call
 vault_secrets = get_vault_secret('project/production/django')
 
 SECRET_KEY = vault_secrets['SECRET_KEY']
@@ -158,31 +130,170 @@ DATABASES = {
         'HOST': vault_secrets['DB_HOST'],
     }
 }
+```
 
+### Phase III — CI/CD & Deployment
+
+* **Dev:** Local Vault container or dev path
+* **Prod:** AppRole authentication; no human access
+* **CI/CD:** OIDC authentication for GitHub Actions or other pipelines
+
+### Phase IV — Emergency Rotation (Kill-Switch)
+
+* Rotate DB password in Vault
+* Notify Django workers to refresh credentials
+* Old credentials immediately invalid
+
+> Ensures zero window of exposure.
+
+---
+
+## 7️⃣ Executive Summary & Recommendations
+
+1. **Dynamic Secrets:** Replace `.env` secrets with Vault-managed credentials
+2. **MFA & WebAuthn:** Strengthen admin and sensitive operations
+3. **Automated Security Tests:** Integrate OWASP ZAP / DAST into CI/CD
+4. **Layered Security:** CSP, JWT rotation, throttling, audit trails, emergency kill-switch
+
+### 🎓 Outcome
+
+* React + Django app is **enterprise-grade secure**
+* Tokens, secrets, and state are **centrally controlled and auditable**
+* CI/CD pipelines integrate security checks to **prevent regression**
+
+This completes the **production-ready React + Django handbook**.
+
+---
+
+## Condensed Fullstack Security Blueprint (ASCII)
+
+```
+                     ┌───────────────────────────┐
+                     │      Browser (React SPA)  │
+                     │---------------------------│
+                     │ - Access Token (Memory)   │
+                     │ - Refresh Token (HttpOnly)│
+                     │ - CSRF Token (Double-submit)│
+                     └────────────┬─────────────┘
+                                  │
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │       API Gateway / Django    │
+                  │-------------------------------│
+                  │ - JWT Validator / Deny List  │
+                  │ - CSRF / HMAC Validation     │
+                  │ - DRF Serializers / Sanitizer│
+                  │ - Rate Limiting / WAF        │
+                  │ - Kill-Switch Middleware     │
+                  └────────────┬─────────────────┘
+                               │
+                               ▼
+                  ┌───────────────────────────────┐
+                  │       Database Layer          │
+                  │-------------------------------│
+                  │ - PostgreSQL + SSL           │
+                  │ - Dynamic Secrets (Vault)    │
+                  │ - Immutable Audit Logs       │
+                  │ - Encrypted Sensitive Data   │
+                  └────────────┬─────────────────┘
+                               │
+                               ▼
+                  ┌───────────────────────────────┐
+                  │   CI/CD & Deployment Layer    │
+                  │-------------------------------│
+                  │ - Git Push → Build → Test     │
+                  │ - Automated Security Audit    │
+                  │ - Vault AppRole / OIDC Inject │
+                  │ - No human access to secrets  │
+                  └────────────┬─────────────────┘
+                               │
+                               ▼
+                  ┌───────────────────────────────┐
+                  │ Observability & Monitoring    │
+                  │-------------------------------│
+                  │ - Sentry Alerts               │
+                  │ - ELK / Logging Stack         │
+                  │ - CSP & Security Reports      │
+                  └───────────────────────────────┘
 ```
 
 ---
 
-## 4. Phase III: Deployment & CI/CD Integration
+### 🔑 Key Highlights
 
-The goal is to ensure that **no human** ever sees the production secrets.
-
-* **Development:** Use a local Vault container or `dev` path.
-* **Production:** Use **AppRole** authentication. Django identifies itself to Vault using a `RoleID` and `SecretID` provided by your orchestration tool (like Terraform or Kubernetes).
-* **CI/CD:** Use **OIDC (OpenID Connect)**. GitHub Actions can authenticate directly with Vault/AWS without storing a long-lived master key.
-
----
-
-## 5. Phase IV: The "Kill-Switch" Rotation
-
-One of the greatest benefits of this migration is the ability to rotate secrets instantly across your entire cluster if a breach is suspected.
-
-> **The "Emergency Rotation" Command:**
-> With one command in Vault, you can rotate the Database password. Vault will update the DB and then signal your Django workers to refresh their credentials, effectively locking out any attacker using old leaked credentials.
+* **Frontend:** ephemeral access tokens + HttpOnly refresh tokens + CSRF protection
+* **API / Backend:** JWT validation, serializer sanitization, ORM access control, rate limiting, emergency lockdown
+* **Database & Vault:** dynamic secrets, encrypted storage, audit logging
+* **CI/CD:** automated injection of secrets, no human exposure, integrated security checks
+* **Observability:** logs, alerts, CSP monitoring, and anomaly detection
 
 ---
 
-### 🎓 Strategic Summary
+### Minimal Dynamic Flow (ASCII)
 
-By moving to a Secrets Manager, you have removed the "single point of failure" in your security stack. Your application no longer "knows" its own secrets; it "borrows" them from a secure source as needed.
-
+```
+                           ┌───────────────────────────────┐
+                           │      Browser (React SPA)      │
+                           │-------------------------------│
+                           │ 1️⃣ User Login / Interaction  │
+                           │ 2️⃣ Access Token (Memory)     │
+                           │ 3️⃣ Refresh Token (HttpOnly)  │
+                           │ 4️⃣ CSRF Token (Double-submit)│
+                           └─────────────┬─────────────────┘
+                                         │
+         ┌───────────────────────────────┼───────────────────────────────┐
+         │                               │                               │
+         ▼                               ▼                               ▼
+   User Actions → API Requests     Refresh Token Flow            CSRF / Intent Header
+                                         │
+                                         ▼
+                           ┌───────────────────────────────┐
+                           │       Django REST API         │
+                           │-------------------------------│
+                           │ 1️⃣ Validate JWT / JTI Deny   │
+                           │ 2️⃣ Check CSRF / HMAC         │
+                           │ 3️⃣ Deserialize & Sanitize    │
+                           │ 4️⃣ ORM Access (No Raw SQL)   │
+                           │ 5️⃣ Rate Limiting / WAF       │
+                           │ 6️⃣ Emergency Lock-Switch     │
+                           └─────────────┬─────────────────┘
+                                         │
+                                         ▼
+                           ┌───────────────────────────────┐
+                           │       Database Layer          │
+                           │-------------------------------│
+                           │ 1️⃣ PostgreSQL + SSL          │
+                           │ 2️⃣ Dynamic Secrets           │
+                           │     fetched from Vault        │
+                           │ 3️⃣ Immutable Audit Logs      │
+                           │ 4️⃣ Encrypted Sensitive Data  │
+                           └─────────────┬─────────────────┘
+                                         │
+                                         ▼
+                           ┌───────────────────────────────┐
+                           │  Vault / AWS Secrets Manager  │
+                           │-------------------------------│
+                           │ 1️⃣ AppRole / OIDC Auth        │
+                           │ 2️⃣ Provide DB & API creds     │
+                           │ 3️⃣ Dynamic Secret Rotation    │
+                           │ 4️⃣ Full Access Audit Logs     │
+                           └─────────────┬─────────────────┘
+                                         │
+                                         ▼
+                           ┌───────────────────────────────┐
+                           │    CI/CD & Deployment Layer   │
+                           │-------------------------------│
+                           │ - Build → Test → Deploy       │
+                           │ - Secrets injected via Vault  │
+                           │ - Automated Security Audit    │
+                           │ - No human secret exposure    │
+                           └─────────────┬─────────────────┘
+                                         │
+                                         ▼
+                           ┌───────────────────────────────┐
+                           │ Observability & Monitoring    │
+                           │-------------------------------│
+                           │ - Sentry / ELK Alerts         │
+                           │ - CSP / Security Reports      │
+                           │ - 403 / Suspicious Ops Logs   │
+                           └───────────────────────────────┘
