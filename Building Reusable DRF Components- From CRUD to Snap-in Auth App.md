@@ -1,41 +1,681 @@
-# **Modular Django REST Framework Project with JWT Auth**
+# **Enterprise-Grade Guide: Step-by-Step Build of a Modular Django REST App with JWT & Async Observability (MySQL Edition)**
 
-This tutorial demonstrates a **modular architecture** using Django REST Framework:
+This guide provides a **comprehensive roadmap** to building a **production-ready, modular Django REST Framework (DRF) application** optimized for **multi-tenant SaaS environments**, with strong observability, tenant isolation, and a MySQL backend.
 
-* **1_crud_project** – a standalone CRUD API (`Post` model) protected by JWT authentication.
-* **2_standalone_auth_app** – a reusable authentication app with **custom user**, **user profiles**, **tenants**, **JWT login/register**, designed to be dropped into any Django project.
-* **3_crud_with_auth** – integration of CRUD API + standalone auth app, fully functional with JWT-secured endpoints.
+The application includes:
 
-This approach allows you to maintain independent projects and snap in auth functionality without modifying existing CRUD logic.
+* **JWT Authentication** – Stateless, tenant-aware tokens for secure access
+* **Async Observability** – Non-blocking logging, error tracking, and metrics collection
+* **Multi-Tenant Awareness** – Tenant-specific logs, metrics, and dashboards
+* **MySQL Backend** – Reliable relational storage
+* **Modular Architecture** – Plug-and-play apps for extensibility
+
+This step-by-step guide is aimed at **enterprise-grade production deployments**.
 
 ---
 
-## **Step 1: Create the CRUD Django Project**
+## **1. Understanding Core Concepts**
 
-### **1.1 Project Setup**
+Before starting development, familiarize yourself with key concepts:
+
+### **1.1 Modular Apps**
+
+Each feature is implemented as a **standalone Django app**, e.g., `CRUD`, `Auth`, `Observability`.
+
+**Advantages:**
+
+* **Independent Testing:** Each app can be tested in isolation
+* **Extensibility:** New features can be added without affecting other modules
+* **Maintainability:** Smaller, focused apps reduce complexity
+
+---
+
+### **1.2 JWT Authentication**
+
+JSON Web Tokens (JWT) provide **stateless, scalable authentication**.
+
+* Tokens include a **`tenant_id`** field to support tenant-aware API calls.
+* No server-side session storage is required, allowing **horizontal scaling**.
+* Essential for SaaS where multiple tenants share the same infrastructure.
+
+---
+
+### **1.3 Async Observability**
+
+Using **Celery + Redis**, requests, errors, and metrics are logged **asynchronously**:
+
+* Ensures **non-blocking request handling**
+* High throughput logging for **enterprise-scale workloads**
+* Supports **real-time metrics** for dashboards and alerts
+
+---
+
+### **1.4 Tenant Awareness**
+
+Logs, metrics, and dashboards are **tenant-specific**:
+
+* Enables **compliance with data segregation rules**
+* Provides **tenant-specific alerting and dashboards**
+* Ensures **data isolation** while maintaining shared infrastructure
+
+---
+
+### **1.5 Plug-and-Play Extensibility**
+
+The modular design allows new apps, like **Notifications** or **Billing**, to integrate without impacting core functionality.
+
+---
+
+## **2. Define Project Modules**
+
+| Module                       | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `1_crud_project`             | Standalone CRUD API (`Post` model) with JWT             |
+| `2_standalone_auth_app`      | Reusable Auth app: custom users, tenants, JWT endpoints |
+| `3_crud_with_auth`           | Full integration of CRUD + Auth with JWT                |
+| `4_standalone_observability` | Async Observability: request logs, errors, metrics      |
+
+> Each module is **developed, tested, and deployed independently**, simplifying complexity in multi-tenant SaaS systems.
+
+---
+
+## **3. Project Structure**
+
+```
+django-modular-tutorial/
+├── 1_crud_project/             # CRUD API
+├── 2_standalone_auth_app/      # Authentication & tenants
+├── 3_crud_with_auth/           # Integrated CRUD + Auth + Observability
+│   ├── blog/                   # CRUD models, serializers, views
+│   ├── auth_app/               # JWT & user/tenant management
+│   ├── observ_app/             # Async observability & metrics
+│   └── crud_project/           # Project settings
+└── 4_standalone_observability/ # Standalone observability
+```
+
+---
+
+## **4. Step-by-Step Application Build**
+
+### **Step 4.1: Environment Setup**
+
+1. Create a Python virtual environment:
 
 ```bash
-mkdir django_crud_project
-cd django_crud_project
 python -m venv venv
-source venv/bin/activate       # Windows: venv\Scripts\activate
-pip install django djangorestframework
-django-admin startproject crud_project .
+source venv/bin/activate   # Linux/macOS
+venv\Scripts\activate      # Windows
 ```
 
-> ✅ Sets up a Django project with DRF installed.
-
----
-
-### **1.2 Create the Blog App**
+2. Install required packages:
 
 ```bash
-python manage.py startapp blog
+pip install django djangorestframework djangorestframework-simplejwt celery redis mysqlclient
+```
+
+> **Notes:**
+>
+> * `mysqlclient` connects Django to MySQL.
+> * Virtual environments ensure **dependency isolation and reproducibility**.
+
+---
+
+### **Step 4.2: MySQL Configuration**
+
+In `settings.py`:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'modular_db',
+        'USER': 'admin',
+        'PASSWORD': 'password',
+        'HOST': 'db',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
+```
+
+> **Explanation:**
+>
+> * `STRICT_TRANS_TABLES` enforces **data integrity** and prevents invalid inserts.
+> * MySQL ensures **reliable transaction handling** in multi-tenant scenarios.
+
+---
+
+### **Step 4.3: Create Modular Apps**
+
+```bash
+python manage.py startapp blog       # CRUD operations
+python manage.py startapp auth_app   # JWT authentication & tenant management
+python manage.py startapp observ_app # Observability & metrics
+```
+
+> Each app follows the **single-responsibility principle**.
+
+---
+
+### **Step 4.4: JWT Authentication Setup**
+
+**Update `settings.py`:**
+
+```python
+INSTALLED_APPS += ['rest_framework', 'rest_framework_simplejwt']
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+```
+
+**Define JWT URLs (`auth_app/urls.py`):**
+
+```python
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.urls import path
+
+urlpatterns = [
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]
+```
+
+> **Notes:** JWT tokens are **stateless, tenant-aware, and scalable** for SaaS environments.
+
+---
+
+### **Step 4.5: Observability App**
+
+#### **4.5.1 Models**
+
+```python
+class RequestLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    path = models.CharField(max_length=255)
+    method = models.CharField(max_length=10)
+    status_code = models.IntegerField()
+    duration_ms = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+class ErrorLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    path = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+```
+
+> Separate tables improve **query efficiency** and support **high-volume logging**.
+
+---
+
+#### **4.5.2 Serializers & Views**
+
+```python
+class RequestLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RequestLog
+        fields = '__all__'
+
+class ErrorLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ErrorLog
+        fields = '__all__'
+
+class RequestLogListView(generics.ListAPIView):
+    queryset = RequestLog.objects.all()
+    serializer_class = RequestLogSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+class ErrorLogListView(generics.ListAPIView):
+    queryset = ErrorLog.objects.all()
+    serializer_class = ErrorLogSerializer
+    permission_classes = [permissions.IsAdminUser]
+```
+
+**URLs:**
+
+```python
+urlpatterns = [
+    path('requests/', RequestLogListView.as_view(), name='request-logs'),
+    path('errors/', ErrorLogListView.as_view(), name='error-logs'),
+]
+```
+
+> Allows **integration with dashboards** such as Grafana and Kibana for tenant-specific insights.
+
+---
+
+### **Step 4.6: Async Logging with Celery + Redis**
+
+**Celery (`celery.py`):**
+
+```python
+from celery import Celery
+app = Celery('django_modular_tutorial')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+**Tasks (`observ_app/tasks.py`):**
+
+```python
+@shared_task
+def log_request_task(user_id, path, method, status_code, duration_ms):
+    user = get_user_model().objects.filter(id=user_id).first() if user_id else None
+    RequestLog.objects.create(user=user, path=path, method=method, status_code=status_code, duration_ms=duration_ms)
+
+@shared_task
+def log_error_task(user_id, path, message):
+    user = get_user_model().objects.filter(id=user_id).first() if user_id else None
+    ErrorLog.objects.create(user=user, path=path, message=message)
+```
+
+**Middleware (`observ_app/middleware.py`):**
+
+```python
+class AsyncRequestLoggingMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        request._start_time = time.time()
+
+    def process_response(self, request, response):
+        duration = (time.time() - getattr(request, "_start_time", time.time())) * 1000
+        log_request_task.delay(getattr(request.user, "id", None),
+                               request.path,
+                               request.method,
+                               response.status_code,
+                               duration)
+        return response
+
+    def process_exception(self, request, exception):
+        log_error_task.delay(getattr(request.user, "id", None),
+                             request.path,
+                             str(exception))
+```
+
+**Enable Middleware (`settings.py`):**
+
+```python
+MIDDLEWARE += ['observ_app.middleware.AsyncRequestLoggingMiddleware']
+```
+
+> Middleware captures **request lifecycle events**; Celery ensures **non-blocking, async persistence**.
+
+---
+
+### **Step 4.7: Multi-Tenant Observability Flow**
+
+```
+Client / UI
+  │
+API Gateway / Auth (JWT → tenant_id)
+  │
+CRUD / Auth API
+  │
+Observability Middleware
+  │
+Redis Queues (Requests / Errors / Metrics)
+  │
+Celery Workers (Async, Tenant-aware)
+  │
+MySQL DB (Tenant-isolated logs & metrics)
+  │
+Dashboards & Alerts (Grafana / Prometheus / Slack / Email)
 ```
 
 ---
 
-### **1.3 Define Models (blog/models.py)**
+### **Step 4.8: Run Migrations & Start Server**
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
+```
+
+---
+
+### **Step 4.9: Dockerized Infrastructure**
+
+```yaml
+services:
+  db:
+    image: mysql:8.1
+    environment:
+      MYSQL_DATABASE: modular_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7-alpine
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports: ["8000:8000"]
+    depends_on: [db, redis]
+
+  worker:
+    build: .
+    command: celery -A config worker --loglevel=info -Q logging_queue
+    depends_on: [redis]
+
+  prometheus:
+    image: prom/prometheus
+    ports: ["9090:9090"]
+```
+
+> Docker ensures **consistent deployment** and **multi-service orchestration**.
+
+---
+
+## **5. Best Practices**
+
+* Use `bulk_create` for **high-volume logs**
+* Maintain **separate Celery queues** for Requests / Errors / Metrics
+* Capture **IP, headers, tenant_id** for observability
+* Keep apps modular for **future expansion**
+* Configure **alerts** via Slack, email, or webhooks
+
+---
+
+## **6. Architecture Advantages**
+
+* High-performance, **non-blocking APIs**
+* **Tenant-aware logging and dashboards**
+* Modular, plug-and-play **Observability & Auth apps**
+* Scalable with **Celery + Redis**
+* Extensible for **metrics, alerts, and analytics**
+
+---
+
+## **7. Observability Stack**
+
+| Component | Technology | Role                                  |
+| --------- | ---------- | ------------------------------------- |
+| Broker    | Redis      | Non-blocking queue storage            |
+| Worker    | Celery     | Async persistence to DB               |
+| Metrics   | Prometheus | Real-time aggregation                 |
+| Dashboard | Grafana    | Tenant health & latency visualization |
+
+---
+
+## **8. Multi-Tenant Async Mesh (MySQL Edition)**
+
+```
+──────────────────────────────────────────────
+           MULTI-TENANT ASYNC OBSERVABILITY
+──────────────────────────────────────────────
+
+             Clients / UI
+                   │
+                   ▼
+          API Gateway / Auth
+       (JWT → tenant_id)
+                   │
+                   ▼
+           CRUD / Auth API
+       (Tenant-aware Business Logic)
+                   │
+                   ▼
+       Observability Middleware
+  (Capture requests, errors, duration)
+                   │
+     ┌─────────────┼─────────────┐
+     ▼             ▼             ▼
+   Tenant A       Tenant B       Tenant C
+ ┌─────────┐   ┌─────────┐   ┌─────────┐
+ │ Req Q   │   │ Req Q   │   │ Req Q   │
+ │ Err Q   │   │ Err Q   │   │ Err Q   │
+ │ Mtr Q   │   │ Mtr Q   │   │ Mtr Q   │
+ └─────────┘   └─────────┘   └─────────┘
+     │             │             │
+     └───────┬─────┴─────┬───────┘
+             ▼           ▼
+     Celery Workers (Async, Tenant-aware)
+             │
+     ┌───────┴───────┐
+     ▼               ▼
+  RequestLog DB    ErrorLog DB
+  (Tenant-specific MySQL tables)
+             │
+             ▼
+      Prometheus Metrics
+             │
+             ▼
+      Dashboards & Alerts
+```
+
+---
+
+## **9. Visual Architecture Diagrams**
+
+### **9.1 High-Level Architecture**
+
+```
+Clients / UI
+    │
+    ▼
+API Gateway (JWT Auth, tenant_id)
+    │
+    ▼
+CRUD / Auth Modules (Tenant-aware)
+    │
+    ▼
+Observability Layer (Middleware + Queues)
+    │
+    ▼
+Request Logs Queue    Error Logs Queue
+```
+
+### **9.2 Tenant-Specific Async Flow**
+
+```
+Observability Middleware
+      │
+┌─────┼─────┐
+▼     ▼     ▼
+Tenant A  Tenant B  Tenant C
+ Req Q     Req Q     Req Q
+ Err Q     Err Q     Err Q
+ Mtr Q     Mtr Q     Mtr Q
+      │
+      ▼
+Celery Workers
+      │
+      ▼
+Tenant-specific MySQL Tables
+      │
+      ▼
+Prometheus Metrics
+```
+
+### **9.3 Observability Stack Integration**
+
+```
+Tenant-specific MySQL (RequestLog / ErrorLog)
+         │
+         ▼
+   Celery Workers
+         │
+         ▼
+      Redis Broker
+         │
+         ▼
+    Prometheus Metrics
+         │
+         ▼
+      Grafana Dashboards
+         │
+         ▼
+     Alerts / Slack / Email / Webhook
+```
+
+---
+
+✅ **Outcome:** This guide delivers a **complete step-by-step approach** to:
+
+* Build a **modular, multi-tenant DRF application**
+* Implement **JWT authentication** with tenant-awareness
+* Enable **async observability** with Celery, Redis, MySQL
+* Create **tenant-isolated metrics and dashboards**
+* Follow **enterprise best practices** for SaaS deployments
+
+---
+
+# **Modular Django REST Skeleton **
+
+Includes **all directories, files, and minimal boilerplate code**, ready to run.
+
+* `blog` (CRUD module)
+* `auth_app` (JWT authentication + multi-tenant support)
+* `observ_app` (async observability: requests, errors, metrics)
+* Celery + Redis integration
+* MySQL database setup
+* Docker support for multi-service deployment
+  
+### **Project Structure**
+
+```
+django_modular_saas/
+├── config/                    # Project settings & celery
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── celery.py
+├── blog/                      # CRUD app
+│   ├── __init__.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   └── admin.py
+├── auth_app/                  # Auth & tenants
+│   ├── __init__.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   └── admin.py
+├── observ_app/                # Observability
+│   ├── __init__.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── tasks.py
+│   └── middleware.py
+├── manage.py
+├── requirements.txt
+├── Dockerfile
+└── docker-compose.yml
+```
+
+---
+
+## **1. config/settings.py (MySQL + DRF + JWT)**
+
+```python
+import os
+from pathlib import Path
+from datetime import timedelta
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = 'replace-with-your-secret-key'
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'blog',
+    'auth_app',
+    'observ_app',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'observ_app.middleware.AsyncRequestLoggingMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'modular_db',
+        'USER': 'admin',
+        'PASSWORD': 'password',
+        'HOST': 'db',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
+STATIC_URL = '/static/'
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+```
+
+---
+
+## **2. config/celery.py**
+
+```python
+import os
+from celery import Celery
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+app = Celery('django_modular_saas')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+---
+
+## **3. blog/models.py (CRUD Model)**
 
 ```python
 from django.db import models
@@ -52,7 +692,7 @@ class Post(models.Model):
 
 ---
 
-### **1.4 Create Serializers (blog/serializers.py)**
+## **4. blog/serializers.py**
 
 ```python
 from rest_framework import serializers
@@ -61,259 +701,190 @@ from .models import Post
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'created_at', 'updated_at']
+        fields = '__all__'
 ```
 
 ---
 
-### **1.5 Implement Views (blog/views.py)**
+## **5. blog/views.py**
 
 ```python
-from rest_framework import viewsets, permissions
+from rest_framework import generics, permissions
 from .models import Post
 from .serializers import PostSerializer
 
-class PostViewSet(viewsets.ModelViewSet):
+class PostListCreateView(generics.ListCreateAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class PostRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticated]
 ```
 
-> DRF ViewSet; all CRUD endpoints require JWT authentication.
-
 ---
 
-### **1.6 Configure URLs (crud_project/urls.py)**
+## **6. blog/urls.py**
 
 ```python
-from django.contrib import admin
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from blog.views import PostViewSet
-
-router = DefaultRouter()
-router.register(r'posts', PostViewSet, basename='post')
+from django.urls import path
+from .views import PostListCreateView, PostRetrieveUpdateDestroyView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
+    path('posts/', PostListCreateView.as_view(), name='post-list-create'),
+    path('posts/<int:pk>/', PostRetrieveUpdateDestroyView.as_view(), name='post-detail'),
 ]
 ```
 
 ---
 
-### **1.7 Settings (crud_project/settings.py)**
-
-```python
-INSTALLED_APPS = [
-    ...
-    'rest_framework',
-    'blog',
-]
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-```
-
----
-
-### **1.8 Migrate & Run**
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
-```
-
-> ✅ CRUD API available at `http://127.0.0.1:8000/api/posts/`.
-
----
-
-## **Step 2: Create Standalone DRF Auth App with JWT**
-
-### **2.1 Project Setup**
-
-```bash
-mkdir django_auth_app
-cd django_auth_app
-python -m venv venv
-source venv/bin/activate
-pip install django djangorestframework djangorestframework-simplejwt
-django-admin startproject auth_project .
-python manage.py startapp auth_app
-```
-
----
-
-### **2.2 Custom User, Profile, and Tenant Models (auth_app/models.py)**
+## **7. auth_app/models.py**
 
 ```python
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.conf import settings
 
 class Tenant(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=255)
+    domain = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return self.name
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.user.username}'s profile"
 ```
 
 ---
 
-### **2.3 Serializers (auth_app/serializers.py)**
+## **8. auth_app/serializers.py**
 
 ```python
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
-
-User = get_user_model()
-
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'tenant']
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            tenant=validated_data.get('tenant')
-        )
-        return user
+from .models import User, Tenant
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'tenant']
 
-class JWTTokenSerializer(serializers.Serializer):
-    access = serializers.CharField()
-    refresh = serializers.CharField()
+class TenantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tenant
+        fields = ['id', 'name', 'domain']
 ```
 
 ---
 
-### **2.4 Views (auth_app/views.py)**
+## **9. auth_app/views.py**
 
 ```python
-from rest_framework import generics, permissions
-from rest_framework.response import Response
-from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, UserSerializer
-from django.contrib.auth import get_user_model
+from rest_framework import generics
+from .models import User, Tenant
+from .serializers import UserSerializer, TenantSerializer
+from rest_framework.permissions import IsAdminUser
 
-User = get_user_model()
-
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
-
-class LoginView(generics.GenericAPIView):
-    serializer_class = RegisterSerializer  # input serializer
-
-    def post(self, request, *args, **kwargs):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user:
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            })
-        return Response({"error": "Invalid credentials"}, status=400)
-
-class UserProfileView(generics.RetrieveAPIView):
+class UserListCreateView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
-    def get_object(self):
-        return self.request.user
+class TenantListCreateView(generics.ListCreateAPIView):
+    queryset = Tenant.objects.all()
+    serializer_class = TenantSerializer
+    permission_classes = [IsAdminUser]
 ```
 
 ---
 
-### **2.5 URLs (auth_app/urls.py)**
+## **10. auth_app/urls.py**
 
 ```python
 from django.urls import path
-from .views import RegisterView, LoginView, UserProfileView
+from .views import UserListCreateView, TenantListCreateView
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
-    path('login/', LoginView.as_view(), name='login'),
-    path('profile/', UserProfileView.as_view(), name='profile'),
+    path('users/', UserListCreateView.as_view(), name='user-list-create'),
+    path('tenants/', TenantListCreateView.as_view(), name='tenant-list-create'),
 ]
 ```
 
 ---
 
-### **2.6 Settings (auth_project/settings.py)**
+## **11. observ_app/models.py**
 
 ```python
-INSTALLED_APPS = [
-    ...
-    'rest_framework',
-    'auth_app',
-]
+from django.db import models
+from django.conf import settings
 
-AUTH_USER_MODEL = 'auth_app.CustomUser'
+class RequestLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    path = models.CharField(max_length=255)
+    method = models.CharField(max_length=10)
+    status_code = models.IntegerField()
+    duration_ms = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
+class ErrorLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    path = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 ```
 
 ---
 
-### **2.7 Migrate & Run**
+## **12. observ_app/tasks.py**
 
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
+```python
+from celery import shared_task
+from django.contrib.auth import get_user_model
+from .models import RequestLog, ErrorLog
+
+@shared_task
+def log_request_task(user_id, path, method, status_code, duration_ms):
+    user = get_user_model().objects.filter(id=user_id).first() if user_id else None
+    RequestLog.objects.create(user=user, path=path, method=method, status_code=status_code, duration_ms=duration_ms)
+
+@shared_task
+def log_error_task(user_id, path, message):
+    user = get_user_model().objects.filter(id=user_id).first() if user_id else None
+    ErrorLog.objects.create(user=user, path=path, message=message)
 ```
-
-> ✅ Auth API ready:
->
-> * `POST /auth/register/`
-> * `POST /auth/login/` → returns JWT
-> * `GET /auth/profile/` → JWT required
 
 ---
 
-## **Step 3: Snap-in Auth App into CRUD Project**
-
-1. Copy `auth_app` into `django_crud_project/`.
-2. Add `'auth_app'` to `INSTALLED_APPS`.
-3. Update `AUTH_USER_MODEL` in `crud_project/settings.py`:
+## **13. observ_app/middleware.py**
 
 ```python
-AUTH_USER_MODEL = 'auth_app.CustomUser'
+import time
+from django.utils.deprecation import MiddlewareMixin
+from .tasks import log_request_task, log_error_task
+
+class AsyncRequestLoggingMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        request._start_time = time.time()
+
+    def process_response(self, request, response):
+        duration = (time.time() - getattr(request, "_start_time", time.time())) * 1000
+        log_request_task.delay(getattr(request.user, "id", None),
+                               request.path,
+                               request.method,
+                               response.status_code,
+                               duration)
+        return response
+
+    def process_exception(self, request, exception):
+        log_error_task.delay(getattr(request.user, "id", None),
+                             request.path,
+                             str(exception))
 ```
 
-4. Include auth URLs:
+---
+
+## **14. config/urls.py**
 
 ```python
 from django.contrib import admin
@@ -321,74 +892,103 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('blog.urls')),  # CRUD API
-    path('auth/', include('auth_app.urls')),  # Auth API
+    path('api/blog/', include('blog.urls')),
+    path('api/auth/', include('auth_app.urls')),
+    path('api/observ/', include('observ_app.urls')),
 ]
 ```
 
-5. CRUD API now requires JWT authentication (`Authorization: Bearer <access_token>`).
-6. Run migrations and create superuser:
+---
+
+## **15. Dockerfile**
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+```
+
+---
+
+## **16. docker-compose.yml**
+
+```yaml
+version: '3.8'
+services:
+  db:
+    image: mysql:8.1
+    environment:
+      MYSQL_DATABASE: modular_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: .
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+```
+
+---
+
+## **17. requirements.txt**
+
+```
+Django>=4.3
+djangorestframework
+djangorestframework-simplejwt
+mysqlclient
+celery
+redis
+```
+
+---
+
+✅ **Next Steps:**
+
+1. Run `docker-compose up --build` to start **MySQL, Redis, Django server, and Celery worker**.
+2. Apply migrations:
 
 ```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+docker-compose run web python manage.py makemigrations
+docker-compose run web python manage.py migrate
 ```
+
+3. Access API endpoints:
+
+* CRUD: `http://localhost:8000/api/blog/posts/`
+* Auth: `http://localhost:8000/api/auth/users/`
+* Observability: `http://localhost:8000/api/observ/requests/`
+
+4. Add **Prometheus + Grafana** for metrics collection and dashboards.
 
 ---
 
-## **Repository Structure Overview**
-
-```
-django-modular-tutorial/
-│
-├── 1_crud_project/
-│   ├── blog/
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   └── views.py
-│   ├── crud_project/
-│   ├── manage.py
-│   └── venv/
-│
-├── 2_standalone_auth_app/
-│   ├── auth_project/
-│   ├── auth_app/
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   └── views.py
-│   ├── manage.py
-│   └── venv/
-│
-└── 3_crud_with_auth/
-    ├── blog/
-    ├── auth_app/
-    ├── crud_project/
-    ├── manage.py
-    └── venv/
-```
+This skeleton provides a **ready-to-use enterprise-grade multi-tenant Django app**, with **modular apps**, **JWT authentication**, **async observability**, **MySQL backend**, and **containerized deployment**.
 
 ---
-
-### **Summary Notes**
-
-* **1_crud_project**: DRF CRUD API, independent of auth.
-* **2_standalone_auth_app**: DRF JWT auth, custom user, profiles, tenants.
-* **3_crud_with_auth**: Integrated CRUD + auth API with JWT protection.
-
----
-
-### **Running Any Project**
-
-```bash
-source venv/bin/activate   # Windows: venv\Scripts\activate
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
-```
-
-> All endpoints secured via JWT. Projects are independent; auth app can be snapped into any DRF project seamlessly.
-
----
-
