@@ -2,77 +2,54 @@
 
 ## Design, Test, and Operate Reliable HTTP Clients in JavaScript & TypeScript
 
-**Edition:** 1.0
+**Edition:** 1.1 (Enhanced)
 **Audience:** Engineers, Bootcamp Learners, Trainers
 **Level:** Beginner → Professional
 
-**Tech Stack:**
-
-* Axios
-* TypeScript
-* Node.js / Browser
-* Jest / Vitest
-* Zod (runtime validation)
-* ESLint + Prettier
+**Tech Stack:** Axios, TypeScript, Node.js / Browser, Jest / Vitest, Zod, ESLint + Prettier
 
 ---
 
 ## 🎯 Learning Outcomes
 
-By the end of this guide, readers will:
+By the end of this guide, readers will be able to:
 
 ✅ Understand **what Axios really is (and isn’t)**
 ✅ Design a **centralized HTTP client architecture**
-✅ Handle **authentication, retries, timeouts, and errors** correctly
-✅ Prevent **API contract drift** using types & validation
-✅ Write **fully testable API clients**
+✅ Handle **authentication, retries, timeouts, and errors** robustly
+✅ Prevent **API contract drift** using TypeScript types & runtime validation
+✅ Write **fully testable, reliable API clients**
 ✅ Integrate Axios safely into **React, Node, or DRF backends**
+✅ Extend Axios for **enterprise-grade workflows**
 
 ---
 
 # 🧭 Architecture Overview
 
----
-
-## Axios in a Production System
-
 ```
-+----------------------+
-| UI / Service Layer   |
-| (React / Node)       |
-+----------+-----------+
-           |
-           v
-+----------------------+
-| API Client Layer     |
-| (Axios Wrapper)     |
-+----------+-----------+
-           |
-           v
-+----------------------+
-| Axios Core           |
-| (HTTP Engine)        |
-+----------+-----------+
-           |
-           v
-+----------------------+
-| External API         |
-| (REST / DRF)         |
-+----------------------+
+UI / Service Layer (React / Node)
+           │
+           ▼
+API Client Layer (Axios Wrapper)
+           │
+           ▼
+Axios Core (HTTP Engine)
+           │
+           ▼
+External API (REST / DRF / GraphQL)
 ```
 
-> **Key idea:**
-> You never call Axios directly from UI or business logic.
+> Never call Axios directly from UI or business logic. Always centralize it.
 
 ---
 
 ## Design Principles
 
-* **Single Axios instance**
-* **No raw HTTP in business code**
-* **Typed inputs & outputs**
-* **Centralized error handling**
-* **Infrastructure isolated from domain**
+* Single Axios instance per service/environment
+* No raw HTTP in business/domain code
+* Typed inputs & outputs using TypeScript and Zod
+* Centralized error handling and logging
+* Infrastructure isolated from domain logic
 
 ---
 
@@ -87,17 +64,17 @@ axios-client/
 ├── src/
 │   ├── http/
 │   │   ├── axiosClient.ts     # Axios instance
-│   │   ├── interceptors.ts    # Auth / logging
-│   │   └── errors.ts          # Error mapping
+│   │   ├── interceptors.ts    # Auth / logging / error handling
+│   │   └── errors.ts          # Error mapping / normalization
 │   │
 │   ├── api/
-│   │   └── taskApi.ts         # API-specific functions
+│   │   └── taskApi.ts         # API-specific functions returning domain types
 │   │
 │   ├── domain/
-│   │   └── task.ts            # Domain models
+│   │   └── task.ts            # Domain models / TypeScript interfaces
 │   │
 │   ├── config/
-│   │   └── env.ts             # Environment config
+│   │   └── env.ts             # Environment configuration
 │   │
 │   └── tests/
 │       ├── axiosClient.test.ts
@@ -106,30 +83,24 @@ axios-client/
 └── dist/
 ```
 
----
-
-# ⚙️ Part 1: Installation & Setup
+> Separation of concerns ensures **testability and maintainability**.
 
 ---
 
-## 1️⃣ Install Dependencies
+# ⚙️ Installation & Setup
 
 ```bash
 npm install axios
 npm install -D typescript vitest zod
 ```
 
-Axios ships with **excellent TypeScript types** — no `@types` needed.
+> Axios includes **built-in TypeScript types** — no `@types/axios` needed.
 
 ---
 
-# 🧠 Part 2: What Axios Actually Does
+# 🧠 Axios Fundamentals
 
----
-
-## Axios vs Fetch (Architectural View)
-
-| Concern              | Fetch | Axios |
+| Feature              | Fetch | Axios |
 | -------------------- | ----- | ----- |
 | Interceptors         | ❌     | ✅     |
 | Request cancellation | ⚠️    | ✅     |
@@ -137,24 +108,11 @@ Axios ships with **excellent TypeScript types** — no `@types` needed.
 | Timeout handling     | ❌     | ✅     |
 | Error normalization  | ❌     | ✅     |
 
-> Axios is **not** magic — it’s a **better HTTP abstraction**.
+**Axios is NOT:** domain layer, state manager, backend validator, or automatic retry strategy.
 
 ---
 
-## Axios Is NOT
-
-❌ A domain layer
-❌ A state manager
-❌ A replacement for backend validation
-❌ A retry strategy by default
-
----
-
-# 🧱 Part 3: Creating a Central Axios Client
-
----
-
-## `src/http/axiosClient.ts`
+# 🧱 Creating a Central Axios Client
 
 ```ts
 import axios from "axios";
@@ -162,54 +120,27 @@ import axios from "axios";
 export const axiosClient = axios.create({
   baseURL: "https://api.example.com",
   timeout: 5000,
-  headers: {
-    "Content-Type": "application/json"
-  }
+  headers: { "Content-Type": "application/json" }
 });
 ```
 
-**Rules:**
-
-* Only **one instance**
-* No business logic
-* No UI imports
+**Rules:** single instance per environment, no business logic, no UI imports.
 
 ---
 
-# 🔐 Part 4: Interceptors (Auth, Logging, Errors)
+# 🔐 Interceptors (Auth, Logging, Errors)
 
----
-
-## Request Interceptor (Auth)
+### Request Interceptor (Auth)
 
 ```ts
 axiosClient.interceptors.request.use(config => {
   const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 ```
 
----
-
-## Response Interceptor (Error Normalization)
-
-### `src/http/errors.ts`
-
-```ts
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string
-  ) {
-    super(message);
-  }
-}
-```
+### Response Interceptor (Error Normalization)
 
 ```ts
 import { AxiosError } from "axios";
@@ -218,26 +149,27 @@ import { ApiError } from "./errors";
 axiosClient.interceptors.response.use(
   response => response,
   (error: AxiosError) => {
-    if (error.response) {
-      throw new ApiError(
-        error.response.status,
-        String(error.response.data)
-      );
-    }
+    if (error.response)
+      throw new ApiError(error.response.status, String(error.response.data));
     throw new ApiError(0, "Network error");
   }
 );
 ```
 
-> **All consumers now receive a predictable error shape.**
+```ts
+// src/http/errors.ts
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+```
+
+> Consumers receive **predictable error shapes**.
 
 ---
 
-# 🧠 Part 5: Domain Models (Never Inline Types)
-
----
-
-## `src/domain/task.ts`
+# 🧠 Domain Models
 
 ```ts
 export interface Task {
@@ -247,13 +179,11 @@ export interface Task {
 }
 ```
 
----
-
-# 🌐 Part 6: API Layer (Never Export Axios)
+> Keep types centralized; never inline in API functions.
 
 ---
 
-## `src/api/taskApi.ts`
+# 🌐 API Layer (Typed & Safe)
 
 ```ts
 import { axiosClient } from "../http/axiosClient";
@@ -264,29 +194,17 @@ export async function fetchTasks(): Promise<Task[]> {
   return res.data;
 }
 
-export async function createTask(
-  title: string
-): Promise<Task> {
+export async function createTask(title: string): Promise<Task> {
   const res = await axiosClient.post<Task>("/tasks", { title });
   return res.data;
 }
 ```
 
-**Key rules:**
-
-* API layer returns **domain types**
-* No Axios types leak out
-* No `.then()` chains
+**Rules:** API returns domain types only; Axios types never leak; use async/await.
 
 ---
 
-# 🛡 Part 7: Runtime Validation (Critical)
-
-TypeScript does **not** protect you from bad servers.
-
----
-
-## Zod Schema
+# 🛡 Runtime Validation (Optional but Critical)
 
 ```ts
 import { z } from "zod";
@@ -296,30 +214,21 @@ export const TaskSchema = z.object({
   title: z.string(),
   completed: z.boolean()
 });
-
 export const TaskListSchema = z.array(TaskSchema);
-```
 
----
-
-## Safe Parsing
-
-```ts
 export async function fetchTasksSafe() {
   const res = await axiosClient.get("/tasks");
   return TaskListSchema.parse(res.data);
 }
 ```
 
-> This catches **backend regressions instantly**.
+> Detects **backend contract violations instantly**.
 
 ---
 
-# 🧪 Part 8: Testing Axios Code
+# 🧪 Testing Axios Code
 
----
-
-## Mock Axios (Unit Tests)
+### Mock Axios
 
 ```ts
 import axios from "axios";
@@ -337,72 +246,42 @@ test("fetches tasks", async () => {
 });
 ```
 
----
-
-## What We Test
-
-| Layer         | Tested? | Why                  |
-| ------------- | ------- | -------------------- |
-| API functions | ✅       | Business correctness |
-| Interceptors  | ✅       | Security & stability |
-| Axios itself  | ❌       | Vendor code          |
+**Testing layers:** API functions ✅, interceptors ✅, Axios itself ❌ (mocked).
 
 ---
 
-# 🔁 Part 9: Advanced Axios Patterns
+# 🔁 Advanced Axios Patterns
 
----
-
-## Request Cancellation
+**Retry**
 
 ```ts
-const controller = new AbortController();
-
-axiosClient.get("/tasks", {
-  signal: controller.signal
-});
-
-controller.abort();
-```
-
----
-
-## Retry Strategy (Manual)
-
-```ts
-async function retry<T>(
-  fn: () => Promise<T>,
-  attempts = 3
-): Promise<T> {
-  try {
-    return await fn();
-  } catch (e) {
-    if (attempts <= 1) throw e;
-    return retry(fn, attempts - 1);
-  }
+async function retry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  try { return await fn(); }
+  catch (e) { if (attempts <= 1) throw e; return retry(fn, attempts - 1); }
 }
 ```
 
----
+**Request Cancellation**
 
-## File Uploads
+```ts
+const controller = new AbortController();
+axiosClient.get("/tasks", { signal: controller.signal });
+controller.abort();
+```
+
+**File Upload**
 
 ```ts
 const form = new FormData();
 form.append("file", file);
-
-axiosClient.post("/upload", form, {
-  headers: { "Content-Type": "multipart/form-data" }
-});
+axiosClient.post("/upload", form, { headers: { "Content-Type": "multipart/form-data" }});
 ```
 
 ---
 
-# 🚀 Part 10: Integration Examples
+# 🚀 Integration Examples
 
----
-
-## React
+**React**
 
 ```ts
 useEffect(() => {
@@ -410,9 +289,7 @@ useEffect(() => {
 }, []);
 ```
 
----
-
-## Node.js
+**Node.js Service**
 
 ```ts
 export async function syncTasks() {
@@ -421,36 +298,66 @@ export async function syncTasks() {
 }
 ```
 
----
-
-## Django REST Framework (Consumer)
-
-Axios pairs naturally with:
-
-* JWT auth
-* Pagination
-* Filtering
-* OpenAPI schemas
+**Django REST Framework Consumer:** supports JWT, pagination, filtering, OpenAPI/Swagger schemas.
 
 ---
 
-# 🏛 Part 11: Enterprise-Grade Extensions
+# 🏛 Enterprise-Grade Extensions
+
+* Token refresh flows & silent authentication
+* OpenAPI → Axios codegen for typed clients
+* Contract tests (frontend ↔ backend)
+* Request tracing & correlation headers
+* Multi-tenant base URLs & dynamic routing
+* Shared API SDK packages
 
 ---
 
-Add progressively:
+# ✅ Mental Model
 
-🔐 Token refresh flows
-📦 OpenAPI → Axios codegen
-🧪 Contract tests (frontend ↔ backend)
-📊 Request tracing headers
-🌍 Multi-tenant base URLs
-🧩 Shared API SDK packages
+> Axios is **infrastructure**, not application logic. Treat it like a **centralized, typed, testable database driver**.
 
 ---
 
-## ✅ Final Mental Model
+# 🌐 Full Lifecycle (ASCII)
 
-> Axios is **infrastructure**, not application logic.
-> Treat it like a **database driver**, not a helper function.
+```
+UI / Service Layer
+│ - Calls domain API functions
+│ - Receives validated objects
+▼
+API Client Layer
+│ - Typed funcs
+│ - Retry / timeout / cancel
+│ - Token refresh
+▼
+Axios Client
+│ - Single instance
+│ - Interceptors (Auth, Errors)
+│ - Retry / cancellation
+▼
+External API / Backend
+│ - REST / DRF / GraphQL
+│ - JWT / validation / pagination
+▼
+Runtime Validation (Zod)
+│ - Ensures contract adherence
+▼
+Domain Layer
+│ - Receives validated objects
+│ - Updates UI / persists data
+```
+
+---
+
+## 🔑 Key Rules
+
+1. Never call Axios directly from UI/business logic
+2. Always return typed domain objects
+3. Centralize error handling via interceptors
+4. Optional: Use Zod for runtime validation
+5. Advanced: Retry, cancellation, file upload, token refresh
+6. Testing: Mock Axios; test API & interceptors only
+
+---
 
