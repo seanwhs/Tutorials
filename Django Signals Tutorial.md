@@ -1,41 +1,26 @@
-# 📘 Production-Grade Django Signals Handbook
+# 📘 Production-Grade Django Signals Handbook — Enhanced Edition
 
-## Build a Complete Django Application with Safe, Testable Signals
+**Build Maintainable, Safe, Testable Django Signals in Production**
 
-**Edition:** 1.0
-**Audience:** Engineers, Bootcamp Learners, Trainers
-**Level:** Intermediate → Professional
-
-**Tech Stack:**
-
-* Python 3.11+
-* Django 4.x / 5.x
-* Django ORM
-* Django REST Framework (API)
-* Pytest / Django TestCase
-* Celery (async side effects)
-* PostgreSQL (production-ready)
+**Edition:** 1.1
+**Audience:** Intermediate → Professional
+**Tech Stack:** Python 3.11+, Django 4.x / 5.x, DRF, Celery, PostgreSQL, Pytest
 
 ---
 
 ## 🎯 Learning Outcomes
 
-By the end of this guide, readers will:
+By the end of this guide, you will be able to:
 
-✅ Understand **what Django signals really are (and are not)**
-✅ Know **when signals are appropriate vs harmful**
-✅ Build a **complete Django application using signals correctly**
-✅ Structure signals for **maintainability and testability**
+✅ Understand **what Django signals are (and are not)**
+✅ Identify **good vs bad use cases**
+✅ Implement **testable, production-ready signals**
 ✅ Handle **transactions, async execution, and failures safely**
-✅ Write **production-grade tests for signal-driven behavior**
+✅ Build signals with **observability, idempotency, and maintainability**
 
 ---
 
-# 🧭 Architecture Overview
-
----
-
-## Where Signals Fit (Big Picture)
+# 🧭 Architecture Overview — Where Signals Fit
 
 ```
 Client (Browser / API Consumer)
@@ -55,7 +40,7 @@ Client (Browser / API Consumer)
            v
 +----------------------+
 | Django Signals       |
-| (Side Effects Only)  |
+| (Optional Side Effects) |
 +----------+-----------+
            |
            v
@@ -65,42 +50,26 @@ Client (Browser / API Consumer)
 +----------------------+
 ```
 
-> **Signals do not run the business.**
-> They **react** to it.
+> Signals **react** to business events. They do **not** enforce core domain rules.
 
 ---
 
-## Core Design Rules (Non-Negotiable)
+# ⚙️ Core Design Principles
 
-* **Signals must be optional**
-* **Signals must be idempotent**
-* **Signals must never control correctness**
-* **Signals must delegate to services**
-* **Signals must be testable in isolation**
-
----
-
-# 🏗️ The Application We Will Build
+1. **Signals are optional** – The system works if they are removed.
+2. **Signals are idempotent** – Multiple executions should have no side effects.
+3. **Signals do not control correctness** – Business logic lives in models/services.
+4. **Signals delegate to services** – Keep handlers minimal.
+5. **Signals must be testable** – Cover in isolation with unit tests.
+6. **Always use `transaction.on_commit`** – Avoid running side effects on rolled-back transactions.
 
 ---
 
-## Example Application: Order Management System
+# 🏗️ Example Application: Order Management System
 
-### Features
+**Use Case:** Process orders, log audits, notify stakeholders, trigger async workflows.
 
-✔ Create orders via API
-✔ Persist orders in DB
-✔ Automatically:
-
-* Write audit logs
-* Send notifications
-* Trigger async workflows
-
-✔ All side effects implemented via **signals**
-
----
-
-## High-Level Flow
+**High-Level Flow:**
 
 ```
 POST /api/orders
@@ -111,16 +80,16 @@ Order Created (DB)
         v
 post_save signal fires
         |
-        +--> Audit Log
+        +--> Audit Log Service
         |
-        +--> Notification
+        +--> Notification Service
         |
-        +--> Async Processing
+        +--> Async Processing via Celery
 ```
 
 ---
 
-# 📁 Project Structure (Final State)
+# 📁 Project Structure (Final)
 
 ```
 order_system/
@@ -156,11 +125,7 @@ order_system/
 
 ---
 
-# ⚙️ Part 1: Project Setup
-
----
-
-## 1️⃣ Create Django Project
+# 🏗️ Part 1: Project Setup
 
 ```bash
 django-admin startproject order_system
@@ -169,15 +134,11 @@ python manage.py startapp orders
 python manage.py startapp audit
 ```
 
----
-
-## 2️⃣ Register Apps
-
-### `settings.py`
+**Register apps in `settings.py`:**
 
 ```python
 INSTALLED_APPS = [
-    ...
+    ...,
     "orders.apps.OrdersConfig",
     "audit",
     "rest_framework",
@@ -188,11 +149,8 @@ INSTALLED_APPS = [
 
 # 🧠 Part 2: Domain Modeling (No Signals Yet)
 
----
-
-## `orders/models.py`
-
 ```python
+# orders/models.py
 from django.db import models
 
 class Order(models.Model):
@@ -201,34 +159,31 @@ class Order(models.Model):
         ("PAID", "Paid"),
         ("SHIPPED", "Shipped"),
     ]
-
     total = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 ```
 
----
-
-## Why This Matters
+**ASCII Diagram: Domain Model**
 
 ```
-Domain Model
-     |
-     v
-Signals will react to THIS
+Order
+├── id
+├── total
+├── status
+└── created_at
 ```
 
-> Signals should **never compensate for poor domain design**.
+> Signals will react to **these models**. Poor domain design cannot be fixed by signals.
 
 ---
 
-# 🌐 Part 3: API Layer (Triggering Signals Naturally)
+# 🌐 Part 3: API Layer — Triggering Signals Naturally
 
----
-
-## `orders/serializers.py`
+**Serializer:**
 
 ```python
+# orders/serializers.py
 from rest_framework import serializers
 from .models import Order
 
@@ -238,11 +193,10 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = "__all__"
 ```
 
----
-
-## `orders/views.py`
+**ViewSet:**
 
 ```python
+# orders/views.py
 from rest_framework.viewsets import ModelViewSet
 from .models import Order
 from .serializers import OrderSerializer
@@ -252,31 +206,21 @@ class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
 ```
 
----
-
-## URL Wiring
+**Flow Diagram:**
 
 ```
-Client
-  |
-  v
-DRF ViewSet
-  |
-  v
-Order.objects.create()
+Client → DRF ViewSet → Order.objects.create()
+                           |
+                           v
+                     post_save signals
 ```
-
-Signals will hook **after** this point.
 
 ---
 
 # ⚡ Part 4: Signal Registration (Critical)
 
----
-
-## `orders/apps.py`
-
 ```python
+# orders/apps.py
 from django.apps import AppConfig
 
 class OrdersConfig(AppConfig):
@@ -286,104 +230,29 @@ class OrdersConfig(AppConfig):
         from . import signals  # noqa
 ```
 
-> If this step is skipped → **signals never fire**
-
----
-
-## `orders/signals.py`
+> If this is skipped → **signals never fire**.
 
 ```python
+# orders/signals.py
 from .receivers import audit, notifications, async_tasks
 ```
 
-This ensures **all receivers are imported**.
+> Import all receivers to register signal handlers.
 
 ---
 
-# 🧠 Part 5: Writing Signals Correctly
+# 🧵 Part 5: Writing Signals Correctly
 
----
+**Rule:** Signals call **services**, not business logic.
 
-## Rule: Signals Call Services, Not Logic
-
----
-
-### `orders/receivers/audit.py`
+**Audit Example:**
 
 ```python
+# orders/receivers/audit.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models import Order
 from audit.services import write_audit_log
-
-@receiver(post_save, sender=Order)
-def order_audit_log(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    write_audit_log(
-        action="ORDER_CREATED",
-        object_id=instance.id,
-        metadata={"total": str(instance.total)}
-    )
-```
-
----
-
-### `audit/services.py`
-
-```python
-from .models import AuditLog
-
-def write_audit_log(action: str, object_id: int, metadata: dict):
-    AuditLog.objects.create(
-        action=action,
-        object_id=object_id,
-        metadata=metadata
-    )
-```
-
----
-
-## Flow Diagram
-
-```
-Order Saved
-    |
-    v
-post_save signal
-    |
-    v
-Audit Service
-    |
-    v
-AuditLog DB
-```
-
----
-
-# 🧵 Part 6: Transactions & `on_commit`
-
----
-
-## The Problem
-
-```
-BEGIN TRANSACTION
-  Order.objects.create()
-  post_save fires ❌
-ROLLBACK
-```
-
-Audit log written for **non-existent order**.
-
----
-
-## The Fix (MANDATORY in Production)
-
-### `orders/receivers/audit.py`
-
-```python
 from django.db import transaction
 
 @receiver(post_save, sender=Order)
@@ -400,26 +269,18 @@ def order_audit_log(sender, instance, created, **kwargs):
     )
 ```
 
----
-
-## Correct Execution Flow
+**Flow Diagram:**
 
 ```
-Transaction Commit
-        |
-        v
-Signal Side Effects Run
+Order Saved → Transaction Commit → Signal → Audit Service → AuditLog DB
 ```
 
 ---
 
-# 🔔 Part 7: Notifications via Signals
-
----
-
-### `orders/receivers/notifications.py`
+# 🔔 Notifications via Signals
 
 ```python
+# orders/receivers/notifications.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models import Order
@@ -430,37 +291,24 @@ def notify_order_created(sender, instance, created, **kwargs):
         print(f"Notify: Order {instance.id} created")
 ```
 
----
-
-## Diagram
+**Flow Diagram: Fan-out of Signals**
 
 ```
 Order Created
     |
-    +--> Audit
+    +--> Audit Service
     |
-    +--> Notification
+    +--> Notification Service
+    |
+    +--> Async Task
 ```
 
-Signals **fan out cleanly**.
-
 ---
 
-# ⏳ Part 8: Async Signals (Celery)
-
----
-
-## Why Async?
-
-❌ Email in request thread
-❌ Slow external APIs
-❌ Long-running tasks
-
----
-
-### `orders/receivers/async_tasks.py`
+# ⏳ Async Signals (Celery)
 
 ```python
+# orders/receivers/async_tasks.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models import Order
@@ -472,32 +320,18 @@ def trigger_async_processing(sender, instance, created, **kwargs):
         process_order_async.delay(instance.id)
 ```
 
----
-
-## Execution Model
+**Execution Flow:**
 
 ```
-HTTP Request
-    |
-    v
-Order Created
-    |
-    v
-Signal → Celery Task
-    |
-    v
-Worker Executes Later
+HTTP Request → Order Created → Signal → Celery Worker → Async Processing
 ```
 
 ---
 
-# 🧪 Part 9: Testing Signals Properly
-
----
-
-## `orders/tests/test_signals.py`
+# 🧪 Testing Signals
 
 ```python
+# orders/tests/test_signals.py
 import pytest
 from orders.models import Order
 from audit.models import AuditLog
@@ -508,75 +342,52 @@ def test_audit_log_created_on_order_create():
     assert AuditLog.objects.count() == 1
 ```
 
----
+**Testing Strategy Diagram:**
 
-## Testing Strategy
-
-| Layer         | Tested | Why                  |
-| ------------- | ------ | -------------------- |
-| Domain Models | ✅      | Core correctness     |
-| Signals       | ✅      | Side effects         |
-| Services      | ✅      | Business integration |
-| Views         | ⚠️     | Covered indirectly   |
+```
+Domain Models ✔ → Signals ✔ → Services ✔ → Views (indirectly tested)
+```
 
 ---
 
-# 🚫 Part 10: Anti-Patterns (Avoid at All Costs)
-
----
+# 🚫 Anti-Patterns
 
 ❌ Signals modifying the same model
-❌ Signals creating other domain objects
+❌ Signals creating domain objects
 ❌ Signals with complex branching
-❌ Signals without tests
 ❌ Signals without `on_commit`
+❌ Signals without unit tests
 
 ---
 
-# 🚀 Part 11: Deployment Considerations
+# 🚀 Deployment Considerations
+
+* Always register signals in `AppConfig.ready()`
+* Ensure idempotency
+* Use async for long-running tasks
+* Enable logging & metrics for observability
+* Feature-flag risky signals if needed
 
 ---
 
-## Production Checklist
+# 🏛 Enterprise Extensions
 
-✔ Signals imported via `AppConfig.ready()`
-✔ Idempotent handlers
-✔ Async for slow work
-✔ Observability (logging / metrics)
-✔ Feature-flagged if risky
-
----
-
-# 🏛 Part 12: Enterprise Extensions
+* Multi-tenant audit logs
+* Signal execution metrics
+* Contract testing
+* Event-driven architecture (signals → domain events)
+* Gradual replacement of signals with explicit events
 
 ---
 
-Add progressively:
-
-🔐 Multi-tenant audit logs
-📊 Signal execution metrics
-🧪 Contract testing
-🧩 Event-driven architecture (signals → events)
-📦 Replace signals with domain events
-
----
-
-# 🎓 Final Mental Model
+# 🎓 Mental Model
 
 ```
-Business Logic
-     |
-     v
-Persist State
-     |
-     v
-Signals (Optional Reactions)
-     |
-     v
-Side Effects
+Business Logic → Persist State → Signals (Optional) → Side Effects
 ```
 
-> **If signals disappeared tomorrow, your app must still work.**
+> **Signals are reactors, not controllers. Remove them and the system still works.**
 
 ---
 
+Do you want me to produce that next?
