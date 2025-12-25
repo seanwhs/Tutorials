@@ -1,314 +1,400 @@
-# 📘 Django ORM Tutorial: Step-by-Step Guide
+# 📘 Django ORM & Multi-Tenant SaaS Platform — Full Tutorial
 
-**Edition:** 1.0
-**Audience:** Beginners → Intermediate Django Developers
-**Goal:** Learn Django ORM to interact with databases effectively
-**Prerequisites:**
-
-* Python 3.12+ installed
-* Django 5.x installed (`pip install django`)
-* Basic knowledge of Python
+**Edition:** 1.5
+**Audience:** Beginner → Intermediate → Advanced Django Developers
+**Goal:** Master Django ORM and multi-tenant SaaS identity & authorization
+**Prerequisites:** Python 3.12+, Django 5.x (`pip install django`), basic Python knowledge
 
 ---
 
-# 🏗️ Step 1: Create Django Project
+# 🏗️ Step 1: Create Django Project & Apps
 
 ```bash
-django-admin startproject myormproject
-cd myormproject
+django-admin startproject mysaasproject
+cd mysaasproject
+python manage.py startapp accounts
 python manage.py startapp library
 ```
 
-**Project Structure:**
+**Project Structure**
 
 ```
-myormproject/
+mysaasproject/
 ├── manage.py
-├── myormproject/
+├── mysaasproject/
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
+├── accounts/
+│   ├── models.py
+│   ├── managers.py
+│   ├── views.py
+│   └── migrations/
 └── library/
     ├── models.py
     ├── views.py
-    ├── urls.py
     └── migrations/
 ```
 
+> **Mental Model:** Each app is a **domain boundary**. `accounts` = identity & tenancy; `library` = example domain models (Author, Book).
+
 ---
 
-# ⚡ Step 2: Configure App
-
-**`settings.py`**
+# ⚡ Step 2: Configure Installed Apps
 
 ```python
+# settings.py
 INSTALLED_APPS = [
     ...
+    'accounts',
     'library',
 ]
 ```
 
 ---
 
-# 🏗️ Step 3: Define Models
+# 🧩 Step 3: SaaS Identity & Tenancy Overview
 
-**`library/models.py`**
+**ASCII Mega Architecture Diagram — Full SaaS Flow**
+
+```
+User (Global Identity)
+ │
+ ▼
+UserProfile (Business Context)
+ │
+ ▼
+Membership (Tenant Scoped Role)
+ │
+ ▼
+Tenant (Security Boundary)
+ │
+ ▼
+Author / Book / Domain Models (Tenant Data)
+ │
+ ▼
+Django ORM
+ │
+ ▼
+SQL Queries
+ │
+ ▼
+Database (MySQL / PostgreSQL / SQLite)
+ │
+ ▼
+QuerySet / Python Objects
+ │
+ ▼
+Frontend / API Layer
+```
+
+> **Mental Model:**
+> Identity = who you are
+> Tenancy = where you can act
+> Membership = what you can do in that context
+> Domain models = tenant-scoped data
+> ORM = safe mapping Python ↔ SQL
+
+---
+
+# ⚡ Step 4: Custom User Model & Manager
+
+**`accounts/managers.py`**
+
+```python
+from django.contrib.auth.base_user import BaseUserManager
+
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Email is required")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        return self.create_user(email, password, **extra_fields)
+```
+
+**`accounts/models.py`**
+
+```python
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.db import models
+from .managers import UserManager
+
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+```
+
+```python
+# settings.py
+AUTH_USER_MODEL = "accounts.User"
+```
+
+> Identity creation is **tenant-agnostic**, membership controls access per tenant.
+
+---
+
+# ⚡ Step 5: UserProfile, Tenant & Membership
+
+**`accounts/models.py`**
+
+```python
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        "User", on_delete=models.CASCADE, related_name="profile"
+    )
+    full_name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=50)
+    locale = models.CharField(max_length=20, default="en")
+
+class Tenant(models.Model):
+    name = models.CharField(max_length=255)
+    subdomain = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
+
+class Role(models.Model):
+    name = models.CharField(max_length=50)
+
+class Membership(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, on_delete=models.PROTECT)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("user", "tenant")
+```
+
+**ASCII ORM Diagram**
+
+```
+User 1──1 UserProfile
+User 1──* Membership *──1 Tenant
+Membership *──1 Role
+```
+
+> **Principle:** All access is **tenant-scoped**. No global permissions leak.
+
+---
+
+# ⚡ Step 6: Tenant-Aware Middleware
+
+```python
+from django.http import Http404
+from accounts.models import Tenant
+
+class TenantMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        host = request.get_host()
+        subdomain = host.split(".")[0]
+
+        try:
+            tenant = Tenant.objects.get(subdomain=subdomain, is_active=True)
+        except Tenant.DoesNotExist:
+            raise Http404("Tenant not found")
+
+        request.tenant = tenant
+        return self.get_response(request)
+```
+
+> `request.tenant` is globally available, used in queries, views, and decorators.
+
+---
+
+# ⚡ Step 7: Tenant-Scoped Role Decorator
+
+```python
+from functools import wraps
+from django.core.exceptions import PermissionDenied
+from accounts.models import Membership
+
+def tenant_role_required(role_name):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            tenant = getattr(request, "tenant", None)
+            user = getattr(request, "user", None)
+            if not tenant or not user or not user.is_authenticated:
+                raise PermissionDenied("Tenant or user context missing")
+            if not Membership.objects.filter(user=user, tenant=tenant, role__name=role_name, is_active=True).exists():
+                raise PermissionDenied("User lacks required role")
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
+```
+
+**Usage Example**
+
+```python
+@tenant_role_required("Admin")
+def dashboard(request):
+    return render(request, "dashboard.html")
+```
+
+---
+
+# 🏗️ Step 8: Django ORM — Domain Models Example (Library App)
 
 ```python
 from django.db import models
+from accounts.models import Tenant
 
 class Author(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-
-    def __str__(self):
-        return self.name
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
 
 class Book(models.Model):
     title = models.CharField(max_length=200)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='books')
     published_date = models.DateField()
     price = models.DecimalField(max_digits=6, decimal_places=2)
-
-    def __str__(self):
-        return self.title
 ```
 
-**Diagram (Models & Relationships):**
+**Multi-Tenant Data Flow Diagram**
 
 ```
+Tenant
+ ├── id
+ └── name
+        │
+        v
 Author
  ├── id
  ├── name
- └── email
-        |
+ ├── email
+ ├── tenant_id
+        │
         v
 Book
  ├── id
  ├── title
- ├── author_id (FK)
+ ├── author_id
  ├── published_date
  └── price
 ```
 
 ---
 
-# ⚡ Step 4: Migrate Models
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
----
-
-# 🏗️ Step 5: Django Shell & ORM Basics
-
-```bash
-python manage.py shell
-```
-
-**Create records:**
+# ⚡ Step 9: Tenant-Scoped Queries
 
 ```python
-from library.models import Author, Book
-from datetime import date
-
-# Create an author
-author1 = Author.objects.create(name="Jane Austen", email="jane@example.com")
-
-# Create a book
-book1 = Book.objects.create(title="Pride and Prejudice", author=author1, published_date=date(1813,1,28), price=19.99)
+tenant = request.tenant
+authors = Author.objects.filter(tenant=tenant)
+books = Book.objects.filter(author__tenant=tenant)
 ```
 
-**Diagram (Data Flow):**
+**Query Flow Diagram**
 
 ```
-Python Object --> ORM --> SQL INSERT --> Database
-```
-
----
-
-# ⚡ Step 6: Querying Data
-
-```python
-# Get all authors
-authors = Author.objects.all()
-
-# Filter authors by name
-austen = Author.objects.filter(name="Jane Austen")
-
-# Get a single object
-jane = Author.objects.get(email="jane@example.com")
-
-# Get books by author
-books_by_jane = jane.books.all()  # via related_name
-```
-
-**Diagram (Query Example):**
-
-```
-Author.objects.get(email="jane@example.com")
-        |
-        v
-SQL: SELECT * FROM library_author WHERE email='jane@example.com';
-        |
-        v
-Python Author Object
-```
-
----
-
-# 🏗️ Step 7: Update & Delete Records
-
-```python
-# Update
-jane.name = "Jane A."
-jane.save()
-
-# Delete
-book1.delete()
-```
-
-**Diagram:**
-
-```
-Python Object Update
-   jane.name = "Jane A."
-        |
-        v
-ORM generates SQL: UPDATE library_author SET name='Jane A.' WHERE id=1
-```
-
----
-
-# ⚡ Step 8: Advanced Queries
-
-**Filtering & Lookups:**
-
-```python
-# Books cheaper than 20
-cheap_books = Book.objects.filter(price__lt=20)
-
-# Books published after 2000
-modern_books = Book.objects.filter(published_date__year__gte=2000)
-
-# Get first/last
-first_book = Book.objects.first()
-last_book = Book.objects.last()
-```
-
-**Aggregations:**
-
-```python
-from django.db.models import Avg, Count, Max
-
-avg_price = Book.objects.aggregate(Avg('price'))
-total_books = Book.objects.count()
-most_expensive = Book.objects.aggregate(Max('price'))
-```
-
----
-
-# 🏗️ Step 9: Relationships
-
-**One-to-Many (Author → Book)**
-
-```python
-author = Author.objects.get(name="Jane Austen")
-books = author.books.all()  # related_name='books'
-```
-
-**Many-to-Many Example:**
-
-```python
-class Category(models.Model):
-    name = models.CharField(max_length=50)
-
-class Book(models.Model):
-    title = models.CharField(max_length=200)
-    categories = models.ManyToManyField(Category, related_name='books')
-```
-
-**Diagram (Many-to-Many Table):**
-
-```
-Book
- └── id
-
-Category
- └── id
-
-Book_categories (junction table)
- ├── id
- ├── book_id
- └── category_id
-```
-
----
-
-# ⚡ Step 10: Query Related Objects
-
-```python
-# Many-to-Many
-fiction = Category.objects.get(name="Fiction")
-books_in_fiction = fiction.books.all()
-```
-
----
-
-# 🏗️ Step 11: QuerySets & Chaining
-
-```python
-books = Book.objects.filter(price__lt=30).order_by('-published_date')[:5]
-```
-
-**Diagram (QuerySet Chaining):**
-
-```
-Book.objects.filter(price__lt=30) --> queryset1
-        .order_by('-published_date') --> queryset2
-        [:5] --> final queryset (Python list)
-```
-
----
-
-# ⚡ Step 12: Best Practices
-
-* Use `related_name` for reverse relationships
-* Avoid `get()` for queries that may return zero results → use `filter().first()`
-* Use `select_related` & `prefetch_related` for optimizing DB hits
-* Always migrate after model changes
-
----
-
-# ✅ Key Takeaways
-
-* Django ORM maps **Python classes to database tables**
-* CRUD operations are **object-oriented**
-* Supports **One-to-Many**, **Many-to-Many**, **aggregations**, and **advanced queries**
-* QuerySets are **lazy** until evaluated
-* Efficient ORM usage improves performance and maintainability
-
----
-
-**Full Text-Based Data Flow Overview:**
-
-```
-Python Model Object
-        |
-        v
+Python ORM Query
+       │
+       v
 Django ORM
-        |
-        v
-SQL Query
-        |
-        v
-Database (MySQL / SQLite / Postgres)
-        |
-        v
-QuerySet / Python Object
+       │
+       v
+SQL WHERE tenant_id=?
+       │
+       v
+Tenant-specific results
 ```
+
+---
+
+# ⚡ Step 10: Advanced ORM Techniques
+
+* `select_related` / `prefetch_related` for performance
+* Chain filters: `Book.objects.filter(price__lt=30).order_by('-published_date')[:5]`
+* Always scope queries to `tenant`
+* Use `related_name` for clarity
+* Avoid mixing identity & tenant logic in User model
+
+**QuerySet Flow Diagram**
+
+```
+Book.objects.filter(price__lt=30)
+        │
+        v
+QuerySet1
+        │
+.order_by('-published_date')
+        │
+        v
+QuerySet2
+        │
+[:5]
+        │
+        v
+Final Python List
+```
+
+---
+
+# ✅ Step 11: Full SaaS Data Flow
+
+```
+User (Global Identity)
+ │
+ ▼
+UserProfile (Business Context)
+ │
+ ▼
+Membership (Tenant Scoped Role)
+ │
+ ▼
+Tenant (Security Boundary)
+ │
+ ▼
+Author / Book (Tenant Data)
+ │
+ ▼
+ORM Queries --> SQL --> Database Rows
+ │
+ ▼
+QuerySet / Python Object
+ │
+ ▼
+Frontend / API Layer
+```
+
+> **Mental Model:**
+> Identity = global, Tenancy = security boundary, Membership = scoped authority, ORM = Python ↔ SQL mapping.
+
+---
+
+# ⚡ Step 12: Key Takeaways
+
+* Identity is **tenant-agnostic**
+* Membership defines **what a user can do in each tenant**
+* Tenant is the **security boundary**
+* Django ORM provides **Pythonic, lazy, safe queries**
+* Middleware & decorators enforce **tenant isolation**
+* ASCII diagrams visualize **boundaries, data flow, and queries**
+
+---
+
+✅ **Complete end-to-end, multi-tenant SaaS Django tutorial** with:
+
+* ASCII diagrams for **identity, tenancy, membership, domain, and ORM flow**
+* Step-by-step guidance
+* Mental models for **security boundaries & ORM mapping**
+* Teaching commentary for **best practices and SaaS architecture**
 
 ---
 
