@@ -46,7 +46,7 @@ from django.http import HttpResponse
 class GreetView(View):
     def get(self, request):
         return HttpResponse("Hello World!")
-````
+```
 
 > CBVs excel at **reuse, modularity, and maintainability** in real-world apps.
 
@@ -455,6 +455,3 @@ Observability Layer:
 * **Mixins, decorators, middleware**
 * **Async and observability hooks**
 * **Visual ASCII cheat sheet** and **mega ecosystem map**
-
-```
-
