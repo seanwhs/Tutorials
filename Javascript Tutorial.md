@@ -1,15 +1,15 @@
-# 📘 Production-Grade JavaScript Application Handbook
+# 📘 JavaScript Application Handbook 
 
 ## Build, Test, and Ship a Maintainable Frontend Application (Vanilla JS)
 
 **Edition:** 1.0
 **Audience:** Engineers, Bootcamp Learners, Trainers
 **Level:** Beginner → Professional
+
 **Tech Stack:**
 
 * Vanilla JavaScript (ES2022+)
-* HTML5
-* CSS3
+* HTML5 / CSS3
 * Browser APIs
 * Jest (unit testing)
 * LocalStorage (persistence)
@@ -21,12 +21,13 @@
 
 By the end of this guide, readers will:
 
-✅ Understand **modern JavaScript architecture**
-✅ Separate **domain logic, UI, and infrastructure**
-✅ Write **testable JavaScript code**
-✅ Use **unit tests as safety nets**
-✅ Build a **complete task management application**
-✅ Apply **real-world engineering practices**
+✅ Understand **modern JavaScript architecture & modular design**
+✅ Separate **domain logic, UI, and persistence layers**
+✅ Write **testable and maintainable JavaScript code**
+✅ Use **unit tests and integration tests as safety nets**
+✅ Build a **full-featured task management application**
+✅ Apply **real-world engineering practices** (dependency isolation, pure functions, orchestration)
+✅ Visualize **app flow & lifecycle using ASCII diagrams**
 
 ---
 
@@ -34,55 +35,82 @@ By the end of this guide, readers will:
 
 ---
 
-## High-Level Architecture
+## Full App Flow (ASCII Diagram)
 
 ```
-+------------------+
-|     index.html   |
-+------------------+
-         |
-         v
-+------------------+        +------------------+
-|   UI (DOM Layer) | <----> | Application Core |
-+------------------+        +------------------+
-                                     |
-                                     v
-                           +----------------------+
-                           | Persistence Adapter  |
-                           | (LocalStorage)       |
-                           +----------------------+
+       +----------------+
+       |   User Input   |
+       | (click / type) |
+       +----------------+
+                │
+                ▼
+       +----------------+
+       |    UI Layer    |  <-- Handles DOM rendering & event listeners
+       |  (taskView.js) |
+       +----------------+
+                │
+                ▼
+       +----------------+
+       | Application Core|  <-- Pure domain logic; single source of truth
+       |  (taskStore.js)|
+       +----------------+
+                │
+                ▼
+       +----------------------+
+       | Persistence Adapter  |  <-- Abstracts storage (LocalStorage)
+       |   (storage.js)       |
+       +----------------------+
+                │
+                ▼
+         Browser Storage
+                │
+                ▼
+          +-----------+
+          | Unit Tests|
+          |   Jest    |
+          +-----------+
 ```
+
+**Mental Models:**
+
+* **UI Layer:** Only renders, listens to events, and triggers callbacks.
+* **Application Core:** Maintains tasks as the **single source of truth**, all mutations happen here.
+* **Persistence Adapter:** Isolates storage logic so you can swap LocalStorage for REST APIs or IndexedDB.
+* **Tests:** Verify each layer independently for **predictable, maintainable behavior**.
+
+> Think of it as a **pipeline**:
+> `User Input → UI → Core → Persistence → UI refresh`
 
 ---
 
 ## Design Principles
 
-* **Single Responsibility**
-* **Explicit State**
-* **Pure Functions where possible**
-* **Dependency Isolation**
-* **Testability first**
+* **Single Responsibility:** Each module does one thing.
+* **Explicit State:** Avoid hidden state, centralize in the Core.
+* **Pure Functions:** Deterministic, easier to test.
+* **Dependency Isolation:** Layers depend only on the layer below.
+* **Testability First:** Write tests alongside logic, not after.
 
 ---
 
-# 📁 Project Structure (Production-Grade)
+# 📁 Project Structure
 
 ```
 js-task-manager/
 │
-├── index.html
-├── style.css
+├── index.html            # Entry point
+├── style.css             # Global styles
 │
 ├── src/
-│   ├── app.js              # App bootstrap
+│   ├── app.js            # Orchestration
 │   ├── state/
-│   │   └── taskStore.js    # Domain state & logic
+│   │   └── taskStore.js  # Domain logic (pure)
 │   ├── ui/
-│   │   └── taskView.js     # DOM rendering
+│   │   └── taskView.js   # DOM rendering
 │   ├── services/
-│   │   └── storage.js      # Persistence adapter
+│   │   └── storage.js    # Persistence layer (adapter)
 │   └── utils/
-│       └── id.js           # Utilities
+│       └── id.js         # Utility helpers
 │
 ├── tests/
 │   ├── taskStore.test.js
@@ -91,6 +119,8 @@ js-task-manager/
 ├── package.json
 └── vite.config.js
 ```
+
+**Mental Model:** Separation allows replacing any layer (UI → React, storage → API) **without touching other layers**.
 
 ---
 
@@ -106,6 +136,9 @@ npm install vite --save-dev
 npm install jest --save-dev
 ```
 
+* **Vite** → Dev server with HMR & fast bundling
+* **Jest** → Unit testing framework using `jsdom`
+
 ---
 
 ## 2️⃣ Configure Scripts (`package.json`)
@@ -120,6 +153,10 @@ npm install jest --save-dev
 }
 ```
 
+* `dev` → Start dev server
+* `build` → Production bundle
+* `test` → Run all unit tests
+
 ---
 
 ## 3️⃣ Jest Config (`jest.config.js`)
@@ -130,15 +167,15 @@ export default {
 };
 ```
 
+> `jsdom` enables DOM testing in Node.js environment.
+
 ---
 
 # 🧠 Part 2: Domain Model & State Management
 
 ---
 
-## `src/state/taskStore.js`
-
-> **Pure domain logic (testable, no DOM)**
+## `src/state/taskStore.js` (Pure Logic)
 
 ```js
 let tasks = [];
@@ -152,33 +189,34 @@ export function getAll() {
 }
 
 export function add(title) {
-  const task = {
-    id: crypto.randomUUID(),
-    title,
-    completed: false
-  };
+  const task = { id: crypto.randomUUID(), title, completed: false };
   tasks.push(task);
   return task;
 }
 
 export function toggle(id) {
-  tasks = tasks.map(task =>
-    task.id === id
-      ? { ...task, completed: !task.completed }
-      : task
-  );
+  tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
 }
 
 export function remove(id) {
-  tasks = tasks.filter(task => task.id !== id);
+  tasks = tasks.filter(t => t.id !== id);
 }
 ```
 
+**Example Usage:**
+
+```js
+const task = add("Learn JS");
+toggle(task.id);
+remove(task.id);
+getAll();
+```
+
+> **Mental Model:** Application Core = **single source of truth**. UI observes state, does not mutate directly.
+
 ---
 
-## ✅ Unit Tests for Domain Logic
-
-### `tests/taskStore.test.js`
+## ✅ Unit Tests (`tests/taskStore.test.js`)
 
 ```js
 import { load, getAll, add, toggle, remove } from "../src/state/taskStore";
@@ -224,11 +262,11 @@ export function load() {
 }
 ```
 
+**Teaching Tip:** Adapter pattern allows **swapping storage** without touching Core.
+
 ---
 
 ## ✅ Storage Tests
-
-### `tests/storage.test.js`
 
 ```js
 import { save, load } from "../src/services/storage";
@@ -250,8 +288,6 @@ test("saves and loads tasks", () => {
 
 ## `src/ui/taskView.js`
 
-> **All DOM code lives here**
-
 ```js
 export function render(tasks, handlers) {
   const list = document.getElementById("taskList");
@@ -260,25 +296,28 @@ export function render(tasks, handlers) {
   tasks.forEach(task => {
     const li = document.createElement("li");
     li.textContent = task.title;
-
-    if (task.completed) {
-      li.classList.add("completed");
-    }
-
+    if (task.completed) li.classList.add("completed");
     li.onclick = () => handlers.onToggle(task.id);
     list.appendChild(li);
   });
 }
 ```
 
----
+**UI Design Rules:**
 
-## UI Design Rules
-
-* No business logic
+* No domain logic
 * No persistence
 * Receives **data + callbacks**
-* Easy to replace with React later
+* Replaceable with React later
+
+**ASCII Flow:**
+
+```
+taskStore --> render(tasks) --> [DOM]
+      ^                       |
+      | callback (toggle)     |
+      +----------------------+
+```
 
 ---
 
@@ -287,8 +326,6 @@ export function render(tasks, handlers) {
 ---
 
 ## `src/app.js`
-
-> **Glue code**
 
 ```js
 import * as store from "./state/taskStore";
@@ -300,9 +337,7 @@ const addBtn = document.getElementById("addBtn");
 
 function sync() {
   storage.save(store.getAll());
-  render(store.getAll(), {
-    onToggle: handleToggle
-  });
+  render(store.getAll(), { onToggle: handleToggle });
 }
 
 function handleToggle(id) {
@@ -321,24 +356,22 @@ store.load(storage.load());
 sync();
 ```
 
+> **Mental Model:** `sync()` orchestrates **Core → Persistence → UI**, ensuring **predictable state updates**.
+
 ---
 
 # 🧪 Part 6: Testing Strategy
 
 ---
 
-## What We Test
-
 | Layer        | Tested?  | Why                  |
 | ------------ | -------- | -------------------- |
-| Domain Logic | ✅        | Critical correctness |
+| Domain Logic | ✅        | Core correctness     |
 | Persistence  | ✅        | Data integrity       |
 | UI           | ⚠️ Light | Brittle, expensive   |
-| Integration  | ✅        | App wiring           |
+| Integration  | ✅        | Verify orchestration |
 
----
-
-## Test Pyramid
+**Test Pyramid:**
 
 ```
         E2E (few)
@@ -375,20 +408,54 @@ dist/
 * Cloudflare Pages
 * S3 + CloudFront
 
+> Mental Model: Static SPA → **fast deployment**, domain logic stays client-side.
+
 ---
 
 # 🏛 Part 8: Enterprise-Grade Extensions
 
+* 🔐 Authentication (OAuth / JWT)
+* 🌐 Backend API (Node.js/Express)
+* 📦 Replace LocalStorage with REST or DB
+* 🧪 Cypress E2E tests
+* 🧩 Feature flags
+* 📊 Telemetry & logging
+* 📱 Progressive Web App (PWA)
+
 ---
 
-Add progressively:
+# ✅ End-to-End Flow Diagram (ASCII)
 
-🔐 Authentication (OAuth)
-🌐 Backend API (Node.js / Express)
-📦 Replace LocalStorage with REST
-🧪 Cypress E2E tests
-🧩 Feature flags
-📊 Telemetry & logging
-📱 PWA support
+```
++----------------+      +----------------+      +----------------+
+|   User Input   | ---> |    UI Layer    | ---> | Application    |
+| (click / type) |      |  (taskView.js) |      | Core (taskStore)|
++----------------+      +----------------+      +----------------+
+                                                           |
+                                                           v
+                                                +----------------------+
+                                                | Persistence Adapter  |
+                                                |     (storage.js)     |
+                                                +----------------------+
+                                                           |
+                                                           v
+                                                  Browser Storage (LocalStorage)
+                                                           |
+                                                           v
+                                                   +----------------+
+                                                   | Unit & Integration|
+                                                   |    Tests        |
+                                                   +----------------+
+```
+
+---
+
+✅ **Key Takeaways**
+
+* Full **separation of concerns**: UI, Core, Persistence
+* **Testable, modular domain logic**
+* **Adapter pattern** for storage abstraction
+* Central **orchestration** ensures predictable flow
+* ASCII diagrams help **visualize the app lifecycle**
 
 ---
