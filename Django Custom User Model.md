@@ -1,117 +1,79 @@
-# 🧩 Django Custom User Model — Identity, Tenancy & Security Boundaries
+# 🧩 Django Multi-Tenant Identity & Authorization — Full Blueprint
 
-**From “User Table” to “Multi-Tenant Security Platform”**
+**From “User Table” to “Tenant-Safe SaaS Platform”**
 
-In modern systems, **identity without tenancy is incomplete**.
-A user is never just *who* they are — they are always:
+Modern SaaS systems require **identity, tenancy, and scoped authorization** as first-class concepts. A user is never just *who* they are — they are always:
 
 * **Who** they are (identity)
-* **Where** they are acting (tenant)
-* **What** they are allowed to do (role + permission)
+* **Where** they act (tenant)
+* **What** they can do (role + permission)
 
-This architecture elevates **tenancy to a first-class security boundary**, alongside identity and credentials.
-
-**Core principle:**
-
-> Authentication answers *who you are*
-> Authorization answers *what you can do*
-> **Tenancy answers *where you are allowed to act***
+This tutorial **teaches you to design, implement, and reason** about a multi-tenant, zero-trust Django identity system.
 
 ---
 
-## 1️⃣ Identity as a Security Boundary
+## 🧠 Mental Model: Layered Security Boundaries
 
-A critical mental model correction:
+```
++-----------------+
+|      User       |  ← Global Identity Boundary
+|-----------------|
+| email           |
+| password        |
+| is_active       |
+| is_staff        |
++-----------------+
+          │
+          ▼
++-----------------+
+|    Profile      |  ← Business/Human Context
+|-----------------|
+| full_name       |
+| phone           |
+| locale          |
++-----------------+
+          │
+          ▼
++-----------------+
+| Membership      |  ← Tenant-Scoped Authority
+|-----------------|
+| tenant          |
+| role            |
+| is_active       |
++-----------------+
+          │
+          ▼
++-----------------+
+| Role / Permission|  ← Enforcement Primitives
++-----------------+
+```
 
-> ❌ “The User model stores user data”
-> ✅ “The User model defines a cryptographic authentication boundary”
-
-In a multi-tenant system:
-
-* Identity **must be globally unique**
-* Identity is **tenant-agnostic**
-* Tenant-specific access is resolved elsewhere
-
-### Responsibilities of the User Model
-
-1. **Identity** – Global, tenant-agnostic identifier (email, UUID, external IdP subject)
-2. **Credential Verification** – Password hashes, MFA challenges, WebAuthn assertions
-3. **Account State** – Active, disabled, locked, staff, superuser
-4. **Permission Interface** – Capability to be authorized, not tenant-scoped
-
-> 🚨 The User model **must not** contain tenant-specific authorization.
+> **Insight:** Identity, business context, and tenant authorization are **decoupled**. Tenancy is **a boundary, not a field**.
 
 ---
 
-## 2️⃣ Why Django’s Default User Breaks in Multi-Tenant Systems
+## 1️⃣ Why Django Default User Fails for SaaS
 
-Django’s default `auth.User` assumes:
+Django’s `auth.User` assumes:
 
-* One global authority
-* One permission namespace
+* Single global authority
+* Single permission namespace
 * One application boundary
 
-These assumptions **collapse** in SaaS / multi-tenant platforms.
+| Field          | Problem in Multi-Tenant SaaS             |
+| -------------- | ---------------------------------------- |
+| `username`     | Not globally unique                      |
+| `is_staff`     | Cannot represent tenant roles            |
+| `groups`       | Permissions leak across tenants          |
+| Mixed concerns | Identity + authorization tightly coupled |
 
-| Default Field  | Why It Breaks                              |
-| -------------- | ------------------------------------------ |
-| `username`     | Artificial, not identity-safe              |
-| `is_staff`     | Global flag, cannot represent tenant roles |
-| `groups`       | Global permissions leak across tenants     |
-| Mixed concerns | Identity + authorization tightly coupled   |
-
-> 🔥 Once tenant logic leaks into `auth_user`, **security debt is permanent**.
+> 🔥 Tenant logic in `auth_user` = permanent security debt.
 
 ---
 
-## 3️⃣ Designing Identity, Profile & Tenant
+## 2️⃣ Custom User Manager & Model
 
-### Separation by Rate of Change
-
-| Layer             | Change Frequency | Security Sensitivity |
-| ----------------- | ---------------- | -------------------- |
-| User              | Rare             | Extremely High       |
-| Profile           | Frequent         | Medium               |
-| Tenant Membership | Dynamic          | High                 |
-
-### Canonical Data Model
-
-```
-┌────────────┐
-│   User     │  ← Global Identity Boundary
-├────────────┤
-│ email      │
-│ password   │
-│ is_active  │
-│ is_staff   │
-└────────────┘
-       │
-       ▼
-┌──────────────┐
-│ UserProfile  │  ← Human / Business Context
-├──────────────┤
-│ full_name    │
-│ phone        │
-│ locale       │
-└──────────────┘
-       │
-       ▼
-┌──────────────┐
-│ Membership   │  ← Tenant Security Boundary
-├──────────────┤
-│ tenant       │
-│ role         │
-│ is_active    │
-└──────────────┘
-```
-
-> Tenancy is **not a field**, it is a **boundary**.
-
----
-
-## 4️⃣ Custom User Manager — Enforcing Global Identity
-
-The manager ensures **global invariants**, independent of tenants.
+### Manager: Enforces Global Identity
 
 ```python
 # accounts/managers.py
@@ -133,11 +95,11 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 ```
 
-> Tenancy is **never** handled here — identity creation remains **tenant-agnostic**.
+> **Key:** Tenancy is never handled here; identity creation is **tenant-agnostic**.
 
 ---
 
-## 5️⃣ Custom User Model — Identity Only
+### Custom User Model: Identity Only
 
 ```python
 # accounts/models.py
@@ -156,31 +118,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 ```
 
-**Key Points:**
-
-* Email = global identity key
-* No tenant or business logic
-* PermissionsMixin gives global auth primitives only
-
 ---
 
-## 6️⃣ AUTH_USER_MODEL — Point of No Return
+### AUTH_USER_MODEL
 
 ```python
 AUTH_USER_MODEL = "accounts.User"
 ```
 
-**Implications:**
-
-* All FKs must reference `User`
-* Tenants can rotate / merge without touching the identity
-* Authorization remains **contextual**
-
-> Changing this later **breaks everything**.
+> **Implication:** All FKs reference User. Changing later breaks everything. Tenancy remains **contextual**, not baked into identity.
 
 ---
 
-## 7️⃣ UserProfile — Context Without Authority
+## 3️⃣ UserProfile — Business Context
 
 ```python
 # accounts/models.py
@@ -197,15 +147,15 @@ class UserProfile(models.Model):
     locale = models.CharField(max_length=20, default="en")
 ```
 
-**Benefits:**
-
 * Safe to change often
 * Tenant-agnostic
-* Contains **business-relevant** information
+* Contains **business-relevant info**
 
 ---
 
-## 8️⃣ Tenant Model — Authorization Container
+## 4️⃣ Tenant & Membership
+
+### Tenant Model
 
 ```python
 class Tenant(models.Model):
@@ -214,11 +164,7 @@ class Tenant(models.Model):
     is_active = models.BooleanField(default=True)
 ```
 
-> Tenants = organizations, workspaces, accounts, or customers.
-
----
-
-## 9️⃣ Membership — Scoped Authorization
+### Membership + Role
 
 ```python
 class Role(models.Model):
@@ -234,50 +180,12 @@ class Membership(models.Model):
         unique_together = ("user", "tenant")
 ```
 
-**Purpose:**
-
-* Defines **what a user can do in a tenant**
-* Supports **multi-tenant SaaS**
+* Defines **what a user can do per tenant**
 * Enables **tenant-scoped permissions**
 
 ---
 
-## 🔐 Tenant-Scoped Permissions & Decorators
-
-```python
-# tenants/decorators.py
-from functools import wraps
-from django.core.exceptions import PermissionDenied
-from tenants.models import Membership
-
-def tenant_role_required(role_name):
-    def decorator(view_func):
-        @wraps(view_func)
-        def _wrapped_view(request, *args, **kwargs):
-            tenant = getattr(request, "tenant", None)
-            user = getattr(request, "user", None)
-            if not tenant or not user or not user.is_authenticated:
-                raise PermissionDenied("Tenant or user context missing")
-
-            if not Membership.objects.filter(user=user, tenant=tenant, role__name=role_name, is_active=True).exists():
-                raise PermissionDenied("User lacks required role")
-            
-            return view_func(request, *args, **kwargs)
-        return _wrapped_view
-    return decorator
-```
-
-**Usage in Views:**
-
-```python
-@tenant_role_required("Admin")
-def dashboard(request):
-    return render(request, "dashboard.html")
-```
-
----
-
-## 🔑 Tenant-Aware Middleware
+## 5️⃣ Tenant-Aware Middleware
 
 ```python
 # tenants/middleware.py
@@ -301,27 +209,86 @@ class TenantMiddleware:
         return self.get_response(request)
 ```
 
-* `request.tenant` is globally available
-* Can be used with JWT or session-based authentication
+> `request.tenant` becomes globally available and can be used with JWT/session authentication.
 
 ---
 
-## 🔐 Security Guarantees
+## 6️⃣ Tenant-Scoped Permissions Decorator
 
-* No global admin leakage
-* No implicit trust
-* Tenant isolation by design
-* Auditable permission decisions
-* Zero-trust compatible
+```python
+# tenants/decorators.py
+from functools import wraps
+from django.core.exceptions import PermissionDenied
+from tenants.models import Membership
+
+def tenant_role_required(role_name):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            tenant = getattr(request, "tenant", None)
+            user = getattr(request, "user", None)
+            if not tenant or not user or not user.is_authenticated:
+                raise PermissionDenied("Tenant or user context missing")
+
+            if not Membership.objects.filter(
+                user=user, tenant=tenant, role__name=role_name, is_active=True
+            ).exists():
+                raise PermissionDenied("User lacks required role")
+            
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
+```
+
+**Usage in Views:**
+
+```python
+@tenant_role_required("Admin")
+def dashboard(request):
+    return render(request, "dashboard.html")
+```
 
 ---
 
-## 🧠 Mental Model
+## 7️⃣ Full Multi-Tenant Request Flow (ASCII Diagram)
+
+```
+Client Request
+      │
+      ▼
++-------------------+
+| TenantMiddleware  |  ← Resolves tenant from subdomain
++-------------------+
+      │
+      ▼
++-------------------+
+| Authentication    |  ← Verifies global User identity
++-------------------+
+      │
+      ▼
++-------------------+
+| Membership Check  |  ← Tenant-scoped Role/Permission enforcement
++-------------------+
+      │
+      ▼
++-------------------+
+| View / Business   |  ← Tenant-aware execution
++-------------------+
+      │
+      ▼
+Response
+```
+
+> ✅ This **diagram shows the complete enforcement path**: identity → tenant → membership → role → view → response.
+
+---
+
+## 8️⃣ Layered Mental Model
 
 | Layer      | Responsibility         |
 | ---------- | ---------------------- |
 | User       | Global identity        |
-| Profile    | Human context          |
+| Profile    | Business/human context |
 | Tenant     | Authorization boundary |
 | Membership | Scoped authority       |
 | Role       | Business intent        |
@@ -329,7 +296,17 @@ class TenantMiddleware:
 
 ---
 
-## 🚀 Production Advantages
+## 9️⃣ Security Guarantees
+
+* Tenant isolation **by design**
+* No global admin leakage
+* No implicit trust
+* Auditable permission decisions
+* Zero-trust compatible
+
+---
+
+## 10️⃣ Production Advantages
 
 * Multi-tenant SaaS readiness
 * Zero-trust APIs
@@ -338,6 +315,3 @@ class TenantMiddleware:
 * Flexible for future auth migrations
 
 ---
-
-✅ This is a **full, classic Django multi-tenant identity & authorization platform**.
-
