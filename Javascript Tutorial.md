@@ -21,13 +21,13 @@
 
 By the end of this guide, readers will:
 
-✅ Understand **modern JavaScript architecture & modular design**
-✅ Separate **domain logic, UI, and persistence layers**
-✅ Write **testable and maintainable JavaScript code**
-✅ Use **unit tests and integration tests as safety nets**
-✅ Build a **full-featured task management application**
-✅ Apply **real-world engineering practices** (dependency isolation, pure functions, orchestration)
-✅ Visualize **app flow & lifecycle using ASCII diagrams**
+✅ Understand **modern JavaScript architecture & modular design**       
+✅ Separate **domain logic, UI, and persistence layers**       
+✅ Write **testable and maintainable JavaScript code**       
+✅ Use **unit tests and integration tests as safety nets**       
+✅ Build a **full-featured task management application**       
+✅ Apply **real-world engineering practices** (dependency isolation, pure functions, orchestration)       
+✅ Visualize **app flow & lifecycle using ASCII diagrams**       
 
 ---
 
