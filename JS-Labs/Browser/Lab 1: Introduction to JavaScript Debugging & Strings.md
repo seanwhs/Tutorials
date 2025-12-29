@@ -1,4 +1,4 @@
-## Lab Sheet: Introduction to JavaScript Debugging & Strings
+## Lab 1: Introduction to JavaScript Debugging & Strings
 
 **Objective:** Understand how to link JavaScript to HTML and utilize the Browser Console for debugging and dynamic string output.
 
