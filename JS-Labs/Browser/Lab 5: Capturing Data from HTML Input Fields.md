@@ -1,4 +1,4 @@
-## Lab 6: Capturing Data from HTML Input Fields
+## Lab 5: Capturing Data from HTML Input Fields
 
 **Objective:** Replace annoying pop-up windows (`prompt`) with professional **HTML Input Fields**. You will learn how to "grab" values directly from the page when a user types into a text box.
 
