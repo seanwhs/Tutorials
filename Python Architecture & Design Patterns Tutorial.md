@@ -338,7 +338,7 @@ High-level Python application:
 
 ---
 
-# 📘 Python Architecture & Design Patterns Visual Handbook
+# 📘 Addendum: Python Architecture & Design Patterns Visual Handbook
 
 ---
 
@@ -662,11 +662,7 @@ Context -> StrategyA / StrategyB
 
 ---
 
-Perfect! Here’s a **drop-in addendum** for your tutorial: a **Python Architecture & Design Patterns Mind Map** in **ASCII/visual format**, showing relationships, categories, and recommended use cases. You can append this directly as a reference addendum.
-
----
-
-# 🧠 Python Architecture & Design Patterns Mind Map (Addendum)
+# 🧠 Addendum: Python Architecture & Design Patterns Mind Map 
 
 ```
                     +-------------------------+
