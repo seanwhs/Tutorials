@@ -1,4 +1,4 @@
-## Lab 5: Event Listeners & Interactive Buttons
+## Lab 4: Event Listeners & Interactive Buttons
 
 **Objective:** Learn how to prevent JavaScript from running automatically on page load. Instead, you will use a **Button** and an **Event Listener** to trigger your code only when the user is ready.
 
