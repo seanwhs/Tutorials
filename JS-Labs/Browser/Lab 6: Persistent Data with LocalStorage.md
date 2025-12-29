@@ -1,4 +1,4 @@
-## Lab 7: Persistent Data with LocalStorage
+## Lab 6: Persistent Data with LocalStorage
 
 **Objective:** Learn how to save user data so it survives a page refresh. You will use the **Web Storage API** to store, retrieve, and display data locally in the browser.
 
