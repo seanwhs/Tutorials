@@ -1,4 +1,4 @@
-# **Enterprise-Grade Guide: Step-by-Step Build of a Modular Django REST App with JWT & Async Observability (MySQL Edition)**
+# **Enterprise-Grade Guide: Step-by-Step Build of a Modular Django REST App with JWT & Async Observability**
 
 This guide provides a **comprehensive roadmap** to building a **production-ready, modular Django REST Framework (DRF) application** optimized for **multi-tenant SaaS environments**, with strong observability, tenant isolation, and a MySQL backend.
 
