@@ -1,4 +1,4 @@
-# 📘 Command Line Tutorial — Step-by-Step
+# 📘 Command Line Tutorial 
 
 **Edition:** 1.0
 **Audience:** Beginners → Intermediate
