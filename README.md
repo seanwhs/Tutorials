@@ -183,7 +183,7 @@ Python Fundamentals → Django → Full‑Stack Projects → DevOps & Deployment
 
 ### 7. JS Labs
 
-* [JS‑Labs/Browser Folder](JS‑Labs/Browser/README.md)
+* [JS‑Labs](JS‑Labs/Browser/README.md)
 
 ### 8. Python
 
