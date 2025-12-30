@@ -1,98 +1,152 @@
-## Lab 3: Writing to the DOM (Document Object Model)
+# 🧪 Lab 3: Writing to the DOM with a Button Click
 
-**Objective:** Move your output from the hidden Developer Tools console onto the actual webpage using JavaScript to manipulate HTML elements.
+**Objective:** Learn how to use a button to trigger JavaScript prompts and update the webpage dynamically.
 
 ---
 
-### Part 1: Setting Up the HTML Structure
+## Part 1: HTML – Adding a Button
 
-To put text on a page professionally, we need a "placeholder" in our HTML. We use an **ID** so JavaScript can find exactly where the text should go.
-
-1. **Update your `index.html**` body to look like this:
 ```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive DOM Example</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-    <h1 id="title">Welcome to my Site</h1>
+    <!-- Header that will be updated -->
+    <h1 id="title">Manipulate DOM with JS</h1>
 
+    <!-- Placeholder for user content -->
     <div id="output-area"></div>
+
+    <!-- Button to trigger prompts -->
+    <button id="start-btn">Start Personalization</button>
 
     <script src="main.js"></script>
 </body>
-
+</html>
 ```
 
+**Explanation:**
 
+* `button#start-btn` → User clicks this to start prompts.
+* `div#output-area` → Area to show dynamic content.
+* `h1#title` → Updated greeting.
 
 ---
 
-### Part 2: The JavaScript Logic
+## Part 2: CSS – Styling the Page and Button
 
-We will use `document.getElementById()` to "grab" that empty div and fill it with our user data.
+```css
+/* styles.css */
 
-1. **Open `main.js**` and enter the following:
+body {
+    background-color: burlywood;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 40px;
+    color: blue;
+    text-shadow: 2px 2px;
+    letter-spacing: 8px;
+}
+
+button {
+    font-size: 18px;
+    padding: 10px 20px;
+    margin-top: 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    background-color: darkblue;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: navy;
+}
+
+#output-area h2, #output-area h3 {
+    color: darkgreen;
+}
+```
+
+---
+
+## Part 3: JavaScript – Button Click Triggers Everything
 
 ```javascript
-// 1. Capture Data
-const name = prompt("What is your name?");
-const color = prompt("What is your favorite color?");
+// main.js
 
-// 2. Select the HTML Element
-// We store the 'div' in a variable called displayBox
-const displayBox = document.getElementById('output-area');
+// 1️⃣ Select the button
+const startBtn = document.getElementById('start-btn');
 
-// 3. Inject Content using innerHTML and Backticks
-displayBox.innerHTML = `
-    <h2>User Profile</h2>
-    <p><strong>Name:</strong> ${name}</p>
-    <p><strong>Favorite Color:</strong> <span style="color: ${color}">${color}</span></p>
-`;
+// 2️⃣ Add a click event listener
+startBtn.addEventListener('click', () => {
 
-// 4. Change an existing element
-document.getElementById('title').innerText = `Hello, ${name}!`;
+    // 3️⃣ Capture User Input
+    let firstName = prompt('Please enter your first name:');
+    let favoriteColor = prompt('What is your favorite color?');
 
+    // 4️⃣ Update the main heading
+    document.getElementById('title').innerText = `Hello, ${firstName}!`;
+
+    // 5️⃣ Select the output div
+    const displayBox = document.getElementById('output-area');
+
+    // 6️⃣ Display basic profile
+    displayBox.innerHTML = `
+        <h2>User Profile</h2>
+        <p><strong>Name:</strong> ${firstName}</p>
+        <p><strong>Favorite Color:</strong> <span style="color:${favoriteColor}">${favoriteColor}</span></p>
+    `;
+
+    // 7️⃣ Extra: Change page background color
+    document.body.style.backgroundColor = favoriteColor;
+
+    // 8️⃣ Ask for job details
+    let job = prompt('What is your Job Title?');
+    let company = prompt('Which Company do you work for?');
+
+    // 9️⃣ Add professional info
+    displayBox.innerHTML += `
+        <h3>Professional Info</h3>
+        <p><strong>Job:</strong> ${job}</p>
+        <p><strong>Company:</strong> ${company}</p>
+    `;
+
+    // 🔟 Ask for two numbers and display sum
+    let num1 = Number(prompt('Enter the first number:'));
+    let num2 = Number(prompt('Enter the second number:'));
+    let sum = num1 + num2;
+
+    displayBox.innerHTML += `<p>The sum of ${num1} and ${num2} is <strong>${sum}</strong></p>`;
+});
 ```
 
 ---
 
-### Part 3: Key Concepts
+## ✅ Key Features in This Version
 
-#### 1. The DOM (Document Object Model)
-
-Think of your HTML as a tree. JavaScript uses the "DOM" to climb that tree and change the leaves (text) or the branches (tags).
-
-#### 2. `.innerText` vs `.innerHTML`
-
-* **`.innerText`**: Use this when you only want to change plain text. It is safer for simple names or numbers.
-* **`.innerHTML`**: Use this when you want to inject **new HTML tags** (like `<h2>` or `<strong>`) into the page.
-
-#### 3. Dynamic Styling
-
-Notice in the code above how we used `${color}` inside a style attribute. This allows the user to actually change the look of the website just by typing a color name!
+1. **Button-controlled interaction** – Prompts no longer pop up automatically.
+2. **Dynamic DOM updates** – Updates the heading, profile, professional info, and math results.
+3. **Dynamic styling** – Page background and text colors change based on user input.
+4. **Input casting** – `Number(prompt())` ensures math operations work correctly.
 
 ---
 
-### Part 4: Practical Exercises
+## Part 4: Optional Practice
 
-**Exercise A: The Background Changer**
-You can change the style of the entire page! Try adding this line to your script:
-`document.body.style.backgroundColor = color;`
+1. Add a **reset button** to revert background and clear the content.
+2. Use **`confirm()`** to ask if the user wants to continue before each new prompt.
+3. Add **emoji reactions** dynamically based on favorite color or name length.
 
-**Exercise B: The "About Me" Section**
-Ask the user for their "Job Title" and "Company." Create a new `prompt` for each and use `.innerHTML` to display a professional-looking business card on the screen.
 
-**Exercise C: Math Results**
-Ask for two numbers. Use `innerHTML` to display a sentence like:
-*"The sum of [Num1] and [Num2] is **[Result]**"*
-
----
-
-### Comparison: Console vs. Webpage
-
-| Feature | `console.log()` | `innerHTML` / `innerText` |
-| --- | --- | --- |
-| **Visibility** | Hidden (Developer Tools) | Visible to every user |
-| **Formatting** | Plain text / limited CSS | Full HTML & CSS capabilities |
-| **Purpose** | Debugging and testing | Building the User Interface (UI) |
-
----
-
-**Next Step:** Your page currently runs once and then stops. Would you like to learn how to use a **Button** so that these prompts only happen when a user clicks something?
