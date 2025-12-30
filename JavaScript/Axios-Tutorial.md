@@ -1,4 +1,4 @@
-# 📘 **Production-Grade Axios Handbook (Interceptor-Centric, Verbose Edition)**
+# 📘 **Axios Tutorial**
 
 ## Design, Test, and Operate Reliable HTTP Clients in JavaScript & TypeScript
 
