@@ -1,4 +1,4 @@
-# 📘 Streamlit for Sales Force Automation (SFA) — Zero to Hero Tutorial
+# 📘 Python & Streamlit for Sales Force Automation (SFA) 
 
 ## Build a Real-World Sales Force Automation Dashboard Using Python + Streamlit
 
