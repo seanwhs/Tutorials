@@ -1,4 +1,4 @@
-# 🐍 **The Practical Python Mastery Guide**
+# 🐍 **The Practical Python Guide**
 
 ## **Learn Python by Building a Complete, Real Application — Then Scale It Like a Pro**
 
