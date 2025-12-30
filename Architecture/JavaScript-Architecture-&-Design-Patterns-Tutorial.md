@@ -1,4 +1,4 @@
-# 📘 JavaScript Architecture & Design Patterns Tutorial (Enhanced Masterclass)
+# 📘 JavaScript Architecture & Design Patterns Tutorial
 
 **Goal:** Learn to structure scalable, maintainable, and testable JavaScript applications using **modern architectural principles**, **classic & advanced design patterns**, and **mental models for reasoning about JS**.
 
