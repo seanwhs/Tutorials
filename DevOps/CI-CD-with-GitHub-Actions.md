@@ -1,4 +1,4 @@
-# 📘 GitHub Actions CI/CD Tutorial — Step-by-Step
+# 📘 GitHub Actions CI/CD Tutorial
 
 **Edition:** 1.0
 **Audience:** Beginners → Intermediate
