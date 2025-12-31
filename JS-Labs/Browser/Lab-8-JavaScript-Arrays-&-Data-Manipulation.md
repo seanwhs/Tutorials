@@ -1,4 +1,4 @@
-# Lab 7: JavaScript Arrays & Data Manipulation
+# Lab 8: JavaScript Arrays & Data Manipulation
 
 This lab focuses on the fundamental concepts of JavaScript Arrays, shifting from basic storage to functional transformations and memory architecture.
 
