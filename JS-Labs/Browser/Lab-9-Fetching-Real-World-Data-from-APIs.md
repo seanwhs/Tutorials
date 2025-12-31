@@ -1,4 +1,4 @@
-## Lab 7: Fetching Real-World Data from APIs
+## Lab 9: Fetching Real-World Data from APIs
 
 **Objective:** Learn how to connect your website to the rest of the world. You will use the **Fetch API** to request data from a public server and display it on your page.
 
