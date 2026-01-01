@@ -1,4 +1,4 @@
-# 🧠 Professional Tutorial: Building a Prototype Website with GitHub Pages + Google Forms
+# 🧠 Tutorial: Building a Prototype Website with GitHub Pages + Google Forms
 
 ### (Including Markdown-Only Repos, Decision Trees, Security, Pro Tips, and Django Migration)
 
