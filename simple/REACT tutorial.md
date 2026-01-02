@@ -31,7 +31,14 @@ React is a **declarative JavaScript library for building UIs**. Its core princip
 <div>
         <img width="1806" height="543" alt="image" src="https://github.com/user-attachments/assets/29c3e29b-080d-406c-acc3-eaf2f609acf0" />
 
-        **Browser parses html and generates DOM inmemory**
+        <br/>**Browser parses html and generates DOM inmemory**
+
+</div>
+
+<div>
+        <img width="1669" height="697" alt="image" src="https://github.com/user-attachments/assets/211c43f3-a52c-49f0-b923-291a6ae442ad" />
+        <br/>**JS calls browser API to change the DOM. Browser re-renders the page**
+
 
 </div>
 
