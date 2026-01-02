@@ -1,5 +1,7 @@
 # 🌐 **Key HTML & CSS Concepts**
 
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/93cdfc1c-542b-4789-85d8-eab0a1fc32b7" />
+
 HTML + CSS form the **foundation of web development**. HTML defines structure, while CSS defines presentation and layout.
 
 ---
