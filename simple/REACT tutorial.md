@@ -19,6 +19,10 @@ By the end of this tutorial, you will:
 
 # 🧠 Section 1 — Introduction to React & Virtual DOM
 
+
+<img width="800" height="533" alt="image" src="https://github.com/user-attachments/assets/045e0843-0d70-45c6-82fd-26ce86e5adfe" />
+Browser parses html and generates DOM inmemory
+
 React is a **declarative JavaScript library for building UIs**. Its core principle: describe *what* the UI should look like, not *how* to manipulate the DOM.
 
 * **Declarative:** Describe UI; React handles DOM updates.
