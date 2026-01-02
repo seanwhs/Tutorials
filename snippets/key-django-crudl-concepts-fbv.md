@@ -230,4 +230,56 @@ urlpatterns = [
 * **Templates** → Form rendering and object listing
 
 ---
+```
+                        ┌──────────────────────┐
+                        │       URLs           │
+                        └─────────┬────────────┘
+                                  │
+        ┌───────────────┬─────────┼───────────────┬───────────────┐
+        │               │         │               │               │
+   /authors/new/   /authors/<pk>/  /authors/<pk>/edit/  /authors/<pk>/delete/  /authors/
+   (Create)         (Read)          (Update)           (Delete)               (List)
+        │               │             │                 │                     │
+        ▼               ▼             ▼                 ▼                     ▼
+┌─────────────────┐┌──────────────┐┌────────────────┐┌────────────────┐┌───────────────┐
+│ author_create() ││ author_detail()││ author_update()││ author_delete()││ author_list() │
+└───────┬─────────┘└───────┬──────┘└───────┬────────┘└───────┬────────┘└───────┬───────┘
+        │                  │                │                  │                     │
+        │ Form / Validation│                │ Form / Validation│                     │
+        │   + ModelForm    │                │   + ModelForm    │                     │
+        │   + is_valid()   │                │   + is_valid()   │                     │
+        ▼                  ▼                ▼                  ▼                     ▼
+ ┌───────────────┐    ┌────────────┐   ┌───────────────┐   ┌──────────────┐   ┌─────────────┐
+ │ ORM: .save()  │    │ ORM: .get()│   │ ORM: .save()  │   │ ORM: .delete()│   │ ORM: .all() │
+ │ (Create)      │    │ (Read)     │   │ (Update)      │   │ (Delete)      │   │ (List)      │
+ └───────────────┘    └────────────┘   └───────────────┘   └──────────────┘   └─────────────┘
+        │                  │                │                  │                     │
+        ▼                  ▼                ▼                  ▼                     ▼
+ ┌───────────────┐    ┌────────────┐   ┌───────────────┐   ┌──────────────┐   ┌─────────────┐
+ │ Redirect /    │    │ Render      │   │ Redirect /    │   │ Redirect      │   │ Render      │
+ │ Response      │    │ Template    │   │ Response      │   │ Response      │   │ Template    │
+ └───────────────┘    └────────────┘   └───────────────┘   └──────────────┘   └─────────────┘
+        │                  │                │                  │                     │
+        ▼                  ▼                ▼                  ▼                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                            Templates / HTML Forms                                        │
+│ - author_form.html  → used by create/update forms                                         │
+│ - author_detail.html → used by read/detail view                                          │
+│ - author_confirm_delete.html → used by delete confirmation                               │
+│ - author_list.html → used by list view                                                  │
+│ - Includes CSRF token {% csrf_token %} and {{ form.as_p }}                                │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### ✅ **Master Map Highlights**
+
+1. **URLs** → map HTTP endpoints to FBVs
+2. **Views (FBVs)** → handle form instantiation, validation, ORM operations
+3. **Forms / ModelForms** → create, update, validate input
+4. **ORM Operations** → `.save()`, `.get()`, `.all()`, `.delete()`
+5. **Redirect / Render** → Post/Redirect/Get for create/update/delete, render templates for read/list
+6. **Templates** → form rendering, CSRF protection, listing and detail pages
+
+---
+
 
