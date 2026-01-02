@@ -250,3 +250,118 @@ This simple app demonstrates:
 
 ---
 
+# 🖼️ **Django Power Map – Diagram Layout**
+
+### **1. Top-Level Overview: Request → Response Flow**
+
+**Flow arrows:**
+`Browser / Client → URL Dispatcher → Middleware → View → Model / DB → Template → Response → Browser`
+
+* **Browser / Client** → Makes HTTP request (GET/POST).
+* **URL Dispatcher (`urls.py`)** → Routes request to appropriate view.
+* **Middleware** → Pre-process / Post-process requests (authentication, logging, caching).
+* **View** → Handles business logic. Can be **function-based** or **class-based**.
+* **Model / ORM** → Reads/writes data in the database.
+* **Template** → Renders HTML for the client.
+* **Response** → Sent back to browser.
+
+---
+
+### **2. Components & Concepts (Boxes with arrows)**
+
+**A. Project / App**
+
+* Project: Settings, WSGI/ASGI, Global URLs
+* App: Modular functionality (`blog`, `users`)
+
+**B. Models**
+
+* Fields: `CharField`, `DateField`, `ForeignKey`, `ManyToManyField`
+* ORM: `objects.create()`, `objects.filter()`, `get()`
+
+**C. Views**
+
+* **Function-Based View (FBV)**: `def book_list(request)`
+* **Class-Based View (CBV)**: `ListView`, `DetailView`, `CreateView`
+* Handles logic and interacts with models
+
+**D. Templates**
+
+* `{% for %}`, `{% if %}`, `{{ variable }}`
+* Template inheritance: `{% extends "base.html" %}`
+
+**E. Forms**
+
+* `forms.ModelForm` → Validation, input handling
+* Example: `BookForm`
+
+**F. Middleware**
+
+* Hooks for pre/post request handling
+* Examples: Logging, Auth, Caching
+
+**G. Admin**
+
+* Auto-generated CRUD interface
+* Customizable via `ModelAdmin`
+
+**H. Advanced Features**
+
+* Signals (`post_save`, `pre_delete`)
+* Custom Managers
+* Caching (`cache_page`)
+* Async Views
+* REST APIs via DRF (`Serializer`, `ViewSet`)
+
+---
+
+### **3. Additional Notes / Icons**
+
+* Use **database cylinder icon** for Models/DB
+* Use **gear icon** for Middleware / Admin
+* Use **stacked pages icon** for Templates
+* Use **arrows** for data flow (Request → Response)
+* Use **lightning bolt icon** for Async / Performance features
+
+---
+
+### **4. Color Coding (Optional)**
+
+* **Green** → Core flow (Request → View → Model → Template → Response)
+* **Blue** → Architecture / structure (Project, App, URL)
+* **Yellow** → Advanced features (Signals, DRF, Async, Caching)
+* **Orange** → Middleware & Admin
+
+---
+
+### **5. Suggested Layout**
+
+```
+[Browser / Client]
+       |
+       v
+   [URL Dispatcher]
+       |
+       v
+   [Middleware]  ---> [Signals / Logging / Caching]
+       |
+       v
+     [View]
+       |
+   ----------------
+   |              |
+ [Model/ORM]    [Forms / Validation]
+   |              |
+   v              v
+[Database]     [Template Engine]
+       \        /
+        v      v
+     [HTML Response]
+       |
+       v
+   [Browser / Client]
+```
+
+---
+
+
