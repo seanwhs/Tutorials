@@ -1,4 +1,4 @@
-#📘 ***React Tutorial***
+# 📘 ***React Tutorial***
 Goal
 
 Build a deep, first-principles understanding of modern React (2018+) grounded in:
@@ -19,46 +19,37 @@ Hands-on, end-to-end examples
 
 This tutorial is intentionally written to help you reason about React, not just write React.
 
-🎯 Learning Objectives
+# 🎯 Learning Objectives
 
-By the end of this tutorial, you will be able to:
+- By the end of this tutorial, you will be able to:
+- Explain the design philosophy behind React, including why functional components, Hooks, and pure functions form its foundation.
+- Use JSX, components, props, state, and hooks to build predictable, reactive user interfaces.
+- Implement event handling, conditional rendering, lists, and keys correctly and efficiently.
+- Develop precise mental models for component hierarchy, unidirectional data flow, lifecycle phases, and the Virtual DOM.
+- Build and reason about a complete React application from scratch.
+- Use Addendum A (full project code), Addendum B (visual cheat sheets), and Addendum C (Hooks + lifecycle flows) as long-term reference material.
 
-Explain the design philosophy behind React, including why functional components, Hooks, and pure functions form its foundation.
-
-Use JSX, components, props, state, and hooks to build predictable, reactive user interfaces.
-
-Implement event handling, conditional rendering, lists, and keys correctly and efficiently.
-
-Develop precise mental models for component hierarchy, unidirectional data flow, lifecycle phases, and the Virtual DOM.
-
-Build and reason about a complete React application from scratch.
-
-Use Addendum A (full project code), Addendum B (visual cheat sheets), and Addendum C (Hooks + lifecycle flows) as long-term reference material.
-
-🧠 Section 1 — React, the DOM, and the Virtual DOM
+# 🧠 Section 1 — React, the DOM, and the Virtual DOM
 <img width="800" height="533" alt="image" src="https://github.com/user-attachments/assets/045e0843-0d70-45c6-82fd-26ce86e5adfe" />
 
 React is a declarative JavaScript library for building user interfaces.
 
 Its foundational idea is:
 
-UI = f(state)
-The UI is a pure function of application state.
+> UI = f(state)
+> The UI is a pure function of application state.
 
 This single idea explains components, hooks, rendering, and the Virtual DOM.
 
 Core Characteristics of React
 
-Declarative
+- Declarative
 You describe what the UI should be, not how to update the DOM.
-
-Component-based
+- Component-based
 The UI is composed of small, reusable units.
-
-Pure-function-oriented
+- Pure-function-oriented
 Components are written as pure functions of props and state.
-
-Virtual DOM–driven
+- Virtual DOM–driven
 React optimizes DOM updates using an in-memory representation.
 
 How Browsers Render Without React
@@ -66,11 +57,11 @@ Browser Parses HTML → DOM
 <img width="1806" height="543" alt="image" src="https://github.com/user-attachments/assets/29c3e29b-080d-406c-acc3-eaf2f609acf0" />
 
 The browser parses HTML and constructs a DOM tree in memory.
-
+```
 HTML
   ↓ (parse)
 DOM (in memory)
-
+```
 
 The DOM becomes the browser’s source of truth.
 
