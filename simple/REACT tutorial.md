@@ -21,13 +21,19 @@ By the end of this tutorial, you will:
 
 
 <img width="800" height="533" alt="image" src="https://github.com/user-attachments/assets/045e0843-0d70-45c6-82fd-26ce86e5adfe" />
-Browser parses html and generates DOM inmemory
 
 React is a **declarative JavaScript library for building UIs**. Its core principle: describe *what* the UI should look like, not *how* to manipulate the DOM.
 
 * **Declarative:** Describe UI; React handles DOM updates.
 * **Component-based:** UI is built from reusable **components**.
 * **Virtual DOM:** React maintains an **in-memory representation** of the DOM to optimize updates.
+
+<div>
+        <img width="1806" height="543" alt="image" src="https://github.com/user-attachments/assets/29c3e29b-080d-406c-acc3-eaf2f609acf0" />
+
+        **Browser parses html and generates DOM inmemory**
+
+</div>
 
 **ASCII Diagram: React + Virtual DOM Flow**
 
