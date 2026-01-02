@@ -1,4 +1,4 @@
-📘 Modern React Tutorial — Functional Components, Hooks, Virtual DOM & Pure Functions
+#📘 ***React Tutorial***
 Goal
 
 Build a deep, first-principles understanding of modern React (2018+) grounded in:
