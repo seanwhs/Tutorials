@@ -243,3 +243,247 @@ This workflow scales from:
 
 > **If a project breaks after this reset — it was never reproducible to begin with.**
 
+----
+```
+# Python Clean Slate – PowerShell Only
+
+# Copy & paste directly into PowerShell
+
+# ===============================
+
+# 1. BACKUP GLOBAL PACKAGES
+
+# ===============================
+
+# Save a snapshot of currently installed global packages
+
+pip freeze > global-python-backup.txt
+
+# ===============================
+
+# 2. PURGE GLOBAL PACKAGES (SAFE)
+
+# ===============================
+
+# Uninstall everything installed via pip (does NOT remove Python itself)
+
+pip freeze | % { pip uninstall -y $_ }
+
+# ===============================
+
+# 3. REINSTALL GLOBAL ESSENTIALS
+
+# ===============================
+
+# Install only build & environment tools
+
+python -m pip install --upgrade pip setuptools wheel virtualenv
+
+# ===============================
+
+# 4. VERIFY STANDARD LIBRARY
+
+# ===============================
+
+# Check built-in modules registry
+
+python -c "import sys; print(sys.builtin_module_names)"
+
+# Test core standard library imports
+
+python -c "import os, math, json; print('Standard Library OK'); print(f'Math ?: {math.pi}')"
+
+# ===============================
+
+# 5. CREATE A PROJECT VIRTUAL ENV
+
+# ===============================
+
+# Create virtual environment folder
+
+python -m venv venv
+
+# ===============================
+
+# 6. ACTIVATE VIRTUAL ENV (PowerShell)
+
+# ===============================
+
+# Activate isolated environment
+
+.\venv\Scripts\Activate.ps1
+
+# ===============================
+
+# 7. TEST ENV ISOLATION
+
+# ===============================
+
+# Install a test package
+
+pip install requests
+
+# Run multi-line Python test inside venv
+
+$code = @'
+import requests
+print("requests imported successfully")
+print("venv status: OK")
+'@
+
+$code | python
+
+# ===============================
+
+# 8. FREEZE PROJECT DEPENDENCIES
+
+# ===============================
+
+# Save project-specific dependencies
+
+pip freeze > requirements.txt
+
+# ===============================
+
+# 9. DEACTIVATE & CLEAN UP
+
+# ===============================
+
+# Exit the virtual environment
+
+deactivate
+
+# ===============================
+
+# 10. DELETE TEST VENV (POST-VERIFICATION)
+
+# ===============================
+
+# Remove the virtual environment folder after verification
+
+Remove-Item -Recurse -Force venv
+
+```
+---
+```
+# Python Clean Slate – PowerShell Only
+
+# Copy & paste directly into PowerShell
+
+# Output logs to 'python-clean-slate-log.txt' for verification
+
+# ===============================
+
+# 1. BACKUP GLOBAL PACKAGES
+
+# ===============================
+
+# Save a snapshot of currently installed global packages
+
+pip freeze > global-python-backup.txt 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt
+
+# ===============================
+
+# 2. PURGE GLOBAL PACKAGES (SAFE)
+
+# ===============================
+
+# Uninstall everything installed via pip (does NOT remove Python itself)
+
+pip freeze | % { pip uninstall -y $_ } 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 3. REINSTALL GLOBAL ESSENTIALS
+
+# ===============================
+
+# Install only build & environment tools
+
+python -m pip install --upgrade pip setuptools wheel virtualenv 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 4. VERIFY STANDARD LIBRARY
+
+# ===============================
+
+# Check built-in modules registry
+
+python -c "import sys; print(sys.builtin_module_names)" 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# Test core standard library imports
+
+python -c "import os, math, json; print('Standard Library OK'); print(f'Math ?: {math.pi}')" 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 5. CREATE A PROJECT VIRTUAL ENV
+
+# ===============================
+
+# Create virtual environment folder
+
+python -m venv venv 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 6. ACTIVATE VIRTUAL ENV (PowerShell)
+
+# ===============================
+
+# Activate isolated environment
+
+.\venv\Scripts\Activate.ps1 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 7. TEST ENV ISOLATION
+
+# ===============================
+
+# Install a test package
+
+pip install requests 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# Run multi-line Python test inside venv
+
+$code = @'
+import requests
+print("requests imported successfully")
+print("venv status: OK")
+'@
+$code | python 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 8. FREEZE PROJECT DEPENDENCIES
+
+# ===============================
+
+# Save project-specific dependencies
+
+pip freeze > requirements.txt 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 9. DEACTIVATE & CLEAN UP
+
+# ===============================
+
+# Exit the virtual environment
+
+deactivate 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+# ===============================
+
+# 10. DELETE TEST VENV (POST-VERIFICATION)
+
+# ===============================
+
+# Remove the virtual environment folder after verification
+
+Remove-Item -Recurse -Force venv 2>&1 | Tee-Object -FilePath python-clean-slate-log.txt -Append
+
+```
+---
