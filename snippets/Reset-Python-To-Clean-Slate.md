@@ -230,13 +230,6 @@ You’ve transitioned from:
   to
 * **Production-grade environment management**
 
-This workflow scales from:
-
-* Data science notebooks
-* Django + DRF backends
-* CI/CD pipelines
-* Enterprise multi-repo systems
-
 ---
 
 ### 🏆 **Golden Rule (Commit This to Muscle Memory)**
