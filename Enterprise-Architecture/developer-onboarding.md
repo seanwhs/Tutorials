@@ -1,53 +1,84 @@
-# Developer Onboarding: Master the Enterprise Architecture
+# Developer Onboarding: The Enterprise Architecture Path
 
-Welcome. In an ecosystem of **50+ applications**, your role shifts from building siloed features to managing **Distributed Complexity**. This path leverages our existing [Enterprise Architecture framework](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture) to help you scale systems reliably.
-
----
-
-## 1. The Strategy & Lifecycle (Week 1)
-Start here to understand how we bridge the gap between business intent and technical execution.
-
-* **Strategic Scenarios:** Learn how we categorize initiatives (Defensive, Proactive, Aggressive) to determine technical investment.
-    * *Reference:* [Strategic Scenarios & Archetypes](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture#1-strategic-scenarios)
-* **The EA Lifecycle:** Master the four phases of delivery—from Strategic Planning to Asset Harvesting.
-    * *Reference:* [EA Delivery Lifecycle](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture#2-enterprise-architecture-lifecycle)
-* **Initiation Process:** Understand how new projects are assessed before they reach the "Build" phase.
-    * *Reference:* [The Initiation Process](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture#3-initiation-process)
+Welcome to the team. In an ecosystem of **50+ applications**, we do not build in isolation. Every technical decision must align with our **Enterprise Architecture (EA) Lifecycle**. This guide ensures our growth remains governed as we move from a business "Need" to a long-term "Asset."
 
 ---
 
-## 2. Technical Decisions & Options (Week 2)
-Learn how we make "Build vs. Buy" decisions and apply consistent technical patterns across the fleet.
+## Phase 1: Strategic Alignment & Archetypes (Week 1)
 
-* **Options Assessment:** We prioritize **Reuse** and **Buying** before committing to **Building**. 
-    * *Reference:* [Build vs Buy Framework](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture#4-options-assessment)
-* **Distributed Consistency:** Master the **Saga Pattern** and **Transactional Outbox** for cross-service transactions.
-    * *Reference:* [New Guide: Distributed Consistency Blueprints](./blueprints/distributed-consistency.md)
-* **API Governance:** Learn how we evolve contracts using the **Expand and Contract** pattern.
-    * *Reference:* [New Guide: API Versioning & Deprecation](./governance/api-versioning-policy.md)
+Before designing, you must understand the **Strategic Scenario** and the **Archetype** assigned to the initiative. This determines the "License to Operate" and the technical rigor required.
 
----
+* **Strategic Scenarios:** We evaluate the "Need" against three modes:
+* **Defensive:** Focused on risk, compliance, and core stability.
+* **Proactive:** Improving efficiency and scaling existing success.
+* **Aggressive:** High-speed market disruption and new capability builds.
 
-## 3. Operations & Reliability (Week 3)
-"You Build It, You Run It." Master the tools that keep our 50+ apps alive.
 
-* **Observability:** Use `trace_id` correlation to debug requests spanning multiple services.
-    * *Reference:* [New Guide: Logging & Observability Standard](./governance/logging-and-observability-standard.md)
-* **Resiliency:** Understand how we use the **Service Mesh** for automated retries and circuit breaking.
-    * *Reference:* [New Guide: Service Mesh Traffic Policy](./governance/service-mesh-traffic-policy.md)
-* **The Runbook:** Familiarize yourself with our mandatory incident response procedures.
-    * *Reference:* [Template: Service Runbook](./templates/service-runbook-template.md)
+* **Architectural Archetypes:** These provide the blueprint for the solution's personality:
+* **The Utility:** High efficiency, low cost, standard features (e.g., Internal HR tools).
+* **The Scaler:** High availability, elastic performance (e.g., Customer-facing APIs).
+* **The Pioneer:** Rapid experimentation, high flexibility, often ephemeral.
 
----
 
-## 4. Your First Task: "Golden Path" Implementation
-To complete onboarding, you will set up a local environment using our standard scaffold and implement a **Transactional Outbox** flow.
+* **The EA Lifecycle:** Familiarize yourself with our 4-Phase flow:
+1. **Strategic Planning:** Aligning the initiative with enterprise goals and archetypes.
+2. **Initiative Delivery:** Building the solution following the "Golden Path."
+3. **Asset Management:** Operating the service as a governed enterprise asset.
+4. **Asset Harvesting:** Strategic decommissioning or reinvestment.
 
-* **Action:** Follow the [Golden Path Local Scaffold](./templates/golden-path-environment/README.md).
+
 
 ---
 
-### Recommended Learning
+## Phase 2: Project Initiation & Decisioning (Week 2)
 
-**Saga Pattern in Microservices** Visual deep-dive into distributed transactions and coordination strategies:  
-[https://www.youtube.com/watch?v=7xred44h4s0](https://www.youtube.com/watch?v=7xred44h4s0)
+We follow a disciplined **Initiation Process** to ensure we maximize existing investments.
+
+* **Options Assessment:** We follow a strict hierarchy for every new requirement:
+1. **Reuse:** Can an existing application or service fulfill the need? (Check the Service Catalog).
+2. **Buy:** Is there a COTS (Commercial Off-The-Shelf) solution or SaaS?
+3. **Build:** Custom development is only justified if it provides a unique competitive advantage.
+
+
+* **High-Level Solution Overview (HLSO):** For all "Build" or "Complex Integrate" projects, you must draft an HLSO. This documents integration points, data flows, and how the new service interacts with the other 50+ apps in the fleet.
+
+---
+
+## Phase 3: Technical Delivery & Patterns (Week 3)
+
+During **Initiative Delivery**, we prioritize patterns that simplify **Asset Management**.
+
+* **Distributed Consistency:** We prioritize **Transactional Outbox** and **Saga Patterns** to replace brittle distributed transactions with event-driven eventual consistency.
+* **Zero-Downtime Evolution:** Use the **Expand and Contract** pattern for APIs and Database Schemas to prevent breaking downstream consumers.
+* **Observability Standards:** Implementation of **Structured Logging (JSON)** and **Trace ID Propagation** is mandatory to track requests across the enterprise fabric.
+
+---
+
+## Phase 4: Governance & Reliability (Ongoing)
+
+Once a service moves to **Asset Management**, the focus shifts to resilience and the "Golden Signals."
+
+* **Service Mesh & Traffic Policy:** Offload retries, mTLS, and circuit breaking to Sidecars.
+* **Reliability Metrics:** You are responsible for the **Latency, Traffic, Errors, and Saturation** of your asset.
+* **Blameless Post-Mortems:** When an asset fails, use the **Five Whys** to identify systemic flaws and feed lessons back into the **Strategic Planning** phase.
+
+---
+
+## Your First Task: The Initiation Mock-up
+
+To complete your onboarding, you will be given a sample business "Need." You must:
+
+1. Identify the **Strategic Scenario** and recommend a target **Archetype**.
+2. Perform a documented **Options Assessment** (proving why we shouldn't "Reuse" current tools).
+3. Draft a **High-Level Solution Overview** (HLSO) mapping the data flow between your service and core enterprise stores.
+
+---
+
+### Reference Links (Internal)
+
+* [Strategic Scenarios & Archetypes](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture#1-strategic-scenarios)
+* [EA Lifecycle & Phase Breakdown](https://www.google.com/search?q=https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture%232-enterprise-architecture-lifecycle)
+* [The Initiation Process](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture/Project-Initiation)
+* [Options Assessment Framework](https://www.google.com/search?q=https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture%234-options-assessment)
+
+**Would you like me to generate a template for the High-Level Solution Overview (HLSO) that includes these Archetype and Scenario fields?**
