@@ -8,11 +8,11 @@ This repository serves as the definitive blueprint for aligning IT resources wit
 
 ## 1. Strategic Alignment & Initiative Delivery
 
-Architecture must bridge the gap between business intent and engineering execution. We utilize a structured delivery model to ensure technical investments provide maximum leverage:
+Architecture must bridge the gap between business intent and engineering execution. We utilize a structured lifecycle to ensure technical investments provide maximum leverage:
 
-* **Analysis & Initiation:** Developing Solution Overviews and Options Assessments before commitment to minimize wasted effort.
-* **Strategic Archetypes:** Aligning tech choices with business goals—whether optimizing for **Market Penetration** (Aggressiveness), **Product Development** (Proactiveness), or **Operational Efficiency** (Defensiveness).
-* **Friction Removal:** Identifying architectural debt early to ensure a seamless "omnichannel" customer journey and developer experience.
+* **Analysis & Initiation:** Developing Solution Overviews and Options Assessments (Buy vs. Build) before commitment to minimize wasted effort.
+* **Strategic Archetypes:** Aligning technical choices with business posture—whether optimizing for **Market Penetration** (Aggressive), **Product Development** (Proactive), or **Operational Efficiency** (Defensive).
+* **Friction Removal:** Identifying architectural debt early in the initiative delivery lifecycle to ensure a seamless "omnichannel" customer journey.
 
 ---
 
@@ -49,7 +49,7 @@ Architecture at scale is defined by the **failure blast radius** of service inte
 > 
 > 
 > * **Circuit Breakers:** Prevent cascading failures by halting traffic to degraded downstream dependencies.
-> * **Bulkheading:** Partition resource pools so a failure in a non-critical system cannot starve mission-critical flows (e.g., Payments).
+> * **Bulkheading:** Partition resource pools so a failure in a non-critical system cannot starve mission-critical flows.
 > 
 > 
 
@@ -75,23 +75,14 @@ To prevent **data drift**, ensure database updates and message publishing happen
 
 ---
 
-## 6. Security: Identity-Centric Design
+## 6. Security & Observability
 
-Move beyond perimeter-based security toward a **Zero Trust** model.
+Move beyond perimeter-based security toward a **Zero Trust** model with correlated telemetry.
 
-* **Zero Trust & IAM:** Every request must be authenticated via OIDC/SAML (Okta/Keycloak). Assume the network is already compromised.
-* **Policy as Code:** Decouple authorization from code using **Open Policy Agent (OPA)**, allowing global security updates without redeploying services.
-
----
-
-## 7. Correlated Observability & Resilience
-
-You cannot manage 50+ systems with disconnected dashboards.
-
+* **Identity-Centric Design:** Every request must be authenticated via OIDC/SAML. Use **Policy as Code** (OPA) to decouple authorization from business logic.
 * **Distributed Tracing (OpenTelemetry):** Inject a `trace_id` at the Gateway to visualize requests as they hop across service boundaries.
 * **Four Golden Signals:** Monitor **Latency, Traffic, Errors, and Saturation** for every service.
 * **SLOs over Uptime:** Define **Service Level Objectives** that reflect actual user experience. If an error budget is exhausted, focus shifts from features to reliability.
-* **Cell-Based Architecture:** Partition the fleet into isolated "Cells" to ensure failures impact only a fraction of the user base.
 
 ---
 
@@ -99,10 +90,11 @@ You cannot manage 50+ systems with disconnected dashboards.
 
 | Category | Requirement |
 | --- | --- |
-| **Governance** | Are ADRs required and documented for all major architectural changes? |
-| **Catalog** | Is every service registered in the **Service Catalog** with a clear owner? |
+| **Strategy** | Is the initiative aligned with a Strategic Archetype (Defensive/Proactive)? |
+| **Governance** | Are ADRs documented for all major architectural changes? |
+| **Catalog** | Is the service registered in the **Service Catalog** with a clear owner? |
 | **Data** | Is "Direct DB Access" prohibited, and are tools **standardized**? |
-| **Modernization** | Has a recent **audit** identified "Snowflake" services for deprecation? |
+| **Modernization** | Has an **audit** identified if this replaces a "Snowflake" service? |
 | **Reliability** | Are all calls protected by circuit breakers and timeouts? |
 | **Observability** | Is distributed tracing (OTel) implemented across the entire request path? |
 
@@ -113,6 +105,3 @@ You cannot manage 50+ systems with disconnected dashboards.
 **Saga Pattern in Microservices**
 Visual deep-dive into distributed transactions and coordination strategies:
 [https://www.youtube.com/watch?v=7xred44h4s0](https://www.youtube.com/watch?v=7xred44h4s0)
-
----
-
