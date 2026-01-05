@@ -35,7 +35,7 @@ Treat the database as the "Source of Truth" for both the state and the notificat
                                      v
                             [ Apache Kafka Topic ]
 
----
+```
 
 ### Design Constraints
 Idempotency: Consumers must be idempotent. The relay guarantees "at-least-once" delivery, which can result in duplicate messages during network partitions.
