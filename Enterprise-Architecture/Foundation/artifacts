@@ -1,0 +1,24 @@
+# EA Artifacts and Deliverables
+
+Enterprise Architecture produces various outputs (“artifacts”) that communicate information across stakeholders.
+
+## Considerations / Principles
+High-level business and IT rules that guide decisions.
+
+## Standards / Reference Models
+Technology and process standards that all projects should conform to.
+
+## Business Capability Model
+A map of high-level business functions, often used for prioritization.
+
+## Roadmaps
+Future-state vision showing initiative timelines and dependencies.
+
+## Landscape Diagrams
+Visual representation of current systems, data, and interactions.
+
+## Solution Overviews and Design Documents
+Documents that translate business needs into technical solutions.
+
+### Why These Matter
+Artifacts provide traceable decision records, enable governance, and guide project planning.
