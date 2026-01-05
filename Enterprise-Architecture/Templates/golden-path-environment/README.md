@@ -1,4 +1,4 @@
-### `templates/golden-path-environment/README.md`
+### Overview
 
 This reference implementation provides a "Local-First" version of the **Golden Path**. It allows developers to spin up a fully compliant enterprise stack—including the **Event Backbone**, **Change Data Capture (CDC)**, and **Relay** patterns—with a single command.
 
