@@ -1,6 +1,5 @@
 ### Canvas — Enhanced README with ASCII Diagrams
 
-```markdown
 # Part IV — Cloud-Native Execution & Beyond (2026+)
 
 Architecture in 2026 is inseparable from the infrastructure that runs it.  
@@ -190,7 +189,5 @@ Origin Services
 ---
 
 > Cloud-native execution in 2026 is about **ephemeral compute, intelligent routing, and distributed ownership of both code and data**.
-```
-
 ---
 
