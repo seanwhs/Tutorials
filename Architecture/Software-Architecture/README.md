@@ -2,17 +2,16 @@
 
 ### Principles, Structures, and Systems for Scalable, Intelligent Software
 
-This repository organizes modern software architecture knowledge into a **modular, navigable structure** aligned with 2026+ best practices.
+This repository provides **code examples, diagrams, and explanations** for modern software architecture concepts from foundational discipline to AI-native systems.
 
-## Repository Structure
+## Contents
 
-1. **01_architectural_discipline/** — Operational foundations and the 12-Factor App.
-2. **02_structural_foundations/** — Hexagonal Architecture, Modular Monoliths, and boundary design.
-3. **03_distributed_systems/** — Microservices, CQRS, Sagas, and distributed patterns.
-4. **04_cloud_native/** — Serverless, Service Mesh, Micro-Frontends.
-5. **05_data_systems/** — Event-driven architecture, Event Sourcing, Data Mesh.
-6. **06_ai_edge/** — AI-native architectures, Agentic Orchestration, Edge Computing, Zero-Trust.
-7. **07_pattern_catalog/** — Reference table of common architecture patterns.
-8. **08_decision_matrix/** — Architectural decision guidance by goals and trade-offs.
+1. [01_discipline](01_discipline/README.md) — Operational discipline, 12-Factor App
+2. [02_structural](02_structural/README.md) — Hexagonal architecture, Modular Monolith
+3. [03_distributed](03_distributed/README.md) — Microservices, CQRS, Saga, Circuit Breakers
+4. [04_cloud_native](04_cloud_native/README.md) — Serverless, Service Mesh, Micro-Frontends
+5. [05_data_systems](05_data_systems/README.md) — Event Sourcing, Data Mesh
+6. [06_ai_edge](06_ai_edge/README.md) — RAG, Agentic Orchestration, Edge & Zero-Trust
+7. [assets/diagrams](assets/diagrams/) — Optional PNG/SVG diagrams for reference
 
-> Each directory contains explanations, diagrams, and practical examples for reference and implementation.
+> **Tip:** Start with 01_discipline to understand the operational foundation, then explore structural, distributed, cloud-native, data, and AI/Edge examples in order.
