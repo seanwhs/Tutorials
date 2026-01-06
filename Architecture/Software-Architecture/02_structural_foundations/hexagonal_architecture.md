@@ -1,14 +1,13 @@
 # Part II — Structural Foundations: Drawing the Right Boundaries
 
-Architecture is fundamentally the discipline of **boundary design**.
-If you don’t define where one domain ends and another begins, your system risks becoming a **Big Ball of Mud**.
+Architecture is fundamentally the discipline of **boundary design**. If you don’t define where one domain ends and another begins, your system risks becoming a **Big Ball of Mud**.
 
 In 2026, the industry is moving away from “Microservices by default” toward:
 
-* **Modular Monoliths** — simple, strongly modular single deployments
-* **Hexagonal (Clean) Architecture** — isolating core business logic from technical details
+* **Modular Monoliths** — Simple, strongly modular single deployments.
+* **Hexagonal (Clean) Architecture** — Isolating core business logic from technical details.
 
-The goal: **build boundaries that are easy to draw but hard to cross**, so you can stay monolithic early on but trivially “snap off” modules into microservices later.
+The goal: **Build boundaries that are easy to draw but hard to cross**, allowing you to stay monolithic early on but trivially “snap off” modules into microservices later.
 
 ---
 
@@ -16,34 +15,15 @@ The goal: **build boundaries that are easy to draw but hard to cross**, so you c
 
 **Definition:** Business logic lives at the core and interacts with the outside world via **ports** (interfaces) and **adapters** (implementations).
 
-```
-        [ UI / Agent ]
-              |
-        +-----v-----+
-        |    Port   |
-+-------+-----------+-------+
-|     Business Logic       |
-+-------+-----------+-------+
-        |    Port   |
-        +-----^-----+
-              |
-       [ DB / API / Vector ]
-```
-
 ### Components
 
 * **Core:** Contains only pure business logic and domain entities.
 * **Ports:** Define *what* the core requires (e.g., `UserRepository`).
-* **Adapters:** Implement ports for specific technologies (e.g., `PostgresUserRepository`, `AIAdapter`).
+* **Adapters:** Implement ports for specific technologies (e.g., `PostgresUserRepository`, `AI_Agent_Adapter`).
 
 ### 2026 Use Case
 
-As AI evolves, you may replace a traditional REST API with an **AI Agent Adapter**. In a hexagonal system, your business logic remains untouched; you simply plug in a new adapter.
-
-**Benefits:**
-
-* Supports rapid substitution of technology layers
-* Prevents business logic from being tightly coupled to infrastructure
+As AI evolves, you may replace a traditional REST API with an **AI Agent Adapter**. In a hexagonal system, your business logic remains untouched; you simply plug in a new adapter to the existing port.
 
 ---
 
@@ -51,32 +31,22 @@ As AI evolves, you may replace a traditional REST API with an **AI Agent Adapter
 
 A **Modular Monolith** is a single deployment unit (one process) partitioned into independent modules.
 
-```
-+----------------------------------+
-|        Modular Monolith           |
-|----------------------------------|
-|  Billing | Orders | Inventory    |
-|  (Clear Domain Boundaries)       |
-+----------------------------------+
-```
+### Rules for 2026
 
-**Rules:**
-
-* Modules communicate only via explicit public APIs.
-* Modules **never** share database tables directly.
+* **Public APIs only:** Modules communicate via explicit interfaces, never by reaching into another module's internal classes.
+* **Database Isolation:** Modules **never** share database tables directly. Each module owns its schema.
 
 **Benefits:**
 
-* Simplicity of a single codebase
-* Safety of service-like boundaries
-* Faster iteration and debugging
-* Easier to evolve into microservices later
+* Simplicity of a single codebase and deployment pipeline.
+* Safety of service-like boundaries without network overhead.
+* Easier to evolve into microservices if a specific module needs independent scaling.
 
 ---
 
 ## 💻 Implementation Example: Defining a Port (TypeScript)
 
-This example shows how to isolate business logic from a database using a **Port**.
+This snippet demonstrates isolating business logic from infrastructure using the Port pattern.
 
 ```typescript
 // --- THE PORT (In the Core) ---
@@ -100,32 +70,74 @@ export class OrderService {
 // --- THE ADAPTER (On the Outside) ---
 export class PostgresOrderRepository implements OrderRepository {
   async save(order: Order): Promise<void> {
-    console.log('Saved to Postgres');
+    console.log('SQL: INSERT INTO orders...');
   }
   
   async getById(id: string): Promise<Order | null> {
-    return null; // Implementation details here
+    return null; // Database-specific logic here
   }
 }
+
 ```
 
 ---
 
 ## 🛠 Decision Framework: When to Move Beyond the Monolith
 
-| Signal                                                                 | Action                        |
-| ---------------------------------------------------------------------- | ----------------------------- |
-| **Team Size:** > 3 independent teams working on the same repo          | Consider Microservices        |
-| **Deployment:** One slow module delays the entire build by 20+ minutes | Extract the slow module       |
-| **Tech Stack:** One module requires Python (AI) while the rest is Go   | Use a Sidecar or Microservice |
+| Signal | Action |
+| --- | --- |
+| **Team Size:** > 3 independent teams working on the same repo | Consider Microservices |
+| **Deployment:** One slow module delays the entire build by 20+ minutes | Extract the slow module |
+| **Tech Stack:** One module requires Python (AI) while the rest is Go | Use a Sidecar or Microservice |
 
 ---
 
-## 📖 Recommended Research
+## 🏗 Integrated Architecture Overview (2026)
 
-* [Domain-Driven Design (Eric Evans)](https://www.domainlanguage.com/ddd/)
-* [Clean Architecture (Robert C. Martin)](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-* [Modular Monolith: A Guide (Simon Brown)](https://structurizr.com/help/modularity-maturity-model)
+This flow shows how the **Structural Foundations** of Part II fit into the **AI-Native Orchestration** of the full stack.
+
+```text
+                                    ┌─────────────────────────────┐
+                                    │        BUSINESS GOAL        │
+                                    │ (Speed, AI Enablement, etc.)│
+                                    └─────────────┬───────────────┘
+                                                  │
+                                    ┌─────────────▼──────────────┐
+                                    │   USER REQUEST / CLIENT    │
+                                    └─────────────┬──────────────┘
+                                                  │
+                                    ┌─────────────▼──────────────┐
+                                    │         EDGE NODE          │
+                                    │ (Wasm Worker / BFF Pattern)│
+                                    └─────────────┬──────────────┘
+                                                  │
+                                    ┌─────────────▼──────────────┐
+                                    │         AI AGENT           │
+                                    │  (Reasoning / RAG Context) │
+                                    └─────────────┬──────────────┘
+                                                  │
+              ┌──────────────────────────────────┴────────────────────────────────┐
+              │                                                                   │
+              ▼                                                                   ▼
+      ┌───────────────┐                                                   ┌───────────────┐
+      │  HEXAGONAL    │                                                   │   VECTOR DB   │
+      │   MODULAR     │◀──────────────────────────────────────────────────│   DATA MESH   │
+      │  MONOLITH     │                                                   │ (RAG Context) │
+      │───────────────│                                                   └───────────────┘
+      │ Orders Module │
+      │ domain/ports/ │
+      │ adapters/     │
+      ├───────────────┤
+      │ Billing Module│
+      └───────┬───────┘
+              │
+              ▼
+      ┌───────────────┐
+      │ MICROSERVICES │
+      │ (Tools / APIs)│
+      └───────────────┘
+
+```
 
 ---
 
