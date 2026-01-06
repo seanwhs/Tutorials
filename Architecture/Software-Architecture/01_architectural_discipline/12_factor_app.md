@@ -1,4 +1,4 @@
-# 12-Factor App (Modernized for 2026)
+# 12-Factor App
 
 The 12-Factor App methodology provides a **baseline for cloud-native and AI-enabled systems**.
 
@@ -10,3 +10,21 @@ The 12-Factor App methodology provides a **baseline for cloud-native and AI-enab
 4. **Attached Resources**
 5. **Disposability**
 
+
+
++-------------------+
+
+Application
+Business Logic
++---------+---------+
+      |
+
+
+Env / Config
+|
++---------v---------+
+| DB | Cache | LLM |
++-------------------+
+
+
+> Systems that violate these principles fail operationally before they reach scale.
