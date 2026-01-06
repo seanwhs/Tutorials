@@ -16,7 +16,8 @@ Defined as **componentization via services** (Martin Fowler).
 - Smart endpoints, dumb pipes
 
 
-
+```
 [ Service A ] ---> [ Service B ] ---> [ Service C ]
 | | |
 Own DB Own DB Own DB
+```
