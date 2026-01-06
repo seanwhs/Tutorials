@@ -81,4 +81,3 @@ To complete your onboarding, you will be given a sample business "Need." You mus
 * [The Initiation Process](https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture/Project-Initiation)
 * [Options Assessment Framework](https://www.google.com/search?q=https://github.com/seanwhs/Tutorials/tree/main/Enterprise-Architecture%234-options-assessment)
 
-**Would you like me to generate a template for the High-Level Solution Overview (HLSO) that includes these Archetype and Scenario fields?**
