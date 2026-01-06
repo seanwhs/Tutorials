@@ -2,18 +2,12 @@
 
 Instead of storing current state, store all **state-changing events**.
 
-```
 
 Event Log:
-
-Create Order
-
-Update Order
-
-Ship Order
-
-Refund Order
-```
+- Create Order
+- Update Order
+- Ship Order
+- Refund Order
 
 ## Benefits
 
