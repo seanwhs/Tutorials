@@ -8,42 +8,42 @@ This repository serves as a live curriculum for architects and senior engineers.
 
 ## 📂 Repository Structure
 
-### [01_Discipline](https://www.google.com/search?q=./01_discipline)
+### 01_Discipline
 
 **Focus:** Operational Excellence & 12-Factor App
 
 * **Concepts:** Statelessness, explicit dependencies, config-as-data.
 * **Updated for 2026:** How to treat LLM endpoints and Vector DBs as "attached resources."
 
-### [02_Structure](https://www.google.com/search?q=./02_structure)
+### 02_Structure
 
 **Focus:** Clean Architecture & Modular Monoliths
 
 * **Concepts:** Hexagonal Architecture (Ports & Adapters), Domain-Driven Design (DDD).
 * **Goal:** Building boundaries that allow you to swap frameworks without rewriting logic.
 
-### [03_Distribution](https://www.google.com/search?q=./03_distribution)
+### 03_Distribution
 
 **Focus:** Microservices & Distributed Patterns
 
 * **Concepts:** Service Discovery, API Gateways, and Fowler's "Microservice Premium."
 * **Patterns:** CQRS, Saga (Orchestration vs. Choreography), and Circuit Breakers.
 
-### [04_Cloud_Native](https://www.google.com/search?q=./04_cloud_native)
+### 04_Cloud_Native
 
 **Focus:** Execution Models
 
 * **Concepts:** Kubernetes, Serverless (FaaS), and Service Mesh (Istio/Linkerd).
 * **Implementation:** Moving networking (mTLS, retries) out of the application code.
 
-### [05_Data](https://www.google.com/search?q=./05_data)
+### 05_Data
 
 **Focus:** Event-Driven Systems & Data Mesh
 
 * **Concepts:** Event Sourcing, Kinesis/Kafka integration, and Dehghani's Data Mesh pillars.
 * **Goal:** Moving from centralized "Data Lakes" to decentralized "Data Products."
 
-### [06_Intelligence](https://www.google.com/search?q=./06_intelligence)
+### 06_Intelligence
 
 **Focus:** AI-Native & Edge Architectures
 
