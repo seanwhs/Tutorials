@@ -26,7 +26,8 @@ To manage the chaos of distributed systems, we rely on three core patterns:
 * **The Solution:** Use different models for updating (Commands) and reading (Queries).
 * **Example:** A relational DB handles the logic for a "New Order," while an Elasticsearch index serves the "Order History" search.
 
-<img width="2048" height="1453" alt="image" src="https://github.com/user-attachments/assets/9faf9093-0ba5-4b6c-83a8-8aad576f8562" />
+<img width="1000" height="709" alt="image" src="https://github.com/user-attachments/assets/cba600a7-0ead-48f8-86fc-7c19c85e1a80" />
+
 
 ### Saga Pattern (Distributed Transactions)
 
