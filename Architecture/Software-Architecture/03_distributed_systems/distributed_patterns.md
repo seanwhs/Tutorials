@@ -1,5 +1,3 @@
-### Canvas — Enhanced README with ASCII Diagrams
-
 # Part IV — Cloud-Native Execution & Beyond (2026+)
 
 Architecture in 2026 is inseparable from the infrastructure that runs it.  
