@@ -17,7 +17,7 @@ Defined as **componentization via services** (Martin Fowler).
 
 
 ```
-[ Service A ] ---> [ Service B ] ---> [ Service C ]
-| | |
-Own DB Own DB Own DB
+[ Service A ] ---> [ Service B ] ---> [ Service C   ]
+      |                  |                  |
+    Own DB           Own DB               Own DB
 ```
