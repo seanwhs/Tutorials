@@ -131,22 +131,135 @@ score++;
 
 ### `const` — Default Choice
 
+> `const` — The Most Misunderstood Keyword in JavaScript
+
+> What `const` *actually* guarantees
+
 ```js
-const limit = 10;
+const x = 10;
 ```
 
-✔ Prevents reassignment
-✔ Encourages immutability
+Once created:
 
-⚠️ Important nuance:
+* `const` **cannot be reassigned**
+* `const` **is block-scoped**
+* The **reference is fixed**, not the value itself
+
+---
+
+> Why the name `const` is misleading
+
+> `const` does **not** define a constant value.
+> It defines a **constant reference to a value**.
+
+This distinction is critical.
+
+---
+
+> ❌ What you CANNOT do with `const`
+
+You cannot reassign the reference:
+
+```js
+const x = 5;
+x = 10;          // ❌ Error
+```
+
+```js
+const arr = [1, 2, 3];
+arr = [4, 5, 6]; // ❌ Error
+```
+
+```js
+const obj = { a: 1 };
+obj = { a: 2 };  // ❌ Error
+```
+
+Once the reference is set, it is **locked**.
+
+---
+
+> ✅ What you CAN do with `const`
+
+You *can* mutate the contents of the referenced object or array:
+
+```js
+const arr = [1, 2, 3];
+arr.push(4);     // ✅ Allowed
+```
+
+```js
+const obj = { a: 1 };
+obj.a = 2;       // ✅ Allowed
+```
+
+Why?
+Because the **reference did not change** — only the internal data did.
+
+---
+
+> Mental Model (This Prevents Bugs)
+
+```
+const variable
+     │
+     ▼
+┌──────────────┐
+│  Memory Ref  │  ← LOCKED
+└──────────────┘
+       │
+       ▼
+  { object data }  ← MUTABLE
+```
+
+`const` protects the **pointer**, not the **contents**.
+
+---
+
+> Why Professionals Use `const` by Default
+
+* Prevents accidental reassignment
+* Makes code easier to reason about
+* Forces explicit intent when mutation is required
+* Works naturally with immutability patterns in React
+
+In modern JavaScript:
+
+> **Use `const` unless you *intend* to reassign.**
+
+---
+
+> React-Specific Warning ⚠️
+
+Even though this is allowed:
 
 ```js
 const user = { name: "Alice" };
-user.name = "Bob"; // allowed
+user.name = "Bob"; // ✅ JavaScript allows it
 ```
 
-`const` locks the **reference**, not the contents.
-React only re-renders when references change.
+It is often **wrong in React**.
+
+React depends on **reference changes** to detect updates.
+
+Correct React pattern:
+
+```js
+setUser({ ...user, name: "Bob" });
+```
+
+---
+
+## One-Sentence Rule (Memorize This)
+
+> **`const` means “this variable will always point to the same thing.”**
+
+Not:
+
+> “This thing will never change.”
+
+Once this clicks, **half of JavaScript confusion disappears**.
+
 
 ---
 
