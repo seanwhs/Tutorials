@@ -306,6 +306,106 @@ This is the **#1 cause of React bugs**.
 
 ---
 
+## Template Strings
+Template strings allow you to write strings that span multiple lines and include embedded expressions:      
+
+```
+\\ without  template strings
+const name = "John";
+const age = 30;
+const message = "Hello, " + name + "!\n" + 
+"You are " + age + " years old.";
+```
+
+```
+\\ using template strings
+const name = "John";
+const age = 30;
+const message = `Hello, ${name}!
+You are ${age} years old.`;
+```
+Template strings use backticks (`) instead of quotes and can include:   
+- Multiple lines without \n
+- Expressions inside ${}
+- Quotes without escaping
+
+```
+\\ multi-line strings
+const html = `
+  <div>
+    <h1>Title</h1>
+    <p>Paragraph</p>
+  </div>
+`;
+```
+```
+\\ The indentation becomes part of the string:
+
+const x = `
+  John:
+    Hello, how are you?
+  Jane:
+    I'm fine, thanks!
+`;
+```
+
+```
+\\ You can include any valid JavaScript expression inside ${} in a template string:
+let firstName = "John";
+let lastName = "Doe";
+
+let text = `Welcome ${firstName}, ${lastName}!`;
+
+\\example
+let price = 10;
+let quantity = 5;
+
+let total = `Total: ${price * quantity}`;
+```
+
+```
+\\ Using the map function inside template strings:
+const items = ["apple", "banana", "orange"];
+const list = `You have ${items.length} items:
+${items.map(item => `- ${item}`).join('\n')}`;
+```
+
+```
+\\ Using ternery operator inside template strings:
+const isAdmin = true;
+const message = `Status: ${isAdmin ? 'Admin' : 'User'}`;
+```
+
+**Tagged Templates**
+You can also use template strings with a function (called a tag) to modify the output.         
+> Note: Tagged templates are an advanced feature. You might not need them in most cases.      
+The function takes the text and the expression(s) as arguments.      
+```
+function highlight(strings, fname) {
+  let x = fname.toUpperCase();
+  return strings[0] + x + strings[1];
+}
+
+let name = "John";
+
+let text = highlight`Hello ${name}, how are you?`;
+```
+
+```
+\\ Tagged Template with multiple expressions:
+
+function highlight(strings, fname1, fname2) {
+  let x = fname1.toUpperCase();
+  let y = fname2.toUpperCase();
+  return strings[0] + x + strings[1] + y + strings[2];
+}
+
+let name1 = "John";
+let name2 = "Jane";
+
+let text = highlight`Hello ${name1} and ${name2}, how are you?`;
+```
+
 # 🧩 Part 3: Modern Functions — Arrow Functions & Closures
 
 ## Arrow Functions (Used Everywhere in React)
@@ -663,6 +763,12 @@ if (authenticated) {
 authenticated ? renderApp() : renderLogin();
 ```
 
+```
+\\ Using ternery operator inside template strings:
+
+const isAdmin = true;
+const message = `Status: ${isAdmin ? 'Admin' : 'User'}`;
+```
 
 Declarative UI means:
 
