@@ -645,13 +645,24 @@ function App() {
 
 # 🧩 Part 7: Conditional Rendering — Ternary & `&&`
 
-```js
-isLoggedIn && <Dashboard />
+**Ternary Operator**
+The ternary operator is a simplified conditional operator like if / else.      
+Syntax: condition ? <expression if true> : <expression if false>         
+
+```
+\\ if-else-example
+if (authenticated) {
+  renderApp();
+} else {
+  renderLogin();
+}
 ```
 
-```js
-loading ? <Spinner /> : <Content />
 ```
+\\ ternary example
+authenticated ? renderApp() : renderLogin();
+```
+
 
 Declarative UI means:
 
