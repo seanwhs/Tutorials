@@ -345,13 +345,148 @@ React hooks are **controlled closures**.
 ---
 
 # 🧩 Part 4: Destructuring (React’s Favorite Syntax)
+---
+## JS Destructuring 
+```
+const vehicles = ['mustang', 'f-150', 'expedition'];
 
+// old way
+const car = vehicles[0];
+const truck = vehicles[1];
+const suv = vehicles[2];
+
+//You can now access each variable separately:
+document.getElementById('demo').innerHTML = truck;
+```
+
+```
+// new way
+const vehicles = ['mustang', 'f-150', 'expedition'];
+
+const [car, truck, suv] = vehicles;
+
+//You can now access each variable separately:
+document.getElementById('demo').innerHTML = truck;
+```
+```
+// If we only want the car and suv we can simply leave out the truck but keep the comma:
+
+const vehicles = ['mustang', 'f-150', 'expedition'];
+
+const [car,, suv] = vehicles;
+```
+
+```
+// Destructuring comes in handy when a function returns an array:
+
+function dateInfo(dat) {
+  const d = dat.getDate();
+  const m = dat.getMonth() + 1;
+  const y = dat.getFullYear();
+
+  return [d, m, y];
+}
+
+const [date, month, year] = dateInfo(new Date());
+```
+
+```
+// You can use destructuring to extract the values from an object:
+
+const person = {
+  firstName: "John",
+  lastName: "Doe",
+  age: 50
+};
+
+// Destructuring
+let {firstName, lastName, age} = person;
+
+//You can now access each variable separately:
+document.getElementById("demo").innerHTML = firstName;
+```
+```
+//For objects, the order of the properties does not matter:
+
+const person = {
+  firstName: "John",
+  lastName: "Doe",
+  age: 50
+};
+
+// Destructuring
+let {lastName, age, firstName} = person;
+```
+
+```
+//You can extract only the value(s) you want:
+
+const person = {
+  firstName: "John",
+  lastName: "Doe",
+  age: 50
+};
+
+// Destructuring
+let {firstName} = person;
+```
+```
+//For potentially missing properties we can set default values:
+
+const person = {
+  firstName: "John",
+  lastName: "Doe",
+  age: 50
+};
+
+// Destructuring
+let {firstName, lastName, age, country = "Norway"} = person;
+```
+```
+// Destructuring a nested object
+const person = {
+  firstName: "John",
+  lastName: "Doe",
+  age: 50,
+  car: {
+    brand: 'Ford',
+    model: 'Mustang',
+  }
+};
+
+// Destructuring
+let {firstName, car: { brand, model }} = person;
+
+let message = `My name is ${firstName}, and I drive a ${brand} ${model}.`;
+```
+---
 ## Object Destructuring — Props
 
 ```js
-function User({ name, age }) {
-  return <h1>{name}</h1>;
+//Using destructuring:
+function Greeting({ name, age }) {
+  return <h1>Hello, {name}! You are {age} years old.</h1>;
 }
+
+//NOT using destructuring:
+function Greeting(props) {
+  return <h1>Hello, {props.name}! You are {props.age} years old.</h1>;
+}
+```
+
+**Practical Example**
+```
+import { createRoot } from 'react-dom/client'
+
+function Greeting({ name, age }) {
+  return <h1>Hello, {name}! You are {age} years old.</h1>;
+}
+  
+createRoot(document.getElementById('root')).render(
+  <Greeting name="John" age={25} />
+);
+
+
 ```
 
 ## Array Destructuring — Hooks
@@ -362,15 +497,64 @@ const [count, setCount] = useState(0);
 
 Destructuring creates **clear, explicit contracts**.
 
+**Practical Example**
+```
+import { createRoot, useState } from 'react-dom/client'
+
+function Counter() {
+  // Destructuring the array returned by useState
+  const [count, setCount] = useState(0);
+  
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Count: {count}
+    </button>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <Counter />
+);
+```
+
 ---
 
 # 🧩 Part 5: Spread Operator (`...`) & Immutability
 
-```js
-const updatedUser = { ...user, name: "New Name" };
+The JavaScript spread operator (...) allows us to quickly copy all or part of an existing array or object into another array or object.
+
+```
+const numbersOne = [1, 2, 3];
+const numbersTwo = [4, 5, 6];
+const numbersCombined = [...numbersOne, ...numbersTwo];
 ```
 
-Spread:
+```
+// The spread operator is often used in combination with destructuring.
+
+const numbers = [1, 2, 3, 4, 5, 6];
+const [one, two, ...rest] = numbers;
+```
+
+```
+\\We can use the spread operator with objects too:
+
+const car = {
+  brand: 'Ford',
+  model: 'Mustang',
+  color: 'red'
+}
+
+const car_more = {
+  type: 'car',
+  year: 2021, 
+  color: 'yellow'
+}
+
+const mycar = {...car, ...car_more}
+```
+
+**Summary Spread:**
 
 * Copies properties
 * Creates a new reference
@@ -391,6 +575,72 @@ React never uses `for` loops for rendering.
 * `.map()` → transform data to UI
 * `.filter()` → select data
 
+---
+> map() in React
+```
+import { createRoot } from 'react-dom/client'
+
+const fruitlist = ['apple', 'banana', 'cherry'];
+
+function MyList() {
+  return (
+    <ul>
+      {fruitlist.map(fruit => 
+        <li key={fruit}>{fruit}</li>
+      )}
+    </ul>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <MyList />
+)
+```
+---
+> map() with Objects
+```
+const users = [
+  { id: 1, name: 'John', age: 30 },
+  { id: 2, name: 'Jane', age: 25 },
+  { id: 3, name: 'Bob', age: 35 }
+];
+
+function UserList() {
+  return (
+    <ul>
+      {users.map(user => 
+        <li key={user.id}>
+          {user.name} is {user.age} years old
+        </li>
+      )}
+    </ul>
+  );
+}
+```
+---
+**map() Parameters**
+The map() method takes three parameters:
+
+currentValue - The current element being processed
+index - The index of the current element (optional)
+array - The array that map was called upon (optional)
+```
+const fruitlist = ['apple', 'banana', 'cherry'];
+
+function App() {
+  return (
+    <ul>
+      {fruitlist.map((fruit, index, array) => {
+        return (
+          <li key={fruit}>
+            Number: {fruit}, Index: {index}, Array: {array}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+```
 ---
 
 # 🧩 Part 7: Conditional Rendering — Ternary & `&&`
