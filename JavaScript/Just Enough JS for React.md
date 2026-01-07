@@ -660,20 +660,206 @@ Declarative UI means:
 ---
 
 # 🧩 Part 8: Modules (Import / Export)
+JavaScript modules allow you to break up your code into separate files.      
+This makes it easier to maintain the code-base.      
+ES Modules rely on the import and export statements.         
 
+**Export**      
+You can export a function or variable from any file.      
+Let us create a file named person.js, and fill it with the things we want to export.            
+There are two types of exports: Named and Default.      
+
+**Named Exports**
+You can create named exports two ways:      
+
+```
+\\ In-line individually:
+
+export const name = "Tobias"
+export const age = 18
+```
+
+```
+\\ All at once at the bottom:
+
+const name = "Tobias"
+const age = 18
+
+export { name, age }
+```
 ```js
+\\ Another example of a named export
 export function add(a, b) { return a + b; }
 ```
 
-```js
-import { add } from './math';
+**Default Exports**
+Let us create another file, named message.js, and use it for demonstrating default export.      
+You can only have one default export in a file.     
+
+```
+\\ message.js
+const message = () => {
+  const name = "Tobias";
+  const age = 18;
+  return name + ' is ' + age + 'years old.';
+};
+
+export default message;
 ```
 
+**Import**
+You can import modules into a file in two ways, based on if they are named exports or default exports.         
+Named exports must be destructured using curly braces. Default exports do not.     
+
+```js
+\\ Import named exports from the file person.js:
+import { name, age } from "./person.js";
+```
+
+```
+\\ Import a default export from the file message.js:
+import message from "./message.js";
+```
 Modules:
 
 * Enforce boundaries
 * Improve maintainability
 * Enable scaling
+
+--
+---
+
+## REACT: Named Export vs Default Export (ES6 Modules)
+
+```js
+export function App() {
+  return (
+    <h1>Hello World</h1>
+  );
+}
+```
+
+This is a **named export**.
+
+---
+
+## What This Means
+
+* The function name **must be used** when importing
+* The name is part of the module’s public API
+* Multiple named exports are allowed per file
+
+### Importing a Named Export
+
+```js
+import { App } from "./App";
+```
+
+✔ Braces required
+✔ Name must match exactly
+
+---
+
+## Default Export (Alternative Pattern)
+
+```js
+export default function App() {
+  return (
+    <h1>Hello World</h1>
+  );
+}
+```
+
+or
+
+```js
+function App() {
+  return <h1>Hello World</h1>;
+}
+
+export default App;
+```
+
+### Importing a Default Export
+
+```js
+import App from "./App";
+```
+
+✔ No braces
+✔ Name can be anything (but shouldn’t be)
+
+---
+
+## Side-by-Side Comparison
+
+| Feature              | Named Export     | Default Export |
+| -------------------- | ---------------- | -------------- |
+| Import syntax        | `import { App }` | `import App`   |
+| Requires exact name  | ✅ Yes            | ❌ No           |
+| Multiple per file    | ✅ Yes            | ❌ No           |
+| Refactor safety      | ⭐⭐⭐⭐             | ⭐⭐             |
+| Common in libraries  | ✅ Yes            | ❌ Less         |
+| Common in React apps | ⚠️ Mixed         | ✅ Very common  |
+
+---
+
+## Why React Examples Often Use `export default`
+
+* One component per file
+* Cleaner import syntax
+* Lower cognitive load for beginners
+
+```js
+import App from "./App";
+```
+
+---
+
+## Why Named Exports Are Often Better at Scale
+
+* Encourages **explicit APIs**
+* Prevents accidental renaming
+* Improves autocomplete and refactoring
+* Scales better in large codebases
+
+```js
+export function App() {}
+export function Header() {}
+export function Footer() {}
+```
+
+---
+
+## Professional Rule of Thumb
+
+> **Libraries → Named exports**
+> **Applications → Default export (per component file)**
+
+Both are valid.
+Consistency matters more than choice.
+
+---
+
+## React-Specific Gotcha ⚠️
+
+This will **NOT** work:
+
+```js
+import App from "./App"; // ❌ if App was a named export
+```
+
+You must match the export type.
+
+---
+
+## One-Line Mental Model
+
+> **Named export = explicit contract**
+> **Default export = convenience shortcut**
+
+Once you understand this, module errors stop feeling “random.”
+
 
 ---
 
