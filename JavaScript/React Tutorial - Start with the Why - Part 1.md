@@ -680,7 +680,9 @@ You pass **values**, not strings.
 
 ---
 
-### Style Attribute = JavaScript Object
+### 1️⃣ Style Attribute in React
+
+React expects a **JavaScript object** for `style`, and CSS properties are written in **camelCase**.
 
 ```jsx
 <div style={{ color: "red", fontSize: "20px" }}>
@@ -688,8 +690,95 @@ You pass **values**, not strings.
 </div>
 ```
 
-* camelCase properties
-* object values
+✅ Correct!
+
+---
+
+### 2️⃣ Button Styling & Events
+
+Your original `Car` function has invalid JSX:
+
+```jsx
+<button
+   = {btnStyle}
+   = 'btn-primary'
+   = {() => alert('Clicked!')}
+>
+  Click me
+</button>
+```
+
+We need **proper prop names**:
+
+* `style={btnStyle}` → for inline styles
+* `className="btn-primary"` → for CSS classes
+* `onClick={() => alert('Clicked!')}` → for click events
+
+Corrected version:
+
+```jsx
+function Car() {
+  const btnStyle = {
+    backgroundColor: 'blue',
+    color: 'white',
+  };
+
+  return (
+    <button
+      style={btnStyle}
+      className="btn-primary"
+      onClick={() => alert('Clicked!')}
+    >
+      Click me
+    </button>
+  );
+}
+```
+
+---
+
+### 3️⃣ Conditional Rendering Example 1
+
+Using `if` statements:
+
+```jsx
+function Fruit() {
+  const x = 5;
+  let y = "Apple";
+
+  if (x < 10) {
+    y = "Banana";
+  }
+
+  return <h1>{y}</h1>;
+}
+```
+
+✅ Correct and works fine.
+
+---
+
+### 4️⃣ Conditional Rendering Example 2
+
+Using the ternary operator:
+
+```jsx
+function Fruit() {
+  const x = 5;
+  return <h1>{x < 10 ? "Banana" : "Apple"}</h1>;
+}
+```
+
+✅ This is a shorter, inline way to achieve the same result.
+
+---
+
+### ✅ Key Takeaways
+
+1. **Inline styles:** `style={{ camelCaseCSS: "value" }}`
+2. **CSS classes:** use `className` instead of `class`
+3. **Events:** use `onClick`, `onChange`, etc.
+4. **Conditional rendering:** `if` or ternary operator works inside JSX `{}`
 
 ---
 
@@ -851,21 +940,327 @@ App
 
 # 7️⃣ Props — One-Way Data Flow
 
-Props are **inputs**.
+Props are **inputs to a component**. They are **immutable** inside the child and **flow downward** from parent to child.
 
 ```jsx
 function User({ name }) {
-  return <p>Hello {name}</p>
+  return <p>Hello {name}</p>;
 }
 
 <User name="Sean" />
 ```
 
-Props:
+**Key Points:**
 
-* Flow downward
-* Are immutable
-* Define component contracts
+* Props define the **contract** of a component.
+* Props are **read-only**.
+* Props can be **strings, numbers, arrays, objects, functions, or even JSX**.
+
+---
+
+## ✅ Basic Props Example
+
+```jsx
+function Car(props) {
+  return <h2>I am a {props.color} Car!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car color="red" />
+);
+```
+
+---
+
+## ✅ Multiple Props
+
+```jsx
+function Car(props) {
+  return <h2>I am a {props.color} {props.brand} {props.model}!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car brand="Ford" model="Mustang" color="red" />
+);
+```
+
+---
+
+## ✅ Passing Variables & Arrays
+
+```jsx
+let x = "Ford";
+
+createRoot(document.getElementById('root')).render(
+  <Car brand={x} />
+);
+
+let years = [1964, 1965, 1966];
+let carInfo = { name: "Ford", model: "Mustang" };
+
+createRoot(document.getElementById('root')).render(
+  <Car years={years} carinfo={carInfo} />
+);
+```
+
+---
+
+## ✅ Props as Objects
+
+```jsx
+function Car(props) {
+  return (
+    <>
+      <h2>My {props.carinfo.name} {props.carinfo.model}!</h2>
+      <p>It is {props.carinfo.color} and from {props.carinfo.year}!</p>
+    </>
+  );
+}
+
+const carInfo = {
+  name: "Ford",
+  model: "Mustang",
+  color: "red",
+  year: 1969
+};
+
+createRoot(document.getElementById('root')).render(
+  <Car carinfo={carInfo} />
+);
+```
+
+---
+
+## ✅ Props as Arrays
+
+```jsx
+function Car(props) {
+  return <h2>My car is a {props.carinfo[0]} {props.carinfo[1]}!</h2>;
+}
+
+const carInfo = ["Ford", "Mustang"];
+
+createRoot(document.getElementById('root')).render(
+  <Car carinfo={carInfo} />
+);
+```
+
+---
+
+## ✅ Nested Components & Props
+
+```jsx
+function Car({ brand }) {
+  return <h2>I am a {brand}!</h2>;
+}
+
+function Garage() {
+  return (
+    <>
+      <h1>Who lives in my garage?</h1>
+      <Car brand="Ford" />
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <Garage />
+);
+```
+
+---
+
+## ✅ Destructuring Props
+
+```jsx
+function Car({ color }) {
+  return <h2>My car is {color}!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car brand="Ford" model="Mustang" color="red" year={1969} />
+);
+```
+
+```jsx
+function Car(props) {
+  const { brand, model } = props;
+  return <h2>I love my {brand} {model}!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car brand="Ford" model="Mustang" color="red" year={1969} />
+);
+```
+
+---
+
+## ✅ Rest Props
+
+```jsx
+function Car({ color, brand, ...rest }) {
+  return <h2>My {brand} {rest.model} is {color}!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car brand="Ford" model="Mustang" color="red" year={1969} />
+);
+```
+
+---
+
+## ✅ Default Props
+
+```jsx
+function Car({ color = "blue", brand }) {
+  return <h2>My {color} {brand}!</h2>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Car brand="Ford" />
+);
+```
+
+---
+
+## ✅ Children Props
+
+`children` allow **passing JSX content from parent to child**.
+
+```jsx
+function Son(props) {
+  return (
+    <div style={{ background: 'lightgreen' }}>
+      <h2>Son</h2>
+      <div>{props.children}</div>
+    </div>
+  );
+}
+
+function Daughter(props) {
+  return (
+    <div style={{ background: 'lightblue' }}>
+      <h2>Daughter</h2>
+      <div>{props.children}</div>
+    </div>
+  );
+}
+
+function Parent() {
+  return (
+    <div>
+      <h1>My two Children</h1>
+      <Son>
+        <p>This was written in the Parent component but displayed in the Son component.</p>
+      </Son>
+      <Daughter>
+        <p>This was written in the Parent component but displayed in the Daughter component.</p>
+      </Daughter>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<Parent />);
+```
+
+✅ This demonstrates **full one-way data flow**: the parent passes data down to children through props, including `children`.
+
+---
+import { createRoot } from 'react-dom/client';
+
+/* ------------------------------
+  1️⃣ Basic Props & Destructuring
+------------------------------- */
+function Car({ brand, model, color = "blue", ...rest }) {
+  return (
+    <div style={{ border: '1px solid gray', padding: '10px', margin: '10px' }}>
+      <h2>
+        My {color} {brand} {model}!
+      </h2>
+      {rest.year && <p>Year: {rest.year}</p>}
+      {rest.owner && <p>Owner: {rest.owner}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------
+  2️⃣ Passing Arrays & Objects
+------------------------------- */
+const carInfoObj = { name: "Ford", model: "Mustang", color: "red", year: 1969 };
+const carInfoArr = ["Tesla", "Model S"];
+
+/* ------------------------------
+  3️⃣ Children Props
+------------------------------- */
+function Son({ children }) {
+  return (
+    <div style={{ background: 'lightgreen', padding: '5px', margin: '5px' }}>
+      <h3>Son Component</h3>
+      {children}
+    </div>
+  );
+}
+
+function Daughter({ children }) {
+  return (
+    <div style={{ background: 'lightblue', padding: '5px', margin: '5px' }}>
+      <h3>Daughter Component</h3>
+      {children}
+    </div>
+  );
+}
+
+function Parent() {
+  return (
+    <div>
+      <h2>Parent Component</h2>
+      <Son>
+        <p>This is passed from Parent → Son</p>
+      </Son>
+      <Daughter>
+        <p>This is passed from Parent → Daughter</p>
+      </Daughter>
+    </div>
+  );
+}
+
+/* ------------------------------
+  4️⃣ Events & Inline Styles
+------------------------------- */
+function Button({ text, color = "orange" }) {
+  return (
+    <button
+      style={{ backgroundColor: color, color: "white", padding: "5px 10px", margin: "5px" }}
+      onClick={() => alert(`You clicked: ${text}`)}
+    >
+      {text}
+    </button>
+  );
+}
+
+/* ------------------------------
+  5️⃣ Rendering Everything
+------------------------------- */
+createRoot(document.getElementById("root")).render(
+  <>
+    {/* Basic props */}
+    <Car brand="Ford" model="Mustang" color="red" year={1969} owner="Sean" />
+    <Car brand="Tesla" model="Model 3" /> {/* default color applies */}
+
+    {/* Props as objects */}
+    <Car brand={carInfoObj.name} model={carInfoObj.model} color={carInfoObj.color} year={carInfoObj.year} />
+
+    {/* Props as arrays */}
+    <Car brand={carInfoArr[0]} model={carInfoArr[1]} />
+
+    {/* Children props */}
+    <Parent />
+
+    {/* Button with event & inline style */}
+    <Button text="Click Me!" color="green" />
+  </>
+);
+
 
 ---
 
