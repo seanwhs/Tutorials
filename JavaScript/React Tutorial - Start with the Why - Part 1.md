@@ -1166,6 +1166,7 @@ createRoot(document.getElementById('root')).render(<Parent />);
 ✅ This demonstrates **full one-way data flow**: the parent passes data down to children through props, including `children`.
 
 ---
+```
 import { createRoot } from 'react-dom/client';
 
 /* ------------------------------
@@ -1261,7 +1262,7 @@ createRoot(document.getElementById("root")).render(
   </>
 );
 
-
+```
 ---
 
 # 8️⃣ State — Where Change Lives
