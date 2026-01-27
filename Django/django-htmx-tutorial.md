@@ -257,7 +257,7 @@ A --> E[manage.py]
 
 ---
 
-## 8️⃣ HTMX Partial Flow (GitHub-Compatible)
+## 8️⃣ HTMX Partial Flow 
 
 ```mermaid
 flowchart TD
