@@ -11,7 +11,7 @@ This guide shows how to build a **real-time task manager SPA** with Django, feat
 * CSV exports
 * Visual analytics
 
-We emphasize **both “how” and “why”**, highlighting the mental models behind architecture and workflow.
+We emphasize **both “how” and “why”**, highlighting mental models behind architecture and workflow.
 
 ---
 
@@ -19,7 +19,7 @@ We emphasize **both “how” and “why”**, highlighting the mental models be
 
 Think of your app as a **living page**:
 
-* **Traditional Django:** Full-page reloads on every action → slow UX, wasted bandwidth.
+* **Traditional Django:** Full-page reloads → slow UX, wasted bandwidth.
 * **SPA approach:** Only update the DOM fragments that change. HTMX acts as a **remote control for the DOM**.
 
 **Complementary stack:**
@@ -28,7 +28,7 @@ Think of your app as a **living page**:
 * MySQL → Persistent, reliable storage
 * Django signals + SSE → Real-time updates
 
-> Mental model: MySQL is a **ledger**—every task update is reliably recorded, ensuring SPA state integrity.
+> **Mental model:** MySQL is a ledger—every task update is reliably recorded, ensuring SPA state integrity.
 
 ---
 
@@ -59,7 +59,7 @@ pip install django mysqlclient django-crispy-forms crispy-tailwind
 ```
 
 * `mysqlclient` → Connect Django to MySQL
-* `django-crispy-forms` + `crispy-tailwind` → Clean, DRY forms
+* `django-crispy-forms` + `crispy-tailwind` → Clean, reusable forms
 
 ### Create Project & App
 
@@ -145,7 +145,8 @@ def create_task(request):
     project_id = request.GET.get('project_id')
     if form.is_valid():
         task = form.save(commit=False)
-        if project_id: task.project_id = project_id
+        if project_id:
+            task.project_id = project_id
         task.user = request.user
         task.save()
         return render(request, 'tasks/partials/task_card.html', {'task': task})
@@ -200,10 +201,10 @@ def stream_notifications(request):
 
 ## 5️⃣ Frontend – HTMX + Tailwind + Sortable.js + Chart.js
 
-* **Base Template (`base.html`)**: HTMX, Tailwind, Sortable.js, Chart.js, SSE container
-* **Task List + Form + Search**: HTMX handles form submission, search, and dynamic updates
-* **Dashboard – Chart.js**: real-time stats updated via `dashboard_stats` view
-* **CSV Export**: snapshot of MySQL data for offline analysis
+* **Base Template (`base.html`)** → HTMX, Tailwind, Sortable.js, Chart.js, SSE container
+* **Task List + Form + Search** → HTMX handles form submission, search, and dynamic updates
+* **Dashboard – Chart.js** → real-time stats updated via `dashboard_stats` view
+* **CSV Export** → snapshot of MySQL data for offline analysis
 
 ---
 
@@ -229,7 +230,7 @@ urlpatterns = [
 
 ---
 
-## 7️⃣ Folder Structure & HTMX Partial Flow
+## 7️⃣ Folder Structure
 
 ```mermaid
 graph TD
@@ -254,25 +255,27 @@ A --> D[venv/]
 A --> E[manage.py]
 ```
 
-**HTMX Partial Flow**
+---
+
+## 8️⃣ HTMX Partial Flow (GitHub-Compatible)
 
 ```mermaid
 flowchart TD
-subgraph TaskListPage[list.html]
-    A1[Task Add Form] -->|hx-target="#task-list"| B1[Insert task_card.html]
+subgraph TaskListPage
+    A1[Task Add Form] -->|hx-target=#task-list| B1[Insert task_card.html]
     A2[Search / Project Switch] -->|hx-get| B2[Swap task_list_items.html]
     A3[Drag & Drop] -->|hx-post reorder_tasks| B3[Update DB]
     A4[Dashboard] -->|hx-get dashboard_stats| B4[Swap dashboard.html]
 end
 
-subgraph SSE[Notifications]
+subgraph SSE_Notifications
     S1[Server Push] --> S2[Insert Toast in #notifications-toast]
 end
 ```
 
 ---
 
-## 🧠 Mental Models Recap
+## 9️⃣ Mental Models Recap
 
 ```mermaid
 flowchart LR
@@ -286,7 +289,7 @@ SSE[Signals → SSE Notification] --> DOMUpdate
 
 ---
 
-## 🎨 Step-by-Step SPA Flows (Mermaid)
+## 🔟 Step-by-Step SPA Flows (Mermaid)
 
 **Task Create / Add**
 
@@ -358,11 +361,10 @@ Browser->>DOM: Insert Notification Toast
 
 ---
 
-## 🌈 Unified Color-Coded SPA Architecture
+## 11️⃣ Unified Color-Coded SPA Architecture
 
 ```mermaid
 flowchart TD
-%% Folder Structure
 A[task-manager/] 
 A --> B[config/]
 B --> B1[settings.py]
@@ -386,41 +388,29 @@ C63 --> C633[dashboard.html]
 A --> D[venv/]
 A --> E[manage.py]
 
-%% SPA Flow
-subgraph SPA_Flow["SPA: User Actions & Data Flow"]
+subgraph SPA_Flow
     direction LR
     U[User Action]:::user -->|Click / Form Submit / Drag| H[HTMX Request]:::htmx
     H -->|POST / GET| DV[Django View]:::django
     DV -->|Insert / Update / Query| DB[MySQL]:::mysql
-    DB -->|Return Data| DV
     DV -->|Partial HTML| H2[Partial HTML]:::partial
     H2 -->|Swap Fragment| DOM[DOM Updated]:::dom
-
-    %% Dashboard Analytics
-    U2[User Request Dashboard]:::user --> HDA[HTMX Dashboard Request]:::htmx
-    HDA --> DVA[Django Dashboard View]:::django
-    DVA --> DB
-    DVA -->|Return dashboard.html + Chart.js| H2
-    H2 --> DOM
 end
 
-%% SSE Flow
-subgraph SSE_Flow["Real-Time Notifications (Signals + SSE)"]
+subgraph SSE_Flow
     T[Task Created/Updated]:::user --> S[Signal Trigger]:::django
     S --> Q[Notification Queue]:::mysql
     Q --> SSE[SSE Stream]:::sse
     SSE --> DOM
 end
 
-%% Drag-and-Drop Reordering
-subgraph DragDrop_Flow["Sortable.js Drag & Drop"]
+subgraph DragDrop_Flow
     UDD[User Drag Task]:::user --> SJ[Sortable.js]:::htmx
     SJ -->|POST reorder_tasks| DV2[Django View Update DB]:::django
     DV2 -->|Return Updated Positions| H3[HTMX Swap DOM]:::dom
     H3 --> DOM
 end
 
-%% Styles / Colors
 classDef user fill:#3B82F6,stroke:#000,stroke-width:1px,color:white
 classDef htmx fill:#A78BFA,stroke:#000,stroke-width:1px,color:white
 classDef django fill:#22C55E,stroke:#000,stroke-width:1px,color:white
@@ -446,12 +436,3 @@ classDef sse fill:#EF4444,stroke:#000,stroke-width:1px,color:white
 
 ---
 
-This is a **full, self-contained, color-coded teaching guide** with:
-
-* Folder structure
-* SPA flow (CRUD, search, project filter)
-* Dashboard analytics
-* Drag-and-drop reordering
-* SSE notifications
-* Step-by-step Mermaid sequence diagrams
-* Unified Mermaid architecture with teaching colors
