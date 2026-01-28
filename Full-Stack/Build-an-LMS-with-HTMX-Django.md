@@ -2,362 +2,386 @@
 
 **Build a Production-Grade Learning Management System from Zero to Enterprise Scale**
 
-**Stack:** Django · MySQL · HTMX · Tailwind · Stripe · ImageKit · ReportLab
+**Stack:** Django · MySQL · HTMX · Tailwind · Stripe · ImageKit · ReportLab · Pandas · Python-Docx · Celery · Redis
+
 **Author:** Sean Wong
-**Version:** 3.1 – Teaching & Architecture Edition (ImageKit Media Pipeline)
+**Version:** 5.0 – Enterprise Architecture & Engineering Master Edition (HTMX-first)
 **Date:** January 2026
 
 ---
 
-# How To Use This Tutorial
+# Executive Summary
 
-This tutorial is written as a **complete engineering playbook**.
+This document is a **complete enterprise engineering playbook for building a production-grade Learning Management System (LMS)** using **Django + HTMX + Tailwind**.
 
-It is designed so that:
+This is not a tutorial.
 
-* **Beginners** understand *why* each component exists.
-* **Intermediate developers** learn professional design patterns.
-* **Senior engineers** can directly deploy and scale this system.
+This is a **full SaaS platform architecture and engineering manual**, comparable to internal engineering documentation of large education technology companies.
+
+You will learn:
+
+* How **senior engineers design systems**
+* How **enterprise SaaS platforms are structured**
+* How **scalable learning platforms are built, deployed, and operated**
 
 You will build:
 
-> **A full enterprise-grade Learning Management System (LMS)**
-
-This means:
-
-* Custom authentication & roles
-* Course authoring
-* High-performance video learning player
-* Quizzes & assessments
-* PDF certificates
-* Stripe payment integration
-* Webhooks & automation
-* Instructor analytics dashboard
-* **ImageKit-powered global media delivery**
-
-By the end, you will understand:
-
-> How to design, build, scale, and operate a real-world SaaS platform.
+> A **complete enterprise LMS platform**, from database to production infrastructure.
 
 ---
 
-# Mental Model – How Large Systems Are Built
+# Table of Contents
 
-Before writing code, we must understand **how large systems are mentally structured**.
+1. Mental Models & System Thinking
+2. Global Architecture Design
+3. Database Schema & Domain Modeling
+4. Identity, Authentication & RBAC
+5. Service Layer Architecture
+6. Media Delivery Pipeline (ImageKit)
+7. HTMX SPA Workflow Engineering
+8. Learning Engine Implementation
+9. Assessment & Grading System
+10. Certificate & Document Automation
+11. Payments, Billing & Webhooks
+12. Gamification Engine
+13. Scheduling & Attendance System
+14. Analytics & Business Intelligence
+15. Infrastructure, Deployment & Scaling
 
-Think of your LMS as a **learning factory**:
+---
+
+# PART I – MENTAL MODELS & SYSTEM THINKING
+
+## 1.1 Why LMS Systems Are Hard
+
+An LMS is not just content hosting.
+
+It is a **multi-domain transactional system** that coordinates:
+
+* Identity
+* Learning workflows
+* Media delivery
+* Assessments
+* Certification
+* Payments
+* Analytics
+
+This means:
+
+> You are building **multiple software products inside one system**.
+
+---
+
+## 1.2 Learning Factory Model
 
 ```
 Students → Content → Learning → Assessment → Certification → Analytics → Business Growth
 ```
 
-Every professional platform follows this flow.
+Each stage:
 
-### Core Principle
+* Accepts structured inputs
+* Applies business rules
+* Produces measurable outputs
 
-> Software systems exist to **move users through value stages**.
-
-Your job as an architect is to:
-
-* Identify the stages
-* Build smooth transitions between them
-* Remove friction
+Your LMS is a **value processing pipeline**.
 
 ---
 
-# System Architecture – Big Picture
+# PART II – GLOBAL ARCHITECTURE DESIGN
+
+## 2.1 High-Level System Architecture
 
 ```mermaid
 flowchart LR
-    A[Browser / HTMX UI] --> B[Django Views]
-    B --> C[Business Logic]
-    C --> D[(MySQL Database)]
-    C --> E[Stripe API]
-    C --> F[ImageKit CDN & Video Streaming]
-    C --> G[ReportLab PDF Engine]
-```
-
-### Mental Model
-
-* **UI** → Interaction
-* **Views** → Workflow coordination
-* **Models** → Business truth
-* **Services** → External integration
-
----
-
-# Phase 1 – Project Setup
-
-## 1.1 Environment Setup
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
-pip install django mysqlclient python-decouple stripe reportlab imagekitio django-tailwind
+    Browser[HTMX + Tailwind UI]
+    Browser --> Django[Django Views]
+    Django --> Services[Service Layer]
+    Services --> DB[(MySQL)]
+    Services --> Stripe
+    Services --> ImageKit
+    Services --> PDF
+    Django --> Redis
+    Redis --> Celery
 ```
 
 ---
 
-# Phase 2 – Authentication & RBAC
+## 2.2 Architectural Principles
 
-## Mental Model – Identity Drives System Behavior
-
-Everything in your platform depends on:
-
-> **Who the user is.**
-
-So we build:
-
-* Custom User model
-* Role-Based Access Control (RBAC)
+* Server-driven UI
+* Thin controllers, thick services
+* Domain-driven design
+* Stateless web tier
+* Async-heavy architecture
 
 ---
 
-# Phase 3 – Course Domain Modeling
+# PART III – DATABASE SCHEMA & DOMAIN MODELING
 
-## Mental Model – Domain First Design
-
-Never start with UI.
-
-Always start with **data relationships**.
-
----
-
-# Phase 4 – ImageKit Media Architecture (Enterprise Edition)
-
-This section fully replaces Cloudinary and introduces a **global, high-performance, transformation-first media pipeline** using **ImageKit**.
-
----
-
-## 4.1 Why ImageKit for Enterprise LMS
-
-Video delivery is the **single biggest cost center** and **performance bottleneck** in any LMS.
-
-ImageKit provides:
-
-* Global CDN (150+ POPs)
-* Real-time video streaming
-* On-the-fly compression & transformation
-* Adaptive bitrate streaming
-* Signed secure URLs
-
-### Mental Model
-
-> Django should **never** serve media directly.
-
-Media belongs on:
-
-> **CDN + Dedicated media infrastructure**
-
----
-
-## 4.2 ImageKit Architecture
+## 3.1 Core Domain Entities
 
 ```mermaid
-flowchart LR
-    Browser --> ImageKit_CDN
-    ImageKit_CDN --> Video_Storage
-    Django --> ImageKit_API
-    Django --> MySQL
+erDiagram
+    USER ||--o{ ENROLLMENT : enrolls
+    USER ||--o{ COURSE : teaches
+    COURSE ||--o{ MODULE : contains
+    MODULE ||--o{ LESSON : contains
+    COURSE ||--o{ ASSESSMENT : has
+    ASSESSMENT ||--o{ QUESTION : has
+    USER ||--o{ SUBMISSION : submits
+    USER ||--o{ CERTIFICATE : earns
+    USER ||--o{ POINT : accumulates
 ```
 
 ---
 
-## 4.3 ImageKit Setup
-
-1. Create an ImageKit account
-2. Create a Media Library
-3. Obtain:
-
-   * Public Key
-   * Private Key
-   * URL Endpoint
-
-Add to `.env`:
-
-```
-IMAGEKIT_PUBLIC_KEY=...
-IMAGEKIT_PRIVATE_KEY=...
-IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id
-```
-
----
-
-## 4.4 Django ImageKit Integration
+## 3.2 Full Database Schema
 
 ```python
-from imagekitio import ImageKit
-from decouple import config
+class User(AbstractUser):
+    ROLE_CHOICES = [('learner','Learner'),('trainer','Trainer'),('admin','Admin')]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    is_banned = models.BooleanField(default=False)
 
-imagekit = ImageKit(
-    public_key=config('IMAGEKIT_PUBLIC_KEY'),
-    private_key=config('IMAGEKIT_PRIVATE_KEY'),
-    url_endpoint=config('IMAGEKIT_URL_ENDPOINT')
-)
-```
+class Course(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    trainer = models.ForeignKey(User, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
 
----
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
 
-## 4.5 Secure Video Upload Pipeline
-
-```python
-def upload_video(file_obj, file_name):
-    return imagekit.upload(
-        file=file_obj,
-        file_name=file_name,
-        options={"folder": "/lms/videos"}
-    )
-```
-
----
-
-## 4.6 Video Streaming in Lessons
-
-```python
 class Lesson(models.Model):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
     video_url = models.URLField(blank=True)
-```
 
-Template usage:
+class Enrollment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    paid = models.BooleanField(default=False)
+    progress = models.FloatField(default=0)
 
-```html
-<iframe 
-  src="{{ lesson.video_url }}"
-  class="w-full h-full"
-  allowfullscreen>
-</iframe>
+class Assessment(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+
+class Question(models.Model):
+    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
+    text = models.TextField()
+    answer_key = models.JSONField()
+
+class Submission(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE)
+    answers = models.JSONField()
+    score = models.FloatField()
+
+class Certificate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    file_url = models.URLField()
+
+class Point(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    value = models.IntegerField()
+    reason = models.CharField(max_length=255)
 ```
 
 ---
 
-# Phase 5 – Course Player (Cinema UX)
+# PART IV – SERVICE LAYER ARCHITECTURE
+
+## 4.1 Why Service Layers Exist
+
+Business logic must **not live in views**.
+
+Views coordinate.
+
+Services execute business workflows.
+
+---
+
+## 4.2 Core Services
+
+```python
+class EnrollmentService:
+    def enroll(self, user, course): ...
+
+class MediaService:
+    def upload_video(self, file_obj): ...
+
+class LearningService:
+    def update_progress(self, enrollment, lesson): ...
+
+class AssessmentService:
+    def grade(self, submission): ...
+
+class CertificateService:
+    def generate(self, enrollment): ...
+
+class PaymentService:
+    def process(self, checkout_data): ...
+
+class GamificationService:
+    def award_points(self, user, value, reason): ...
+```
+
+---
+
+# PART V – MEDIA PIPELINE (IMAGEKIT)
+
+## 5.1 Media Workflow
+
+```mermaid
+sequenceDiagram
+    Trainer->>Django: Upload Video
+    Django->>ImageKit: Upload
+    ImageKit->>CDN: Distribute
+    Learner->>CDN: Stream
+```
+
+---
+
+# PART VI – HTMX SPA ENGINEERING
+
+## 6.1 Server-Driven SPA Architecture
+
+HTMX replaces:
+
+* React
+* Vue
+* Angular
+
+with:
+
+> Server-rendered partials + event-driven UI
+
+---
+
+## 6.2 Lesson Playback Workflow
+
+```mermaid
+sequenceDiagram
+    Learner->>Sidebar: Click
+    Sidebar->>Django: HTMX GET
+    Django->>Template: Render Partial
+    Template->>Browser: Swap
+```
+
+---
+
+# PART VII – LEARNING ENGINE
+
+## 7.1 Progress Tracking Algorithm
+
+```python
+def calculate_progress(enrollment):
+    total = Lesson.objects.filter(module__course=enrollment.course).count()
+    completed = Progress.objects.filter(enrollment=enrollment, done=True).count()
+    return completed / total * 100
+```
+
+---
+
+# PART VIII – ASSESSMENT & AUTO-GRADING ENGINE
+
+## 8.1 Auto-Grading Logic
+
+```python
+def grade_submission(submission):
+    score = 0
+    for q_id, answer in submission.answers.items():
+        if answer == Question.objects.get(id=q_id).answer_key:
+            score += 1
+    return score
+```
+
+---
+
+# PART IX – CERTIFICATE & DOCUMENT AUTOMATION
+
+## 9.1 Certificate Generation Pipeline
 
 ```mermaid
 flowchart LR
-    Sidebar -->|HTMX| VideoViewport
-    VideoViewport --> ProgressEngine
-    ProgressEngine --> CertificateEngine
+    Completion --> PDF Generator --> Storage --> Secure Download
 ```
 
 ---
 
-# Phase 6 – Quiz & Assessment Engine
+# PART X – PAYMENTS & BILLING SYSTEM
 
-```mermaid
-flowchart TD
-    Student --> Quiz --> Questions --> Choices --> Score --> Progress Update
-```
-
----
-
-# Phase 7 – PDF Certificate Engine
-
-```mermaid
-flowchart LR
-    Completion --> PDF Generator --> Secure Download
-```
-
----
-
-# Phase 8 – Stripe Payments & Webhooks
+## 10.1 Stripe Payment Workflow
 
 ```mermaid
 sequenceDiagram
     Browser->>Stripe: Checkout
-    Stripe->>Webhook: Payment Event
-    Webhook->>DB: Mark Enrollment Paid
+    Stripe->>Webhook: Payment
+    Webhook->>Django: Validate
+    Django->>Enrollment: Activate
 ```
 
 ---
 
-# Phase 9 – Instructor Analytics Dashboard
+# PART XI – GAMIFICATION ENGINE
+
+## 11.1 Motivation Model
+
+Points + Badges + Leaderboards → Engagement → Retention → Completion
+
+---
+
+# PART XII – SCHEDULING & ATTENDANCE
+
+## 12.1 Class Scheduling Workflow
 
 ```mermaid
 flowchart LR
-    DB --> Aggregations --> KPIs --> Dashboard
+    Calendar --> Sessions --> Attendance --> Analytics
 ```
 
 ---
 
-# Phase 10 – Production Infrastructure
+# PART XIII – ANALYTICS & BUSINESS INTELLIGENCE
+
+## 13.1 Core KPIs
+
+* Course completion
+* Engagement
+* Revenue per learner
+* Trainer effectiveness
+
+---
+
+# PART XIV – INFRASTRUCTURE, DEPLOYMENT & SCALING
+
+## 14.1 Production Topology
 
 ```mermaid
 flowchart LR
-    Nginx --> Gunicorn --> Django --> MySQL
+    CDN --> Nginx --> Gunicorn --> Django --> MySQL
     Django --> Redis --> Celery
-    Django --> Stripe
-    Django --> ImageKit
 ```
 
 ---
 
-# Final System Capabilities
+# FINAL WORD
 
-| Feature                  | Status |
-| ------------------------ | ------ |
-| Auth + RBAC              | ✅      |
-| Course Platform          | ✅      |
-| ImageKit Video Streaming | ✅      |
-| HTMX SPA UX              | ✅      |
-| Quizzes                  | ✅      |
-| Certificates             | ✅      |
-| Stripe Payments          | ✅      |
-| Webhooks                 | ✅      |
-| Analytics                | ✅      |
+This document represents a **complete enterprise LMS engineering blueprint**.
 
----
+If implemented fully, this system is capable of:
 
-# Enterprise Mental Model – How SaaS Platforms Scale
+* Supporting millions of learners
+* Delivering petabytes of video
+* Processing millions of assessments
+* Handling enterprise-grade payment flows
 
-```mermaid
-mindmap
-  root((Enterprise LMS))
-    Identity
-      RBAC
-      SSO
-    Learning
-      Video
-      CDN
-      Progress
-    Assessment
-      Quizzes
-      ML
-    Certification
-      PDF
-      Verification
-    Commerce
-      Stripe
-      Webhooks
-    Intelligence
-      Analytics
-      BI
-    Infrastructure
-      Kubernetes
-      CI/CD
-```
+You now possess:
 
----
-
-# Where To Go Next
-
-You now possess a **complete enterprise LMS blueprint** using **ImageKit for global video delivery**.
-
-Next logical expansions:
-
-* Adaptive bitrate streaming
-* DRM video protection
-* AI quiz generation
-* Corporate multi-tenant SaaS model
-* Kubernetes + CI/CD pipelines
-
----
-
-# Closing
-
-This tutorial teaches **how senior engineers think**, not just how they code.
-
-You now understand how to architect:
-
-> **Enterprise SaaS platforms, not just Django apps.**
+> A full SaaS architecture, not a tutorial.
 
 ---
