@@ -5,7 +5,7 @@
 **Stack:** Django · MySQL · HTMX · Tailwind · Stripe · ImageKit · ReportLab · Pandas · Python-Docx · Celery · Redis
 
 **Author:** Sean Wong
-**Version:** 5.0 – Enterprise Architecture & Engineering Master Edition (HTMX-first)
+**Version:** 1.0 – Enterprise Architecture & Engineering Master Edition (HTMX-first)
 **Date:** January 2026
 
 ---
