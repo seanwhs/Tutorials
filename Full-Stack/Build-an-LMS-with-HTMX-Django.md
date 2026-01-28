@@ -304,11 +304,138 @@ def grade_submission(submission):
 
 # PART IX – CERTIFICATE & DOCUMENT AUTOMATION
 
-## 9.1 Certificate Generation Pipeline
+## 9.1 Enterprise Certificate Generation Pipeline
+
+Certificate generation is a **regulated, auditable, security-sensitive workflow**. It must be:
+
+* Deterministic
+* Tamper-proof
+* Traceable
+* Secure
+* Regeneratable
+
+---
+
+### 9.1.1 End-to-End Certificate Workflow
 
 ```mermaid
 flowchart LR
-    Completion --> PDF Generator --> Storage --> Secure Download
+    Completion[Course Completion]
+    Completion --> Generator[PDF Generation Service]
+    Generator --> Storage[Secure Object Storage]
+    Storage --> Delivery[Authenticated Download]
+```
+
+---
+
+### 9.1.2 Certificate Lifecycle
+
+1. Learner completes all lessons
+2. Final assessment is passed
+3. Progress reaches 100%
+4. Certificate service is triggered
+5. PDF is generated
+6. Certificate is stored
+7. Secure download link issued
+
+---
+
+## 9.2 Certificate Data Model
+
+```python
+class Certificate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    serial_number = models.CharField(max_length=64, unique=True)
+    file_url = models.URLField()
+    checksum = models.CharField(max_length=64)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    revoked = models.BooleanField(default=False)
+```
+
+---
+
+## 9.3 Certificate Generation Service
+
+```python
+import hashlib
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
+class CertificateService:
+
+    def generate_certificate(self, enrollment):
+        serial = self._generate_serial(enrollment)
+        filename = f"cert_{serial}.pdf"
+        file_path = f"/tmp/{filename}"
+
+        self._build_pdf(file_path, enrollment, serial)
+
+        url = upload_to_storage(file_path)
+        checksum = self._calculate_checksum(file_path)
+
+        return Certificate.objects.create(
+            user=enrollment.user,
+            course=enrollment.course,
+            serial_number=serial,
+            file_url=url,
+            checksum=checksum
+        )
+
+    def _generate_serial(self, enrollment):
+        raw = f"{enrollment.id}-{enrollment.user_id}-{enrollment.course_id}".encode()
+        return hashlib.sha256(raw).hexdigest()[:16]
+
+    def _calculate_checksum(self, path):
+        with open(path,'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    def _build_pdf(self, path, enrollment, serial):
+        c = canvas.Canvas(path, pagesize=A4)
+        c.setFont("Helvetica-Bold", 24)
+        c.drawCentredString(300, 650, "Certificate of Completion")
+        c.setFont("Helvetica", 16)
+        c.drawCentredString(300, 600, enrollment.user.get_full_name())
+        c.drawCentredString(300, 560, f"has successfully completed")
+        c.drawCentredString(300, 530, enrollment.course.title)
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(300, 480, f"Certificate ID: {serial}")
+        c.save()
+```
+
+---
+
+## 9.4 Secure Download Architecture
+
+```mermaid
+sequenceDiagram
+    Learner->>Django: Request Certificate
+    Django->>Auth: Verify Ownership
+    Django->>Storage: Generate Signed URL
+    Storage->>Learner: Secure Download
+```
+
+---
+
+## 9.5 Certificate Verification System
+
+Every certificate is verifiable via:
+
+* Serial number
+* SHA-256 checksum
+* Public verification endpoint
+
+```python
+class CertificateVerificationService:
+
+    def verify(self, serial):
+        cert = Certificate.objects.get(serial_number=serial)
+        return {
+            "name": cert.user.get_full_name(),
+            "course": cert.course.title,
+            "issued": cert.issued_at,
+            "valid": not cert.revoked
+        }
 ```
 
 ---
