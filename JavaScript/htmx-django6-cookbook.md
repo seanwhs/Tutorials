@@ -374,11 +374,11 @@ flowchart TD
     A -->|Click Delete| F[Delete Item]:::DELETE
     A -->|Post Success| G[Redirect / HX-Redirect]:::REDIRECT
     A -->|Click| H[Toggle Visibility / Collapse]:::GET
-    A -->|Click| I[Inline Edit]:::GET
-    A -->|Form Submit| J[Validation Feedback]:::POST
+    A -->|Click| I[Inline Edit / hx-swap='outerHTML']:::GET
+    A -->|Form Submit| J[Validation Feedback / hx-swap='innerHTML']:::POST
     A -->|Click| K[Open Modal]:::GET
     A -->|Click| L[Server-Rendered Tabs]:::GET
-    A -->|Click| M[Pagination Links]:::GET
+    A -->|Click| M[Pagination Links / hx-swap='afterend']:::GET
     A -->|Click| N[Conditional Render Section]:::GET
     A -->|Click| O[Server-Side Sorting]:::GET
     A -->|Click| P[Nested HTMX Requests]:::GET
@@ -395,19 +395,19 @@ flowchart TD
     F -->|hx-target| V
     G -->|HX-Redirect| V
     H -->|hx-target| V
-    I -->|hx-target / hx-swap="outerHTML"| V
-    J -->|hx-target / hx-swap="innerHTML"| V
+    I -->|hx-target| V
+    J -->|hx-target| V
     K -->|hx-target| V
     L -->|hx-target| V
-    M -->|hx-target / hx-swap="afterend"| V
+    M -->|hx-target| V
     N -->|hx-target| V
     O -->|hx-target| V
     P -->|hx-target| V
     Q -->|CSRF Token| V
     R -->|async view| V
     S -->|hx-push-url| V
-    T -->|hx-on="htmx:afterSwap"| V
-    U -->|hx-trigger="every Xs"| V
+    T -->|hx-on=htmx:afterSwap| V
+    U -->|hx-trigger=every Xs| V
 
     click B callback "Load only the fragment, not full page. Avoid layout shifts."
     click C callback "Always include CSRF token. Return new fragment only."
@@ -417,5 +417,6 @@ flowchart TD
     click G callback "Use HX-Redirect header, avoid 302 in hx-post."
     click I callback "Use outerHTML to replace editable text."
     click U callback "Polling intervals should be reasonable to avoid server overload."
+
 ```
 
