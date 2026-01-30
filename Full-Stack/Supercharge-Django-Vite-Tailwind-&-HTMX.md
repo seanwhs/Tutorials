@@ -306,10 +306,10 @@ HTMX flips frontend development back to its roots:
 
 ```mermaid
 flowchart LR
-    Click --> HTMX
-    HTMX --> Django
-    Django --> HTML Fragment
-    HTMX --> DOM Swap
+    A[User Click] --> B[HTMX]
+    B --> C[Django View]
+    C --> D["HTML Fragment"]
+    D --> E["DOM Swap"]
 ```
 
 ---
