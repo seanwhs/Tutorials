@@ -315,18 +315,18 @@ def posts_list(request):
 
 ```mermaid
 flowchart LR
-    subgraph User Interaction
+    subgraph UserInteraction
         A[User Click/Input]
     end
 
-    subgraph Frontend (Thin Client)
+    subgraph FrontendThinClient
         B[Browser + HTMX]
     end
 
     subgraph Backend
         C[Django Views]
         D[Database]
-        E[Cache (Redis/Memcached)]
+        E[Cache Redis/Memcached]
         F[Celery Workers]
     end
 
@@ -339,6 +339,7 @@ flowchart LR
     C --> F
     F --> C
     B --> A
+
 ```
 
 ---
