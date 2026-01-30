@@ -323,8 +323,42 @@ prices = driver.find_elements(By.CLASS_NAME, "price")
 
 ```mermaid
 graph LR
-    Python --> Selenium --> Real Browser --> Website
+    A["Python Script"]
+    B["Selenium Driver"]
+    C["Real Browser"]
+    D["Website"]
+
+    A --> B
+    B --> C
+    C --> D
+
 ```
+Mental Model
+
+Selenium turns Python into a remote-control system for a real browser.
+
+```mermaid
+sequenceDiagram
+    participant P as Python
+    participant S as Selenium
+    participant B as Browser
+    participant W as Website
+
+    P->>S: send commands
+    S->>B: drive browser
+    B->>W: load page
+    W->>B: render content
+    B->>S: DOM ready
+    S->>P: extracted data
+```
+
+Translation:
+
+- Python does not talk to websites directly
+
+- Python → Selenium → Real Browser → Website
+
+- Selenium is a browser automation bridge
 
 ---
 
@@ -336,14 +370,38 @@ If you find those endpoints:
 
 ```mermaid
 graph LR
-    Python --> JSON API --> Structured Data
+    A["Python Script"]
+    B["Hidden JSON API"]
+    C["Structured Data"]
+
+    A --> B
+    B --> C
+
 ```
 
-This is:
+Mental Model
 
-* Faster
-* More stable
-* Cleaner
+Instead of scraping HTML meant for humans,
+you directly consume data meant for machines.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant A as API
+    participant P as Python
+
+    B->>A: fetch JSON
+    A->>B: JSON data
+
+    P->>A: same request
+    A->>P: JSON data
+```
+
+Why This Is Superior
+- Method	Speed	Stability	Scalability
+- Selenium	Slow	Medium	Poor
+- HTML Scraping	Medium	Medium	Good
+- JSON APIs	Fastest	Best	Excellent
 
 ---
 
