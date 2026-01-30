@@ -2,164 +2,79 @@
 
 ### A Production-Grade Frontend Architecture (2026 Edition)
 
-> **TL;DR**
-> This guide shows how to combine **Django**, **Vite**, **Tailwind CSS**, and **HTMX** into a modern, fast, and maintainable frontend stack — without turning your Django app into a JavaScript framework zoo.
-
-This is not a toy setup.
-This is how **real Django apps ship in 2026**.
+> **TL;DR** — We are going to build a **Monolith+**: the operational reliability of Django, the development speed of Vite, the design system power of Tailwind, and the server‑driven interactivity of HTMX. No SPA tax. No client-side state explosion.
 
 ---
 
 ## 🧠 The Mental Model (Read This First)
 
-Before touching code, internalize this:
+By 2026, the "SPA vs Monolith" debate is effectively over. Mature teams now optimize for **Locality of Behavior**, **Progressive Enhancement**, and **Operational Simplicity**.
 
-> **Django owns HTML.
-> Vite owns assets.
-> HTMX owns interactivity.
-> Tailwind owns styling.**
+Think of your application like a building:
 
-No JSON APIs.
-No SPA hydration tax.
-No client-side state explosion.
+* **Django owns the structure** — URLs, views, permissions, transactions, templates. The load-bearing walls.
+* **Vite owns the tooling speed** — instant dev server, HMR, optimized production bundles.
+* **HTMX owns interaction** — user-triggered HTTP requests that swap HTML, not JSON.
+* **Tailwind owns the design system** — constraints, consistency, and fast iteration.
 
-Just **fast pages**, progressively enhanced.
+This stack keeps **HTML as the unit of composition**.
 
 ---
 
-## 🏗 High-Level Architecture
+## 🏗 High-Level Request & Asset Flow
 
 ```mermaid
 flowchart LR
-    Browser -->|HTTP| Django
-    Django -->|HTML| Browser
-
-    Browser -->|Assets| ViteDev[Vite Dev Server]
-    Django -->|Static| DjangoStatic[Collected Static Files]
-
-    subgraph Dev
-        ViteDev
-    end
-
-    subgraph Prod
-        DjangoStatic
-    end
+    A[Browser Request] --> B[Django URL Resolver]
+    B --> C[Django View]
+    C --> D[Django Template]
+    D -->|Dev| E[Vite Dev Server]
+    D -->|Prod| F[Static Assets]
+    E --> G[Browser]
+    F --> G[Browser]
+    G -->|hx-*| C
 ```
 
-**Key idea:**
+What matters:
 
-* In **development**, the browser pulls JS/CSS from **Vite**
-* In **production**, Django serves **built, hashed assets**
+* Django always renders the **initial HTML**
+* Vite is *never* your application runtime — only a build & dev tool
+* HTMX re-enters Django using normal HTTP
 
 ---
 
-## 🧩 Why Vite (Not Webpack, Not “Magic Django Plugins”)
+## ⚡ Step 1: Initialize the Frontend Workspace
 
-Vite is not just “faster Webpack”. It changes the game:
-
-| Problem           | Old Way           | Vite Way          |
-| ----------------- | ----------------- | ----------------- |
-| Slow reloads      | Bundle everything | Native ES modules |
-| Complex config    | Webpack hell      | Sensible defaults |
-| Django mismatch   | Static hacks      | Clean separation  |
-| Production builds | Painful           | One command       |
-
-Vite treats Django exactly how it should be treated:
-
-> **As a backend, not a JS runtime.**
-
----
-
-## 📁 Canonical Project Structure
-
-This structure scales from hobby apps → enterprise platforms.
-
-```
-myproject/
-├─ manage.py
-├─ myproject/
-│  ├─ settings.py
-│  ├─ urls.py
-│  └─ wsgi.py
-├─ app/
-│  ├─ views.py
-│  ├─ urls.py
-│  └─ templates/
-│     └─ app/index.html
-├─ frontend/
-│  ├─ main.js
-│  ├─ style.css
-│  ├─ vite.config.js
-│  ├─ tailwind.config.js
-│  └─ dist/
-│     ├─ manifest.json
-│     └─ assets/
-└─ db.sqlite3
-```
-
-**Rule:**
-👉 Django never touches raw JS/CSS
-👉 Django only sees **built assets**
-
----
-
-## ⚙️ Step 1 — Django Backend (Thin & Boring)
-
-```bash
-pip install django
-django-admin startproject myproject
-cd myproject
-python manage.py startapp app
-```
-
-```python
-# app/views.py
-from django.shortcuts import render
-
-def index(request):
-    return render(request, "app/index.html")
-```
-
-Django’s job is simple:
-
-* Routing
-* Business logic
-* HTML rendering
-
-No frontend gymnastics.
-
----
-
-## ⚡ Step 2 — Initialize Vite
+Inside your Django project root (next to `manage.py`):
 
 ```bash
 npm create vite@latest frontend -- --template vanilla
 cd frontend
 npm install
-npm run dev
 ```
 
-You now have:
-
-* Instant reloads
-* Native ES modules
-* Zero Django coupling
-
----
-
-## 🎨 Step 3 — Tailwind CSS (Utility-First, Server-Friendly)
+Install the core dependencies:
 
 ```bash
-npm install -D tailwindcss postcss autoprefixer
+npm install htmx.org tailwindcss postcss autoprefixer
 npx tailwindcss init -p
 ```
 
+This creates a **clean boundary**: Django owns behavior, Vite owns assets.
+
+---
+
+## 🎨 Step 2: Configure Tailwind for Django Templates
+
+Tailwind must scan Django templates so unused styles can be removed in production.
+
 ```js
-// tailwind.config.js
+// frontend/tailwind.config.js
 export default {
   content: [
-    "./index.html",
-    "../**/templates/**/*.html",
+    '../templates/**/*.html',
+    '../**/templates/**/*.html',
+    './src/**/*.{js,ts}',
   ],
   theme: { extend: {} },
   plugins: [],
@@ -167,108 +82,25 @@ export default {
 ```
 
 ```css
-/* style.css */
+/* frontend/src/style.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 ```
 
-Tailwind works *beautifully* with server-rendered HTML because:
-
-* No runtime JS
-* No class generation at runtime
-* Full compile-time optimization
-
 ---
 
-## 🔌 Step 4 — Django ↔ Vite Integration
+## ⚙️ Step 3: The Django ↔ Vite Bridge (Critical)
 
-### Development vs Production (Critical Distinction)
+Django does not know about port `5173` or hashed filenames. We solve this once using a **custom template tag**.
 
-```mermaid
-sequenceDiagram
-    Browser->>Django: GET /
-    Django->>Browser: HTML
-    Browser->>Vite: main.js (dev)
-    Browser->>Django: static assets (prod)
-```
+### Design Rules
 
----
-
-### Django Template (Dev + Prod Safe)
-
-```html
-{% load vite_tags %}
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Django + Vite</title>
-  {% vite_asset 'main.js' %}
-</head>
-<body class="bg-gray-50 h-screen flex items-center justify-center">
-  <h1 class="text-3xl font-bold text-blue-600">
-    It works.
-  </h1>
-</body>
-</html>
-```
-
-You **never hardcode filenames**.
-The manifest handles everything.
-
----
-
-## 📦 Step 5 — Vite Production Configuration
-
-```js
-// frontend/vite.config.js
-import { defineConfig } from 'vite'
-import path from 'path'
-
-export default defineConfig({
-  build: {
-    outDir: 'dist',
-    manifest: true,
-    rollupOptions: {
-      input: 'main.js',
-      output: {
-        entryFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
-      },
-    },
-  },
-})
-```
-
-This enables:
-
-* Cache-busting
-* CDN-friendly assets
-* Deterministic builds
-
----
-
-## 🧠 Step 6 — Auto-Load Assets via Manifest
-
-### Why This Matters
-
-Without this:
-
-* You hardcode filenames
-* Cache invalidation becomes painful
-* Deploys break silently
-
-With the manifest:
-
-> Django always loads **the correct hashed asset**
-
----
-
-### Template Tag
+* Dev → load from Vite dev server
+* Prod → resolve from `manifest.json`
 
 ```python
-# app/templatetags/vite_tags.py
+# templatetags/vite.py
 import json, os
 from django import template
 from django.conf import settings
@@ -277,135 +109,200 @@ register = template.Library()
 
 @register.simple_tag
 def vite_asset(entry):
-    path = settings.VITE_MANIFEST_PATH
+    if settings.DEBUG:
+        return f'<script type="module" src="http://localhost:5173/{entry}"></script>'
 
-    if not os.path.exists(path):
-        return f'''
-        <script type="module" src="http://localhost:5173/@vite/client"></script>
-        <script type="module" src="http://localhost:5173/{entry}"></script>
-        '''
+    manifest_path = os.path.join(settings.BASE_DIR, 'frontend/dist/.vite/manifest.json')
+    with open(manifest_path) as f:
+        manifest = json.load(f)
 
-    manifest = json.load(open(path))
-    asset = manifest[entry]
-
-    tags = [f'<script type="module" src="{settings.STATIC_URL}{asset["file"]}"></script>']
-    for css in asset.get("css", []):
-        tags.append(f'<link rel="stylesheet" href="{settings.STATIC_URL}{css}">')
-    return "\n".join(tags)
+    file_path = manifest[entry]['file']
+    return f'<script type="module" src="{settings.STATIC_URL}{file_path}"></script>'
 ```
 
-This is **the single most important production detail** in the entire stack.
+This single abstraction removes environment branching everywhere else.
 
 ---
 
-## ⚡ Step 7 — HTMX: Interactivity Without JavaScript
-
-HTMX flips frontend development back to its roots:
-
-> **HTML is the API.**
-
-```mermaid
-flowchart LR
-    A[User Click] --> B[HTMX]
-    B --> C[Django View]
-    C --> D["HTML Fragment"]
-    D --> E["DOM Swap"]
-```
-
----
-
-### Example Interaction
+## 🔌 Step 4: The Base Template (The Only One That Matters)
 
 ```html
-<form
-  hx-get="/random-fact/"
-  hx-target="#fact"
-  hx-swap="innerHTML">
-  <button>Get Fact</button>
-</form>
+{% load vite %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Django + Vite + HTMX</title>
+  {% vite_asset 'src/main.js' %}
+</head>
+<body class="bg-gray-100 p-10">
+  <h1 class="text-4xl font-bold text-blue-600">Hello Django + Vite</h1>
 
-<div id="fact"></div>
+  <button
+    hx-get="/api/hello/"
+    hx-target="#response"
+    class="mt-4 bg-black text-white px-4 py-2 rounded"
+  >
+    Click Me (HTMX)
+  </button>
+
+  <div id="response" class="mt-4 italic"></div>
+</body>
+</html>
 ```
-
-No JS.
-No JSON.
-No frontend state.
 
 ---
 
-## 🧩 Step 8 — Progressive Enhancement (Non-Negotiable)
+## 🧠 Step 5: HTMX Fragments (The Power Move)
 
-With `django-htmx`:
+You do **not** build JSON APIs unless a non-browser client needs them.
 
 ```python
-if request.htmx:
-    return HttpResponse(fragment)
-return render(request, "full_page.html")
+# views.py
+def hello_fragment(request):
+    return HttpResponse('<p>HTMX swapped this instantly.</p>')
 ```
 
-**Result:**
-
-| Environment  | Behavior               |
-| ------------ | ---------------------- |
-| JS enabled   | Smooth partial updates |
-| JS disabled  | Full page reloads      |
-| Slow network | Graceful fallback      |
-| Bots         | Fully crawlable        |
-
-This is how **robust web apps** are built.
+HTMX turns Django into a **hypermedia engine** again.
 
 ---
 
-## 🚢 Step 9 — Production Build Pipeline
-
-```mermaid
-flowchart LR
-    Code --> npm_build[npm run build]
-    npm_build --> dist
-    dist --> collectstatic
-    collectstatic --> Deploy
-```
+## 🚢 Step 6: Production Build Pipeline
 
 ```bash
-npm run build
+cd frontend && npm run build
 python manage.py collectstatic
 ```
 
-That’s it.
-
-No magic.
-No brittle glue.
-
----
-
-## ✅ Final Stack Summary (2026-Approved)
-
-```
-Backend      → Django
-Assets       → Vite
-Styling      → Tailwind CSS
-Interactivity→ HTMX
-Enhancement  → django-htmx
-```
-
-### What You Get
-
-* ⚡ Instant dev reloads
-* 🎯 Server-driven UI
-* 🔐 Cache-safe deployments
-* 📉 Minimal JS surface area
-* 🧠 Predictable mental model
+| Tool     | Responsibility                  |
+| -------- | ------------------------------- |
+| Vite     | Bundling, hashing, minification |
+| Tailwind | CSS tree-shaking                |
+| HTMX     | Runtime interactivity (~10kb)   |
+| Django   | HTML, auth, data                |
 
 ---
 
-## 🧭 Closing Thought
+## 🛠 Vite Configuration (Professional Default)
 
-This stack works because it **respects the web**.
+```js
+// frontend/vite.config.js
+import { defineConfig } from 'vite'
+import path from 'path'
 
-It doesn’t fight HTTP.
-It doesn’t fight HTML.
-It doesn’t pretend Django is a frontend framework.
+export default defineConfig({
+  root: path.resolve(__dirname, 'src'),
+  base: '/static/',
 
-It simply **lets each tool do what it’s best at**.
+  build: {
+    manifest: true,
+    outDir: path.resolve(__dirname, 'dist'),
+    emptyOutDir: true,
+    rollupOptions: {
+      input: path.resolve(__dirname, 'src/main.js'),
+    },
+  },
 
+  server: {
+    port: 5173,
+    strictPort: true,
+    origin: 'http://localhost:5173',
+  },
+})
+```
 
+---
+
+## 📂 Resulting Build Output
+
+```text
+frontend/
+├── dist/
+│   ├── .vite/
+│   │   └── manifest.json
+│   └── assets/
+│       ├── main.[hash].js
+│       └── style.[hash].css
+```
+
+---
+
+## 🖼 Asset Handling (Images Done Right)
+
+### CSS / JS Images
+
+```css
+background-image: url('./assets/logo.svg');
+```
+
+```js
+import logo from './assets/logo.svg'
+```
+
+### Django Template Images (Hashed)
+
+```js
+// main.js
+import.meta.glob('./assets/*.{png,svg,jpg,jpeg}', { eager: true })
+```
+
+```python
+@register.simple_tag
+def vite_image(path):
+    if settings.DEBUG:
+        return f'http://localhost:5173/src/{path}'
+
+    manifest_path = os.path.join(settings.BASE_DIR, 'frontend/dist/.vite/manifest.json')
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+
+    return f"{settings.STATIC_URL}{manifest[f'src/{path}']['file']}"
+```
+
+```html
+<img src="{% vite_image 'assets/logo.svg' %}" />
+```
+
+---
+
+## 🔄 Developer Experience: Full Reload Integration
+
+```bash
+npm install -D vite-plugin-full-reload
+```
+
+```js
+import FullReload from 'vite-plugin-full-reload'
+
+plugins: [
+  FullReload([
+    '../../templates/**/*.html',
+    '../../**/templates/**/*.html',
+    '../../**/*.py'
+  ]),
+]
+```
+
+---
+
+## 🚦 The Golden Loop
+
+```mermaid
+flowchart LR
+    A[Edit CSS/JS] -->|HMR| B[Instant Update]
+    C[Edit HTML/Python] -->|Full Reload| B
+```
+
+---
+
+## ✅ Why This Stack Wins in 2026
+
+* Zero blank screens
+* SEO by default
+* Minimal JavaScript
+* Server-driven correctness
+* Easy to debug
+
+---
+
+**You now have a production-grade Django + Vite + Tailwind + HTMX architecture.**
