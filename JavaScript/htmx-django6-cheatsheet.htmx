@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTMX + Django 6 Cheat Sheet</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2rem; }
+  .node { 
+    border-radius: 8px; 
+    padding: 0.8rem; 
+    margin: 0.5rem 0; 
+    cursor: pointer; 
+    position: relative;
+  }
+  .GET { background-color: #cce5ff; border: 1px solid #004085; }
+  .POST { background-color: #d4edda; border: 1px solid #155724; }
+  .DELETE { background-color: #f8d7da; border: 1px solid #721c24; }
+  .POLL { background-color: #fff3cd; border: 1px solid #856404; }
+  .ASYNC { background-color: #e2e3e5; border: 1px solid #383d41; }
+  .REDIRECT { background-color: #d1ecf1; border: 1px solid #0c5460; }
+  .tooltip {
+    visibility: hidden;
+    background-color: #333; color: #fff; text-align: left; 
+    border-radius: 6px; padding: 0.5rem; position: absolute; z-index: 1; 
+    top: 100%; left: 50%; transform: translateX(-50%);
+    white-space: pre-line;
+    width: 220px;
+  }
+  .node:hover .tooltip { visibility: visible; }
+  .code-snippet { display: none; background: #f1f1f1; border-left: 4px solid #333; padding: 0.5rem; margin-top: 0.5rem; font-family: monospace; white-space: pre-wrap; }
+  .node.expanded .code-snippet { display: block; }
+</style>
+</head>
+<body>
+<h1>HTMX + Django 6 Interactive Cheat Sheet</h1>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Load Content (hx-get)
+  <div class="tooltip">Best: Return fragment only, avoid full page. Pitfall: layout shift if full page returned.</div>
+  <div class="code-snippet">
+&lt;button hx-get="{% url 'load-comments' %}" hx-target="#comments"&gt;Load Comments&lt;/button&gt;
+  </div>
+</div>
+
+<div class="node POST" onclick="this.classList.toggle('expanded')">
+  Submit Form (hx-post)
+  <div class="tooltip">Best: Include CSRF token. Return only new fragment. Pitfall: Missing token breaks POST.</div>
+  <div class="code-snippet">
+&lt;form hx-post="{% url 'add-comment' %}" hx-target="#comments"&gt;
+  {% csrf_token %}
+  &lt;input name="text"&gt;
+  &lt;button type="submit"&gt;Submit&lt;/button&gt;
+&lt;/form&gt;
+  </div>
+</div>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Infinite Scroll / Pagination
+  <div class="tooltip">Use paginator. Swap only next batch. Pitfall: swapping full page resets scroll.</div>
+  <div class="code-snippet">
+&lt;div hx-get="{% url 'posts-page' page=1 %}" hx-trigger="revealed" hx-swap="afterend"&gt;&lt;/div&gt;
+  </div>
+</div>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Live Search / Filter
+  <div class="tooltip">Debounce with delay. Return filtered fragment only.</div>
+  <div class="code-snippet">
+&lt;input hx-get="{% url 'search-posts' %}" hx-trigger="keyup changed delay:500ms" hx-target="#results"&gt;
+  </div>
+</div>
+
+<div class="node DELETE" onclick="this.classList.toggle('expanded')">
+  Delete Item
+  <div class="tooltip">Use hx-swap="delete" to remove element smoothly.</div>
+  <div class="code-snippet">
+&lt;button hx-get="{% url 'delete-comment' comment.id %}" hx-target="#comment-{{ comment.id }}" hx-swap="delete"&gt;Delete&lt;/button&gt;
+  </div>
+</div>
+
+<div class="node REDIRECT" onclick="this.classList.toggle('expanded')">
+  Redirect after action
+  <div class="tooltip">Use HX-Redirect header. Avoid 302 in hx-post.</div>
+  <div class="code-snippet">
+response = HttpResponse()
+response['HX-Redirect'] = '/dashboard/'
+return response
+  </div>
+</div>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Toggle Visibility / Collapse
+  <div class="tooltip">Render only target section. Pitfall: swapping outerHTML may remove the button.</div>
+  <div class="code-snippet">
+&lt;button hx-get="{% url 'toggle-details' item.id %}" hx-target="#details-{{ item.id }}" hx-swap="innerHTML"&gt;Show Details&lt;/button&gt;
+  </div>
+</div>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Inline Edit
+  <div class="tooltip">Use hx-swap="outerHTML" to replace text with edit form.</div>
+  <div class="code-snippet">
+&lt;span hx-get="{% url 'edit-comment' comment.id %}" hx-target="#comment-text-{{ comment.id }}" hx-swap="outerHTML"&gt;{{ comment.text }}&lt;/span&gt;
+  </div>
+</div>
+
+<div class="node POST" onclick="this.classList.toggle('expanded')">
+  Form Validation Feedback
+  <div class="tooltip">Return only errors to hx-target. Pitfall: returning full page breaks swap.</div>
+  <div class="code-snippet">
+&lt;form hx-post="{% url 'add-comment' %}" hx-target="#form-errors"&gt;
+  {{ form.as_p }}
+&lt;/form&gt;
+  </div>
+</div>
+
+<div class="node GET" onclick="this.classList.toggle('expanded')">
+  Open Modal
+  <div class="tooltip">Keep modal container outside main content. Pitfall: swapping innerHTML may remove event listeners.</div>
+  <div class="code-snippet">
+&lt;div id="modal"&gt;&lt;/div&gt;
+&lt;button hx-get="{% url 'open-modal' %}" hx-target="#modal"&gt;Open Modal&lt;/button&gt;
+  </div>
+</div>
+
+<div class="node ASYNC" onclick="this.classList.toggle('expanded')">
+  Async View / HTMX
+  <div class="tooltip">Use Django 6 async views. Pitfall: using sync ORM blocks event loop.</div>
+  <div class="code-snippet">
+async def async_posts(request):
+    posts = await Post.objects.all()
+    return render(request, "partials/posts_list.html", {"posts": posts})
+  </div>
+</div>
+
+<div class="node POLL" onclick="this.classList.toggle('expanded')">
+  Partial Page Refresh / Polling
+  <div class="tooltip">Polling intervals should be reasonable to avoid server overload.</div>
+  <div class="code-snippet">
+&lt;div hx-get="{% url 'live-stats' %}" hx-trigger="every 5s" hx-swap="innerHTML"&gt;&lt;/div&gt;
+  </div>
+</div>
+
+<script>
+  // Optional: expand/collapse code on click
+  const nodes = document.querySelectorAll('.node');
+  nodes.forEach(node => {
+    node.addEventListener('click', () => {
+      node.classList.toggle('expanded');
+    });
+  });
+</script>
+
+</body>
+</html>
