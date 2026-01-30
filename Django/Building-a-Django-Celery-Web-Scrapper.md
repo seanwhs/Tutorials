@@ -471,7 +471,3 @@ You now fully grasp:
 * Containerized deployment
 * Operational monitoring
 
-
-
-
-Just say 😄
