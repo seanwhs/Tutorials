@@ -1,5 +1,7 @@
 # 🏛 HTMX + Django 6 Primer: Server-Driven Reactive Apps
 
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/8e78d54a-6ff7-40c0-b95a-9d762759cdcc" />
+
 > **Server-driven UI with minimal JavaScript**
 > This guide shows **HTMX basics**, **patterns**, and **how to integrate HTMX with Django 6**, making your web apps reactive, maintainable, and performant.
 
@@ -8,6 +10,8 @@
 ## 1. Introduction to HTMX
 
 ### 1.1 What is HTMX?
+
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/6b7df12b-e8b6-44ce-9906-acddcc76acff" />
 
 HTMX is a **lightweight library** that allows HTML to be **reactive and interactive** without writing complex JavaScript.
 
