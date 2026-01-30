@@ -356,8 +356,4 @@ flowchart LR
 * **Thin client:** No heavy JS or SPA frameworks.
 * **Future-ready:** Django 6 + HTMX supports async, caching, and reactive UIs.
 
-> **Mantra:** *"Don't tell me how to do it; just give me the button to do it."*
 
-
-
-Do you want me to do that next?
