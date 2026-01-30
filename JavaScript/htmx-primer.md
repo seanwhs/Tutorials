@@ -344,10 +344,11 @@ def task_list(request):
 sequenceDiagram
     participant U as User
     participant H as HTMX
-    participant S as Django Server
-    participant D as DOM / Page
+    participant S as DjangoServer
+    participant D as DOM_Page
 
-    Note over U,H,S,D: Scenario: Add product to cart & update sidebar
+    Note over U,H: Scenario: Add product to cart
+    Note over S,D: Update sidebar & DOM
 
     U->>H: Click "Add to Cart"
     H->>H: Parse hx-post, hx-swap, hx-indicator
@@ -365,11 +366,11 @@ sequenceDiagram
     D->>D: Apply htmx-swapping → swap → htmx-settling
     D->>D: Activate nested HTMX elements
 
-    Note over U,H,S,D: Optional OOB update
+    Note over H,D: Optional OOB update
     S-->>H: Return additional OOB HTML
     H->>D: Insert OOB content
 
-    Note over U,H,S,D: End result: UI reflects server state instantly
+    Note over U,D: End result: UI reflects server state instantly
 ```
 
 ---
