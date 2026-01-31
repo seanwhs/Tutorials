@@ -2,126 +2,238 @@
 
 > **Philosophy:** *HTML is the engine of state. Django is the brain. The browser is the runtime.*
 
-The web in 2026 is rediscovering its roots. For years, developers built **Single Page Applications (SPAs)** that constantly rehydrated the DOM, managed complex client-side state, and duplicated logic. Powerful—but often **hard to reason about**, slow, and heavy on JavaScript.
+The web in 2026 is rediscovering something we quietly forgot: **HTML already knows how to be an application**.
 
-**Monolith+** flips this approach:
+For years, we leaned hard into Single Page Applications (SPAs). React, Vue, and massive JavaScript bundles promised rich interactivity—but at a cost:
 
-> *The server drives your UI; the browser handles ephemeral, local behavior.*
+* duplicated logic between frontend and backend
+* complex client-side state machines
+* hydration delays and brittle builds
+* difficult debugging across layers
 
-This is **Hypermedia-First Design**. Instead of sending JSON and rebuilding the DOM with JS, the **server returns HTML fragments** representing the app state. Every click, form, or navigation is a **hypermedia interaction**, not a random API call.
+**Monolith+** flips the model.
 
----
+Instead of shipping JSON and rebuilding the UI in JavaScript, we:
 
-## Why Hypermedia-First Matters
+* compute state on the **server**
+* send **HTML fragments** over the wire
+* let the browser update the DOM directly
 
-* ✅ **Instant feedback:** HTML renders immediately; no client-side hydration needed
-* ✅ **Fewer moving parts:** Less JS, fewer state bugs
-* ✅ **Easier reasoning:** One source of truth—the server
+This approach is called **Hypermedia‑First Design**.
 
-> 💡 **Mental Model — Locality of Behavior (LoB)**
-> You should understand any component **just by reading the HTML**. Minimal hidden JS, no complex client-side state machines.
-
----
-
-## 🏗 Monolith+ Architecture
-
-| Layer         | Tech       | Responsibility                                               |
-| ------------- | ---------- | ------------------------------------------------------------ |
-| **Backend**   | Django 6.x | Auth, ORM, routing, **HTML generation**                      |
-| **Build**     | Vite       | Fast asset compilation: HMR, Tailwind JIT, JS/CSS bundling   |
-| **Transport** | HTMX 2.x   | Declarative AJAX, partial DOM swaps, browser history updates |
-| **Client**    | Alpine.js  | Local ephemeral UI: modals, tabs, dropdowns, toggles         |
-
-> ⚙️ **Mental Model:** HTML is the contract → Django computes → HTMX delivers → Alpine decorates.
+> The server drives the UI. The browser handles local, ephemeral behavior.
 
 ---
 
-## 🔁 Request & Asset Lifecycle
+## 🌱 The Core Mental Model
 
-Every action follows **seven phases**:
+Before tools, memorize this:
 
-1. **User Action** → click, form submission, or page load
-2. **HTMX Intercepts** → declarative AJAX request
-3. **CSP Check** → browser ensures security
-4. **Django Processes** → view executes, queries DB, generates HTML
-5. **HTMX Swaps** → HTML injected into `hx-target`
-6. **Alpine Enhances** → ephemeral UI behavior (modals, toasts)
-7. **History Sync** → browser URL updated (`hx-push-url`)
+> **HTML is the contract.**
 
-```mermaid
-flowchart LR
-    A[User Action] -->|hx-get / hx-post| B[HTMX Interceptor]
-    B --> C{CSP Check}
-    C -->|Pass| D[Django View]
-    C -->|Violation| Z[Blocked & Reported]
-    D --> E[Partial/Full HTML]
-    E --> F[HTMX Swap into DOM]
-    F --> G[Alpine Enhances UI]
-    G --> H[UI Ready / Interactive]
-```
+* Django decides *what the UI should look like*
+* HTMX delivers HTML to the browser
+* Alpine adds small, local interactions
+* JavaScript is no longer the source of truth
 
-> HTMX = **“HTML courier”**, Alpine = **“ephemeral decorator”**.
+If you understand the HTML, you understand the feature.
+
+This principle is known as **Locality of Behavior (LoB)**.
+
+> 💡 *You should be able to read one template and know exactly how it behaves—without hunting through JS files.*
 
 ---
 
-## ⚙️ Step-by-Step: Book List Example
+## 🏗 What Is Monolith+?
 
-### 1️⃣ Django ↔ Vite Bridge
+Monolith+ is not a framework. It’s a **stack philosophy**.
 
-```python
-# settings.py
-INSTALLED_APPS += ["django_vite"]
+| Layer     | Technology         | Responsibility                     |
+| --------- | ------------------ | ---------------------------------- |
+| Backend   | **Django 6.x**     | Auth, ORM, routing, HTML rendering |
+| Transport | **HTMX 2.x**       | Partial page updates via HTML      |
+| Client UI | **Alpine.js**      | Toggles, modals, dropdowns         |
+| Assets    | **Vite**           | CSS/JS bundling, HMR               |
+| Infra     | **Docker + MySQL** | Reproducible environments          |
 
-DJANGO_VITE = {
-    "default": {
-        "dev_mode": DEBUG,
-        "manifest_path": BASE_DIR / "frontend/dist/.vite/manifest.json",
-        "dev_server_port": 5173,
-    }
-}
-```
-
-* **Dev mode:** Hot Module Reload
-* **Prod mode:** Django serves hashed assets from `manifest.json`
-
-> Keep CSS & JS in Vite; Django will serve the correct version.
+> ⚙️ **Pipeline:** Django computes → HTMX delivers → Alpine decorates
 
 ---
 
-### 2️⃣ Secure Base Template
+## 🔍 What Is HTMX?
+
+**HTMX** is a tiny JavaScript library that lets you use modern browser features—AJAX, history, polling, WebSockets—**directly from HTML attributes**.
+
+No `fetch()`. No state stores. No client-side rendering.
+
+### The Big Idea
+
+Traditionally:
+
+* only `<a>` and `<form>` can make requests
+* requests reload the entire page
+
+HTMX removes those limits:
+
+* **any element** can make a request
+* **any part** of the page can update
+* **no full page reloads**
+
+---
+
+## ⚡ HTMX “Magic” Attributes
+
+HTMX works by scanning your HTML for `hx-*` attributes.
+
+| Attribute            | Meaning                   |
+| -------------------- | ------------------------- |
+| `hx-get` / `hx-post` | Where to send the request |
+| `hx-trigger`         | What event triggers it    |
+| `hx-target`          | What element to update    |
+| `hx-swap`            | How the HTML is inserted  |
+| `hx-push-url`        | Sync browser history      |
+
+### A Simple Example
 
 ```html
-{% load vite %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  {% vite_hmr_client %}
-  {% vite_asset 'src/main.js' %}
-</head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<button hx-post="/increment" hx-target="#counter">
+  Click Me
+</button>
 
-  <button hx-get="{% url 'book_list' %}" hx-target="#content" hx-push-url="true">Load Books</button>
-
-  <div x-data="{ open: false }">
-    <button @click="open = !open">Menu</button>
-    <nav x-show="open" @click.away="open = false">...</nav>
-  </div>
-
-  <div id="content"></div>
-</body>
-</html>
+<div id="counter">0</div>
 ```
 
-> Avoid inline JS; let Vite bundle scripts for CSP compliance.
+What happens:
+
+1. User clicks the button
+2. HTMX sends `POST /increment`
+3. Django returns `1`
+4. HTMX swaps it into `#counter`
+
+No page refresh. No custom JavaScript.
 
 ---
 
-### 3️⃣ Django Native Partials
+## 🧠 HTMX vs Traditional SPAs
+
+| Feature     | React / Vue   | HTMX             |
+| ----------- | ------------- | ---------------- |
+| Data format | JSON          | **HTML**         |
+| Rendering   | Client-side   | **Server-side**  |
+| State       | Client stores | **Server truth** |
+| Tooling     | Heavy         | **Minimal**      |
+| Bundle size | Large         | **~14kb**        |
+
+HTMX gives you **SPA smoothness** without SPA complexity.
+
+---
+
+## ❓ Does HTMX Need Transpilation?
+
+**No.**
+
+HTMX is plain JavaScript.
+
+* no JSX
+* no TypeScript
+* no build step required
+
+You include `htmx.min.js`, and the browser runs it directly.
+
+Minification ≠ transpilation. HTMX is already browser-ready.
+
+---
+
+## 🪶 What Is Alpine.js?
+
+If HTMX replaces AJAX and page refreshes,
+
+**Alpine.js replaces jQuery and small custom scripts.**
+
+It’s often described as:
+
+> **“Tailwind for JavaScript.”**
+
+Instead of writing JS files, you add **behavior directly to HTML**.
+
+---
+
+## 🧩 Alpine’s Big Three
+
+| Attribute | Purpose             |
+| --------- | ------------------- |
+| `x-data`  | Local state         |
+| `@click`  | Event handling      |
+| `x-show`  | Conditional display |
+
+### Example: Dropdown Menu
+
+```html
+<div x-data="{ open: false }">
+  <button @click="open = !open">Menu</button>
+
+  <nav x-show="open" @click.away="open = false">
+    <ul>
+      <li>Profile</li>
+      <li>Settings</li>
+      <li>Logout</li>
+    </ul>
+  </nav>
+</div>
+```
+
+No DOM querying. No event listeners. No manual toggling.
+
+---
+
+## ⚔️ HTMX vs Alpine.js
+
+They solve **different problems**.
+
+| Concern                  | HTMX | Alpine |
+| ------------------------ | ---- | ------ |
+| Server communication     | ✅    | ❌      |
+| DOM updates from backend | ✅    | ❌      |
+| UI toggles & modals      | ❌    | ✅      |
+| Local-only state         | ❌    | ✅      |
+
+> HTMX talks to the server.
+> Alpine talks to the DOM.
+
+They work *together*, not in competition.
+
+---
+
+## 🔁 The Monolith+ Request Lifecycle
+
+Every interaction follows the same flow:
+
+1. User clicks or submits
+2. HTMX intercepts
+3. Django runs logic
+4. Database queried
+5. HTML fragment returned
+6. HTMX swaps DOM
+7. Alpine enhances UI
+
+> HTML goes *over the wire*, not JSON.
+
+---
+
+## 📦 Django + HTMX: Partial Templates
+
+### One Template, Two Modes
+
+```python
+def book_list(request):
+    books = Book.objects.all()
+    template = "books.html#book_list" if request.htmx else "books.html"
+    return render(request, template, {"books": books})
+```
 
 ```html
 {% partialdef book_list %}
-<ul id="book-list">
+<ul>
   {% for book in books %}
     <li>{{ book.title }}</li>
   {% endfor %}
@@ -129,100 +241,59 @@ DJANGO_VITE = {
 {% endpartialdef %}
 ```
 
-```python
-# views.py
-def book_list(request):
-    books = Book.objects.all()
-    template = "books.html#book_list" if request.htmx else "books.html"
-    return render(request, template, {"books": books})
-```
+Same view. Same template. Multiple render targets.
 
-> One template, one view, multiple modes. No JSON juggling.
+No APIs. No serializers.
 
 ---
 
-### 4️⃣ HTMX Patterns
+## ⚡ Why Vite Still Matters
 
-| Pattern             | Example                                                                                | Notes                            |
-| ------------------- | -------------------------------------------------------------------------------------- | -------------------------------- |
-| Load Content        | `<button hx-get="/books/" hx-target="#content" hx-push-url="true">Load Books</button>` | Declarative navigation           |
-| Form Submit         | `<form hx-post="/add/" hx-target="#list" hx-swap="beforeend">...</form>`               | Partial DOM update               |
-| Out-of-Band Updates | `<div hx-get="/notify/" hx-swap-oob="afterbegin:#toast">Notify</div>`                  | Notifications across transitions |
-| Server Redirect     | `response["HX-Redirect"] = "/books/"`                                                  | Redirects without JS             |
-| Error Handling      | `return HttpResponseBadRequest("<p>Title required!</p>")`                              | Sends partial error HTML         |
+HTMX and Alpine don’t need a build step—but **your app still does**.
 
----
+Vite handles:
 
-### 5️⃣ Alpine.js Essentials
+* Tailwind JIT
+* JS bundling
+* HMR in development
+* hashed assets in production
 
-| Behavior             | Example                                                                                                  | Notes                                  |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Toggle               | `<div x-data="{open:false}"><button @click="open=!open">Menu</button><nav x-show="open">...</nav></div>` | Declarative toggle UI                  |
-| Toast / Notification | `<div x-data="{toast:''}" x-text="toast"></div>`                                                         | Update via Alpine store or HTMX events |
-| Click Away           | `@click.away="open=false"`                                                                               | Auto-close dropdowns/modals            |
+Django serves whatever Vite builds.
 
 ---
 
-### 6️⃣ Docker + MySQL Quick Reference
+## 🐳 Docker: Optional, But Powerful
 
-* **Services:** `db` (MySQL 8), `web` (Django+Gunicorn), `frontend` (Vite dev)
-* **Ports:** `3306` MySQL, `8000` Django, `5173` Vite
-* **Env Variables:**
+Docker gives you:
 
-```text
-DATABASE_HOST=db
-DATABASE_NAME=monolith
-DATABASE_USER=monolith
-DATABASE_PASSWORD=secretpassword
-DATABASE_PORT=3306
-```
+* reproducible environments
+* clean dependency isolation
+* production parity
 
-* **Commands:**
-
-```bash
-docker-compose up -d
-docker-compose logs -f web
-```
-
-> Start small: HTML + HTMX first, then Alpine, Vite, and Docker.
+Start without it. Add it when ready.
 
 ---
 
-## 7️⃣ Mental Models & Pro-Tips
+## 🧠 Final Mental Models
 
-* **LoB:** Behavior visible in HTML → easy debugging
-* **HTMX Courier:** Fetch & swap HTML without SPA complexity
-* **Alpine Decorator:** Adds ephemeral UI behaviors
-* **Docker Containers:** Reproducible isolation
-* **Vite:** Handles HMR & asset bundling seamlessly
-
----
-
-## 8️⃣ Monolith+ TL;DR Visual
-
-```mermaid
-flowchart TD
-    A[👤 User] -->|Click / Submit| B[📨 HTMX]
-    B --> C[🧠 Django + Logic]
-    C --> D[💾 MySQL]
-    D --> E[Partial HTML Response]
-    E --> F[🎨 Alpine Sprinkles Behavior]
-    F --> G[🌐 Browser Updates]
-    H[⚡ Vite HMR / Assets] -.-> F
-    I[🐳 Docker Isolation] -.-> B
-```
-
-> One glance: **user click → backend → DB → frontend → browser**.
+* **HTML is state**
+* **The server is the source of truth**
+* **HTMX is the courier**
+* **Alpine is the decorator**
+* **JavaScript is optional, not mandatory**
 
 ---
 
-## ✅ Takeaways for Beginners
+## ✅ Takeaways
 
-* Build **server-driven, HTML-first apps**
-* Use **HTMX** for partial updates
-* Sprinkle **Alpine** for ephemeral UI behavior
-* Containerize with **Docker**
-* Avoid SPA complexity while keeping interactivity
+* You don’t need an SPA to feel modern
+* You don’t need JSON for UI rendering
+* You don’t need massive JS bundles
 
-> TL;DR: Start with **a small feature**, understand the Monolith+ flow, then scale to full apps with Redis, Celery, or Nginx.
+You need:
 
+* good HTML
+* clear server logic
+* small, sharp tools
+
+> Build boring. Ship fast. Sleep better.
