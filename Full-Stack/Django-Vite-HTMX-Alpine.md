@@ -284,16 +284,215 @@ Start without it. Add it when ready.
 
 ---
 
+## 🚫 Common Mistakes & Anti‑Patterns
+
+### 1. Treating HTMX Like an API Client
+
+**Anti‑pattern:** Returning JSON and rebuilding HTML with JavaScript.
+
+**Why it’s wrong:** You’ve re‑invented an SPA badly.
+
+**Do instead:** Return rendered HTML fragments. Let the server own the UI.
+
+---
+
+### 2. Too Much Alpine State
+
+**Anti‑pattern:** Large `x-data` objects holding business logic.
+
+**Why it’s wrong:** You’re leaking server concerns into the browser.
+
+**Do instead:** Alpine should only manage **ephemeral UI state** (open/closed, selected tab, animation state).
+
+---
+
+### 3. Client‑Side Validation First
+
+**Anti‑pattern:** Heavy JS validation with server validation as a fallback.
+
+**Why it’s wrong:** You’ve split your source of truth.
+
+**Do instead:** Validate on the server, return HTML errors. Enhance later if needed.
+
+---
+
+### 4. Over‑Fragmenting Templates
+
+**Anti‑pattern:** Dozens of tiny partials with unclear ownership.
+
+**Why it’s wrong:** Debugging becomes harder, not easier.
+
+**Do instead:** Start coarse‑grained. Split only when reuse is obvious.
+
+---
+
+## 🔁 Migration Guide: React → Monolith+
+
+### Step 1: Identify UI That Is *Actually* Server‑Driven
+
+Good candidates:
+
+* CRUD screens
+* dashboards
+* tables, lists, filters
+* admin panels
+
+Bad candidates (keep client‑side):
+
+* real‑time editors
+* canvas/WebGL apps
+* heavy data visualization
+
+---
+
+### Step 2: Replace JSON APIs with HTML Responses
+
+**React pattern:**
+
+* fetch JSON
+* map to JSX
+
+**Monolith+ pattern:**
+
+* request HTML
+* swap into DOM
+
+You can keep existing endpoints temporarily, but new views should return HTML.
+
+---
+
+### Step 3: Collapse Client State into the Server
+
+| React Concept   | Monolith+ Equivalent |
+| --------------- | -------------------- |
+| Redux / Zustand | Django session / DB  |
+| useEffect       | Django view logic    |
+| useState        | Template context     |
+
+If the server already knows the answer, don’t store it twice.
+
+---
+
+### Step 4: Replace Components with Templates
+
+React components → Django templates
+
+* props → context variables
+* conditional rendering → `{% if %}` blocks
+* list rendering → `{% for %}` loops
+
+HTML becomes readable again.
+
+---
+
+### Step 5: Sprinkle Alpine Where Needed
+
+Replace:
+
+* menu toggles
+* modal open/close
+* tabs
+
+Not:
+
+* data fetching
+* business rules
+
+---
+
+## 🧩 Real CRUD Walkthrough (HTMX + Alpine)
+
+### Example: Todo List
+
+#### Create
+
+```html
+<form hx-post="/todos/create/" hx-target="#todo-list" hx-swap="beforeend">
+  <input name="title" required>
+  <button>Add</button>
+</form>
+```
+
+```python
+def todo_create(request):
+    todo = Todo.objects.create(title=request.POST['title'])
+    return render(request, 'todos.html#todo_item', {'todo': todo})
+```
+
+---
+
+#### Read
+
+```html
+<ul id="todo-list">
+  {% for todo in todos %}
+    {% include 'todos/item.html' %}
+  {% endfor %}
+</ul>
+```
+
+---
+
+#### Update (Inline Edit with Alpine)
+
+```html
+<li x-data="{ editing: false }">
+  <span x-show="!editing">{{ todo.title }}</span>
+
+  <form x-show="editing"
+        hx-post="/todos/{{ todo.id }}/edit/"
+        hx-target="closest li"
+        hx-swap="outerHTML">
+    <input name="title" value="{{ todo.title }}">
+    <button>Save</button>
+  </form>
+
+  <button @click="editing = true">Edit</button>
+</li>
+```
+
+---
+
+#### Delete
+
+```html
+<button hx-delete="/todos/{{ todo.id }}/delete/"
+        hx-target="closest li"
+        hx-swap="outerHTML">
+  Delete
+</button>
+```
+
+```python
+def todo_delete(request, id):
+    Todo.objects.filter(id=id).delete()
+    return HttpResponse('')
+```
+
+No JS framework. No client store. No JSON.
+
+---
+
+## 📜 The Monolith+ Manifesto (Short & Sharp)
+
+1. HTML is state.
+2. The server is the source of truth.
+3. JavaScript is a tool, not a platform.
+4. If logic can live on the server, it should.
+5. Local UI state belongs in the browser.
+6. Complexity must justify itself.
+7. Ship working software, not abstractions.
+
+> Build less. Understand more. Move faster.
+
+---
+
 ## ✅ Takeaways
 
-* You don’t need an SPA to feel modern
-* You don’t need JSON for UI rendering
-* You don’t need massive JS bundles
+* You can migrate incrementally
+* You don’t need to burn React to the ground
+* Hypermedia scales better than you think
 
-You need:
+Modern web apps don’t need more JavaScript.
 
-* good HTML
-* clear server logic
-* small, sharp tools
-
-> Build boring. Ship fast. Sleep better.
+They need **better boundaries**.
