@@ -354,15 +354,18 @@ flowchart LR
     HTMX -->|7️⃣ DOM Swap / Update| Browser
     Browser -->|8️⃣ Local Interactivity| Alpine[✨ Alpine.js UI Sprinkles]:::alpine
 
-    subgraph Docker["🐳 Docker Containers"]:::docker
+    %% Docker Containers
+    subgraph Docker [Docker Containers]
         DjangoDocker[Django]:::dockerNode
         MySQLDocker[MySQL]:::dockerNode
         RedisDocker[Redis]:::dockerNode
     end
 
+    %% Links to show containment
     Django --> DjangoDocker
     MySQL --> MySQLDocker
     Redis --> RedisDocker
+
 ```
 
 ---
