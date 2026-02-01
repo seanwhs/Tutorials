@@ -1,384 +1,308 @@
-# 🧠 Monolith+ in 2026 — The DHA (Django, HTMX, Alpine) Stack
+# 🧠 DHA Stack 2026 — Django + HTMX + Alpine.js
 
-> **Goal:** Build modern, reactive web apps using **Django, HTMX, Alpine.js, and Tailwind CSS**.
-> **Approach:** Understand the architecture first, then implement a live To-Do app backed by **MySQL**, containerized with **Docker**.
-> **Philosophy:** Minimal JavaScript, server-driven logic, SPA-like UX without SPA headaches.
+**DHA = Django (Brain) + HTMX (Pulse) + Alpine.js (Sprinkles)**
+*HTML-first, JS-light, MySQL-ready, production-grade.*
 
----
-
-## 1️⃣ Understanding the Stack: Traditional SPA vs Monolith+
-
-### **Traditional SPA (React / Vue / Angular)**
-
-Most logic is **client-side**. Browser requests JSON from API → JS framework renders DOM.
-
-```mermaid
-flowchart LR
-    Browser[Browser / User] -->|JSON Request| Backend[API Server]
-    Backend -->|JSON Response| Browser
-    Browser -->|Hydrate & Render| Framework[React/Vue builds DOM]
-```
-
-**Pain points:**
-
-* Logic duplication (server & client)
-* Hydration bugs → slow/buggy initial load
-* Heavy JS bundles → performance overhead
+> SPA-level responsiveness without SPA complexity: the server handles business logic, HTMX drives HTML updates, and Alpine provides local UX polish.
 
 ---
 
-### **Monolith+ Approach**
+## 📖 1. Philosophy & Stack Overview
 
-The **server is the brain**. HTMX swaps HTML fragments, Alpine handles local interactivity.
+DHA embraces **Hypermedia-driven design**: the server is the brain, the client is a lightweight reactive runtime.
+
+| SPA Pain Point       | DHA Solution                                        |
+| -------------------- | --------------------------------------------------- |
+| **Duplicated Logic** | Single Django view as the source of truth           |
+| **Hydration Delays** | Instant SSR + HTMX partial DOM swaps                |
+| **Bundle Bloat**     | <50KB JS total (CDN-loaded)                         |
+| **State Hell**       | Django sessions + MySQL = simple, centralized state |
+
+### 1.1 Data Flow
 
 ```mermaid
 flowchart TD
-    Browser[Browser / User]:::browser -->|HTTP Request| Django[Server / Brain]:::server
-    Django -->|HTML Fragment| Browser
-    Browser --> HTMX[HTMX / Partial DOM Swaps]:::htmx --> DOM[Updated DOM]
-    Browser --> Alpine[Alpine.js / UI Sprinkles]:::alpine
+    User[👤 User Action] --> HTMX[⚡ HTMX Request]
+    HTMX --> Django[🧠 Django View]
+    Django --> MySQL[💾 MySQL DB]
+    Django -->|HTML Fragment| HTMX
+    HTMX --> DOM[✅ DOM Swap]
+    DOM --> Alpine[✨ Local UX / Sprinkles]
 ```
 
-**Advantages:**
-
-* Server-rendered HTML → instant display
-* HTMX swaps only needed DOM parts → lightweight updates
-* Alpine handles modals, toggles, tooltips
-* No hydration or API sync issues
-
-**Legend:**
-
-| Layer           | Tool           | Purpose                               |
-| --------------- | -------------- | ------------------------------------- |
-| Browser         | HTML/CSS       | Display content & handle user events  |
-| Server          | Django         | Routing, DB operations, validation    |
-| Partial Loading | HTMX           | SPA-like interactions, minimal JS     |
-| Client UI       | Alpine.js      | UI polish (toggles, modals, tooltips) |
-| Database        | MySQL          | Persistent storage                    |
-| Real-Time       | Redis/Channels | Push notifications / live updates     |
+> HTML is the **state**, HTMX is the **pulse**, Alpine adds **sprinkles**.
 
 ---
 
-## 2️⃣ Reactive Patterns with HTMX & Alpine.js
+## 🏗️ Phase 1: Environment & Scaffolding
 
-### **Inline Swap-to-Edit**
+Docker ensures **reproducible development** with MySQL 8.1 and Redis 7.
 
-Click a field → inline edit → save without reload.
+### 1.1 Project Structure
 
-```mermaid
-flowchart TD
-    Span[Display Task Title]:::browser -->|Click| Form[Edit Form]:::htmx
-    Form -->|Submit| Django[Update DB & Validate]:::server
-    Django -->|Return HTML| Span
+```text
+dha_app/
+├── core/                  # Settings, ASGI, URLs
+├── apps/
+│   └── tasks/             # Business logic
+├── templates/
+│   ├── base.html          # Dashboard shell
+│   └── partials/          # HTMX fragments
+├── Dockerfile
+└── docker-compose.yml
 ```
 
-**HTML Example:**
-
-```html
-<span hx-get="{% url 'edit_task' task.id %}" 
-      hx-target="#task-{{ task.id }}" 
-      hx-swap="outerHTML">{{ task.title }}</span>
-
-<form hx-post="{% url 'update_task' task.id %}" 
-      hx-target="#task-{{ task.id }}" 
-      hx-swap="outerHTML">
-  <input type="text" name="title" value="{{ task.title }}" autofocus>
-  <button type="submit">Save</button>
-  <button type="button" hx-get="{% url 'task_detail' task.id %}" hx-target="#task-{{ task.id }}" hx-swap="outerHTML">Cancel</button>
-</form>
-```
-
----
-
-### **Live Search**
-
-Dynamic search → results update without page reload.
-
-```mermaid
-flowchart TD
-    Input[User types search]:::browser -->|HTMX triggers GET| Django[Query DB]:::server
-    Django -->|Return HTML Fragment| ResultsDiv[Display Results]:::htmx
-```
-
-**HTML Example:**
-
-```html
-<input type="search" name="q" placeholder="Search tasks..."
-       hx-get="{% url 'task_list' %}" 
-       hx-trigger="keyup changed delay:300ms"
-       hx-target="#task-container" hx-indicator=".loader">
-<span class="loader htmx-indicator">Searching...</span>
-<div id="task-container">{% include 'tasks/partials/task_container.html' %}</div>
-```
-
----
-
-### **Multi-Step Wizard / Live Preview / Validation**
-
-* Each step saved → allows back navigation
-* Live preview shows exactly what is saved
-* Server-side validation ensures correctness
-
-```mermaid
-flowchart TD
-    Input[Blur Field]:::browser -->|HTMX POST| Django[Check DB & Rules]:::server
-    Django -->|Return HTML| InputWrapper[Show Error / Success]:::htmx
-```
-
----
-
-## 3️⃣ Build a Reactive To-Do App
-
-### **Step 1: Project Setup & MySQL**
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install django mysqlclient
-```
-
-`settings.py`:
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'todo_db',
-        'USER': 'your_mysql_user',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
-}
-```
-
----
-
-### **Step 2: Define Task Model**
+### 1.2 Database Models (`models.py`)
 
 ```python
 from django.db import models
 
+class Column(models.Model):
+    name = models.CharField(max_length=100)
+    order = models.IntegerField(default=0)
+
 class Task(models.Model):
     title = models.CharField(max_length=255)
+    column = models.ForeignKey(Column, on_delete=models.CASCADE, related_name='tasks')
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.title
-```
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
+    class Meta:
+        indexes = [models.Index(fields=['is_completed', 'column'])]
 ```
 
 ---
 
-### **Step 3: Base Template (HTMX, Alpine, Tailwind)**
+## ⚡ Phase 2: HTMX Pulse (Server-Driven Reactivity)
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body class="bg-gray-100 p-10">
-    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h1 class="text-2xl font-bold mb-4">My To-Dos</h1>
-        {% block content %}{% endblock %}
-    </div>
-</body>
-</html>
-```
+HTMX provides **declarative server-driven interactivity**. Hybrid views return either full pages or partial fragments.
 
----
-
-### **Step 4: Add Task with HTMX**
-
-`views.py`:
+### 2.1 Hybrid View
 
 ```python
-from django.shortcuts import render
-from .models import Task
+def kanban_board(request):
+    query = request.GET.get('q', '')
+    tasks = Task.objects.select_related('column')
+    
+    if query:
+        tasks = tasks.filter(title__icontains=query)
 
-def task_list(request):
-    tasks = Task.objects.all().order_by('-created_at')
-    return render(request, 'tasks/task_list.html', {'tasks': tasks})
+    columns = Column.objects.prefetch_related(
+        models.Prefetch('tasks', queryset=tasks.order_by('-created_at'))
+    ).all()
 
-def add_task(request):
-    title = request.POST.get('title')
-    task = Task.objects.create(title=title)
-    return render(request, 'tasks/partials/task_item.html', {'task': task})
+    context = {'columns': columns, 'query': query}
+    template = 'tasks/partials/kanban_content.html' if request.htmx else 'tasks/kanban.html'
+    return render(request, template, context)
 ```
 
-`task_list.html`:
+### 2.2 Live Search Component
 
 ```html
-<form hx-post="{% url 'add_task' %}" hx-target="#task-container" hx-swap="afterbegin">
-    {% csrf_token %}
-    <input type="text" name="title" placeholder="What needs doing?">
-    <button type="submit">Add</button>
-</form>
+<input type="search" name="q" placeholder="Search tasks..."
+       hx-get="{% url 'kanban' %}"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#kanban-container"
+       hx-indicator="#spinner">
 
-<div id="task-container">
-    {% for task in tasks %}
-        {% include 'tasks/partials/task_item.html' %}
+<div id="spinner" class="htmx-indicator animate-spin">🌀</div>
+```
+
+---
+
+## ✨ Phase 3: Alpine Sprinkles (Local UX & Drag-and-Drop)
+
+Alpine.js handles **optimistic UI**, small animations, and drag-and-drop via **Sortable.js**.
+
+### 3.1 Drag-and-Drop
+
+```html
+<div x-data="kanban()" class="flex gap-4">
+    {% for col in columns %}
+    <div id="col-{{ col.id }}" data-id="{{ col.id }}" x-init="initSortable($el)">
+        {% for task in col.tasks.all %}
+            <div id="task-{{ task.id }}" data-id="{{ task.id }}" class="card">
+                {{ task.title }}
+            </div>
+        {% endfor %}
+    </div>
     {% endfor %}
 </div>
+
+<script>
+function kanban() {
+    return {
+        initSortable(el) {
+            new Sortable(el, {
+                group: 'tasks',
+                onEnd: (evt) => {
+                    htmx.ajax('POST', `/move/${evt.item.dataset.id}/`, {
+                        values: { column_id: evt.to.dataset.id },
+                        target: `#task-${evt.item.dataset.id}`,
+                        swap: 'outerHTML'
+                    });
+                }
+            });
+        }
+    }
+}
+</script>
 ```
 
 ---
 
-### **Step 5: Delete & Toggle Completion**
+## 📡 Phase 4: Real-Time Pulse (OOB Swaps)
 
-`views.py`:
-
-```python
-from django.http import HttpResponse
-from django.views.decorators.http import require_http_methods
-
-@require_http_methods(["DELETE"])
-def delete_task(request, pk):
-    Task.objects.filter(pk=pk).delete()
-    return HttpResponse("")
-
-def toggle_task(request, pk):
-    task = Task.objects.get(pk=pk)
-    task.is_completed = not task.is_completed
-    task.save()
-    return render(request, 'tasks/partials/task_item.html', {'task': task})
-```
-
-Partial template:
+**Out-of-Band (OOB) swaps** allow Django to update multiple DOM targets.
 
 ```html
-<div id="task-{{ task.id }}">
-    <input type="checkbox" {% if task.is_completed %}checked{% endif %}
-           hx-post="{% url 'toggle_task' task.id %}" hx-target="#task-{{ task.id }}" hx-swap="outerHTML">
-    <span class="{% if task.is_completed %}line-through text-gray-400{% endif %}">{{ task.title }}</span>
-    <button hx-delete="{% url 'delete_task' task.id %}" hx-target="#task-{{ task.id }}" hx-swap="outerHTML" hx-confirm="Are you sure?">&times;</button>
+<div id="task-5" class="card updated-success">Task Researched!</div>
+<span id="pending-count" hx-swap-oob="true">12</span>
+
+<div id="toast-container" hx-swap-oob="afterbegin">
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show=false, 3000)">
+        Successfully moved!
+    </div>
 </div>
 ```
 
 ---
 
-### **Step 6: Real-Time Search**
+## 🏁 Phase 5: Production & Environment
 
-```html
-<input type="text" placeholder="Search..." 
-       hx-get="{% url 'task_list' %}"
-       hx-trigger="keyup changed delay:300ms"
-       hx-target="#task-container" hx-swap="outerHTML">
-```
-
-`views.py`:
-
-```python
-search_text = request.GET.get('search', '')
-tasks = Task.objects.all()
-if search_text:
-    tasks = tasks.filter(title__icontains=search_text)
-```
-
----
-
-### **Step 7: Dockerizing**
-
-`Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y gcc default-libmysqlclient-dev pkg-config curl && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-```
-
-`docker-compose.yml`:
+### 5.1 Docker Compose
 
 ```yaml
 services:
   db:
-    image: mysql:8.0
-    environment:
-      MYSQL_DATABASE: todo_db
-      MYSQL_ROOT_PASSWORD: rootpassword
-    ports: ["3306:3306"]
+    image: mysql:8.1
+    volumes: 
+      - mysql_data:/var/lib/mysql
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-psecret_password"]
+
+  redis:
+    image: redis:7-alpine
+
   web:
     build: .
-    volumes: [".:/app"]
-    ports: ["8000:8000"]
-    environment:
-      - DB_HOST=db
-      - DB_NAME=todo_db
-      - DB_USER=root
-      - DB_PASS=rootpassword
+    command: daphne -b 0.0.0.0 -p 8000 core.asgi:application
     depends_on:
-      db:
-        condition: service_healthy
+      db: { condition: service_healthy }
+
+volumes:
+  mysql_data:
+```
+
+### 5.2 Environment-Aware Settings (`settings.py`)
+
+```python
+import os
+from pathlib import Path
+import dj_database_url
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+ENV = os.getenv('DJANGO_ENV', 'development')
+DEBUG = ENV == 'development'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-key-not-for-prod')
+
+ALLOWED_HOSTS = ['*'] if DEBUG else os.getenv('ALLOWED_HOSTS', '').split(',')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', 'mysql://dha_user:secret@db:3306/dha_db')
+    )
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [os.getenv('REDIS_URL', 'redis://redis:6379/0')]}
+    }
+}
+```
+
+### 5.3 System Health Check
+
+```python
+from django.db import connections
+from django.core.cache import cache
+import time
+
+def system_health_check(request):
+    try:
+        start = time.time()
+        connections['default'].cursor()
+        db_status, db_latency = "Healthy", round((time.time()-start)*1000,2)
+    except:
+        db_status, db_latency = "Unreachable", "N/A"
+
+    try:
+        start = time.time()
+        cache.set('health_check', 'ok', timeout=5)
+        redis_status, redis_latency = "Healthy", round((time.time()-start)*1000,2)
+    except:
+        redis_status, redis_latency = "Disconnected", "N/A"
+
+    return render(request, 'partials/system_status.html', {
+        'db_status': db_status, 'db_latency': db_latency,
+        'redis_status': redis_status, 'redis_latency': redis_latency
+    })
 ```
 
 ---
 
-### **Step 8: Production Ready**
-
-* Gunicorn instead of `runserver`
-* Store secrets & DB credentials in `.env`
-* Deploy with Docker Compose on VPS
-* Optionally use Nginx for HTTPS & static files
-
----
-
-## 4️⃣ Full Production Flow (Mermaid Diagram)
+## 🏁 DHA Loop Overview
 
 ```mermaid
-flowchart LR
-    classDef browser fill:#D0E8FF,stroke:#007ACC,stroke-width:2px,color:#000;
-    classDef server fill:#FFF4C2,stroke:#FFC107,stroke-width:2px,color:#000;
-    classDef db fill:#E0FFE0,stroke:#28A745,stroke-width:2px,color:#000;
-    classDef htmx fill:#FFD6D6,stroke:#FF4C4C,stroke-width:2px,color:#000;
-    classDef alpine fill:#F0E0FF,stroke:#8A2BE2,stroke-width:2px,color:#000;
-    classDef redis fill:#FFE5B4,stroke:#FF8C00,stroke-width:2px,color:#000;
-    classDef dockerNode fill:#D9F0FF,stroke:#00A3E0,stroke-width:2px,color:#000;
-
-    Browser[💻 1️⃣ User Browser / UI]:::browser -->|2️⃣ Click / Submit| HTMX[⚡ 2️⃣ HTMX Intercepts]:::htmx
-    HTMX -->|3️⃣ AJAX POST/GET/DELETE| Django[🧠 3️⃣ Django Views & Logic]:::server
-    Django -->|4️⃣ Read/Write| MySQL[🗄️ 4️⃣ MySQL]:::db
-    Django -->|5️⃣ Optional Push| Redis[🚀 5️⃣ Redis / Channels]:::redis
-    Django -->|6️⃣ Return HTML Fragment| HTMX
-    HTMX -->|7️⃣ DOM Swap / Update| Browser
-    Browser -->|8️⃣ Local Interactivity| Alpine[✨ Alpine.js UI Sprinkles]:::alpine
-
-    %% Docker Containers
-    subgraph Docker [Docker Containers]
-        DjangoDocker[Django]:::dockerNode
-        MySQLDocker[MySQL]:::dockerNode
-        RedisDocker[Redis]:::dockerNode
-    end
-
-    %% Links to show containment
-    Django --> DjangoDocker
-    MySQL --> MySQLDocker
-    Redis --> RedisDocker
-
+graph TD
+    UI[Tailwind UI] <--> STATE[Alpine.js]
+    UI <--> AJAX[HTMX]
+    AJAX <--> DJ[Django Brain]
+    DJ <--> SQL[MySQL 8.1]
+    DJ <--> REDIS[Redis - Realtime]
+    REDIS <--> UI
 ```
 
 ---
 
-### ✅ Key Takeaways
+## 🚀 Launch Commands
 
-1. Browser triggers event → HTMX intercepts → sends request to Django
-2. Django reads/writes from MySQL → returns HTML fragment
-3. HTMX swaps fragment → DOM updates
-4. Alpine.js adds local UI polish (modals, tooltips, animations)
-5. Redis + Channels optionally push live updates
-6. Fully reactive CRUD with inline edits & live search, without SPA overhead
-7. Docker ensures dev & production consistency
-8. Production ready: Gunicorn + Nginx + VPS deployment
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+docker-compose logs -f web
+```
+
+---
+
+## 🌐 Circular DHA Architecture (One-Page Reference)
+
+```mermaid
+flowchart TB
+    %% Circular DHA Loop
+    U[👤 User Action] --> HTMX[⚡ HTMX Request / Partial HTML]
+    HTMX --> DJ[🧠 Django Brain / Hybrid Views]
+    DJ --> DB[💾 MySQL 8.1 - Persistent Storage]
+    DJ --> Redis[🔔 Redis 7 - Realtime Nerves]
+    Redis --> Channels[🌐 Channels / WebSocket Pulse]
+    Channels --> DOM[✅ DOM Swap / OOB Updates]
+    DJ -->|HTML Fragment / OOB| DOM
+    DOM --> UX[✨ Alpine.js Sprinkles / Optimistic UI]
+    UX --> U
+```
+
+### ✅ Circular Loop Highlights
+
+1. **User → HTMX:** Every action triggers server-driven updates.
+2. **Django Brain:** Single source of truth for full page or fragment.
+3. **Storage:** MySQL persists state; Redis powers real-time notifications.
+4. **Channels:** Push live updates to the DOM.
+5. **DOM & OOB:** HTMX swaps multiple targets instantly.
+6. **Alpine Sprinkles:** Local animations and optimistic UI.
+7. **Closed Loop:** Browser reacts immediately, keeping the app **hyper-responsive**.
 
 
