@@ -330,14 +330,16 @@ services:
 
 ```mermaid
 flowchart TD
+    %% Class Definitions
     classDef browser fill:#D0E8FF,stroke:#007ACC,stroke-width:2px,color:#000;
     classDef server fill:#FFF4C2,stroke:#FFC107,stroke-width:2px,color:#000;
     classDef db fill:#E0FFE0,stroke:#28A745,stroke-width:2px,color:#000;
     classDef htmx fill:#FFD6D6,stroke:#FF4C4C,stroke-width:2px,color:#000;
     classDef alpine fill:#F0E0FF,stroke:#8A2BE2,stroke-width:2px,color:#000;
     classDef redis fill:#FFE5B4,stroke:#FF8C00,stroke-width:2px,color:#000;
-    classDef docker fill:#D9F0FF,stroke:#00A3E0,stroke-width:2px,color:#000;
+    classDef dockerNode fill:#D9F0FF,stroke:#00A3E0,stroke-width:2px,color:#000;
 
+    %% Browser Layer
     Browser[1️⃣ Browser / UI]:::browser -->|2️⃣ Click / Submit| HTMX[2️⃣ HTMX Intercepts]:::htmx
     HTMX -->|3️⃣ AJAX POST/GET/DELETE| Django[3️⃣ Django Views & Logic]:::server
     Django -->|4️⃣ Read/Write| MySQL[4️⃣ MySQL]:::db
@@ -346,11 +348,18 @@ flowchart TD
     HTMX -->|7️⃣ DOM Swap / Update| Browser
     Browser -->|8️⃣ Local Interactivity| Alpine[Alpine.js UI Sprinkles]:::alpine
 
-    subgraph Docker[Docker Containers]:::docker
-        Django
-        MySQL
-        Redis
+    %% Docker Containers Subgraph
+    subgraph Docker["Docker Containers"]
+        DjangoDocker[Django]:::dockerNode
+        MySQLDocker[MySQL]:::dockerNode
+        RedisDocker[Redis]:::dockerNode
     end
+
+    %% Optional links to show Docker contains these services
+    Django --> DjangoDocker
+    MySQL --> MySQLDocker
+    Redis --> RedisDocker
+
 ```
 
 ---
