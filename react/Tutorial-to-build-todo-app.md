@@ -353,7 +353,7 @@ import Chart from "./components/Chart";
 export default function App() {
   return (
     <TodoProvider>
-      <h1>Pro Todo App</h1>
+      <h1>My Tasks</h1>
       <TodoInput />
       <SearchBar />
       <FilterBar />
