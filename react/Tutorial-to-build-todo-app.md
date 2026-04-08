@@ -44,6 +44,186 @@ src/
 ```
 
 ---
+# 🧱 STEP 2b — CSS 
+
+Create styles.css inside `/src`:
+```css
+/* ===== GLOBAL ===== */
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* ===== CONTAINER ===== */
+.app-container {
+  max-width: 700px;
+  margin: 30px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* ===== FORM ===== */
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input, select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+input[name="text"] {
+  flex: 2;
+}
+
+input[name="tags"],
+input[type="date"],
+select {
+  flex: 1;
+}
+
+/* ===== BUTTONS ===== */
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #007bff;
+  color: white;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+button.delete {
+  background: #dc3545;
+}
+
+button.delete:hover {
+  background: #a71d2a;
+}
+
+button.edit {
+  background: #ffc107;
+  color: black;
+}
+
+button.edit:hover {
+  background: #d39e00;
+}
+
+/* ===== SEARCH ===== */
+.search-bar {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* ===== FILTER ===== */
+.filter-bar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+/* ===== LIST ===== */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+li:hover {
+  background: #f9f9f9;
+}
+
+/* ===== TASK TEXT ===== */
+.task-text {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.completed {
+  text-decoration: line-through;
+  color: gray;
+}
+
+/* ===== META INFO ===== */
+.meta {
+  font-size: 12px;
+  color: #666;
+}
+
+/* ===== TAGS ===== */
+.tag {
+  display: inline-block;
+  background: #e0e7ff;
+  color: #333;
+  padding: 2px 6px;
+  border-radius: 5px;
+  margin-right: 5px;
+  font-size: 11px;
+}
+
+/* ===== PRIORITY ===== */
+.priority-low {
+  color: green;
+}
+
+.priority-medium {
+  color: orange;
+}
+
+.priority-high {
+  color: red;
+  font-weight: bold;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+/* ===== STATS ===== */
+.stats {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+/* ===== CHART ===== */
+.chart {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+```
+---
 
 # 🧠 STEP 3 — Reducer (todoReducer.js)
 
