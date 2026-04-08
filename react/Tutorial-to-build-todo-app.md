@@ -23,7 +23,7 @@ npm start
 
 ---
 
-# 🧱 STEP 2 — Folder Structure (IMPORTANT)
+# 🧱 STEP 2a — Folder Structure (IMPORTANT)
 
 Create this structure inside `/src`:
 
@@ -529,18 +529,21 @@ import SearchBar from "./components/SearchBar";
 import FilterBar from "./components/FilterBar";
 import Stats from "./components/Stats";
 import Chart from "./components/Chart";
+import "./styles.css";
 
 export default function App() {
   return (
-    <TodoProvider>
-      <h1>My Tasks</h1>
-      <TodoInput />
-      <SearchBar />
-      <FilterBar />
-      <TodoList />
-      <Stats />
-      <Chart />
-    </TodoProvider>
+    <div className="app-container">
+      <TodoProvider>
+        <h1>My Tasks</h1>
+        <TodoInput />
+        <SearchBar />
+        <FilterBar />
+        <TodoList />
+        <Stats />
+        <Chart />
+      </TodoProvider>
+    </div>
   );
 }
 ```
