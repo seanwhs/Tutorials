@@ -382,17 +382,9 @@ You built a **real-world React architecture**:
 
 # 🚀 Next Steps
 
-Want to go even further?
-
 - Add backend (Node / Firebase)
 - Add authentication
 - Convert to TypeScript
 - Add drag-and-drop
 
----
 
-If you want, I can next:
-
-👉 Review your code
-👉 Add professional UI (Tailwind)
-👉 Turn this into interview-ready explanation
