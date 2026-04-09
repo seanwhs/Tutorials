@@ -48,36 +48,23 @@ src/
 
 Create styles.css inside `/src`:
 ```css
-/* =========================================================
-   🎨 DESIGN TOKENS
-========================================================= */
+/* ===============================
+   🌍 GLOBAL STYLES
+================================= */
 :root {
   --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --primary-light: #eef2ff;
   --bg: #f8fafc;
   --card: #ffffff;
-
   --text-main: #1e293b;
   --text-muted: #64748b;
-
   --border: #e2e8f0;
-
-  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1);
-
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
+  --danger: #ef4444;
+  --radius: 12px;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.08);
   --transition: all 0.2s ease-in-out;
-}
-
-/* =========================================================
-   🌍 GLOBAL STYLES
-========================================================= */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
 }
 
 body {
@@ -85,12 +72,11 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text-main);
-  line-height: 1.6;
 }
 
-/* =========================================================
+/* ===============================
    📦 APP LAYOUT
-========================================================= */
+================================= */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -100,33 +86,131 @@ body {
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  margin-bottom: 24px;
   color: var(--primary);
-  letter-spacing: -0.025em;
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
 }
 
-/* =========================================================
+/* ===============================
+   📝 FORM STYLES
+================================= */
+form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  background: var(--card);
+  padding: 15px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  max-width: 900px;
+  width: 100%;
+}
+
+form input,
+form select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+form input:focus,
+form select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+form button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+form button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* ===============================
+   🔍 SEARCH BAR
+================================= */
+.search-bar {
+  margin-top: 15px;
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ===============================
+   🎛️ FILTER BAR
+================================= */
+.filter-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.filter-bar button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.filter-bar button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.filter-bar button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===============================
    📋 TODO LIST
-========================================================= */
+================================= */
 ul {
   padding: 0;
   width: 100%;
   max-width: 550px;
 }
 
-/* =========================================================
-   📝 TODO ITEM CARD
-========================================================= */
 .todo-item {
   list-style: none;
   padding: 18px;
-  margin-bottom: 16px;
   background: var(--card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
   transition: var(--transition);
 }
 
@@ -137,235 +221,65 @@ ul {
 
 /* Overdue Highlight */
 .todo-item.overdue {
-  border-left: 5px solid #ef4444;
+  border-left: 5px solid var(--danger);
   background: #fff5f5;
 }
 
-/* =========================================================
-   📌 TASK HEADER
-========================================================= */
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.task-text {
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: var(--text-main);
-  transition: var(--transition);
-}
-
-.task-text.completed {
-  text-decoration: line-through;
-  color: var(--text-muted);
-  opacity: 0.6;
-}
-
-/* =========================================================
-   🔘 ACTION BUTTONS
-========================================================= */
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.actions button {
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: var(--transition);
-}
-
-/* Button Variants */
-.edit {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.edit:hover {
-  background: #dbeafe;
-}
-
-.delete {
-  background: #fff1f2;
-  color: #e11d48;
-}
-
-.delete:hover {
-  background: #ffe4e6;
-}
-
-.save {
-  background: #22c55e;
-  color: white;
-}
-
-.cancel {
-  background: #94a3b8;
-  color: white;
-}
-
-/* =========================================================
-   📑 TASK DETAILS
-========================================================= */
-.task-details {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border);
-}
-
-.meta {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-/* =========================================================
-   ⚡ PRIORITY BADGES
-========================================================= */
-.priority-high {
-  color: #be123c;
-  background: #fff1f2;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.priority-medium {
-  color: #b45309;
-  background: #fef3c7;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.priority-low {
-  color: #047857;
-  background: #ecfdf5;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-/* =========================================================
-   🏷️ TAGS
-========================================================= */
-.tags-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag {
-  background: #f1f5f9;
-  color: #475569;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 500;
-}
-
-/* =========================================================
-   ✏️ EDIT MODE
-========================================================= */
-.edit-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.edit-mode input {
-  padding: 10px;
-  border: 2px solid var(--primary);
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  outline: none;
-}
-
-/* =========================================================
-   🔍 FILTER BAR
-========================================================= */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.filter-bar button {
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  background: white;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition);
-}
-
-.filter-bar button:hover {
-  background: #eef2ff;
-}
-
-.filter-bar button.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-/* =========================================================
-   📊 ANALYTICS SECTION (CHART + STATS)
-========================================================= */
+/* ===============================
+   📊 ANALYTICS SECTION
+================================= */
 .analytics-container {
   display: flex;
   justify-content: center;
   align-items: stretch;
   gap: 20px;
   margin-top: 30px;
+  flex-wrap: wrap;
   width: 100%;
   max-width: 900px;
-  flex-wrap: wrap;
 }
 
 .chart,
 .stats {
   background: var(--card);
-  border-radius: var(--radius-lg);
+  padding: 20px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 
-/* Chart */
 .chart {
   flex: 2;
-  padding: 16px;
 }
 
-/* Stats */
 .stats {
   flex: 1;
-  min-width: 200px;
-  padding: 20px;
+  min-width: 220px;
 }
 
 .stats p {
-  margin: 10px 0;
+  margin: 12px 0;
   font-size: 1rem;
   font-weight: 600;
 }
 
-/* =========================================================
+/* ===============================
    📱 RESPONSIVE DESIGN
-========================================================= */
+================================= */
 @media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-bar {
+    max-width: 100%;
+  }
+
   .analytics-container {
     flex-direction: column;
     align-items: center;
@@ -374,16 +288,6 @@ ul {
   .chart,
   .stats {
     width: 100%;
-  }
-
-  .task-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .actions {
-    width: 100%;
-    justify-content: flex-end;
   }
 }
 ```
@@ -533,8 +437,8 @@ export default function TodoInput() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <input name="text" placeholder="Task" required />
-      <input name="tags" placeholder="tags" />
+      <input name="text" placeholder="Enter a task..." required />
+      <input name="tags" placeholder="e.g. work, urgent" />
       <input type="date" name="date" />
 
       <select name="priority">
@@ -703,43 +607,26 @@ import { useTodos } from "../context/TodoContext";
 export default function FilterBar() {
   const { state, dispatch } = useTodos();
 
+  const filters = [
+    { label: "All 📋", value: "ALL" },
+    { label: "Completed ✅", value: "COMPLETED" },
+    { label: "Pending ⏳", value: "PENDING" },
+    { label: "Overdue ⚠️", value: "OVERDUE" }
+  ];
+
   return (
     <div className="filter-bar">
-      <button
-        className={state.filter === "ALL" ? "active" : ""}
-        onClick={() =>
-          dispatch({ type: "SET_FILTER", payload: "ALL" })
-        }
-      >
-        All
-      </button>
-
-      <button
-        className={state.filter === "COMPLETED" ? "active" : ""}
-        onClick={() =>
-          dispatch({ type: "SET_FILTER", payload: "COMPLETED" })
-        }
-      >
-        Completed
-      </button>
-
-      <button
-        className={state.filter === "PENDING" ? "active" : ""}
-        onClick={() =>
-          dispatch({ type: "SET_FILTER", payload: "PENDING" })
-        }
-      >
-        Pending
-      </button>
-
-      <button
-        className={state.filter === "OVERDUE" ? "active" : ""}
-        onClick={() =>
-          dispatch({ type: "SET_FILTER", payload: "OVERDUE" })
-        }
-      >
-        Overdue
-      </button>
+      {filters.map((filter) => (
+        <button
+          key={filter.value}
+          className={state.filter === filter.value ? "active" : ""}
+          onClick={() =>
+            dispatch({ type: "SET_FILTER", payload: filter.value })
+          }
+        >
+          {filter.label}
+        </button>
+      ))}
     </div>
   );
 }
