@@ -195,47 +195,137 @@ form {
   box-shadow: var(--shadow-sm);
 }
 
-/* --- Todo Items --- */
+/* --- Todo List --- */
+
 ul {
   padding: 0;
   width: 100%;
-  max-width: 550px;
+  max-width: 900px; /* Increased to accommodate single-line elements */
 }
 
 .todo-item {
   list-style: none;
-  padding: 18px;
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   transition: var(--transition);
+  padding: 0 18px; /* Vertical padding is now inside child elements */
 }
 
 .todo-item:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-.todo-item.overdue {
-  border-left: 5px solid var(--danger);
-  background: #fff5f5;
+/* Edit Mode Styles */
+.todo-item .edit-mode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
 }
 
-.task-text {
+.todo-item .edit-mode input {
+  flex-grow: 1;
+}
+
+.todo-item .edit-mode .actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* View Mode Styles (Single-line row) */
+.todo-item .view-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  min-height: 50px;
+  color: var(--text-main);
+}
+
+/* Container for text and metadata (Left side) */
+.todo-item .content-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-grow: 1;
+}
+
+/* Main task text */
+.todo-item .task-text {
   font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
 }
 
-.task-text:hover { color: var(--primary); }
+.todo-item .task-text:hover {
+  color: var(--primary);
+}
 
-.task-text.completed {
+.todo-item .task-text.completed {
   text-decoration: line-through;
   color: var(--text-muted);
   opacity: 0.6;
+}
+
+/* Metadata group (due date, priority, tags) */
+.todo-item .meta-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Individual tag styling */
+.todo-item .tag {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Action Buttons (Right side) */
+.todo-item .actions {
+  display: flex;
+  gap: 6px;
+}
+
+.todo-item .actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.todo-item .actions .edit:hover { background: #e0f2fe; color: #0284c7; }
+.todo-item .actions .delete:hover { background: #fee2e2; color: var(--danger); }
+.todo-item .actions .save:hover { background: #dcfce7; color: #166534; }
+.todo-item .actions .cancel:hover { background: var(--border); }
+
+/* Priority Colors */
+.todo-item .priority-high { color: var(--danger); font-weight: bold; }
+.todo-item .priority-medium { color: #f97316; font-weight: bold; }
+.todo-item .priority-low { color: #64748b; font-weight: bold; }
+
+/* States */
+.todo-item.overdue {
+  border-left: 5px solid var(--danger);
+  background: #fff5f5;
+}
+
+/* Update h1 slightly for better balance */
+h1 {
+  margin-top: 0;
 }
 
 /* ==========================================================================
@@ -419,8 +509,9 @@ export default function TodoItem({ todo }) {
     setEditing(false);
   };
 
+  // Logic to determine if a task is overdue
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Normalize time for accurate comparison
 
   const isOverdue =
     !todo.completed &&
@@ -430,6 +521,7 @@ export default function TodoItem({ todo }) {
   return (
     <li className={`todo-item ${isOverdue ? "overdue" : ""}`}>
       {editing ? (
+        // EDIT MODE (Remains a single line form)
         <div className="edit-mode">
           <input
             value={text}
@@ -442,9 +534,10 @@ export default function TodoItem({ todo }) {
           </div>
         </div>
       ) : (
+        // VIEW MODE (Restructured for single-line layout)
         <div className="view-mode">
-          {/* Header Row: Task Name + Buttons */}
-          <div className="task-header">
+          {/* Group 1: Text & Metadata (Left side) */}
+          <div className="content-group">
             <span
               role="button"
               tabIndex={0}
@@ -459,32 +552,27 @@ export default function TodoItem({ todo }) {
               {todo.text}
             </span>
 
-            <div className="actions">
-              <button className="edit" onClick={() => setEditing(true)}>Edit</button>
-              <button
-                className="delete"
-                onClick={() => dispatch({ type: "DELETE", payload: todo.id })}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-
-          {/* Metadata & Tags fall below the header */}
-          <div className="task-details">
-            <div className="meta">
-              📅 {todo.dueDate}
-              {" | "}
+            {/* Metadata (date, priority, tags) */}
+            <div className="meta-group">
+              <span>📅 {todo.dueDate}</span>
               <span className={`priority-${todo.priority.toLowerCase()}`}>
                 ⚡ {todo.priority}
               </span>
-            </div>
-
-            <div className="tags-container">
-              {todo.tags?.map((tag, i) => (
+              {todo.tags?.filter(tag => tag !== "").map((tag, i) => (
                 <span key={i} className="tag">{tag}</span>
               ))}
             </div>
+          </div>
+
+          {/* Group 2: Action Buttons (Right side) */}
+          <div className="actions">
+            <button className="edit" onClick={() => setEditing(true)}>Edit</button>
+            <button
+              className="delete"
+              onClick={() => dispatch({ type: "DELETE", payload: todo.id })}
+            >
+              Delete
+            </button>
           </div>
         </div>
       )}
