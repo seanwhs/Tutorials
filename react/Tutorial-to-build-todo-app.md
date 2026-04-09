@@ -502,31 +502,60 @@ import { useTodos } from "../context/TodoContext";
 export default function TodoItem({ todo }) {
   const { dispatch } = useTodos();
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(todo.text);
+  
+  // 1. Expand local state to hold all editable fields
+  const [tempTodo, setTempTodo] = useState({
+    text: todo.text,
+    priority: todo.priority,
+    tags: todo.tags.join(", "), // Convert array to string for input
+    dueDate: todo.dueDate
+  });
 
   const save = () => {
-    dispatch({ type: "UPDATE", payload: { ...todo, text } });
+    dispatch({ 
+      type: "UPDATE", 
+      payload: { 
+        ...todo, 
+        text: tempTodo.text,
+        priority: tempTodo.priority,
+        dueDate: tempTodo.dueDate,
+        tags: tempTodo.tags.split(",").map(t => t.trim()) // Convert string back to array
+      } 
+    });
     setEditing(false);
   };
 
-  // Logic to determine if a task is overdue
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize time for accurate comparison
-
-  const isOverdue =
-    !todo.completed &&
-    todo.dueDate &&
-    new Date(todo.dueDate) < today;
+  today.setHours(0, 0, 0, 0);
+  const isOverdue = !todo.completed && todo.dueDate && new Date(todo.dueDate) < today;
 
   return (
     <li className={`todo-item ${isOverdue ? "overdue" : ""}`}>
       {editing ? (
-        // EDIT MODE (Remains a single line form)
-        <div className="edit-mode">
+        // 2. NEW EDIT MODE: Includes Text, Date, Priority, and Tags
+        <div className="edit-mode full-edit">
           <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            autoFocus
+            value={tempTodo.text}
+            onChange={(e) => setTempTodo({...tempTodo, text: e.target.value})}
+            placeholder="Task name"
+          />
+          <input 
+            type="date" 
+            value={tempTodo.dueDate} 
+            onChange={(e) => setTempTodo({...tempTodo, dueDate: e.target.value})}
+          />
+          <select 
+            value={tempTodo.priority} 
+            onChange={(e) => setTempTodo({...tempTodo, priority: e.target.value})}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <input 
+            value={tempTodo.tags} 
+            onChange={(e) => setTempTodo({...tempTodo, tags: e.target.value})}
+            placeholder="Tags (comma separated)"
           />
           <div className="actions">
             <button className="save" onClick={save}>Save</button>
@@ -534,45 +563,26 @@ export default function TodoItem({ todo }) {
           </div>
         </div>
       ) : (
-        // VIEW MODE (Restructured for single-line layout)
+        /* VIEW MODE (Remains the same as previous step) */
         <div className="view-mode">
-          {/* Group 1: Text & Metadata (Left side) */}
           <div className="content-group">
             <span
-              role="button"
-              tabIndex={0}
               className={`task-text ${todo.completed ? "completed" : ""}`}
               onClick={() => dispatch({ type: "TOGGLE", payload: todo.id })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  dispatch({ type: "TOGGLE", payload: todo.id });
-                }
-              }}
             >
               {todo.text}
             </span>
-
-            {/* Metadata (date, priority, tags) */}
             <div className="meta-group">
               <span>📅 {todo.dueDate}</span>
-              <span className={`priority-${todo.priority.toLowerCase()}`}>
-                ⚡ {todo.priority}
-              </span>
-              {todo.tags?.filter(tag => tag !== "").map((tag, i) => (
+              <span className={`priority-${todo.priority}`}>⚡ {todo.priority}</span>
+              {todo.tags?.map((tag, i) => (
                 <span key={i} className="tag">{tag}</span>
               ))}
             </div>
           </div>
-
-          {/* Group 2: Action Buttons (Right side) */}
           <div className="actions">
             <button className="edit" onClick={() => setEditing(true)}>Edit</button>
-            <button
-              className="delete"
-              onClick={() => dispatch({ type: "DELETE", payload: todo.id })}
-            >
-              Delete
-            </button>
+            <button className="delete" onClick={() => dispatch({ type: "DELETE", payload: todo.id })}>Delete</button>
           </div>
         </div>
       )}
