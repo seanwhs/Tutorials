@@ -48,23 +48,34 @@ src/
 
 Create styles.css inside `/src`:
 ```css
-/* ===============================
-   🌍 GLOBAL STYLES
-================================= */
+/* ==========================================================================
+   1. VARIABLES & RESET
+   ========================================================================== */
 :root {
+  /* Colors */
   --primary: #4f46e5;
   --primary-dark: #4338ca;
   --primary-light: #eef2ff;
+  --danger: #ef4444;
+  
+  /* Text & Surface */
   --bg: #f8fafc;
   --card: #ffffff;
   --text-main: #1e293b;
   --text-muted: #64748b;
   --border: #e2e8f0;
-  --danger: #ef4444;
+  
+  /* Design Tokens */
   --radius: 12px;
+  --radius-sm: 8px;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.08);
   --transition: all 0.2s ease-in-out;
+  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -72,11 +83,12 @@ body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text-main);
+  line-height: 1.5;
 }
 
-/* ===============================
-   📦 APP LAYOUT
-================================= */
+/* ==========================================================================
+   2. CORE LAYOUT
+   ========================================================================== */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -93,9 +105,44 @@ h1 {
   letter-spacing: -0.5px;
 }
 
-/* ===============================
-   📝 FORM STYLES
-================================= */
+/* ==========================================================================
+   3. SHARED UI COMPONENTS (Inputs & Buttons)
+   ========================================================================== */
+input, select {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+input:focus, select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   4. FEATURE COMPONENTS
+   ========================================================================== */
+
+/* --- Task Form --- */
 form {
   display: flex;
   flex-wrap: wrap;
@@ -110,60 +157,14 @@ form {
   width: 100%;
 }
 
-form input,
-form select {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  font-size: 0.95rem;
-  transition: var(--transition);
-}
-
-form input:focus,
-form select:focus {
-  border-color: var(--primary);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-}
-
-form button {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-form button:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-/* ===============================
-   🔍 SEARCH BAR
-================================= */
+/* --- Navigation & Search --- */
 .search-bar {
   margin-top: 15px;
   width: 100%;
   max-width: 420px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  font-size: 0.95rem;
   box-shadow: var(--shadow-sm);
 }
 
-.search-bar:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-/* ===============================
-   🎛️ FILTER BAR
-================================= */
 .filter-bar {
   display: flex;
   justify-content: center;
@@ -194,9 +195,7 @@ form button:hover {
   box-shadow: var(--shadow-sm);
 }
 
-/* ===============================
-   📋 TODO LIST
-================================= */
+/* --- Todo Items --- */
 ul {
   padding: 0;
   width: 100%;
@@ -219,19 +218,32 @@ ul {
   box-shadow: var(--shadow-md);
 }
 
-/* Overdue Highlight */
 .todo-item.overdue {
   border-left: 5px solid var(--danger);
   background: #fff5f5;
 }
 
-/* ===============================
-   📊 ANALYTICS SECTION
-================================= */
+.task-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.task-text:hover { color: var(--primary); }
+
+.task-text.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   5. ANALYTICS
+   ========================================================================== */
 .analytics-container {
   display: flex;
   justify-content: center;
-  align-items: stretch;
   gap: 20px;
   margin-top: 30px;
   flex-wrap: wrap;
@@ -239,8 +251,7 @@ ul {
   max-width: 900px;
 }
 
-.chart,
-.stats {
+.chart, .stats {
   background: var(--card);
   padding: 20px;
   border-radius: var(--radius);
@@ -248,9 +259,7 @@ ul {
   box-shadow: var(--shadow-sm);
 }
 
-.chart {
-  flex: 2;
-}
+.chart { flex: 2; }
 
 .stats {
   flex: 1;
@@ -263,86 +272,25 @@ ul {
   font-weight: 600;
 }
 
-/* ===============================
-   📱 RESPONSIVE DESIGN
-================================= */
+/* ==========================================================================
+   6. RESPONSIVE DESIGN
+   ========================================================================== */
 @media (max-width: 768px) {
-  h1 {
-    font-size: 2rem;
-  }
+  h1 { font-size: 2rem; }
 
   form {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .search-bar {
-    max-width: 100%;
-  }
+  .search-bar { max-width: 100%; }
 
   .analytics-container {
     flex-direction: column;
     align-items: center;
   }
 
-  .chart,
-  .stats {
-    width: 100%;
-  }
-}
-```
----
-
-# 🧠 STEP 3 — Reducer (todoReducer.js)
-
-```js
-export default function reducer(state, action) {
-  switch (action.type) {
-    case "ADD":
-      return { ...state, todos: [...state.todos, action.payload] };
-
-    case "UPDATE":
-      return {
-        ...state,
-        todos: state.todos.map(t =>
-          t.id === action.payload.id ? action.payload : t
-        )
-      };
-
-    case "TOGGLE":
-      return {
-        ...state,
-        todos: state.todos.map(t =>
-          t.id === action.payload
-            ? { ...t, completed: !t.completed }
-            : t
-        )
-      };
-
-    case "DELETE":
-      return {
-        ...state,
-        todos: state.todos.filter(t => t.id !== action.payload)
-      };
-
-    case "SET_SEARCH":
-      return { ...state, search: action.payload };
-
-    case "SET_FILTER":
-      return { ...state, filter: action.payload };
-
-    case "LOAD":
-      return {
-        ...state,
-        ...action.payload,
-        todos: action.payload.todos || [],
-        search: "",
-        filter: "ALL"
-      };
-
-    default:
-      return state;
-  }
+  .chart, .stats { width: 100%; }
 }
 ```
 
