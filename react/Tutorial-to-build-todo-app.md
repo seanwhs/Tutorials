@@ -228,7 +228,9 @@ export default function reducer(state, action) {
       return {
         ...state,
         todos: state.todos.map(t =>
-          t.id === action.payload ? { ...t, completed: !t.completed } : t
+          t.id === action.payload
+            ? { ...t, completed: !t.completed }
+            : t
         )
       };
 
@@ -245,7 +247,13 @@ export default function reducer(state, action) {
       return { ...state, filter: action.payload };
 
     case "LOAD":
-      return action.payload;
+      return {
+        ...state,
+        ...action.payload,
+        todos: action.payload.todos || [],
+        search: "",
+        filter: "ALL"
+      };
 
     default:
       return state;
