@@ -273,9 +273,19 @@ export function TodoProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    const data = localStorage.getItem("todos");
-    if (data) dispatch({ type: "LOAD", payload: JSON.parse(data) });
-  }, []);
+  const data = localStorage.getItem("todos");
+  if (data) {
+    const savedState = JSON.parse(data);
+    dispatch({ 
+      type: "LOAD", 
+      payload: { 
+        ...savedState, 
+        filter: "ALL", // Force reset filter to ALL on refresh
+        search: ""     // Force reset search on refresh
+         } 
+       });
+     }
+   }, []);
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(state));
@@ -425,12 +435,13 @@ export default function TodoList() {
   const { state } = useTodos();
 
   const filtered = state.todos
-    .filter(t => t.text.toLowerCase().includes(state.search.toLowerCase()))
-    .filter(t => {
-      if (state.filter === "COMPLETED") return t.completed;
-      if (state.filter === "PENDING") return !t.completed;
-      return true;
-    });
+  .filter(t => t.text.toLowerCase().includes(state.search.toLowerCase()))
+  .filter(t => {
+    // These strings must match exactly what dispatch sends from FilterBar.js
+    if (state.filter === "COMPLETED") return t.completed === true;
+    if (state.filter === "PENDING") return t.completed === false;
+    return true; // This handles "ALL"
+  });
 
   return (
     <ul>
