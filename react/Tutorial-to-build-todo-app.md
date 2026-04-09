@@ -48,23 +48,49 @@ src/
 
 Create styles.css inside `/src`:
 ```css
-/* --- Global & Layout --- */
+/* =========================================================
+   🎨 DESIGN TOKENS
+========================================================= */
 :root {
   --primary: #4f46e5;
   --bg: #f8fafc;
   --card: #ffffff;
+
   --text-main: #1e293b;
   --text-muted: #64748b;
+
   --border: #e2e8f0;
+
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --transition: all 0.2s ease-in-out;
+}
+
+/* =========================================================
+   🌍 GLOBAL STYLES
+========================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, sans-serif;
-  background-color: var(--bg);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
   color: var(--text-main);
+  line-height: 1.6;
 }
 
+/* =========================================================
+   📦 APP LAYOUT
+========================================================= */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -81,31 +107,43 @@ h1 {
   letter-spacing: -0.025em;
 }
 
-/* --- Wrapper for the List --- */
+/* =========================================================
+   📋 TODO LIST
+========================================================= */
 ul {
   padding: 0;
   width: 100%;
   max-width: 550px;
 }
 
-/* --- Todo Item Card --- */
+/* =========================================================
+   📝 TODO ITEM CARD
+========================================================= */
 .todo-item {
   list-style: none;
   padding: 18px;
-  background: var(--card);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   margin-bottom: 16px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
 }
 
 .todo-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
-/* --- Header Row --- */
+/* Overdue Highlight */
+.todo-item.overdue {
+  border-left: 5px solid #ef4444;
+  background: #fff5f5;
+}
+
+/* =========================================================
+   📌 TASK HEADER
+========================================================= */
 .task-header {
   display: flex;
   justify-content: space-between;
@@ -118,7 +156,7 @@ ul {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-main);
-  transition: color 0.2s;
+  transition: var(--transition);
 }
 
 .task-text.completed {
@@ -127,7 +165,9 @@ ul {
   opacity: 0.6;
 }
 
-/* --- Actions Buttons --- */
+/* =========================================================
+   🔘 ACTION BUTTONS
+========================================================= */
 .actions {
   display: flex;
   gap: 8px;
@@ -135,26 +175,48 @@ ul {
 
 .actions button {
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  transition: all 0.2s;
+  transition: var(--transition);
 }
 
-.edit { background: #eff6ff; color: #2563eb; }
-.edit:hover { background: #dbeafe; }
+/* Button Variants */
+.edit {
+  background: #eff6ff;
+  color: #2563eb;
+}
 
-.delete { background: #fff1f2; color: #e11d48; }
-.delete:hover { background: #ffe4e6; }
+.edit:hover {
+  background: #dbeafe;
+}
 
-.save { background: #22c55e; color: white; }
-.cancel { background: #94a3b8; color: white; }
+.delete {
+  background: #fff1f2;
+  color: #e11d48;
+}
 
-/* --- Details Section --- */
+.delete:hover {
+  background: #ffe4e6;
+}
+
+.save {
+  background: #22c55e;
+  color: white;
+}
+
+.cancel {
+  background: #94a3b8;
+  color: white;
+}
+
+/* =========================================================
+   📑 TASK DETAILS
+========================================================= */
 .task-details {
   margin-top: 12px;
   padding-top: 12px;
@@ -170,12 +232,33 @@ ul {
   margin-bottom: 10px;
 }
 
-/* Priority Badges */
-.priority-high { color: #be123c; background: #fff1f2; padding: 2px 8px; border-radius: 4px; }
-.priority-medium { color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 4px; }
-.priority-low { color: #047857; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; }
+/* =========================================================
+   ⚡ PRIORITY BADGES
+========================================================= */
+.priority-high {
+  color: #be123c;
+  background: #fff1f2;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 
-/* --- Tags --- */
+.priority-medium {
+  color: #b45309;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.priority-low {
+  color: #047857;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* =========================================================
+   🏷️ TAGS
+========================================================= */
 .tags-container {
   display: flex;
   flex-wrap: wrap;
@@ -191,7 +274,9 @@ ul {
   font-weight: 500;
 }
 
-/* --- Edit Mode --- */
+/* =========================================================
+   ✏️ EDIT MODE
+========================================================= */
 .edit-mode {
   display: flex;
   flex-direction: column;
@@ -201,27 +286,29 @@ ul {
 .edit-mode input {
   padding: 10px;
   border: 2px solid var(--primary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1rem;
   outline: none;
 }
 
-/* --- Filter Bar --- */
+/* =========================================================
+   🔍 FILTER BAR
+========================================================= */
 .filter-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin: 20px 0;
-  flex-wrap: wrap;
 }
 
 .filter-bar button {
   padding: 8px 14px;
   border: 1px solid var(--border);
   background: white;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: var(--transition);
 }
 
 .filter-bar button:hover {
@@ -234,10 +321,70 @@ ul {
   border-color: var(--primary);
 }
 
-/* Overdue Task Highlight */
-.todo-item.overdue {
-  border-left: 5px solid #ef4444;
-  background: #fff5f5;
+/* =========================================================
+   📊 ANALYTICS SECTION (CHART + STATS)
+========================================================= */
+.analytics-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 30px;
+  width: 100%;
+  max-width: 900px;
+  flex-wrap: wrap;
+}
+
+.chart,
+.stats {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Chart */
+.chart {
+  flex: 2;
+  padding: 16px;
+}
+
+/* Stats */
+.stats {
+  flex: 1;
+  min-width: 200px;
+  padding: 20px;
+}
+
+.stats p {
+  margin: 10px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* =========================================================
+   📱 RESPONSIVE DESIGN
+========================================================= */
+@media (max-width: 768px) {
+  .analytics-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chart,
+  .stats {
+    width: 100%;
+  }
+
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 ```
 ---
