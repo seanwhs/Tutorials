@@ -48,179 +48,162 @@ src/
 
 Create styles.css inside `/src`:
 ```css
-/* ===== GLOBAL ===== */
+/* --- Global & Layout --- */
+:root {
+  --primary: #4f46e5;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
   margin: 0;
-  padding: 0;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: 100vh;
 }
 
 h1 {
-  text-align: center;
-  margin-top: 20px;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  color: var(--primary);
+  letter-spacing: -0.025em;
 }
 
-/* ===== CONTAINER ===== */
-.app-container {
-  max-width: 700px;
-  margin: 30px auto;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-/* ===== FORM ===== */
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-input, select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-input[name="text"] {
-  flex: 2;
-}
-
-input[name="tags"],
-input[type="date"],
-select {
-  flex: 1;
-}
-
-/* ===== BUTTONS ===== */
-button {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #007bff;
-  color: white;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: #0056b3;
-}
-
-button.delete {
-  background: #dc3545;
-}
-
-button.delete:hover {
-  background: #a71d2a;
-}
-
-button.edit {
-  background: #ffc107;
-  color: black;
-}
-
-button.edit:hover {
-  background: #d39e00;
-}
-
-/* ===== SEARCH ===== */
-.search-bar {
+/* --- Wrapper for the List --- */
+ul {
+  padding: 0;
   width: 100%;
+  max-width: 550px;
+}
+
+/* --- Todo Item Card --- */
+.todo-item {
+  list-style: none;
+  padding: 18px;
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.todo-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Header Row --- */
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: color 0.2s;
+}
+
+.task-text.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* --- Actions Buttons --- */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+}
+
+.edit { background: #eff6ff; color: #2563eb; }
+.edit:hover { background: #dbeafe; }
+
+.delete { background: #fff1f2; color: #e11d48; }
+.delete:hover { background: #ffe4e6; }
+
+.save { background: #22c55e; color: white; }
+.cancel { background: #94a3b8; color: white; }
+
+/* --- Details Section --- */
+.task-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
-/* ===== FILTER ===== */
-.filter-bar {
+/* Priority Badges */
+.priority-high { color: #be123c; background: #fff1f2; padding: 2px 8px; border-radius: 4px; }
+.priority-medium { color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 4px; }
+.priority-low { color: #047857; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; }
+
+/* --- Tags --- */
+.tags-container {
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-/* ===== LIST ===== */
-ul {
-  list-style: none;
-  padding: 0;
+.tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
-li {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+/* --- Edit Mode --- */
+.edit-mode {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px;
 }
 
-li:hover {
-  background: #f9f9f9;
-}
-
-/* ===== TASK TEXT ===== */
-.task-text {
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.completed {
-  text-decoration: line-through;
-  color: gray;
-}
-
-/* ===== META INFO ===== */
-.meta {
-  font-size: 12px;
-  color: #666;
-}
-
-/* ===== TAGS ===== */
-.tag {
-  display: inline-block;
-  background: #e0e7ff;
-  color: #333;
-  padding: 2px 6px;
-  border-radius: 5px;
-  margin-right: 5px;
-  font-size: 11px;
-}
-
-/* ===== PRIORITY ===== */
-.priority-low {
-  color: green;
-}
-
-.priority-medium {
-  color: orange;
-}
-
-.priority-high {
-  color: red;
-  font-weight: bold;
-}
-
-/* ===== ACTION BUTTONS ===== */
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-/* ===== STATS ===== */
-.stats {
-  margin-top: 20px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-  text-align: center;
-}
-
-/* ===== CHART ===== */
-.chart {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+.edit-mode input {
+  padding: 10px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
 }
 ```
 ---
@@ -372,25 +355,59 @@ export default function TodoItem({ todo }) {
   };
 
   return (
-    <li>
+    <li className="todo-item">
       {editing ? (
-        <>
-          <input value={text} onChange={e => setText(e.target.value)} />
-          <button onClick={save}>Save</button>
-        </>
+        <div className="edit-mode">
+          <input 
+            value={text} 
+            onChange={(e) => setText(e.target.value)} 
+            autoFocus 
+          />
+          <div className="actions">
+            <button className="save" onClick={save}>Save</button>
+            <button className="cancel" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </div>
       ) : (
-        <>
-          <span onClick={() => dispatch({ type: "TOGGLE", payload: todo.id })}>
-            {todo.text}
-          </span>
+        <div className="view-mode">
+          {/* Header Row: Task Name + Buttons */}
+          <div className="task-header">
+            <span
+              className={`task-text ${todo.completed ? "completed" : ""}`}
+              onClick={() => dispatch({ type: "TOGGLE", payload: todo.id })}
+            >
+              {todo.text}
+            </span>
 
-          <button onClick={() => setEditing(true)}>Edit</button>
-        </>
+            <div className="actions">
+              <button className="edit" onClick={() => setEditing(true)}>Edit</button>
+              <button
+                className="delete"
+                onClick={() => dispatch({ type: "DELETE", payload: todo.id })}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+
+          {/* Metadata & Tags fall below the header */}
+          <div className="task-details">
+            <div className="meta">
+              📅 {todo.dueDate}
+              {" | "}
+              <span className={`priority-${todo.priority.toLowerCase()}`}>
+                ⚡ {todo.priority}
+              </span>
+            </div>
+
+            <div className="tags-container">
+              {todo.tags?.map((tag, i) => (
+                <span key={i} className="tag">{tag}</span>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
-
-      <button onClick={() => dispatch({ type: "DELETE", payload: todo.id })}>
-        Delete
-      </button>
     </li>
   );
 }
@@ -438,6 +455,7 @@ export default function SearchBar() {
 
   return (
     <input
+      className="search-bar"
       placeholder="Search..."
       onChange={e => dispatch({ type: "SET_SEARCH", payload: e.target.value })}
     />
@@ -453,7 +471,7 @@ export default function FilterBar() {
   const { dispatch } = useTodos();
 
   return (
-    <div>
+    <div className="filter-bar">
       <button onClick={() => dispatch({ type: "SET_FILTER", payload: "ALL" })}>All</button>
       <button onClick={() => dispatch({ type: "SET_FILTER", payload: "COMPLETED" })}>Completed</button>
       <button onClick={() => dispatch({ type: "SET_FILTER", payload: "PENDING" })}>Pending</button>
@@ -484,12 +502,14 @@ export default function Chart() {
   ];
 
   return (
-    <BarChart width={300} height={200} data={data}>
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip />
-      <Bar dataKey="value" />
-    </BarChart>
+    <div className="chart">
+      <BarChart width={300} height={200} data={data}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="value" />
+      </BarChart>
+    </div>
   );
 }
 ```
@@ -508,7 +528,7 @@ export default function Stats() {
   const completed = state.todos.filter(t => t.completed).length;
 
   return (
-    <div>
+    <div className="stats">
       <p>Total: {total}</p>
       <p>Completed: {completed}</p>
       <p>Pending: {total - completed}</p>
