@@ -205,6 +205,40 @@ ul {
   font-size: 1rem;
   outline: none;
 }
+
+/* --- Filter Bar --- */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.filter-bar button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.filter-bar button:hover {
+  background: #eef2ff;
+}
+
+.filter-bar button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Overdue Task Highlight */
+.todo-item.overdue {
+  border-left: 5px solid #ef4444;
+  background: #fff5f5;
+}
 ```
 ---
 
@@ -386,14 +420,19 @@ export default function TodoItem({ todo }) {
     setEditing(false);
   };
 
+  const isOverdue =
+    !todo.completed &&
+    todo.dueDate &&
+    new Date(todo.dueDate) < new Date().setHours(0, 0, 0, 0);
+
   return (
-    <li className="todo-item">
+    <li className={`todo-item ${isOverdue ? "overdue" : ""}`}>
       {editing ? (
         <div className="edit-mode">
-          <input 
-            value={text} 
-            onChange={(e) => setText(e.target.value)} 
-            autoFocus 
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            autoFocus
           />
           <div className="actions">
             <button className="save" onClick={save}>Save</button>
@@ -456,14 +495,28 @@ import TodoItem from "./TodoItem";
 export default function TodoList() {
   const { state } = useTodos();
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize time for accurate comparison
+
   const filtered = state.todos
-  .filter(t => t.text.toLowerCase().includes(state.search.toLowerCase()))
-  .filter(t => {
-    // These strings must match exactly what dispatch sends from FilterBar.js
-    if (state.filter === "COMPLETED") return t.completed === true;
-    if (state.filter === "PENDING") return t.completed === false;
-    return true; // This handles "ALL"
-  });
+    .filter(t =>
+      t.text.toLowerCase().includes(state.search.toLowerCase())
+    )
+    .filter(t => {
+      const dueDate = t.dueDate ? new Date(t.dueDate) : null;
+      if (dueDate) dueDate.setHours(0, 0, 0, 0);
+
+      if (state.filter === "COMPLETED") return t.completed;
+      if (state.filter === "PENDING") return !t.completed;
+      if (state.filter === "OVERDUE") {
+        return (
+          !t.completed &&
+          dueDate &&
+          dueDate < today
+        );
+      }
+      return true; // ALL
+    });
 
   return (
     <ul>
@@ -501,13 +554,45 @@ FilterBar.js
 import { useTodos } from "../context/TodoContext";
 
 export default function FilterBar() {
-  const { dispatch } = useTodos();
+  const { state, dispatch } = useTodos();
 
   return (
     <div className="filter-bar">
-      <button onClick={() => dispatch({ type: "SET_FILTER", payload: "ALL" })}>All</button>
-      <button onClick={() => dispatch({ type: "SET_FILTER", payload: "COMPLETED" })}>Completed</button>
-      <button onClick={() => dispatch({ type: "SET_FILTER", payload: "PENDING" })}>Pending</button>
+      <button
+        className={state.filter === "ALL" ? "active" : ""}
+        onClick={() =>
+          dispatch({ type: "SET_FILTER", payload: "ALL" })
+        }
+      >
+        All
+      </button>
+
+      <button
+        className={state.filter === "COMPLETED" ? "active" : ""}
+        onClick={() =>
+          dispatch({ type: "SET_FILTER", payload: "COMPLETED" })
+        }
+      >
+        Completed
+      </button>
+
+      <button
+        className={state.filter === "PENDING" ? "active" : ""}
+        onClick={() =>
+          dispatch({ type: "SET_FILTER", payload: "PENDING" })
+        }
+      >
+        Pending
+      </button>
+
+      <button
+        className={state.filter === "OVERDUE" ? "active" : ""}
+        onClick={() =>
+          dispatch({ type: "SET_FILTER", payload: "OVERDUE" })
+        }
+      >
+        Overdue
+      </button>
     </div>
   );
 }
@@ -524,23 +609,40 @@ npm install recharts
 
 ```js
 import { useTodos } from "../context/TodoContext";
-import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function Chart() {
   const { state } = useTodos();
 
+  // Normalize today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Calculate overdue tasks
+  const overdueCount = state.todos.filter(t => {
+    if (!t.dueDate || t.completed) return false;
+
+    const due = new Date(t.dueDate);
+    due.setHours(0, 0, 0, 0);
+
+    return due < today;
+  }).length;
+
+  // Prepare chart data
   const data = [
     { name: "Completed", value: state.todos.filter(t => t.completed).length },
-    { name: "Pending", value: state.todos.filter(t => !t.completed).length }
+    { name: "Pending", value: state.todos.filter(t => !t.completed).length },
+    { name: "Overdue", value: overdueCount }
   ];
 
   return (
     <div className="chart">
-      <BarChart width={300} height={200} data={data}>
+      <BarChart width={320} height={220} data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" />
-        <YAxis />
+        <YAxis allowDecimals={false} />
         <Tooltip />
-        <Bar dataKey="value" />
+        <Bar dataKey="value" radius={[6, 6, 0, 0]} />
       </BarChart>
     </div>
   );
