@@ -471,10 +471,13 @@ export default function TodoItem({ todo }) {
     setEditing(false);
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const isOverdue =
     !todo.completed &&
     todo.dueDate &&
-    new Date(todo.dueDate) < new Date().setHours(0, 0, 0, 0);
+    new Date(todo.dueDate) < today;
 
   return (
     <li className={`todo-item ${isOverdue ? "overdue" : ""}`}>
@@ -495,8 +498,15 @@ export default function TodoItem({ todo }) {
           {/* Header Row: Task Name + Buttons */}
           <div className="task-header">
             <span
+              role="button"
+              tabIndex={0}
               className={`task-text ${todo.completed ? "completed" : ""}`}
               onClick={() => dispatch({ type: "TOGGLE", payload: todo.id })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  dispatch({ type: "TOGGLE", payload: todo.id });
+                }
+              }}
             >
               {todo.text}
             </span>
