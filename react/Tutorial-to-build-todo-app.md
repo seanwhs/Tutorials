@@ -220,20 +220,21 @@ ul {
 }
 
 /* Edit Mode Styles */
-.todo-item .edit-mode {
+.todo-item .edit-mode.full-edit {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
+  flex-wrap: wrap; /* Allows wrapping on small screens */
+  gap: 8px;
+  width: 100%;
 }
 
-.todo-item .edit-mode input {
-  flex-grow: 1;
+.todo-item .edit-mode.full-edit input[type="text"] {
+  flex: 2; /* Task text gets more space */
 }
 
-.todo-item .edit-mode .actions {
-  display: flex;
-  gap: 6px;
+.todo-item .edit-mode.full-edit input,
+.todo-item .edit-mode.full-edit select {
+  padding: 5px;
+  font-size: 0.85rem;
 }
 
 /* View Mode Styles (Single-line row) */
