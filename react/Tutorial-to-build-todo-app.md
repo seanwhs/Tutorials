@@ -274,16 +274,30 @@ export function TodoProvider({ children }) {
 
   useEffect(() => {
   const data = localStorage.getItem("todos");
+
   if (data) {
     const savedState = JSON.parse(data);
-    dispatch({ 
-      type: "LOAD", 
-      payload: { 
-        ...savedState, 
-        filter: "ALL", // Force reset filter to ALL on refresh
-        search: ""     // Force reset search on refresh
-         } 
-       });
+
+    // Ensure compatibility with older saved data
+    if (Array.isArray(savedState)) {
+      dispatch({
+        type: "LOAD",
+        payload: {
+          todos: savedState,
+          search: "",
+          filter: "ALL"
+        }
+      });
+    } else {
+      dispatch({
+        type: "LOAD",
+        payload: {
+          todos: savedState.todos || [],
+          search: "",
+          filter: "ALL"
+           }
+         });
+       }
      }
    }, []);
 
