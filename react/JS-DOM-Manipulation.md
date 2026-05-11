@@ -619,10 +619,3 @@ React teaches you:
 * Vanilla JS DOM → understanding fundamentals
 * React → scalable UI architecture
 
----
-
-If you want next step, I can create:
-
-👉 “Build a Todo App using DOM first → then convert to React”
-👉 “React mental model vs DOM mental model deep dive”
-👉 “Mini projects using pure DOM manipulation”
