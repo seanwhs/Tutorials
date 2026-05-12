@@ -277,3 +277,9 @@ DOM manipulation teaches you how the browser works.
 React teaches you how to describe UI in a cleaner, state-driven way.
 
 If you understand both, you will be much stronger as a frontend developer: vanilla DOM gives you fundamentals, and React gives you a scalable component model. [legacy.reactjs](https://legacy.reactjs.org/docs/faq-internals.html)
+
+## Reference Repository
+
+Reference this public repository for examples and demos:
+
+Javascript-DOM-Manipulation Repository
