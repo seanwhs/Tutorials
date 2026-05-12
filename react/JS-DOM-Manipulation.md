@@ -1,9 +1,3 @@
-Here’s a stronger, cleaner version of your tutorial, with a more polished teaching flow, corrected technical framing, and a safer explanation of `innerHTML` and React’s rendering model. I also anchored a few claims to MDN and React docs so the tutorial stays accurate. [developer.mozilla](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector)
-## Enhanced Tutorial Draft
-# JavaScript DOM Manipulation
-## The Beginner-Friendly Handbook
-JavaScript DOM manipulation is how code changes what users see and do on a web page. The DOM is the browser’s object-based representation of HTML, and JavaScript can read and update it through browser APIs. [developer.mozilla](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector)
----
 ## Introduction
 When beginners learn JavaScript, they often master variables, functions, arrays, and objects first. The next big question is usually: how does JavaScript actually update the page in the browser?
 
@@ -283,5 +277,3 @@ DOM manipulation teaches you how the browser works.
 React teaches you how to describe UI in a cleaner, state-driven way.
 
 If you understand both, you will be much stronger as a frontend developer: vanilla DOM gives you fundamentals, and React gives you a scalable component model. [legacy.reactjs](https://legacy.reactjs.org/docs/faq-internals.html)
-## Notes on your repo
-I couldn’t directly fetch the GitHub repo page from the provided link, so I avoided making repo-specific claims. If you want, I can next turn this into a repo-aware version with sections matched to your project structure, filenames, and examples.
