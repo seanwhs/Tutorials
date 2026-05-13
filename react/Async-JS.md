@@ -447,7 +447,7 @@ state change → render → commit → effects → async resolution → state up
 
 ---
 
-# 🚀 FINAL SYSTEM INSIGHT (Refined)
+# 🚀 FINAL SYSTEM INSIGHT 
 
 JavaScript async is not about “handling delays.”
 
@@ -465,3 +465,6 @@ Once you understand:
 you stop debugging async issues empirically and start predicting them structurally.
 
 That’s where this becomes *senior-level engineering knowledge*.
+
+# Reference Repo
+https://github.com/seanwhs/Javascript-Async
