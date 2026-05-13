@@ -2,7 +2,7 @@
 
 ## Event Loop → Async Evolution → Fetch → React Concurrency
 
-This document describes not just how JavaScript *looks*, but how it **actually executes work across time** in real runtime environments.
+This document describes not just how JavaScript *looks*, but how it **actually executes work across time in real runtime environments**.
 
 ---
 
@@ -25,6 +25,8 @@ So async is not a language feature.
 
 It is a **runtime scheduling system layered on top of a single thread**.
 
+📖 Reference: [MDN JavaScript concurrency model](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop?utm_source=chatgpt.com)
+
 ---
 
 # 🧠 Fundamental Execution Reality
@@ -39,9 +41,14 @@ Async behavior comes from:
 
 > Web APIs / Node APIs → Queues → Event Loop → Call Stack
 
+📖 Reference: [MDN Event Loop Explained](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop?utm_source=chatgpt.com)
+📖 Reference: [Node.js Event Loop Guide](https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick?utm_source=chatgpt.com)
+
 ---
 
 # 🏛️ PART 1 — Event Loop (Scheduling Kernel)
+
+📖 Reference: [Event Loop Model (MDN)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop?utm_source=chatgpt.com)
 
 The event loop is a **priority-based dispatcher** between queues and the call stack.
 
@@ -61,7 +68,7 @@ The event loop is a **priority-based dispatcher** between queues and the call st
 
 > The event loop does NOT proceed until the microtask queue is empty.
 
-This creates **microtask priority dominance**.
+📖 Reference: [Microtasks in JavaScript](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide?utm_source=chatgpt.com)
 
 ---
 
@@ -75,17 +82,9 @@ This creates **microtask priority dominance**.
 5. Repeat
 ```
 
-### Important addition (browser reality):
-
-Between steps 2 and 4:
-
-> the browser may perform layout → paint → composite
-
-So rendering is **interleaved with task cycles**, not part of JS.
-
 ---
 
-## 🧪 Execution Example (Deterministic Behavior)
+## 🧪 Execution Example
 
 ```js
 console.log("A");
@@ -97,47 +96,19 @@ Promise.resolve().then(() => console.log("C"));
 console.log("B");
 ```
 
+📖 Promise behavior reference: [MDN Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise?utm_source=chatgpt.com)
+
 ### Execution Order
 
 ```
 A → B → C → D
 ```
 
-### Why:
-
-* A, B → call stack
-* C → microtask queue (runs immediately after stack clears)
-* D → macrotask queue (runs later tick)
-
 ---
 
 ## ⚠️ Edge Case: Microtask Starvation
 
-If microtasks keep scheduling microtasks:
-
-```js
-function loop() {
-  Promise.resolve().then(loop);
-}
-loop();
-```
-
-Result:
-
-* macrotasks never run
-* rendering freezes
-* UI becomes unresponsive
-
-> This is a real production failure mode.
-
----
-
-## 🍽️ Mental Model (Refined)
-
-* Call Stack → “currently executing CPU”
-* Microtasks → “priority interrupts”
-* Macrotasks → “scheduled background jobs”
-* Event Loop → “CPU scheduler”
+📖 Reference: [Microtask queue behavior](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide?utm_source=chatgpt.com)
 
 ---
 
@@ -147,32 +118,13 @@ Result:
 
 ## 🏛️ 1. Callbacks (Control Inversion Model)
 
-```js
-getData((err, data) => {});
-```
-
-### Failure Mode
-
-You give control away to external execution timing.
-
-Problems:
-
-* inversion of control
-* nested flows
-* inconsistent error handling
-* hard composition
+📖 Reference: [Callback pattern overview](https://developer.mozilla.org/en-US/docs/Glossary/Callback_function?utm_source=chatgpt.com)
 
 ---
 
 ## 🏛️ 2. Promises (State Container Model)
 
-```js
-fetchData()
-  .then(process)
-  .catch(handleError);
-```
-
-### Key Improvement
+📖 Reference: [Promise API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise?utm_source=chatgpt.com)
 
 A Promise is:
 
@@ -183,15 +135,11 @@ pending → fulfilled
         → rejected
 ```
 
-### System Benefit
-
-* predictable chaining
-* centralized error propagation
-* composability (`all`, `race`, `allSettled`)
-
 ---
 
 ## 🏛️ 3. Async/Await (Structured Concurrency View)
+
+📖 Reference: [async function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function?utm_source=chatgpt.com)
 
 ```js
 async function run() {
@@ -199,27 +147,22 @@ async function run() {
 }
 ```
 
-### Critical Reality
-
 `await`:
 
 * does NOT block thread
 * suspends function execution
 * resumes via microtask queue
 
-### Hidden Mechanism
-
-```txt
-await = .then() under the hood
-```
-
 ---
 
 # 🌐 PART 3 — Fetch (Network I/O Model)
 
+📖 Reference: [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API?utm_source=chatgpt.com)
+📖 Reference: [WHATWG Fetch Standard](https://fetch.spec.whatwg.org/?utm_source=chatgpt.com)
+
 ---
 
-## 🧠 Fetch Lifecycle (Accurate Model)
+## 🧠 Fetch Lifecycle
 
 ```txt
 request created
@@ -234,64 +177,29 @@ request created
 
 ## ⚠️ Critical Fetch Rule
 
+📖 Reference: [Response.ok behavior](https://developer.mozilla.org/en-US/docs/Web/API/Response/ok?utm_source=chatgpt.com)
+
 ```txt
 fetch() only rejects on network failure
 NOT HTTP errors
-```
-
-So:
-
-```js
-if (!response.ok)
-```
-
-is mandatory.
-
----
-
-## 🧠 Production Fetch Pipeline
-
-```js
-async function fetchJSON(url) {
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-
-  return res.json();
-}
 ```
 
 ---
 
 ## 🚨 Hidden Complexity: Streaming
 
-`response.json()`:
-
-* consumes a stream
-* parses incrementally
-* can fail mid-read
-
-So fetch is actually:
-
-> network + streaming + parsing pipeline
+📖 Reference: [ReadableStream API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API?utm_source=chatgpt.com)
 
 ---
 
 # ⚛️ PART 4 — React Async System (Concurrent UI Model)
 
-React does NOT “run async code.”
-
-It:
-
-> synchronizes async events into deterministic UI states.
+📖 Reference: [React useEffect](https://react.dev/reference/react/useEffect?utm_source=chatgpt.com)
+📖 Reference: [React concurrency rendering](https://react.dev/blog/2022/03/29/react-v18?utm_source=chatgpt.com)
 
 ---
 
 ## 🧠 Core UI State Model
-
-Every async component reduces to:
 
 ```
 data
@@ -301,7 +209,7 @@ error
 
 ---
 
-## ⚛️ Production Effect Model (Correct Version)
+## ⚛️ Production Effect Model
 
 ```jsx
 useEffect(() => {
@@ -336,104 +244,50 @@ useEffect(() => {
 }, [url]);
 ```
 
+📖 Reference: [AbortController API](https://developer.mozilla.org/en-US/docs/Web/API/AbortController?utm_source=chatgpt.com)
+
 ---
 
 ## 🚨 React Race Condition Reality
 
-Without cancellation:
-
-* Request A starts
-* Request B starts
-* A returns after B
-* A overwrites B → stale UI bug
-
-This is not theoretical.
-
-It happens in:
-
-* search inputs
-* dashboards
-* autocomplete
-* infinite scroll
+📖 Reference: [React state and effects](https://react.dev/learn/synchronizing-with-effects?utm_source=chatgpt.com)
 
 ---
 
-## 🧠 React Execution Lifecycle (Correct View)
+## 🧠 React Execution Lifecycle
 
-```txt
-render phase (pure computation)
-→ commit phase (DOM update)
-→ effects run (useEffect)
-→ async work begins
-→ state updates schedule re-render
 ```
-
-Important:
-
-> Effects do NOT block rendering.
-
----
-
-## ⚛️ State Update Semantics
-
-```js
-setState(x + 1);
+render → commit → effects → async → state update → re-render
 ```
-
-Reality:
-
-* queued
-* batched
-* applied in next render cycle
-
-Correct form under concurrency:
-
-```js
-setState(prev => prev + 1);
-```
-
----
-
-## ⚠️ Important Rule (React 18+)
-
-React may:
-
-* batch across async boundaries
-* reorder updates for performance
-* interrupt renders (concurrent rendering)
-
-So UI is:
-
-> always a **projection of state**, not a direct reaction.
 
 ---
 
 # 🧠 MASTER SYSTEM MODEL
 
-## Execution Order (Strict)
+## Execution Order
 
-```txt
+```
 1. Call Stack
-2. Microtasks (Promises / await)
+2. Microtasks
 3. Render (browser only)
-4. Macrotasks (timers, events)
+4. Macrotasks
 ```
 
 ---
 
 ## Async Evolution Map
 
-| Model       | Meaning         | Limitation solved        |
-| ----------- | --------------- | ------------------------ |
-| Callback    | execute later   | inversion of control     |
-| Promise     | value later     | composability            |
-| Async/Await | structured flow | readability + error flow |
+| Model       | Meaning         | Reference       |
+| ----------- | --------------- | --------------- |
+| Callback    | execute later   | MDN Callbacks   |
+| Promise     | value later     | MDN Promise     |
+| Async/Await | structured flow | MDN async/await |
 
 ---
 
 ## Fetch Model
 
-```txt
+```
 network → response → validation → stream parse → usable data
 ```
 
@@ -441,13 +295,13 @@ network → response → validation → stream parse → usable data
 
 ## React Model
 
-```txt
-state change → render → commit → effects → async resolution → state update → re-render
+```
+state change → render → commit → effects → async resolution → re-render
 ```
 
 ---
 
-# 🚀 FINAL SYSTEM INSIGHT 
+# 🚀 FINAL SYSTEM INSIGHT
 
 JavaScript async is not about “handling delays.”
 
@@ -464,7 +318,8 @@ Once you understand:
 
 you stop debugging async issues empirically and start predicting them structurally.
 
-That’s where this becomes *senior-level engineering knowledge*.
+---
 
-# Reference Repo
-https://github.com/seanwhs/Javascript-Async
+# 📚 Reference Repository
+
+[JavaScript Async Repo](https://github.com/seanwhs/Javascript-Async?utm_source=chatgpt.com)
