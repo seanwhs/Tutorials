@@ -1,320 +1,1470 @@
-**# Bun: The Complete Full-Stack Blueprint & Architecture Guide**
+# 🚀 Bun: The Complete Full-Stack Blueprint & Architecture Guide
 
-**Bun** is a high-performance, single-binary runtime environment built from scratch to eliminate tooling sprawl and performance overhead in the modern JavaScript ecosystem. Serving as a native, drop-in replacement for Node.js, Bun consolidates an entire toolchain—runtime, package manager, compiler, bundler, and test runner—into a single, highly efficient engine.
+## From Runtime → Full-Stack Platform
 
-**Official Site:** [bun.sh](https://bun.sh)  
-**Documentation:** [bun.sh/docs](https://bun.sh/docs)  
-**GitHub:** [oven-sh/bun](https://github.com/oven-sh/bun)
+[Bun Official Site](https://bun.sh?utm_source=chatgpt.com)
+[Bun Documentation](https://bun.sh/docs?utm_source=chatgpt.com)
+[Bun GitHub Repository](https://github.com/oven-sh/bun?utm_source=chatgpt.com)
 
 ---
 
-## 🧠 The Core Mental Model
+# 🧠 What Is Bun Really?
 
-Traditional Node.js environments are fragmented, requiring developers to manually stitch together separate tools for compilation, execution, testing, and production packaging. Bun collapses this multi-layer matrix into a unified runtime binary.
+Most beginners think Bun is “just another Node.js alternative.”
 
+That’s not actually the important part.
+
+The real breakthrough is this:
+
+> Bun collapses the modern JavaScript toolchain into a single integrated runtime.
+
+Traditionally, building a full-stack app means combining dozens of independent tools:
+
+* Node.js
+* npm/pnpm/yarn
+* Vite
+* Babel
+* ts-node
+* Jest/Vitest
+* Express
+* dotenv
+* Webpack/Rollup/esbuild
+* nodemon
+
+Every one of those introduces:
+
+* configuration
+* version mismatches
+* plugins
+* dependency conflicts
+* startup overhead
+* maintenance cost
+
+Bun eliminates most of that complexity.
+
+---
+
+# 🧠 The Master Mental Model
+
+Think of Bun like this:
+
+| Traditional JavaScript       | Bun                       |
+| ---------------------------- | ------------------------- |
+| Assemble many tools yourself | One integrated platform   |
+| Runtime + tooling fragmented | Runtime + tooling unified |
+| Multiple processes           | Single optimized engine   |
+| Configuration-heavy          | Zero-config philosophy    |
+| Build pipelines everywhere   | Native execution          |
+
+---
+
+# 🏗️ Traditional Stack vs Bun Stack
+
+## Traditional Node.js Architecture
+
+```mermaid
+flowchart TD
+
+A[Developer] --> B[Node.js Runtime]
+A --> C[npm / pnpm]
+A --> D[Vite]
+A --> E[Webpack]
+A --> F[Babel]
+A --> G[ts-node]
+A --> H[Jest/Vitest]
+A --> I[Express]
+A --> J[dotenv]
+A --> K[Prisma]
+A --> L[Redis Client]
+
+B --> M[Production App]
 ```
-┌────────────────────────────────────────┐ ┌────────────────────────────────────────┐
-│ TRADITIONAL NODE.JS STACK              │ │ UNIFIED BUN ARCHITECTURE               │
-├────────────────────────────────────────┤ ├────────────────────────────────────────┤
-│ Frontend: React + Vite + Babel + HMR   │ │ • Runtime (JavaScriptCore + Zig)       │
-├────────────────────────────────────────┤ │ • Package Manager (Zero-Config Cache)  │
-│ Backend: Node + Express + ts-node      │ │ • Bundler & Native JSX/TS Transpiler   │
-├────────────────────────────────────────┤ ──> │ • Low-Latency Server (Bun.serve)       │
-│ Data: Prisma / mysql2 / ioredis        │ │ • Native Drivers (SQLite, Redis)       │
-├────────────────────────────────────────┤ │ • WebSocket Engine (uWebSockets core)  │
-│ Testing: Jest / Vitest                 │ │ • Built-in Test Runner (bun test)      │
-├────────────────────────────────────────┤ │ • Native Dotenv & Watch Modes          │
-│ Tooling: npm / pnpm / yarn             │ │                                        │
-└────────────────────────────────────────┘ └────────────────────────────────────────┘
+
+This works.
+
+But it creates:
+
+* tooling sprawl
+* duplicated build steps
+* cold start overhead
+* dependency chaos
+* config fatigue
+
+---
+
+# 🚀 Bun Unified Architecture
+
+```mermaid
+flowchart TD
+
+A[Developer] --> B[Bun Runtime]
+
+B --> C[Package Manager]
+B --> D[TypeScript Runtime]
+B --> E[Bundler]
+B --> F[Test Runner]
+B --> G[Web Server]
+B --> H[WebSockets]
+B --> I[SQLite Driver]
+B --> J[Redis Driver]
+B --> K[Hot Reload]
+B --> L[Environment Variables]
+
+B --> M[Production App]
 ```
 
-Integrating these components directly into the core engine layer eliminates version mismatches, cross-dependency bugs, configuration fatigue, and data serialization bottlenecks.
+This is the key architectural idea behind Bun.
 
 ---
 
-## 🛠️ The Three Foundational Pillars
+# 🧠 Another Important Mental Model
 
-### 1. Engine Architecture (JavaScriptCore & Zig)
-While Node.js and Deno run on Google’s V8 engine, Bun executes code via Apple’s **JavaScriptCore (JSC)**—optimized for rapid cold starts and minimal memory footprints.
+## Node.js Ecosystem
 
-The surrounding system is written entirely in **Zig**, a low-level systems programming language with explicit manual memory management and zero hidden control flow. This enables direct OS kernel system calls for optimized file-system I/O and network streams.
+```text
+"JavaScript + Tooling"
+```
 
-- [JavaScriptCore](https://developer.apple.com/documentation/javascriptcore)
-- [Zig Language](https://ziglang.org/)
+## Bun Ecosystem
 
-### 2. Consolidated Toolchain
-Bun replaces fragmented build workflows and separate configurations (`tsconfig.json`, `vite.config.js`, `.babelrc`, etc.) with native, built-in features:
+```text
+"Integrated JavaScript Operating System"
+```
 
-- **Runtime**: Executes JavaScript, TypeScript, and JSX directly (no `ts-node` or Babel needed).
-- **Package Manager**: Replaces `npm`/`yarn`/`pnpm`. Installs up to **20x faster** using a global cache and OS hard links.
-- **Bundler**: High-speed alternative to Webpack, Rollup, or esbuild.
-- **Test Runner**: `bun test` — fast, parallelized replacement for Jest/Vitest.
+Bun is trying to become:
 
-**Full Toolchain Docs:** [bun.sh/docs](https://bun.sh/docs)
+* runtime
+* build system
+* server platform
+* package manager
+* testing framework
+* deployment runtime
 
-### 3. Node.js Compatibility
-Bun offers deep drop-in compatibility with the Node.js ecosystem, including `process`, `Buffer`, `node:fs`, `node:path`, `node:crypto`, and standard module resolution. Migrate large `node_modules` trees without refactoring.
-
-**Compatibility Guide:** [bun.sh/docs/runtime/node](https://bun.sh/docs/runtime/node)
+all at once.
 
 ---
 
-## 🚀 1. Installation & Initializing
+# ⚡ Why Bun Is Fast
+
+Bun performance comes from several architectural decisions.
+
+---
+
+# 1. JavaScriptCore Instead of V8
+
+Node.js uses:
+
+* Google V8
+
+Bun uses:
+
+* Apple JavaScriptCore (Safari engine)
+
+JavaScriptCore is extremely optimized for:
+
+* fast startup
+* low memory
+* rapid execution
+
+---
+
+# 2. Bun Is Written in Zig
+
+[Zig Language](https://ziglang.org?utm_source=chatgpt.com)
+
+Zig is a systems language similar to:
+
+* C
+* Rust
+* C++
+
+But simpler.
+
+This gives Bun:
+
+* direct memory control
+* low-level networking
+* fast filesystem access
+* fewer abstractions
+* less runtime overhead
+
+---
+
+# 🧠 Mental Model: Why Zig Matters
+
+## Typical JavaScript Toolchain
+
+```mermaid
+flowchart LR
+
+A[JavaScript App]
+--> B[Node Runtime]
+--> C[V8]
+--> D[C++ Bindings]
+--> E[Operating System]
+```
+
+Many abstraction layers exist.
+
+---
+
+## Bun Architecture
+
+```mermaid
+flowchart LR
+
+A[JavaScript App]
+--> B[Bun]
+--> C[Zig Native Engine]
+--> D[Operating System]
+```
+
+Fewer layers.
+
+Less overhead.
+
+Better performance.
+
+---
+
+# 🛠️ Bun's Built-In Features
+
+One of Bun’s biggest advantages is that features are already included.
+
+| Feature               | Traditional Tool | Bun        |
+| --------------------- | ---------------- | ---------- |
+| Runtime               | Node.js          | ✅ Built-in |
+| Package Manager       | npm/pnpm/yarn    | ✅ Built-in |
+| Bundler               | Vite/Webpack     | ✅ Built-in |
+| TypeScript            | ts-node          | ✅ Built-in |
+| Testing               | Jest/Vitest      | ✅ Built-in |
+| Hot Reload            | nodemon          | ✅ Built-in |
+| Environment Variables | dotenv           | ✅ Built-in |
+| WebSockets            | ws/socket.io     | ✅ Built-in |
+
+---
+
+# 🚀 Installing Bun
+
+## macOS/Linux
 
 ```bash
-# macOS & Linux
 curl -fsSL https://bun.sh/install | bash
-
-# Windows (PowerShell)
-powershell -c "irm bun.sh/install.ps1 | iex"
-
-# Via npm (alternative)
-npm install -g bun
 ```
+
+---
+
+## Windows
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+---
+
+## Verify Installation
 
 ```bash
 bun --version
-bun init -y
 ```
-
-`bun init` creates `package.json`, an optimized `tsconfig.json`, and enables native TypeScript support.
 
 ---
 
-## 🏗️ 2. Zero-Config Frontend Serving
+# 🏗️ Creating Your First Bun Project
 
-Bun natively handles TypeScript, JSX, CSS imports, and Fast Refresh (HMR).
+```bash
+bun init
+```
+
+Bun automatically creates:
+
+* `package.json`
+* `tsconfig.json`
+* starter files
+
+No extra setup required.
+
+---
+
+# 📂 Beginner-Friendly Project Structure
+
+```text
+my-bun-app/
+│
+├── src/
+│   ├── server.ts
+│   ├── database.ts
+│   ├── routes/
+│   ├── services/
+│   └── frontend/
+│
+├── public/
+│
+├── package.json
+├── bun.lockb
+├── tsconfig.json
+└── .env
+```
+
+---
+
+# 🧠 Understanding `bun.lockb`
+
+This is Bun’s lockfile.
+
+Equivalent to:
+
+* `package-lock.json`
+* `pnpm-lock.yaml`
+* `yarn.lock`
+
+Always commit it to Git.
+
+---
+
+# ⚡ Installing Dependencies
+
+```bash
+bun add hono
+```
+
+Development dependency:
+
+```bash
+bun add -d typescript
+```
+
+Remove package:
+
+```bash
+bun remove package-name
+```
+
+---
+
+# 🚀 Running TypeScript Directly
+
+This is where Bun feels magical.
+
+## Node.js
+
+Normally you need:
+
+```bash
+ts-node src/index.ts
+```
+
+or:
+
+```bash
+npm run build
+node dist/index.js
+```
+
+---
+
+## Bun
+
+Just run:
+
+```bash
+bun run src/index.ts
+```
+
+No transpilation step needed.
+
+---
+
+# 🧠 Mental Model: Bun Executes TS Natively
+
+```mermaid
+flowchart LR
+
+A[TypeScript File]
+--> B[Bun Runtime]
+--> C[Native Transpiler]
+--> D[Execution]
+```
+
+Instead of:
+
+```mermaid
+flowchart LR
+
+A[TypeScript]
+--> B[tsc]
+--> C[JavaScript Output]
+--> D[Node.js]
+--> E[Execution]
+```
+
+---
+
+# 🌐 Bun HTTP Server
+
+Bun includes a native HTTP server.
+
+No Express required.
+
+---
+
+# Basic Example
 
 ```typescript
-// dev-server.ts
-import { file } from "bun";
+Bun.serve({
+  port: 3000,
+
+  fetch(req) {
+    return new Response("Hello from Bun!");
+  },
+});
+```
+
+Run:
+
+```bash
+bun run server.ts
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+---
+
+# 🧠 Understanding `fetch(req)`
+
+Bun uses Web Standard APIs.
+
+Instead of Express:
+
+```typescript
+(req, res)
+```
+
+Bun uses:
+
+```typescript
+Request
+Response
+```
+
+This aligns Bun with:
+
+* browsers
+* Cloudflare Workers
+* Deno
+* Service Workers
+
+---
+
+# 🏗️ Request Lifecycle Mental Model
+
+```mermaid
+sequenceDiagram
+
+participant Browser
+participant BunServer
+participant Database
+
+Browser->>BunServer: HTTP Request
+BunServer->>Database: Query Data
+Database-->>BunServer: Result
+BunServer-->>Browser: Response
+```
+
+---
+
+# ⚡ Full Beginner CRUD API
+
+Let’s build a real backend.
+
+---
+
+# 📂 server.ts
+
+```typescript
+type Todo = {
+  id: number;
+  text: string;
+};
+
+const todos: Todo[] = [];
 
 Bun.serve({
   port: 3000,
-  fetch(req) {
-    const url = new URL(req.url);
-    if (url.pathname === "/") return new Response(file("./index.html"));
-    if (url.pathname === "/src/index.tsx") return new Response(file("./src/index.tsx"));
-    return new Response("Asset Not Found", { status: 404 });
-  },
-});
 
-console.log("🚀 Frontend server online at http://localhost:3000");
-```
-
-**Bun.serve API Reference:** [bun.sh/docs/api/http](https://bun.sh/docs/api/http)
-
----
-
-## ⚙️ 3. Full-Stack Backend with Native SQL & Redis
-
-Bun includes high-performance native drivers for **SQLite** and **Redis**.
-
-```typescript
-import { Database } from "bun:sqlite";
-import { Redis } from "bun:redis";
-
-const db = new Database("production.sqlite", { create: true });
-const redis = new Redis({ hostname: "localhost", port: 6379 });
-
-// Schema creation
-db.run(`
-  CREATE TABLE IF NOT EXISTS system_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event TEXT NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-Bun.serve({
-  port: 8080,
   async fetch(req) {
     const url = new URL(req.url);
 
-    if (url.pathname === "/api/metrics" && req.method === "GET") {
-      const cached = await redis.get("metrics:latest");
-      if (cached) return Response.json({ data: JSON.parse(cached), source: "cache" });
-
-      const query = db.query("SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 10");
-      const logs = query.all();
-      await redis.setex("metrics:latest", 60, JSON.stringify(logs));
-      return Response.json({ data: logs, source: "database" });
+    // GET all todos
+    if (url.pathname === "/api/todos" && req.method === "GET") {
+      return Response.json(todos);
     }
 
-    if (url.pathname === "/api/track" && req.method === "POST") {
-      try {
-        const body = await req.json();
-        if (!body.event) throw new Error("Missing event");
+    // CREATE todo
+    if (url.pathname === "/api/todos" && req.method === "POST") {
+      const body = await req.json();
 
-        const insert = db.prepare("INSERT INTO system_logs (event) VALUES ($event)");
-        insert.run({ $event: body.event });
+      const todo = {
+        id: Date.now(),
+        text: body.text,
+      };
 
-        await redis.del("metrics:latest");
-        return Response.json({ success: true }, { status: 201 });
-      } catch (err: any) {
-        return Response.json({ error: err.message }, { status: 400 });
-      }
+      todos.push(todo);
+
+      return Response.json(todo, {
+        status: 201,
+      });
     }
 
-    return new Response("Not Found", { status: 404 });
-  }
+    return new Response("Not Found", {
+      status: 404,
+    });
+  },
+});
+
+console.log("🚀 Server running on http://localhost:3000");
+```
+
+---
+
+# 🧠 CRUD Mental Model
+
+```mermaid
+flowchart LR
+
+A[Frontend]
+--> B[GET Todos]
+
+A --> C[POST Todo]
+
+B --> D[Server Memory]
+C --> D
+```
+
+---
+
+# ⚡ Hot Reload Development
+
+Run:
+
+```bash
+bun --watch server.ts
+```
+
+Bun automatically reloads changes.
+
+Equivalent replacements:
+
+* nodemon
+* ts-node-dev
+
+---
+
+# 🗄️ SQLite with Bun
+
+One of Bun’s best features is native SQLite support.
+
+No external ORM required for small/medium apps.
+
+---
+
+# 📂 database.ts
+
+```typescript
+import { Database } from "bun:sqlite";
+
+export const db = new Database("app.sqlite", {
+  create: true,
 });
 ```
 
-**Native SQLite Docs:** [bun.sh/docs/api/sqlite](https://bun.sh/docs/api/sqlite)  
-**Redis Support:** Check Bun’s evolving native integrations.
-
 ---
 
-## 🧠 Why Native Drivers Matter
+# Create Table
 
-Bun’s drivers bypass JavaScript serialization layers, communicating directly at the C/C++ boundary for superior throughput and security.
-
-**SQL Injection Protection** (Tagged Templates):
 ```typescript
-const secureQuery = db.query`SELECT * FROM users WHERE username = ${hostileInput}`;
+db.run(`
+  CREATE TABLE IF NOT EXISTS todos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL
+  )
+`);
 ```
 
 ---
 
-## 🔄 Migrating from Express & Node.js to Bun
+# Insert Data
 
-### Quick Migration Steps
-1. Remove `dotenv`, `nodemon`, `ts-node`, `tsup`, etc.
-2. Update scripts to use the `bun` binary.
-3. Adopt Web Standard APIs (`Request`, `Response`, `fetch`).
+```typescript
+const query = db.prepare(`
+  INSERT INTO todos (text)
+  VALUES ($text)
+`);
 
-**Cleanup:**
-```bash
-bun remove nodemon ts-node dotenv tsup vitest jest
+query.run({
+  $text: "Learn Bun",
+});
 ```
 
-**Recommended `package.json` scripts:**
+---
+
+# Read Data
+
+```typescript
+const todos = db.query(`
+  SELECT * FROM todos
+`).all();
+```
+
+---
+
+# 🧠 SQL Mental Model
+
+```mermaid
+flowchart TD
+
+A[Frontend Request]
+--> B[Bun API]
+--> C[SQLite Query]
+--> D[Database File]
+--> E[Result]
+--> F[JSON Response]
+```
+
+---
+
+# 🔒 SQL Injection Protection
+
+Use tagged templates.
+
+```typescript
+const user = "admin";
+
+const result = db.query`
+  SELECT * FROM users
+  WHERE username = ${user}
+`;
+```
+
+Never build raw SQL strings manually.
+
+---
+
+# ⚡ Redis Caching
+
+Bun also supports Redis.
+
+---
+
+# Install Redis
+
+```bash
+docker run -p 6379:6379 redis
+```
+
+---
+
+# Redis Example
+
+```typescript
+import { Redis } from "bun:redis";
+
+const redis = new Redis({
+  hostname: "localhost",
+  port: 6379,
+});
+
+await redis.set("message", "hello");
+const value = await redis.get("message");
+
+console.log(value);
+```
+
+---
+
+# 🧠 Cache Mental Model
+
+```mermaid
+flowchart LR
+
+A[Browser]
+--> B[Bun API]
+
+B --> C{Cached?}
+
+C -->|Yes| D[Redis]
+C -->|No| E[SQLite]
+
+E --> F[Store in Redis]
+F --> D
+
+D --> G[Return Response]
+```
+
+---
+
+# 🚀 COMPLETE FULL-STACK APP
+
+# 📋 Full-Stack Task Manager
+
+Now let’s build a real application.
+
+This combines:
+
+* frontend
+* backend
+* SQLite
+* Bun server
+* API routes
+* persistence
+
+---
+
+# 🏗️ Architecture Overview
+
+```mermaid
+flowchart TD
+
+A[Browser UI]
+--> B[Bun Frontend Server]
+
+B --> C[API Routes]
+
+C --> D[SQLite Database]
+
+C --> E[JSON Responses]
+
+E --> A
+```
+
+---
+
+# 📂 Project Structure
+
+```text
+task-manager/
+│
+├── public/
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+│
+├── src/
+│   ├── server.ts
+│   └── database.ts
+│
+├── package.json
+└── bun.lockb
+```
+
+---
+
+# 📂 src/database.ts
+
+```typescript
+import { Database } from "bun:sqlite";
+
+export const db = new Database("tasks.sqlite", {
+  create: true,
+});
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    completed INTEGER DEFAULT 0
+  )
+`);
+```
+
+---
+
+# 📂 src/server.ts
+
+```typescript
+import { file } from "bun";
+import { db } from "./database";
+
+const server = Bun.serve({
+  port: 3000,
+
+  async fetch(req) {
+    const url = new URL(req.url);
+
+    // Serve frontend
+    if (url.pathname === "/") {
+      return new Response(
+        file("./public/index.html")
+      );
+    }
+
+    if (url.pathname === "/app.js") {
+      return new Response(
+        file("./public/app.js")
+      );
+    }
+
+    if (url.pathname === "/styles.css") {
+      return new Response(
+        file("./public/styles.css")
+      );
+    }
+
+    // GET TASKS
+    if (url.pathname === "/api/tasks" && req.method === "GET") {
+      const tasks = db.query(`
+        SELECT * FROM tasks
+        ORDER BY id DESC
+      `).all();
+
+      return Response.json(tasks);
+    }
+
+    // CREATE TASK
+    if (url.pathname === "/api/tasks" && req.method === "POST") {
+      const body = await req.json();
+
+      const insert = db.prepare(`
+        INSERT INTO tasks (title)
+        VALUES ($title)
+      `);
+
+      insert.run({
+        $title: body.title,
+      });
+
+      return Response.json({
+        success: true,
+      });
+    }
+
+    // TOGGLE COMPLETE
+    if (
+      url.pathname.startsWith("/api/tasks/")
+      && req.method === "PATCH"
+    ) {
+      const id = url.pathname.split("/").pop();
+
+      db.run(`
+        UPDATE tasks
+        SET completed =
+          CASE
+            WHEN completed = 1 THEN 0
+            ELSE 1
+          END
+        WHERE id = ?
+      `, [id]);
+
+      return Response.json({
+        success: true,
+      });
+    }
+
+    // DELETE TASK
+    if (
+      url.pathname.startsWith("/api/tasks/")
+      && req.method === "DELETE"
+    ) {
+      const id = url.pathname.split("/").pop();
+
+      db.run(`
+        DELETE FROM tasks
+        WHERE id = ?
+      `, [id]);
+
+      return Response.json({
+        success: true,
+      });
+    }
+
+    return new Response("Not Found", {
+      status: 404,
+    });
+  },
+});
+
+console.log(`
+🚀 Task Manager Running
+${server.url}
+`);
+```
+
+---
+
+# 📂 public/index.html
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bun Task Manager</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>🚀 Bun Task Manager</h1>
+
+    <form id="task-form">
+      <input
+        type="text"
+        id="task-input"
+        placeholder="Enter task..."
+      />
+
+      <button>Add Task</button>
+    </form>
+
+    <ul id="task-list"></ul>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+```
+
+---
+
+# 📂 public/app.js
+
+```javascript
+const form = document.getElementById("task-form");
+const input = document.getElementById("task-input");
+const list = document.getElementById("task-list");
+
+async function loadTasks() {
+  const response = await fetch("/api/tasks");
+
+  const tasks = await response.json();
+
+  list.innerHTML = "";
+
+  for (const task of tasks) {
+    const li = document.createElement("li");
+
+    li.innerHTML = `
+      <span class="${task.completed ? "done" : ""}">
+        ${task.title}
+      </span>
+
+      <div>
+        <button onclick="toggleTask(${task.id})">
+          Toggle
+        </button>
+
+        <button onclick="deleteTask(${task.id})">
+          Delete
+        </button>
+      </div>
+    `;
+
+    list.appendChild(li);
+  }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  await fetch("/api/tasks", {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify({
+      title: input.value,
+    }),
+  });
+
+  input.value = "";
+
+  loadTasks();
+});
+
+async function toggleTask(id) {
+  await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+  });
+
+  loadTasks();
+}
+
+async function deleteTask(id) {
+  await fetch(`/api/tasks/${id}`, {
+    method: "DELETE",
+  });
+
+  loadTasks();
+}
+
+loadTasks();
+```
+
+---
+
+# 📂 public/styles.css
+
+```css
+body {
+  font-family: Arial;
+  background: #111827;
+  color: white;
+  padding: 40px;
+}
+
+.container {
+  max-width: 700px;
+  margin: auto;
+}
+
+input {
+  padding: 12px;
+  width: 300px;
+}
+
+button {
+  padding: 12px;
+  cursor: pointer;
+}
+
+li {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+```
+
+---
+
+# 🚀 Run The Application
+
+```bash
+bun --watch src/server.ts
+```
+
+Visit:
+
+```text
+http://localhost:3000
+```
+
+---
+
+# 🧠 Full Request Flow Mental Model
+
+```mermaid
+sequenceDiagram
+
+participant User
+participant Browser
+participant BunServer
+participant SQLite
+
+User->>Browser: Click Add Task
+Browser->>BunServer: POST /api/tasks
+BunServer->>SQLite: INSERT task
+SQLite-->>BunServer: Success
+BunServer-->>Browser: JSON Response
+Browser->>BunServer: GET /api/tasks
+BunServer->>SQLite: SELECT tasks
+SQLite-->>BunServer: Tasks
+BunServer-->>Browser: JSON Data
+Browser-->>User: Render Updated UI
+```
+
+---
+
+# ⚡ WebSockets in Bun
+
+Bun includes native WebSocket support.
+
+No `socket.io`.
+
+No `ws`.
+
+---
+
+# Real-Time Chat Example
+
+```typescript
+const server = Bun.serve({
+  port: 3000,
+
+  fetch(req, server) {
+    if (server.upgrade(req)) {
+      return;
+    }
+
+    return new Response("Upgrade failed", {
+      status: 500,
+    });
+  },
+
+  websocket: {
+    open(ws) {
+      console.log("Client connected");
+    },
+
+    message(ws, message) {
+      ws.send(`Echo: ${message}`);
+    },
+
+    close(ws) {
+      console.log("Client disconnected");
+    },
+  },
+});
+```
+
+---
+
+# 🧠 WebSocket Mental Model
+
+```mermaid
+flowchart LR
+
+A[Client]
+<--> B[Persistent Connection]
+<--> C[Bun WebSocket Server]
+```
+
+Traditional HTTP:
+
+* request
+* response
+* disconnected
+
+WebSocket:
+
+* always connected
+* bidirectional
+* real-time
+
+---
+
+# 🧪 Testing with Bun
+
+```typescript
+import { expect, test } from "bun:test";
+
+test("addition", () => {
+  expect(1 + 1).toBe(2);
+});
+```
+
+Run:
+
+```bash
+bun test
+```
+
+---
+
+# 🧠 Bun Testing Architecture
+
+```mermaid
+flowchart LR
+
+A[Test Files]
+--> B[bun test]
+--> C[Parallel Execution]
+--> D[Results]
+```
+
+---
+
+# 🐳 Docker Deployment
+
+## Dockerfile
+
+```dockerfile
+FROM oven/bun:1.1-alpine
+
+WORKDIR /app
+
+COPY . .
+
+RUN bun install
+
+EXPOSE 3000
+
+CMD ["bun", "run", "src/server.ts"]
+```
+
+---
+
+# Build Container
+
+```bash
+docker build -t bun-app .
+```
+
+---
+
+# Run Container
+
+```bash
+docker run -p 3000:3000 bun-app
+```
+
+---
+
+# 🧠 Production Deployment Mental Model
+
+```mermaid
+flowchart TD
+
+A[GitHub]
+--> B[CI/CD Pipeline]
+--> C[Docker Build]
+--> D[Cloud Server]
+--> E[Bun Runtime]
+--> F[Users]
+```
+
+---
+
+# 🚀 Scaling Bun Applications
+
+For large-scale systems:
+
+```mermaid
+flowchart TD
+
+A[Load Balancer]
+--> B[Bun Instance 1]
+--> C[Bun Instance 2]
+--> D[Bun Instance 3]
+
+B --> E[Redis]
+C --> E
+D --> E
+
+B --> F[PostgreSQL]
+C --> F
+D --> F
+```
+
+---
+
+# 🧠 Beginner Scaling Advice
+
+## Small Apps
+
+Use:
+
+* Bun
+* SQLite
+* single server
+
+This is enough for:
+
+* portfolios
+* dashboards
+* admin tools
+* internal apps
+* prototypes
+* MVPs
+
+---
+
+## Medium Apps
+
+Add:
+
+* PostgreSQL
+* Redis
+* Docker
+
+---
+
+## Large Apps
+
+Add:
+
+* Kubernetes
+* load balancers
+* queues
+* observability
+* horizontal scaling
+
+---
+
+# ⚡ Migrating From Node.js
+
+## Remove These
+
+```bash
+bun remove nodemon
+bun remove ts-node
+bun remove dotenv
+bun remove jest
+```
+
+---
+
+# Update Scripts
+
 ```json
 {
   "scripts": {
-    "dev": "bun --watch run src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun"
+    "dev": "bun --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "test": "bun test"
   }
 }
 ```
 
-**Environment Variables:** `Bun.env.VAR` or `process.env.VAR` (`.env` loaded automatically).
+---
 
-**High-Risk Areas:**
-- Native `.node` addons → Use [Bun Native Addons API](https://bun.sh/docs/runtime/addons)
-- Heavy Express middleware → Consider **Hono** or **Elysia.js** for maximum performance.
+# 🧠 Bun vs Node.js Mental Model
+
+| Node.js                   | Bun                    |
+| ------------------------- | ---------------------- |
+| Runtime only              | Full platform          |
+| Requires external tooling | Integrated tooling     |
+| Heavy configuration       | Zero-config            |
+| Many packages required    | Many features built-in |
+| Mature ecosystem          | Rapidly evolving       |
 
 ---
 
-## 🐳 Production Docker Deployment
+# ⚠️ When NOT To Use Bun
 
-```dockerfile
-# Stage 1: Builder
-FROM oven/bun:1.1-alpine AS builder
-WORKDIR /app
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
-COPY . .
-RUN bun build ./src/index.ts --outdir ./dist --target bun
+Bun is excellent, but not perfect yet.
 
-# Stage 2: Runtime
-FROM oven/bun:1.1-alpine AS runner
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
-ENV NODE_ENV=production
-USER bun
-EXPOSE 8080
-ENTRYPOINT ["bun", "run", "./dist/index.js"]
+Avoid Bun if:
+
+* your company depends on Node-only native addons
+* your APM tooling requires V8 internals
+* your enterprise environment blocks newer runtimes
+* you rely on obscure Node internals
+
+---
+
+# 🚀 Best Frameworks for Bun
+
+## Elysia.js
+
+[Elysia.js Official Site](https://elysiajs.com?utm_source=chatgpt.com)
+
+Best Bun-native framework.
+
+Extremely fast.
+
+Excellent TypeScript support.
+
+---
+
+## Hono
+
+[Hono Official Site](https://hono.dev?utm_source=chatgpt.com)
+
+Tiny, elegant, edge-friendly.
+
+Works beautifully with:
+
+* Bun
+* Cloudflare
+* Deno
+* Node
+
+---
+
+# 🧠 Final Mental Model
+
+Think of Bun as:
+
+```text
+Node.js + npm + Vite + ts-node + Jest + Webpack + dotenv + nodemon
+↓
+Collapsed into one runtime
 ```
 
-**Official Docker Images:** [hub.docker.com/r/oven/bun](https://hub.docker.com/r/oven/bun)
+That’s the real innovation.
+
+Not just “speed.”
+
+But:
+
+* simplicity
+* integration
+* reduced complexity
+* developer experience
+* operational efficiency
 
 ---
 
-## 📡 Native WebSockets
+# 🚀 Recommended Learning Path
 
-Powered by `uWebSockets` core — no `ws` or Socket.io needed.
+## Beginner
 
-**Server Example** and **Client Test HTML** remain as provided (highly performant zero-copy implementation).
-
-**WebSocket Docs:** [bun.sh/docs/api/websockets](https://bun.sh/docs/api/websockets)
-
-**Performance Advantages:**
-- Zero-copy buffers
-- Native C++ pub/sub
-- Thousands of concurrent connections with low overhead
+1. Learn `Bun.serve`
+2. Build CRUD APIs
+3. Learn SQLite
+4. Build frontend serving
+5. Learn WebSockets
 
 ---
 
-## 🌐 Scaling Across a Cluster
+## Intermediate
 
-Use Redis (or another broker) + load balancer for horizontal scaling. The dual-client pattern (publisher + subscriber) shown in the original guide is excellent.
-
-**Key Rules:**
-1. Isolate subscription loop in background task.
-2. Use UUID trace IDs to prevent echo loops.
-3. Leverage `server.publish()` for local broadcasting.
-
----
-
-## 🏁 Architectural Fit Matrix
-
-| Use Case Category              | Ideal Match with Bun                          | Caution / Review Advised                     |
-|--------------------------------|-----------------------------------------------|----------------------------------------------|
-| Greenfield API Microservices   | **Excellent**                                 | —                                            |
-| Monorepo Applications          | **Excellent**                                 | —                                            |
-| Legacy Enterprise Node Apps    | Good (with audit)                             | Native addons & APM tools                    |
-| Edge Compute / Serverless      | **Excellent** (fast cold starts)              | —                                            |
+1. Dockerize apps
+2. Add Redis caching
+3. Learn Elysia/Hono
+4. Add authentication
+5. Add testing
 
 ---
 
-## 🏗️ DeployHQ / VPS Production Strategy
+## Advanced
 
-**PM2** and **systemd** configurations remain as provided (excellent for persistence).
-
-**CI/CD Build Commands:**
-```bash
-bun install --frozen-lockfile
-NODE_ENV=production bun run build
-```
+1. Clustering
+2. Queues
+3. Distributed systems
+4. Edge deployment
+5. Observability
 
 ---
 
-## 🛠️ Operations & Troubleshooting Checklist
+# 📚 Additional Resources
 
-- Always commit `bun.lockb`
-- Replace heavy native deps (`better-sqlite3` → `bun:sqlite`, `bcrypt` → `Bun.password`)
-- Stay on Node.js only if you need specific V8-based APM tools or corporate binary restrictions.
-
----
-
-## 💻 4. Appendix: Full-Stack Task Manager Example
-
-(The complete `server.ts` + `index.html` + setup instructions from the original are retained exactly as provided — an excellent self-contained demonstration.)
-
-**Run with hot reload:**
-```bash
-bun --watch run server.ts
-```
+* [Bun Benchmarks](https://bun.sh/benchmarks?utm_source=chatgpt.com)
+* [Bun HTTP Server Docs](https://bun.sh/docs/api/http?utm_source=chatgpt.com)
+* [Bun SQLite Docs](https://bun.sh/docs/api/sqlite?utm_source=chatgpt.com)
+* [Bun WebSocket Docs](https://bun.sh/docs/api/websockets?utm_source=chatgpt.com)
+* [Bun Node Compatibility Docs](https://bun.sh/docs/runtime/node?utm_source=chatgpt.com)
+* [Bun Docker Images](https://hub.docker.com/r/oven/bun?utm_source=chatgpt.com)
+* [Bun Discord Community](https://discord.gg/bun?utm_source=chatgpt.com)
+* [Bun X/Twitter](https://x.com/bun?utm_source=chatgpt.com)
 
 ---
 
-**Additional Resources**
+# 🏁 Closing Perspective
 
-- **[Bun Performance Benchmarks](https://bun.sh/benchmarks)** — See official speed comparisons
-- **[Elysia.js](https://elysiajs.com)** — Best-in-class Bun-first web framework (highly recommended)
-- **[Hono](https://hono.dev)** — Ultra-light, ultra-fast router that works excellently with Bun
-- **Community:**
-  - [Discord](https://discord.gg/bun)
-  - [X / Twitter](https://x.com/bun)
+Bun is not merely a faster Node.js.
 
----
+It represents a broader shift in JavaScript engineering:
 
-**This blueprint gives you everything needed to build, migrate, scale, and deploy high-performance full-stack applications with Bun. Enjoy the speed!** 🚀
-- Community: [Discord](https://discord.gg/bun) | [X/Twitter](https://x.com/bun)
+> Fewer tools.
+> Fewer layers.
+> Less configuration.
+> More native capability.
 
-This blueprint gives you everything needed to build, migrate, scale, and deploy high-performance full-stack applications with Bun. Enjoy the speed! 🚀
+For beginners, Bun dramatically lowers setup complexity.
+
+For experienced engineers, Bun reduces operational and architectural overhead.
+
+And for full-stack teams, Bun offers something the JavaScript ecosystem has lacked for years:
+
+> a cohesive, integrated developer platform.
