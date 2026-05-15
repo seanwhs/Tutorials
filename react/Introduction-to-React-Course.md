@@ -1,4 +1,4 @@
-# 🚀 Introduction to React Course (Enhanced Master Edition v2)
+# 🚀 Introduction to React Course
 
 ---
 
