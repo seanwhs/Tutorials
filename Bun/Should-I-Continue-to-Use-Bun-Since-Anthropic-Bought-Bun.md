@@ -566,6 +566,3 @@ Auto-revert if:
 
 > The real decision is not capability—it is **tolerance for runtime drift under unknown load**.
 
----
-
-If you want, I can next turn this into a **whiteboard migration diagram or a 1-slide boardroom version**.
