@@ -1,5 +1,7 @@
 # 🚀 Bun: The Complete Full-Stack Blueprint & Architecture Guide
 
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/a8f67a4b-7f0b-462f-ad5e-79a6a3a8d17a" />
+
 ## From Runtime → Full-Stack Platform
 
 [Bun Official Site](https://bun.sh?utm_source=chatgpt.com)
@@ -258,6 +260,12 @@ curl -fsSL https://bun.sh/install | bash
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+## NPM (Alternative)
+
+```powershell
+npm install -g bun
 ```
 
 ---
