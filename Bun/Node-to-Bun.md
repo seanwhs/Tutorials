@@ -1,84 +1,85 @@
 # 🧠 ClinicFlow: Beginner-Friendly Architecture Guide
 
-
 ```mermaid
 flowchart TD
 
 %% =========================
-%% 🧍 USERS / ENTRY POINT
+%% USERS / ENTRY POINT
 %% =========================
-A[🧍 Patient / Doctor<br/>Web • Mobile • Desktop Apps]
+A[Patient / Doctor - Web Mobile Desktop Apps]
 
 A --> B
 
 %% =========================
-%% 🚪 SECURITY + ENTRY
+%% SECURITY + ENTRY
 %% =========================
-B[🚪 Security Layer<br/>Login • Firewall • Rate Limits]
+B[Security Layer - Login Firewall Rate Limits]
 
 B --> C
 
-C[🧾 API Gateway (Reception Desk)<br/>Single Entry Point]
+C[API Gateway - Reception Desk - Single Entry Point]
 
 C --> D1
 C --> D2
 C --> D3
 
 %% =========================
-%% 🏥 CORE SERVICES
+%% CORE SERVICES
 %% =========================
-subgraph S[🏥 Backend Services (Hospital Departments)]
-D1[👤 Patient Service]
-D2[📅 Appointment Service]
-D3[📄 Medical Records Service]
+subgraph S[Backend Services - Hospital Departments]
+D1[Patient Service]
+D2[Appointment Service]
+D3[Medical Records Service]
 end
 
 %% =========================
-%% 📡 EVENT SYSTEM
+%% EVENT SYSTEM
 %% =========================
 D1 --> E
 D2 --> E
 D3 --> E
 
-E[📡 Event Bus (Redis Streams)<br/>Hospital Paging System]
+E[Event Bus - Redis Streams - Paging System]
 
 %% =========================
-%% 🧪 WORKERS / ASYNC SYSTEMS
+%% WORKERS
 %% =========================
 E --> F1
 E --> F2
 E --> F3
 
-subgraph W[🧪 Background Workers]
-F1[📲 Notifications<br/>SMS • Email]
-F2[📊 Analytics Engine]
-F3[🧠 Workflow Automation]
+subgraph W[Background Workers]
+F1[Notifications - SMS Email]
+F2[Analytics Engine]
+F3[Workflow Automation]
 end
 
 %% =========================
-%% 📊 REAL-TIME LAYER
+%% REAL-TIME LAYER
 %% =========================
 E --> G
 
-G[📊 Real-Time WebSocket Layer<br/>Live Dashboard Updates]
+G[WebSocket Layer - Live Dashboard Updates]
 
 G --> A
 
 %% =========================
-%% 🗄️ DATA LAYER
+%% DATA LAYER
 %% =========================
 F1 --> H
 F2 --> H
 F3 --> H
 
-subgraph D[🗄️ Data Layer]
-H[(PostgreSQL<br/>Primary Database)]
-I[(Redis Cache<br/>Fast Reads)]
+subgraph D[Data Layer]
+H[(PostgreSQL - Primary Database)]
+I[(Redis Cache - Fast Reads)]
 end
 
 %% optional feedback loop
 G --> I
 ```
+
+---
 
 ### From Node.js → Bun → Event-Driven Systems → Real-Time Apps
 
