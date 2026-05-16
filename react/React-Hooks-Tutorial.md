@@ -1,4 +1,4 @@
-# The Complete React 19 Hooks Masterclass
+# React 19 Hooks Tutorial
 
 ## Massive Beginner-Friendly Deep Dive Into Every React 19 Hook, Async Rendering, Mental Models, and Modern Patterns
 
