@@ -1,4 +1,4 @@
-**# 📘 Complete React Mastery Course**  
+**# 📘 Introduction to React Course**  
 **Edition:** 1.0  
 **Level:** Beginner 
 **Focus:** Mental Models + Practical Building + Production Architecture  
