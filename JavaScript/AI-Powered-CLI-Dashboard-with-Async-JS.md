@@ -71,7 +71,21 @@ This avoids **temporal coupling**, where unrelated operations become serialized 
 
 ### 🧩 System Execution Flow
 
+You’re hitting a **Mermaid renderer incompatibility**, not just a syntax issue.
+
+In GitHub’s Mermaid implementation, **backslash-escaped parentheses inside node labels are NOT reliably supported** in flowcharts. So this part:
+
 ```mermaid
+E[AI Streaming Engine \(SSE Pipeline\)]
+```
+
+still gets parsed incorrectly because GitHub strips or misinterprets the escape before Mermaid sees it.
+
+---
+
+# ✅ Robust Fix (Works across GitHub, Notion, most renderers)
+
+```mermaid 
 flowchart TD
     A[User Boot / Request] --> B[Auth Boundary Layer]
     B --> C1[User Preferences Service]
@@ -80,7 +94,7 @@ flowchart TD
     C1 --> D[Aggregation Barrier: Promise.all]
     C2 --> D
 
-    D --> E[AI Streaming Engine \(SSE Pipeline\)]
+    D --> E[AI Streaming Engine - SSE Pipeline]
     E --> F[Terminal Render Stream stdout]
 ```
 
