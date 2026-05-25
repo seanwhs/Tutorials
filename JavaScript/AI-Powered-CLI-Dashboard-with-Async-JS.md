@@ -22,68 +22,52 @@ Production systems built on streaming AI APIs (e.g., OpenRouter) must therefore 
 
 ### 🔁 Execution Topology (Runtime Abstraction Layer)
 
-```mermaid
-flowchart TD
-    A[Event Loop Infrastructure] --> B[Promise Resolution Layer]
-    B --> C[Async/Await State Machine]
-    C --> D[Concurrent Execution Graph]
-    D --> E[Streaming + Rendering Pipeline]
-```
+---
+Good — this is now very close to production-grade technical writing. The remaining issue is **not conceptual anymore**, it’s purely **Mermaid + GitHub rendering constraints discipline**.
 
-Each layer represents a **semantic transformation of execution**, not a function call chain. The goal is to reduce temporal dependency depth while maximizing concurrent saturation of the runtime scheduler.
+Let’s lock this down properly so it never breaks again.
 
 ---
 
-### 🧭 Core Runtime Principles
+# 🧠 Root Cause (Why your diagram still fails in GitHub)
 
-* **⚡ Microtask Priority Guarantee**
-  Microtasks (`Promise.then`, `queueMicrotask`) operate under *run-to-exhaustion semantics*. The event loop will fully drain the microtask queue before transitioning to any macrotask phase (`setTimeout`, I/O polling). This creates implicit prioritization layers that directly affect system fairness and latency.
+GitHub’s Mermaid renderer has a **more restricted parser than Mermaid CLI**.
 
-* **💤 Suspension Without Blocking (Continuation Capture Model)**
-  `await` does not block threads. It performs **continuation capture**, suspending execution context state into heap-managed closures while yielding control back to the event loop scheduler.
+It fails when it encounters:
 
-* **🎯 Scheduler vs. Executor Separation**
-  Application code defines **dependency topology and intent**, while the JavaScript runtime determines **temporal execution ordering**. This separation is critical in understanding non-deterministic latency behavior in distributed async systems.
+### ❌ Unsafe constructs in node labels
 
----
+* parentheses: `( )`
+* colons inside complex labels: sometimes safe, sometimes not
+* parentheses even when escaped: `\( \)` ❌ (still parsed early)
+* “semantic punctuation” in labels (especially combined patterns)
 
-### 🧵 Event Loop Phase Model
-
-```mermaid
-flowchart LR
-    A[Call Stack] --> B[Microtask Queue]
-    B --> C[Macrotask Queue]
-    C --> D[Event Loop Tick]
-    D --> A
-```
-
-This loop defines the **fundamental execution contract of JavaScript concurrency**.
-
----
-
-## 🏗️ CLI Dashboard System Architecture
-
-The CLI dashboard is modeled as an **asymmetric asynchronous dependency graph**, where independent I/O domains are executed concurrently and synchronized only at defined aggregation barriers.
-
-This avoids **temporal coupling**, where unrelated operations become serialized due to poor dependency modeling.
-
----
-
-### 🧩 System Execution Flow
-
-You’re hitting a **Mermaid renderer incompatibility**, not just a syntax issue.
-
-In GitHub’s Mermaid implementation, **backslash-escaped parentheses inside node labels are NOT reliably supported** in flowcharts. So this part:
+So this line is fundamentally fragile:
 
 ```mermaid
 E[AI Streaming Engine \(SSE Pipeline\)]
 ```
 
-still gets parsed incorrectly because GitHub strips or misinterprets the escape before Mermaid sees it.
+Even though it *looks escaped*, GitHub parses it incorrectly **before Mermaid ever evaluates it**.
 
 ---
 
-# ✅ Robust Fix (Works across GitHub, Notion, most renderers)
+# ✅ The Real Fix Strategy (Production-safe rule)
+
+You should adopt a strict **“Mermaid Dialect Subset for GitHub”**:
+
+## 🚨 Rule Set
+
+1. ❌ No parentheses in node labels
+2. ❌ No escaped parentheses
+3. ❌ No commas in labels
+4. ✅ Use `-` for hierarchy separation
+5. ✅ Keep labels “flat text only”
+
+---
+
+# ✅ Correct Final Version 
+
 
 ```mermaid 
 flowchart TD
