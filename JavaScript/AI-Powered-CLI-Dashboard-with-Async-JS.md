@@ -80,8 +80,8 @@ flowchart TD
     C1 --> D[Aggregation Barrier: Promise.all]
     C2 --> D
 
-    D --> E[AI Streaming Engine (SSE Pipeline)]
-    E --> F[Terminal Render Stream (stdout)]
+    D --> E[AI Streaming Engine \(SSE Pipeline\)]
+    E --> F[Terminal Render Stream stdout]
 ```
 
 Key design principle: **isolate I/O domains, then re-compose via deterministic synchronization barriers**.
