@@ -22,60 +22,13 @@ Production systems built on streaming AI APIs (e.g., OpenRouter) must therefore 
 
 ### 🔁 Execution Topology (Runtime Abstraction Layer)
 
----
-Good — this is now very close to production-grade technical writing. The remaining issue is **not conceptual anymore**, it’s purely **Mermaid + GitHub rendering constraints discipline**.
-
-Let’s lock this down properly so it never breaks again.
-
----
-
-# 🧠 Root Cause (Why your diagram still fails in GitHub)
-
-GitHub’s Mermaid renderer has a **more restricted parser than Mermaid CLI**.
-
-It fails when it encounters:
-
-### ❌ Unsafe constructs in node labels
-
-* parentheses: `( )`
-* colons inside complex labels: sometimes safe, sometimes not
-* parentheses even when escaped: `\( \)` ❌ (still parsed early)
-* “semantic punctuation” in labels (especially combined patterns)
-
-So this line is fundamentally fragile:
-
 ```mermaid
-E[AI Streaming Engine \(SSE Pipeline\)]
-```
-
-Even though it *looks escaped*, GitHub parses it incorrectly **before Mermaid ever evaluates it**.
-
----
-
-# ✅ The Real Fix Strategy (Production-safe rule)
-
-You should adopt a strict **“Mermaid Dialect Subset for GitHub”**:
-
-## 🚨 Rule Set
-
-1. ❌ No parentheses in node labels
-2. ❌ No escaped parentheses
-3. ❌ No commas in labels
-4. ✅ Use `-` for hierarchy separation
-5. ✅ Keep labels “flat text only”
-
----
-
-# ✅ Correct Final Version 
-
-
-```mermaid 
 flowchart TD
     A[User Boot / Request] --> B[Auth Boundary Layer]
     B --> C1[User Preferences Service]
     B --> C2[System Telemetry Service]
 
-    C1 --> D[Aggregation Barrier: Promise.all]
+    C1 --> D[Aggregation Barrier - Promise.all]
     C2 --> D
 
     D --> E[AI Streaming Engine - SSE Pipeline]
