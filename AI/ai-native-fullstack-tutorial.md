@@ -111,7 +111,7 @@ Human → Architecture → Reasoning → Implementation → Validation → Memor
 
 Each layer has a distinct responsibility and a distinct failure mode.
 
-```
+```mermaid
 flowchart TD
 
 H[Human Authority]
