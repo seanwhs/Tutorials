@@ -6,301 +6,310 @@
 
 # ⚠️ Core Principle
 
-This is not “autonomous coding”.
+This system is **not autonomous coding**, and it must never be treated as such.
 
 It is:
 
-> **A deterministic engineering system where AI operates as a constrained, role-separated pair programming partner under explicit human control and Git-enforced governance.**
+> **A deterministic, human-governed engineering system where AI functions as a constrained, role-separated pair programming partner under explicit control, review discipline, and Git-enforced safety boundaries.**
 
-This system is designed to behave like a **senior engineering pair**, not an agentic coder.
+The AI does not “own” execution. It participates as a **bounded collaborator inside an engineered workflow**.
 
-Every change must remain:
+The system is designed to behave like a **senior engineering pair**, not an agentic software developer.
 
-* **Explainable** → reasoning is inspectable
-* **Reviewable** → diff-first workflow
-* **Reversible** → Git-backed safety
-* **Testable** → behavior is verifiable
+---
 
-If a change cannot satisfy these properties, it is rejected by design.
+## 🧩 Non-Negotiable Engineering Properties
+
+Every change must satisfy all four properties simultaneously:
+
+* **Explainable** → Every transformation can be reasoned about and inspected
+* **Reviewable** → All changes are diff-based and explicitly inspectable before acceptance
+* **Reversible** → Git history allows safe rollback of any state
+* **Testable** → Behavior can be verified through automated or explicit validation
+
+If any property is violated, the change is rejected by design—no exceptions.
 
 ---
 
 # 🧠 1. System Overview (Pair Programming Architecture)
 
-This system models software development as a **continuous collaborative loop between human intent and AI execution**, not a prompt-response cycle.
+The system models software development as a **continuous closed-loop collaboration system** between human intent and AI-assisted execution.
 
-```text
-                ┌──────────────────────────┐
-                │   Human Engineer (You)   │
-                │                          │
-                │  - final authority       │
-                │  - architectural intent  │
-                │  - risk acceptance       │
-                └────────────┬─────────────┘
-                             │
-        intent + constraints  │  review + decisions
-                             ▼
-                ┌──────────────────────────┐
-                │  AI Pair Programmer      │
-                │ (Continue + Gemini CLI)  │
-                │                          │
-                │  contextual reasoning    │
-                │  code transformation     │
-                │  critique simulation     │
-                └────────────┬─────────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        ▼                    ▼                    ▼
-┌──────────────┐   ┌────────────────┐   ┌──────────────────┐
-│ Code Agent    │   │ Review Agent   │   │ Test Agent       │
-│ (builder)     │   │ (critic)       │   │ (validator)      │
-│              │   │                │   │                  │
-│ writes diffs  │   │ finds flaws    │   │ asserts behavior │
-└──────┬───────┘   └──────┬─────────┘   └────────┬─────────┘
-       │                  │                      │
-       └──────────┬───────┴──────────┬──────────┘
-                  ▼                  ▼
-        ┌────────────────────────────────────┐
-        │   Git-Gated Change System         │
-        │                                  │
-        │  - atomic commits per intent      │
-        │  - diff-first inspection          │
-        │  - rollback as default escape     │
-        │  - history = system memory        │
-        └────────────────────────────────────┘
+```mermaid
+flowchart LR
+
+H[👤 Human Engineer<br/>Intent • Constraints • Approval]
+
+A[🧠 AI Pair Programmer<br/>Continue.dev + Gemini CLI]
+
+C[Code Changes<br/>Minimal Diffs]
+R[Review Feedback<br/>Critique Layer]
+T[Tests & Validation<br/>Behavioral Verification]
+
+G[(Git Repository<br/>System Memory)]
+
+H -->|Intent / Direction| A
+A -->|Propose Implementation| C
+C -->|Generate Reviewable Diff| R
+R -->|Fix / Iterate Loop| C
+
+C -->|Run Validation| T
+T -->|Results / Signals| H
+
+H -->|Approve + Commit| G
 ```
 
 ---
 
-# 🧠 2. The Pair Programming Model (Core Upgrade)
+## 🧠 System Interpretation
 
-This system is explicitly designed around **three cognitive loops**:
+This is not a request-response system.
+
+It is a **closed engineering loop**:
+
+* Human defines *intent and constraints*
+* AI generates *bounded implementation proposals*
+* Review layer enforces *discipline and correctness*
+* Validation layer enforces *behavioral truth*
+* Git captures *final system state as durable memory*
 
 ---
 
-## 🔁 Loop 1: Intent → Translation
+# 🧠 2. The Core Working Loop (How Work Actually Happens)
 
-Human expresses *intent*, not code.
+All engineering activity in this system follows a strict three-phase loop.
+
+---
+
+## 🔁 Phase 1: Intent → Translation (Human → System Understanding)
+
+The human does **not write code**.
+
+Instead, the human expresses:
+
+* intent
+* constraints
+* expected outcome
+* risk tolerance
 
 Example:
 
-```
-Refactor authentication to support multi-tenant isolation.
-```
+> “Refactor authentication to support multi-tenant isolation”
 
-AI translates into:
+The AI responds with:
 
-* architectural interpretation
-* risk analysis
-* incremental plan
+* interpretation of intent
+* system impact analysis
+* architectural implications
+* incremental execution plan
+* identified risks and edge cases
 
----
-
-## 🔁 Loop 2: Implementation → Critique
-
-AI writes code in **small diffs only**, then immediately self-critiques.
-
-* Code Agent proposes change
-* Review Agent attacks it
-* Human decides
-
-This prevents “single-pass hallucinated implementations”.
+This phase ensures **alignment before execution begins**.
 
 ---
 
-## 🔁 Loop 3: Validation → Memory
+## 🔁 Phase 2: Build → Critique (Execution + Adversarial Review)
 
-Every change must produce:
+The AI generates **small, reviewable diffs only**.
 
-* tests OR justification for missing tests
-* observable behavior validation
-* Git commit as system memory
+Then the system immediately applies adversarial reasoning:
+
+* Code Agent produces implementation
+* Review Agent challenges correctness, safety, and architecture
+* Iteration loop continues until acceptable quality is reached
+
+Key rule:
+
+> No implementation is accepted without critique pressure.
+
+This prevents single-pass hallucinated or unsafe changes.
 
 ---
 
-# 🧩 3. Role Design (Production Engineering Personas)
+## 🔁 Phase 3: Validate → Commit (Truth Enforcement + Memory Write)
+
+Every accepted change must produce:
+
+* automated tests OR explicit justification for missing tests
+* observable validation of behavior
+* explicit Git commit capturing the state transition
+
+Git is treated as:
+
+> **The system’s permanent memory layer of engineering decisions**
 
 ---
 
-## 🧠 3.1 Code Agent (Builder / Implementation Partner)
+# 🧩 3. Role Model (Minimal but Powerful Engineering Separation)
 
-The Code Agent behaves like a **junior engineer under strict senior constraints**.
+The system is intentionally split into **four cognitive roles**, each enforcing a different constraint.
+
+---
+
+## 🧠 Code Agent (Builder / Implementation Partner)
+
+The Code Agent behaves like a **junior engineer operating under strict senior-level constraints**.
 
 ### Responsibilities:
 
-* implement smallest safe change
-* preserve system invariants
-* avoid architectural creativity unless requested
-* prioritize diff minimization over elegance
+* produce minimal, incremental diffs
+* preserve existing system behavior unless explicitly instructed otherwise
+* avoid unnecessary abstraction or architectural redesign
+* prioritize correctness and clarity over elegance or optimization
+* assume every change will be heavily reviewed
 
-### Prompt Pattern:
+### Core Constraint:
 
-```text
-You are a production-grade code implementation agent.
-
-Constraints:
-- make minimal diffs
-- preserve existing behavior unless explicitly asked to change it
-- follow existing architectural boundaries
-- do not introduce new abstractions unless necessary
-- prefer simplicity over design idealism
-- assume every change will be reviewed strictly
-
-Task:
-{feature / bug / refactor request}
-```
+> “Change as little as possible while satisfying the intent.”
 
 ---
 
-## 🧠 3.2 Review Agent (Senior Staff Critic)
+## 🧠 Review Agent (Senior Staff Critic / Adversarial Layer)
 
-This is the **system's built-in adversarial engineer**.
+The Review Agent is the system’s **built-in skepticism engine**.
 
 It assumes:
 
-> “Every change is guilty until proven correct.”
+> “Every change is incorrect until proven safe.”
 
 ### Responsibilities:
 
-* detect hidden coupling
-* identify regression risk
-* enforce architectural consistency
+* identify hidden edge cases and failure modes
+* detect architectural inconsistencies
+* surface security, concurrency, and performance risks
 * challenge assumptions in implementation
+* enforce system-level consistency
 
-### Prompt:
+### Core Constraint:
 
-```text
-You are a strict senior/staff engineer performing a critical review.
-
-Evaluate this change for:
-
-- correctness
-- hidden edge cases
-- concurrency issues
-- security risks
-- performance degradation
-- architectural violations
-- unnecessary complexity
-
-Be explicit. Be critical. Do not be polite.
-```
+> “Find what breaks before it reaches production.”
 
 ---
 
-## 🧪 3.3 Test Agent (Behavioral Truth Enforcer)
+## 🧪 Test Agent (Validation & Behavioral Truth Layer)
 
-This agent ensures:
-
-> “If it is not tested, it is not real.”
+The Test Agent enforces **behavioral correctness as truth, not assumption**.
 
 ### Responsibilities:
 
-* generate missing test cases
-* identify failure modes
-* validate edge behavior
-* enforce regression coverage
+* generate missing test coverage
+* identify regression risks
+* validate edge-case behavior
+* ensure correctness through observable outputs
+* ensure system behavior remains stable after change
 
-### Prompt:
+### Core Constraint:
 
-```text
-You are a QA / test engineering agent.
-
-Your job:
-- validate correctness of implementation
-- identify missing test coverage
-- enumerate edge cases
-- identify regression risks
-- suggest concrete test cases
-
-Focus on behavior, not implementation.
-```
+> “If it is not validated, it does not exist.”
 
 ---
 
-## 🧠 3.4 Orchestrator (Human-Controlled AI Coordinator)
+## 🧠 Human Engineer (Orchestrator / Final Authority)
 
-The orchestrator is **not automated**.
+The human is not replaced or abstracted away.
 
-It is the human engineer acting as:
+The human is the:
 
 * system scheduler
 * risk authority
-* final decision layer
+* final approval gate
+* architectural decision-maker
 
-Responsibilities:
+### Responsibilities:
 
-* decide which agent runs
-* approve or reject diffs
-* trigger iteration cycles
-* enforce system discipline
+* define intent and constraints
+* approve or reject changes
+* control iteration cycles
+* decide acceptable risk thresholds
+
+### Core Constraint:
+
+> “The system executes only what the human explicitly accepts.”
 
 ---
 
-# ⚙️ 4. Core Pair Programming Execution Loop
+# ⚙️ 4. Core Execution Loop (Engineering Lifecycle)
 
 ```text
 1. Human defines intent
-2. AI translates intent into plan
+2. AI translates intent into structured plan
 3. Code Agent implements minimal change
 4. Review Agent critiques aggressively
-5. Human approves or rejects
+5. Human evaluates and decides
 6. Test Agent validates behavior
-7. Git commit captures state
+7. Git commits final system state
 ```
 
-This loop is **continuous and iterative**, not linear.
+This loop is:
+
+* continuous
+* iterative
+* deterministic
+* human-gated
 
 ---
 
-# 🔁 5. VS Code + Continue.dev Execution Flow
+# 🔁 5. VS Code + Continue.dev Execution Workflow
 
 ---
 
-## Step 1 — Context Loading (Shared Mental Model)
+## Step 1 — Context Loading (System Awareness Phase)
 
-```
+```text
 Explain this module, its dependencies, and its risks.
 ```
+
+Establishes shared understanding of system boundaries.
 
 ---
 
 ## Step 2 — Intent Definition (Human → AI Contract)
 
-```
+```text
 We want to implement X. Propose a safe incremental approach.
 ```
+
+Defines scope, constraints, and expectations.
 
 ---
 
 ## Step 3 — Implementation (Code Agent Mode)
 
+```text
+Implement this feature with minimal diff and no unnecessary refactoring.
 ```
-Implement this feature with minimal diff size and no refactoring beyond necessity.
-```
+
+Produces constrained, reviewable change sets.
 
 ---
 
-## Step 4 — Review Gate (Adversarial Mode)
+## Step 4 — Review Gate (Adversarial Analysis)
 
+```text
+Review this change strictly like a senior engineer.
 ```
-Review this change as a senior engineer. Be strict and critical.
-```
+
+Triggers adversarial validation before acceptance.
 
 ---
 
 ## Step 5 — Fix Cycle (Iterative Correction Loop)
 
+```text
+Address all issues found in review.
 ```
-Address all issues raised in the review.
-```
+
+Refines implementation until acceptable.
 
 ---
 
-## Step 6 — Validation (Truth Enforcement)
+## Step 6 — Validation (Behavioral Verification)
 
+```text
+Generate tests and validate edge cases.
 ```
-Generate tests and validate edge cases for this implementation.
-```
+
+Ensures correctness is observable and enforced.
 
 ---
 
@@ -311,50 +320,56 @@ git add .
 git commit -m "feat: implement X with validated AI pair programming workflow"
 ```
 
+Finalizes system state transition.
+
 ---
 
-# 🧱 6. Git-Gated Engineering System
+# 🧱 6. Git as the System Memory Layer
 
-Git is not version control here.
+Git is not treated as a tool.
 
-It is:
+It is treated as:
 
-> **The memory + safety boundary of the AI engineering system**
+> 🧠 The authoritative memory system of engineering decisions
+
+Every commit represents a **discrete reasoning step in system evolution**.
 
 ---
 
 ## Commit Semantics
 
-| Stage       | Meaning           |
-| ----------- | ----------------- |
-| `docs:`     | intent / design   |
-| `feat:`     | behavior addition |
-| `fix:`      | correction        |
-| `refactor:` | structural change |
-| `test:`     | validation layer  |
+| Type       | Meaning                               |
+| ---------- | ------------------------------------- |
+| `docs`     | intent / design definition            |
+| `feat`     | new system behavior                   |
+| `fix`      | correction of incorrect behavior      |
+| `refactor` | structural/system improvement         |
+| `test`     | validation and behavioral enforcement |
 
 ---
 
-## Example Flow
+## Example Decision Chain
 
 ```bash
 git commit -m "docs: define authentication redesign"
 git commit -m "feat: implement token validation layer"
 git commit -m "fix: handle expired session edge case"
-git commit -m "test: add multi-tenant auth coverage"
+git commit -m "test: add multi-tenant authentication coverage"
 ```
 
-Each commit = **atomic reasoning unit**
+Each commit is:
+
+> A single atomic unit of engineering reasoning.
 
 ---
 
-# 🧠 7. Continue.dev Production Configuration
+# 🧠 7. Continue.dev Configuration (Production Mode)
 
 ```json
 {
   "models": [
     {
-      "title": "Primary Engineer",
+      "title": "AI Pair Programmer",
       "provider": "openai",
       "model": "gpt-4o"
     }
@@ -369,15 +384,15 @@ Each commit = **atomic reasoning unit**
   "customCommands": [
     {
       "name": "review",
-      "prompt": "Perform strict senior engineer review. Focus on correctness, safety, and architecture."
+      "prompt": "Review strictly for correctness, safety, architecture, and hidden edge cases."
     },
     {
       "name": "refactor",
-      "prompt": "Refactor with production constraints: minimal diff, preserve behavior, avoid over-engineering."
+      "prompt": "Refactor with production constraints: minimal diff, preserve behavior, avoid unnecessary abstraction."
     },
     {
       "name": "test",
-      "prompt": "Generate comprehensive tests including edge cases and failure modes."
+      "prompt": "Generate comprehensive tests including edge cases, regressions, and failure modes."
     }
   ]
 }
@@ -385,60 +400,54 @@ Each commit = **atomic reasoning unit**
 
 ---
 
-# 🧠 8. Gemini CLI Role (System-Level Reasoning Layer)
+# 🧠 8. Gemini CLI (System-Level Reasoning Layer)
 
-Gemini CLI is used for:
+Gemini CLI operates as a **global reasoning layer over the entire codebase**.
 
-* repository-wide reasoning
-* architecture decomposition
-* dependency graph analysis
-* system-level debugging
-* cross-module impact tracing
+It is used for:
 
----
+* repository-wide architectural analysis
+* dependency graph interpretation
+* system decomposition
+* cross-module impact analysis
+* deep debugging of systemic failures
 
-## Example System Query:
+### Example:
 
-```
-Analyze this repository for:
-- architectural drift
-- hidden coupling
-- scalability bottlenecks
-- systemic failure risks
+```text
+Analyze this codebase for hidden coupling, architectural drift, and scalability risks.
 ```
 
 ---
 
-# 🔍 9. Production Debugging Loop
+# 🔍 9. Debugging Loop (When System Breaks)
+
+When failure occurs, the system follows a deterministic recovery process:
 
 ```text
 1. reproduce issue
-2. trace root cause
-3. locate module boundary violation
-4. propose fix
+2. identify root cause
+3. locate boundary violation
+4. design fix
 5. validate fix
 6. add regression test
 ```
 
----
+This ensures every failure becomes:
 
-## Debug Prompt
-
-```
-Trace the root cause of this bug and explain propagation through the system architecture.
-```
+> A permanent improvement to system robustness.
 
 ---
 
-# ⚡ 10. Feature Development Pipeline (Real Engineering Flow)
+# ⚡ 10. Feature Development Pipeline (End-to-End Flow)
 
 ```text
 1. define intent
-2. propose architecture
-3. incremental implementation
+2. design system approach
+3. implement incrementally
 4. adversarial review
 5. test generation
-6. performance validation
+6. validate behavior
 7. commit as system memory
 ```
 
@@ -446,71 +455,54 @@ Trace the root cause of this bug and explain propagation through the system arch
 
 # 🧠 11. Mental Model (Critical Shift)
 
-This system enforces:
-
----
-
 ## AI is NOT:
 
 * an autonomous developer
-* a single-shot generator
-* a free-form coder
-* a decision authority
-
----
+* a free-form code generator
+* a system authority
+* a decision-maker
 
 ## AI IS:
 
-* constrained pair programming partner
-* structured reasoning engine
-* adversarial reviewer simulation
-* deterministic diff generator
-* context-aware engineering assistant
+* a constrained engineering collaborator
+* a structured reasoning assistant
+* a diff-generation system under strict rules
+* an adversarial review simulator
 
 ---
 
-# 🔒 12. Production Guardrails (Non-Negotiable)
+# 🔒 12. Guardrails (Non-Negotiable System Rules)
 
-* No multi-file rewrite without review phase
-* No commit without human approval
-* No silent refactoring
+* No change without review
+* No commit without explicit approval
+* No silent or undocumented refactors
 * No untested production changes
-* No architecture changes without explicit design step
+* No multi-file rewrites without intent specification
 * No skipping Git checkpoints
-* No bypassing review agent
+* No bypassing review phase
 
 ---
 
-# 🚀 13. What You Now Have
+# 🚀 13. Final System Outcome
 
-You are operating a system that enables:
+You now operate:
 
----
+## 🧠 A disciplined AI pair programming system
 
-## 🧠 Engineering Capabilities
+With:
 
-* production-grade feature development
-* safe AI-assisted refactoring
-* structured debugging workflows
-* architecture-aware reasoning loops
-* adversarial code review simulation
-
----
-
-## ⚙️ System Capabilities
-
-* Git-gated execution memory
-* multi-agent reasoning roles
-* deterministic review cycles
-* test-driven validation loops
-* reproducible engineering history
+* structured collaboration loops
+* adversarial review enforcement
+* Git-backed engineering memory
+* test-driven correctness validation
+* human-controlled governance layer
 
 ---
 
-# 🧭 Final Upgrade Identity
+# 🧭 Final Identity Shift
 
-You are no longer using AI tools.
+You are no longer “using AI tools”.
 
-You are operating:
+You are:
 
-> 🧠 A production-grade AI pair programming system with enforced engineering discipline and adversarial reasoning built in.
+> 🧠 Operating a controlled engineering system where AI functions as a constrained senior pair programmer under strict software engineering discipline.
