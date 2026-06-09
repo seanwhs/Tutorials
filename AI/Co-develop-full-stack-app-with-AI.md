@@ -1,4 +1,4 @@
-**# Co-Developing a Full-Stack Next.js App with Continue + Gemini-CLI**
+# **Co-Developing a Full-Stack Next.js App with Continue + Gemini-CLI**
 
 This guide teaches you exactly **how to co-develop** a production-grade full-stack application using **Continue** (the powerful in-editor AI for VS Code) and **Gemini-CLI** (the terminal-based AI agent) working together. 
 
