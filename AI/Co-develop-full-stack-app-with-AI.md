@@ -1,15 +1,15 @@
-**Co-Developing a Full-Stack Next.js App with Continue + Gemini-CLI**
+# **Co-Developing a Full-Stack Next.js App with Continue + Gemini-CLI**
 
 This guide delivers a **production-ready**, battle-tested workflow combining **Next.js App Router**, **Server Actions**, **TypeScript**, **Drizzle + PostgreSQL**, **Authentication**, and a powerful AI pair-programming setup with **Continue** (in-editor) and **Gemini-CLI** (terminal).
 
-### Why This Workflow Wins
+## Why This Workflow Wins
 - **Continue** shines at codebase-aware reasoning, refactors, and architecture inside VS Code.
 - **Gemini-CLI** excels at terminal orchestration, scaffolding, error analysis, and automation.
 - Clean division of labor keeps you in control and minimizes hallucinations.
 
 You’ll build a **Posts + Comments** community app with full CRUD, authentication (email/password), validation, optimistic patterns, and clean architecture — ready for scaling to real-time, file uploads, or testing.
 
-### What You’re Building
+## What You’re Building
 - **Next.js 15+ App Router** (Server Components default, streaming, partial prerendering)
 - **Server Actions** for all mutations (progressive enhancement)
 - **Drizzle ORM + PostgreSQL**
