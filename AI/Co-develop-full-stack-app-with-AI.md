@@ -1,622 +1,734 @@
-# Co-Developing a Full-Stack Blog Platform: The AI-Native Engineering Workflow
+# Co-Developing a Full-Stack Blog Platform
 
-> Building software with AI is no longer a coding problem.
->
-> It is a systems engineering problem.
+## An AI-Native Engineering System
 
-This guide demonstrates how to build a production-grade blog platform using:
+### (OpenCode + Continue.dev + Human-Governed Development)
 
-* Continue.dev
-* Gemini CLI
-* React
-* Next.js
-* shadcn/ui
-* Clerk
-* Sanity CMS
-* Appwrite
-* PostgreSQL
+Building software with AI is no longer primarily a coding task.
 
-But the objective is not simply to build a blog.
+It is a systems engineering discipline.
 
-The objective is to learn a repeatable engineering workflow for building real systems in the AI era.
+This guide uses a blog platform as the working example, with:
 
----
+- OpenCode  
+- Continue.dev  
+- React  
+- Next.js  
+- shadcn/ui  
+- Clerk  
+- Sanity CMS  
+- Appwrite  
+- PostgreSQL  
 
-# The AI Engineering Shift
+But the goal is not the application itself.
 
-Traditional software development assumed that writing code was expensive.
+The goal is to internalize a repeatable system for building production-grade software in an AI-native environment.
 
-Modern AI systems have changed that assumption.
+***
 
-Today:
+## Why This Is Not a Tool Replacement
 
-* generating code is cheap
-* generating components is cheap
-* generating APIs is cheap
-* generating boilerplate is nearly free
+Since Gemini CLI is no longer part of the stack, replacing it with OpenCode would be a category error.
 
-The bottleneck has moved.
+OpenCode is not a drop-in substitute.
 
-The new bottlenecks are:
-
-* requirements clarity
-* architecture quality
-* system correctness
-* integration complexity
-* validation
-* operational reliability
-
-The challenge is no longer:
-
-> "Can AI write this code?"
-
-The challenge is:
-
-> "Can we guide AI to build the correct system?"
-
----
-
-# The Strategic Split
-
-This workflow deliberately separates responsibilities between two AI systems.
-
-| Tool         | Role                | Responsibility                                    |
-| ------------ | ------------------- | ------------------------------------------------- |
-| Continue.dev | Codebase Expert     | Local implementation and contextual editing       |
-| Gemini CLI   | Engineering Copilot | Planning, architecture, reasoning, and validation |
-
-Many developers use both tools incorrectly.
-
-They ask both tools to generate code.
-
-That wastes their strengths.
-
-Instead:
-
-## Continue.dev
-
-Continue operates inside the repository.
-
-It understands:
-
-* project structure
-* existing files
-* component hierarchy
-* local conventions
-* implementation details
-
-Use Continue when asking:
+The original model framed responsibilities as:
 
 ```text
-How should this feature fit into the existing codebase?
+Continue.dev = implementation  
+Gemini CLI = reasoning
 ```
 
-Examples:
+That distinction no longer holds.
 
-* implementing components
-* refactoring services
-* updating routes
-* wiring Server Actions
-* migrating code
-* fixing local bugs
+Modern OpenCode operates across both domains:
 
-Think of Continue as:
+- repository-aware reasoning  
+- architectural analysis  
+- implementation orchestration  
+
+The shift is not a tool replacement.
+
+It is a change in how software systems are designed and governed.
+
+What was previously:
 
 ```text
-Codebase Memory
+Continue.dev + Gemini CLI
 ```
 
----
-
-## Gemini CLI
-
-Gemini operates outside the repository.
-
-It is better suited for:
-
-* architectural reasoning
-* system design
-* requirements engineering
-* implementation planning
-* debugging workflows
-* design reviews
-* operational analysis
-
-Use Gemini when asking:
+Becomes:
 
 ```text
-What should we build?
+Continue.dev + OpenCode
 ```
 
-or
+But more importantly, the system evolves into:
+
+- **Continue.dev** = Hands  
+- **OpenCode** = Brain + Repository Intelligence  
+- **Git** = Memory  
+- **Human** = Authority  
+- **Tests** = Reality  
+
+This is the transition from a **toolchain** to a **cognitive system**.
+
+***
+
+## The Engineering Shift
+
+Traditional development optimized for code production.
+
+Developers spent most of their effort:
+
+- writing logic  
+- wiring systems  
+- building APIs  
+- generating boilerplate  
+
+AI has reduced the cost of all of these.
+
+What is now scarce:
+
+- clear requirements  
+- sound architecture  
+- controlled integration  
+- validation discipline  
+- governance  
+- operational reliability  
+
+The central question has changed.
+
+Not:
+
+> Can AI build this?
+
+But:
+
+> Can we ensure the system being built is correct, safe, and maintainable?
+
+***
+
+## From Toolchain to Cognitive System
+
+Modern software development should no longer be viewed as:
 
 ```text
-Why is this system failing?
+Human → AI → Code
 ```
 
-Think of Gemini as:
+Instead, it should be understood as layered cognition:
 
 ```text
-Engineering Judgment
+Human → Architecture → Reasoning → Implementation → Validation → Memory
 ```
 
----
+Each layer has a distinct responsibility and failure mode.
 
-# The Most Important Rule
+### 🧠 The AI-Native Engineering Stack
 
-Do not ask AI to generate code first.
+Place this diagram immediately after the section above:
 
-Ask AI to think first.
+```mermaid
+flowchart TD
 
-Bad workflow:
+H[Human Authority]
+A[Architecture Layer]
+R[Reasoning Layer<br/>OpenCode]
+I[Implementation Layer<br/>Continue.dev]
+V[Validation Layer<br/>Tests]
+M[Memory Layer<br/>Git + ADR + System History]
+
+H --> A --> R --> I --> V --> M
+M --> R
+```
+
+This establishes the **closed-loop system**, not a linear pipeline.
+
+***
+
+## Cognitive Division of Labour
+
+The system flow is:
 
 ```text
-Feature Idea
- ↓
-Generate Code
- ↓
-Debug Forever
+Human → OpenCode → Continue.dev → Validation → Git/ADR
 ```
 
-AI-native workflow:
+This separation is what prevents:
+
+- hallucinated architectures  
+- hidden coupling  
+- uncontrolled drift  
+- fragile systems  
+
+OpenCode does not replace Continue.dev.
+
+It **constrains and directs** it.
+
+```mermaid
+flowchart LR
+
+H[Human<br/>Authority]
+
+O[OpenCode<br/>Brain + Repository Intelligence]
+
+C[Continue.dev<br/>Execution Layer]
+
+T[Validation<br/>Tests, Linters, Runtime Checks]
+
+G[(Git Memory)]
+A[(ADR Memory)]
+S[(System History)]
+
+H --> O
+O --> C
+C --> T
+T --> G
+
+O --> A
+T --> S
+```
+
+This clarifies **who does what** and where decisions persist.
+
+***
+
+## Human = Authority
+
+The human remains the only accountable entity in the system.
+
+AI generates possibilities.
+
+Humans approve consequences.
+
+Ownership includes:
+
+- architecture decisions  
+- risk acceptance  
+- prioritization  
+- production approval  
+- tradeoffs  
+
+**Core rule:**
+
+> Responsibility must align with authority.
+
+***
+
+## OpenCode = Brain + Repository Intelligence
+
+OpenCode’s primary value is not code generation.
+
+It is **judgment**.
+
+Use it for:
+
+- system design  
+- decomposition  
+- dependency analysis  
+- impact assessment  
+- debugging strategy  
+- architectural critique  
+- ADR generation  
+
+**Representative prompts:**
+
+- What are we actually building?  
+- What breaks if this changes?  
+- Where is coupling hidden?  
+- What assumptions are unsafe?  
+- Challenge this design.  
+
+OpenCode functions as:
 
 ```text
-Problem
- ↓
-Requirements
- ↓
-Architecture
- ↓
-Implementation Plan
- ↓
-Code
- ↓
-Validation
- ↓
-Refinement
+Engineering reasoning + system awareness
 ```
 
-The difference seems small.
+***
 
-The results are enormous.
+## Continue.dev = Hands
 
----
+Continue.dev operates at the execution layer.
 
-# The Source of Truth Principle
+It is grounded in the repository and current implementation state.
 
-AI performs dramatically better when given stable reference documents.
+Use it for:
 
-Before implementation begins, create:
+- feature development  
+- refactoring  
+- test generation  
+- code updates  
+- local debugging  
+
+**Representative prompts:**
+
+- Implement Phase 4  
+- Apply review feedback  
+- Preserve behavior while refactoring  
+- Generate tests for this module  
+
+Continue.dev is best understood as:
+
+```text
+A precise execution engine
+```
+
+***
+
+## The Prime Rule
+
+Do not start with code generation.
+
+Start with thinking.
+
+**Failure pattern:**
+
+```text
+Idea → Code → Debugging loop
+```
+
+**AI-native pattern:**
+
+```text
+Problem → Requirements → Architecture → Plan → Code → Validation → Refinement
+```
+
+Planning is no longer overhead.
+
+It is **risk control**.
+
+### 🔄 Problem → Production Workflow
+
+Add after: *The Most Important Rule*
+
+```mermaid
+flowchart LR
+
+P[Problem]
+R[Requirements]
+A[Architecture]
+D[Design Plan]
+I[Implementation]
+V[Validation]
+F[Feedback / Refinement]
+
+P --> R --> A --> D --> I --> V --> F --> A
+```
+
+Reinforces: **thinking is iterative, not linear**.
+
+***
+
+## Source of Truth
+
+AI systems require stable context.
+
+Without it, outputs degrade rapidly.
+
+**Minimum structure:**
 
 ```text
 docs/
 ├── requirements.md
 ├── architecture.md
 ├── implementation-plan.md
-├── adr/
 ├── risks.md
-└── roadmap.md
+├── roadmap.md
+├── prompts.md
+├── system-history.md
+└── adr/
 ```
 
-These files become the project's memory.
+These documents are not optional.
 
-Instead of prompting:
+They are the system’s **working memory**.
+
+***
+
+## Three-Layer Memory Architecture
+
+Most teams rely only on Git.
+
+That is insufficient for AI-assisted systems.
+
+You need three distinct memory layers:
+
+- **Git** → what changed  
+- **ADR** → why it changed  
+- **System history** → what is currently true  
+
+This prevents:
+
+- context collapse  
+- repeated mistakes  
+- architectural drift  
+
+### 📚 Three-Layer Memory Architecture
+
+```mermaid
+flowchart TD
+
+G[(Git)]
+A[(ADR)]
+S[(System History)]
+
+G -->|What changed| X[System Understanding]
+A -->|Why it changed| X
+S -->|What is true now| X
+```
+
+This is one of your strongest ideas—keep it visually simple and conceptual.
+
+***
+
+## Context Engineering
+
+Prompt quality is secondary.
+
+Context quality is decisive.
+
+**Weak:**
 
 ```text
-Build a blog platform.
+Create a blog editor
 ```
 
-you can prompt:
+**Strong:**
 
 ```text
-Review docs/requirements.md
-Review docs/architecture.md
-
-Implement Phase 4 according to the implementation plan.
+Review requirements.md, architecture.md, and ADRs.
+Implement Phase 4 under existing constraints.
+Follow prompts.md.
 ```
 
-This reduces:
+Better context produces better reasoning and safer execution.
 
-* hallucinations
-* inconsistency
-* architectural drift
-* duplicate solutions
+### 🧩 Context Engineering Model
 
----
+```mermaid
+flowchart LR
 
-# Context Engineering
+D[Docs<br/>requirements, architecture, ADRs]
+P[Prompts]
+C[Codebase State]
 
-Prompt engineering focuses on prompts.
+D --> X[Context]
+P --> X
+C --> X
 
-AI-native engineering focuses on context.
+X --> O[OpenCode Reasoning]
+O --> Q[Quality of Output]
+```
 
-A weak prompt:
+Key message: **context > prompting style**
+
+***
+
+## Contract-First Development
+
+Before writing code, define:
+
+- inputs  
+- outputs  
+- invariants  
+- side effects  
+
+**Example:**
 
 ```text
-Create a blog editor.
+Input: Draft article
+Output: Published article
+Invariant: Versioning is preserved
+Side effects: indexing, notifications, audit logs
 ```
 
-A strong prompt:
+Code should implement contracts.
 
-```text
-Review:
+Not invent them.
 
-- docs/requirements.md
-- docs/architecture.md
-- docs/adr/content-strategy.md
+### 🧱 Contract-First Development
 
-Implement the blog editor according to the approved architecture.
+```mermaid
+flowchart TD
 
-Follow all rules in PROMPTS.md.
+C[Contract Definition<br/>Inputs, Outputs, Invariants, Side Effects]
+
+D[Design]
+I[Implementation]
+T[Testing]
+
+C --> D --> I --> T
 ```
 
-The second prompt provides:
+This visually enforces: **contracts precede code**
 
-* requirements
-* constraints
-* architecture
-* decisions
-* standards
+***
 
-The AI now has context.
+## System Architecture (Blog Platform)
 
-Context is more important than prompting.
+The platform is intentionally layered:
 
----
+- **Presentation** (React, Next.js) — UI, routing, accessibility  
+- **Identity** (Clerk) — authentication and sessions  
+- **Content** (Sanity CMS) — editorial workflows and structured content  
+- **Transaction** (Appwrite, PostgreSQL) — user actions, analytics, state  
 
-# Planning Before Prompting
+Clear boundaries reduce coupling and increase evolvability.
 
-Before every major feature:
+### 🏗 Blog Platform Architecture
 
-Use Gemini CLI.
+Place immediately before: *Presentation Layer*
 
-Example:
+```mermaid
+flowchart TD
 
-```bash
-gemini
+UI[Presentation Layer<br/>Next.js + React]
+
+ID[Identity Layer<br/>Clerk]
+
+CM[Content Layer<br/>Sanity CMS]
+
+TX[Transaction Layer<br/>Appwrite + PostgreSQL]
+
+UI --> ID
+UI --> CM
+UI --> TX
 ```
 
-Prompt:
+Clean separation of responsibilities.
 
-```text
-Design a publishing workflow.
+***
 
-Include:
+## Presentation Layer
 
-- requirements
-- user stories
-- state transitions
-- database changes
-- UI requirements
-- security concerns
-- implementation phases
-```
+- **Technology**: React, Next.js, Tailwind, shadcn/ui  
+- **Responsibilities**: rendering, routing, accessibility, user interaction  
 
-Do not write code yet.
-
-Create the plan first.
-
-Review the plan.
-
-Challenge the assumptions.
-
-Only then implement.
-
----
-
-# Architecture of the Blog Platform
-
-This project intentionally separates concerns.
-
-## Frontend Layer
-
-Technology:
-
-* React
-* Next.js
-* Tailwind CSS
-* shadcn/ui
-
-Responsibilities:
-
-* rendering
-* user interactions
-* routing
-* accessibility
-* UI composition
-
----
+***
 
 ## Identity Layer
 
-Technology:
+- **Technology**: Clerk  
+- **Responsibilities**: authentication, authorization, session management, user identity  
 
-* Clerk
+Passwords should never be handled directly by application code.
 
-Responsibilities:
-
-* authentication
-* session management
-* user identity
-* role management
-
-The application should never manage passwords directly.
-
-Identity is delegated.
-
----
+***
 
 ## Content Layer
 
-Technology:
+- **Technology**: Sanity CMS  
+- **Responsibilities**: content management, author profiles, editorial workflow, categories, tags, previews  
 
-* Sanity CMS
+Content is managed separately from application state.
 
-Responsibilities:
-
-* blog content
-* author profiles
-* categories
-* tags
-* editorial workflows
-* content previews
-
-Sanity acts as the publishing system.
-
----
+***
 
 ## Transaction Layer
 
-Technology:
+- **Technology**: Appwrite, PostgreSQL  
+- **Responsibilities**: bookmarks, comments, reactions, analytics, application state  
 
-* Appwrite
-* PostgreSQL
+Transactional systems evolve differently from content systems.
 
-Responsibilities:
+Keep boundaries explicit.
 
-* user activity
-* analytics
-* bookmarks
-* comments
-* likes
-* application state
+***
 
-This distinction is critical.
+## Feature Delivery Lifecycle
 
-Content systems and transactional systems evolve differently.
+Every feature follows a governed loop:
 
-Treat them separately.
+1. Define problem  
+2. Load context  
+3. Analyze impact  
+4. Design solution  
+5. Challenge assumptions  
+6. Implement  
+7. Validate  
+8. Review  
+9. Commit  
+10. Update memory  
 
----
+Skipping steps introduces risk, not speed.
 
-# Architectural Decision Records (ADRs)
+### 🔄 Feature Delivery Lifecycle
 
-Every significant decision should be documented.
+```mermaid
+flowchart LR
 
-Example:
+P[Define Problem]
+C[Load Context]
+I[Impact Analysis]
+D[Design]
+A[Assumption Review]
+IM[Implementation]
+V[Validation]
+R[Review]
+G[Commit]
+M[Update Memory]
 
-```text
-docs/adr/
-├── 001-use-clerk.md
-├── 002-use-sanity.md
-├── 003-use-app-router.md
-├── 004-use-server-actions.md
-└── 005-content-vs-transaction-boundaries.md
+P --> C --> I --> D --> A --> IM --> V --> R --> G --> M
 ```
 
-When future changes occur:
+This maps directly to your operational workflow.
 
-The team can understand:
+***
 
-* why decisions were made
-* what alternatives were considered
-* what tradeoffs were accepted
+## Adversarial Review
 
-This dramatically improves AI collaboration.
+AI tends toward agreement.
 
----
+That is a liability.
 
-# The Implementation Loop
+Review must assume failure.
 
-Every feature follows the same process.
+**Focus on:**
 
-## Step 1
+- security  
+- data integrity  
+- concurrency  
+- performance  
+- maintainability  
 
-Define the problem.
+The goal is not approval.
 
-Example:
+The goal is discovering what breaks.
 
-```text
-Users need draft publishing.
+### ⚔️ Adversarial Review Model
+
+```mermaid
+flowchart TD
+
+I[Implementation]
+
+R[Adversarial Review<br/>Assume Failure]
+
+S[Security]
+D[Data Integrity]
+C[Concurrency]
+P[Performance]
+M[Maintainability]
+
+I --> R
+R --> S
+R --> D
+R --> C
+R --> P
+R --> M
 ```
 
----
+Frames review as **systematic risk discovery**.
 
-## Step 2
+***
 
-Use Gemini CLI.
+## Validation = Reality
 
-Generate:
+AI generates possibilities.
 
-* requirements
-* risks
-* architecture updates
-* implementation phases
-
----
-
-## Step 3
-
-Review the proposal.
-
-Challenge assumptions.
-
-Document decisions.
-
----
-
-## Step 4
-
-Use Continue.dev.
-
-Implement according to the approved plan.
-
-Example:
-
-```text
-@codebase
-
-Review docs/architecture.md.
-
-Implement Phase 6:
-
-Draft Publishing Workflow.
-```
-
----
-
-## Step 5
-
-Validate.
-
-Run:
-
-```bash
-npm run dev
-npm run build
-npm run lint
-```
-
-Never trust generated code.
-
-Verify it.
-
----
-
-## Step 6
-
-Review.
-
-Use both tools.
-
-Continue:
-
-```text
-@codebase
-
-Review for maintainability.
-```
-
-Gemini:
-
-```bash
-git diff | gemini -p "
-Perform a senior architecture review.
-"
-```
-
----
-
-# The Validation Loop
-
-AI accelerates creation.
-
-Validation preserves correctness.
+Validation determines truth.
 
 Always validate:
 
-* architecture
-* security
-* performance
-* accessibility
-* maintainability
-* deployment readiness
+- architecture  
+- security  
+- performance  
+- accessibility  
+- deployment readiness  
 
-A useful rule:
+**Principle:**
 
 ```text
 Generation creates value.
-
-Validation protects value.
+Validation protects it.
 ```
 
----
+### 🧪 Validation as Reality
 
-# The 60/40 Rule
+```mermaid
+flowchart LR
 
-Most developers spend:
+A[AI Generation]
+V[Validation]
+R[Reality]
+
+A --> V --> R
+```
+
+Minimal, but conceptually sharp.
+
+***
+
+## The 60/40 Shift
+
+**Old model:**
 
 ```text
-10% Planning
-90% Coding
+10% planning
+90% coding
 ```
 
-AI-native engineers reverse it.
+**AI-native model:**
 
 ```text
-60% Planning & Validation
-40% Implementation
+60% planning + validation
+40% implementation
 ```
 
-Because AI can generate implementation rapidly.
+Because coding is no longer the bottleneck.
 
-Human judgment is still required for:
+**Judgment is.**
 
-* tradeoffs
-* priorities
-* architecture
-* correctness
+***
 
----
+## Tool Usage Clarity
 
-# When To Use Which Tool
+**Use OpenCode when asking:**
 
-Use Gemini CLI when asking:
+- What should we build?  
+- Why is this failing?  
+- What risks exist?  
+- What architectural tradeoffs are involved?  
+
+**Use Continue.dev when asking:**
+
+- How should we implement it?  
+- How should this fit into the codebase?  
+- How should we refactor this safely?  
+
+***
+
+## Final Identity Model
+
+This system is best understood as:
 
 ```text
-What should we build?
+Human        = Authority
+OpenCode     = Brain
+Continue.dev = Hands
+Git          = Memory
+Tests        = Reality
 ```
 
-Examples:
+The objective is not faster code generation.
 
-* requirements
-* architecture
-* roadmaps
-* design reviews
-* debugging
-* deployment planning
+It is **controlled, reliable, and explainable software systems**.
 
-Use Continue.dev when asking:
+### 🚀 Final Identity Shift
 
-```text
-How should we implement it?
+```mermaid
+flowchart LR
+
+H[Human<br/>Authority]
+O[OpenCode<br/>Brain]
+C[Continue.dev<br/>Hands]
+G[(Git<br/>Memory)]
+T[Tests<br/>Reality]
+
+H --> O --> C --> T --> G
+G --> O
 ```
 
-Examples:
-
-* components
-* routes
-* APIs
-* forms
-* hooks
-* refactors
-
----
-
-# The Real Goal
-
-The purpose of AI-assisted development is not to generate more code.
-
-The purpose is to improve engineering judgment.
-
-The strongest AI-assisted engineers are not the fastest coders.
-
-They are the engineers who build the best systems.
-
-Use Gemini CLI to think.
-
-Use Continue.dev to implement.
-
-Use documentation to align both.
-
-And treat architecture, planning, and validation as first-class engineering activities rather than optional steps.
+This ties everything together into a **living system loop**.
