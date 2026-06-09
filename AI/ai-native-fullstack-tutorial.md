@@ -1,306 +1,464 @@
 # 🧠 AI-Native Engineering Workflow
 
-## A Closed-Loop Cognitive System for Modern Software Development
+## A Closed-Loop System for Co-Developing a Full-Stack Blog App
 
-This tutorial reframes software development as an **AI-native cognitive system**, not a coding activity.
+This is a **runtime execution tutorial**, not a conceptual guide.
 
-We are no longer using AI as a passive assistant.
+You are not building a blog.
 
-We are designing a **closed-loop engineering environment** where:
-
-* Thinking is distributed across specialized roles
-* Code is a *byproduct* of structured reasoning
-* Every decision is traceable, testable, and reversible
-
-Software engineering is no longer about writing code.
-
-It is about **orchestrating information flow, decision systems, and validation loops**.
+You are initializing a **controlled engineering system with deterministic state transitions across reasoning, execution, and memory layers**.
 
 ---
 
-# 🧩 Part 1: Cognitive System Architecture
+# 🧠 SYSTEM PRINCIPLE
 
-Before writing any code, explicitly define the system roles.
-If these boundaries blur, the system becomes un-auditable and unstable.
-
----
-
-## 🧠 Role Model
-
-| Role          | System Component | Responsibility                                                 |
-| ------------- | ---------------- | -------------------------------------------------------------- |
-| **Authority** | Human            | Defines intent, sets constraints, owns risk, final approval    |
-| **Brain**     | OpenCode         | System reasoning, architecture, analysis, adversarial thinking |
-| **Hands**     | Continue.dev     | Implementation, refactoring, code execution                    |
-| **Memory**    | Git + `/docs`    | Requirements, ADRs, history, system state                      |
-| **Reality**   | Tests / CI       | Objective validation and correctness enforcement               |
+> Code is not the product.
+> The product is a **verified, reproducible system state**.
 
 ---
 
-## 🔁 Closed-Loop Engineering System
+# 🧩 CORE ROLE MODEL
+
+| Role         | System Component | Responsibility                                           |
+| ------------ | ---------------- | -------------------------------------------------------- |
+| 🧠 Authority | Human            | Intent, approval, constraint arbitration                 |
+| 🧠 Brain     | OpenCode         | Architecture, reasoning, contracts, adversarial analysis |
+| ⚙️ Hands     | Continue.dev     | File-level implementation and refactoring                |
+| 🧾 Memory    | Git + `/docs`    | Requirements, ADRs, constraints, event logs              |
+| 🧪 Reality   | CI / Tests       | Truth validation                                         |
+| 👁 Observer  | Drift Monitor    | Entropy detection + system halt                          |
+
+---
+
+# 🔁 CORE EXECUTION LOOP (ALWAYS ACTIVE)
 
 ```mermaid
 flowchart LR
-A[Authority: Intent] --> B[Brain: Reasoning]
-B --> C[Hands: Implementation]
-C --> D[Reality: Tests / CI]
-D --> E[Memory: Git / Docs]
-E --> B
-D --> A
+A[Intent] --> B[Context Load]
+B --> C[Contract Definition]
+C --> D[Adversarial Review]
+D --> E[Implementation]
+E --> F[Validation]
+F --> G[Memory Update]
+G --> H[Constraint Compilation]
+H --> B
 ```
 
-### Loop semantics
+---
 
-* Intent becomes specification
-* Specification becomes design
-* Design becomes implementation
-* Implementation becomes evidence
-* Evidence updates memory
-* Memory reshapes future intent
+# 🚀 PHASE 0 — SYSTEM BOOTSTRAP (REALITY INITIALIZATION)
 
-This is a **self-correcting engineering loop**.
+This phase establishes:
+
+* Memory Layer
+* Execution Layer
+* Constraint Layer
+* Event Layer
 
 ---
 
-# 🏗️ Part 2: Cognitive Scaffolding (System Bootstrap)
-
-The repository is not a codebase.
-
-It is the **external memory of the engineering system**.
-
----
-
-## Step 1: Initialize System Structure
+## ⚙️ Step 0.1 — Initialize Project Structure
 
 ```bash
+npx create-next-app@latest ai-blog --typescript --tailwind --eslint
+cd ai-blog
+
 mkdir -p docs/adr \
          docs/requirements \
          docs/history \
-         src/components \
+         docs/events \
+         docs/constraints \
          db/migrations \
          inngest/functions
 ```
 
-This is not folder creation.
+---
 
-This is **memory architecture design**.
+### 🧠 Design Principle
+
+> `/docs` is NOT application code.
+> It is **system memory and runtime truth**.
 
 ---
 
-## Step 2: Generate System Truth (AI Bootstrapping)
+## ⚙️ Step 0.2 — Define System Stack Reality
 
-Instead of manually writing documentation, bootstrap the system via reasoning.
+Create:
 
-> **Prompt (Brain Layer — OpenCode):**
-> Build a full-stack CRUD blog using Next.js, Clerk, Sanity, Neon, and Inngest.
+```
+/docs/requirements/system_stack.md
+```
+
+### Content:
+
+```md
+# System Stack Reality (ADR-000)
+
+- Framework: Next.js (App Router)
+- Auth: Clerk
+- CMS: Sanity
+- Database: Neon Postgres
+- Events: Inngest
+- Type Safety: TypeScript + Zod
+```
+
+---
+
+# 🧠 PHASE 0.3 — SYSTEM BOOTSTRAP (OPENCODE EXECUTION)
+
+## ⚠️ Important Distinction
+
+At this stage:
+
+* OpenCode **does NOT write files**
+* OpenCode generates **system artifacts**
+* Continue.dev or CLI writes them
+
+---
+
+## 🧠 OpenCode — SYSTEM BOOTSTRAP PROMPT
+
+> You are the System Brain.
 >
-> Generate:
+> Design a production-grade full-stack blog system using:
+> Next.js, Clerk, Sanity, Neon, Inngest.
 >
-> 1. `docs/requirements.md` (MVP definition)
-> 2. `docs/adr/ADR-001.md` (architecture decision + tradeoffs + risks + alternatives)
-
----
-
-# 🔄 Part 3: Contract-First Build Loop
-
-Never start with code.
-
-Start with **contracts, invariants, and failure modes**.
-
----
-
-## Step 3: Define Feature Contracts
-
-> **Prompt:**
-> Define the contract for the “Post Comment” feature:
+> Output:
 >
-> * Inputs
-> * Outputs
-> * Invariants
-> * Side effects
-> * Failure modes
+> 1. `docs/requirements/requirements.md`
+> 2. `docs/adr/ADR-001.md`
+>
+> Include:
+>
+> * scaling assumptions
+> * failure modes
+> * vendor lock-in risks
+> * event-driven architecture justification
+> * consistency tradeoffs
 
 ---
 
-## Step 4: Adversarial Design Review
+## 🧠 Expected Output Type
 
-Before implementation, force failure analysis.
+OpenCode produces:
 
-> **Prompt:**
-> Assume this system runs at scale.
+* structured requirement spec
+* architectural decision record
+* failure model reasoning
+
+NOT file operations.
+
+---
+
+## ⚙️ Continue.dev Instruction (Execution Layer)
+
+Run in IDE:
+
+> “Create files exactly as specified in `/docs/requirements/` and `/docs/adr/` using OpenCode output. Ensure folder structure matches runtime spec.”
+
+---
+
+# 🧠 PHASE 1 — CONTEXT LOAD (SYSTEM RECONSTRUCTION)
+
+This is the **first runtime checkpoint**.
+
+---
+
+## 🧠 OpenCode — GLOBAL RECONSTRUCTION
+
+### Prompt:
+
+> Read and synthesize:
+>
+> * `/docs/requirements/*`
+> * `/docs/adr/*`
+> * `/docs/history/*`
+>
+> Output:
+>
+> * active system constraints
+> * architectural invariants
+> * known risks
+> * unresolved assumptions
+> * system dependency graph
+
+---
+
+## ⚙️ Continue.dev — LOCAL RECONSTRUCTION
+
+### Prompt:
+
+> Analyze repository structure.
+>
+> Output:
+>
+> * module map
+> * dependency graph
+> * feature impact map for "User Profile Syncing"
+
+---
+
+# 📐 PHASE 1.5 — CONSTRAINT COMPILATION (NEW RUNTIME STEP)
+
+This is the key upgrade in v2.2.
+
+---
+
+## 🧠 OpenCode Task
+
+> Compile all system constraints into a single executable runtime artifact.
+
+---
+
+## 📄 OUTPUT FILE
+
+```
+/docs/constraints/active_constraints.md
+```
+
+---
+
+## 📋 CONTENT STRUCTURE
+
+```md
+# Active System Constraints
+
+## Architectural Invariants
+- All cross-service mutations must go through event layer (Inngest)
+- No direct coupling between UI and external services
+- All writes must be idempotent
+
+## System Guarantees
+- State changes are event-sourced
+- No silent side effects allowed
+- All failures must be observable
+
+## Current Risks
+- Vendor dependency (Clerk, Sanity)
+- Event system latency
+```
+
+---
+
+## 🧠 Meaning of This Step
+
+> This file becomes the **runtime truth contract for all future execution**
+
+If this file is missing or outdated → system is invalid.
+
+---
+
+# 📐 PHASE 2 — CONTRACT DEFINITION (NO CODE ALLOWED)
+
+---
+
+## 🧠 OpenCode Prompt
+
+> Define contract for: **User Profile Syncing**
+>
+> Include:
+
+* inputs (Clerk → system)
+* outputs (Neon DB state)
+* invariants
+* failure modes
+* retry strategy
+* idempotency guarantees
+* event triggers
+
+---
+
+## ⚠️ RULE
+
+If contract is ambiguous:
+
+→ OpenCode must refine before Continue.dev is allowed to proceed
+
+---
+
+# ⚔️ PHASE 3 — ADVERSARIAL REVIEW (PRE-MORTEM)
+
+---
+
+## 🧠 OpenCode Prompt
+
+> Simulate production at scale.
 >
 > Identify:
+
+* race conditions
+* DB inconsistency scenarios
+* auth bypass risks
+* event duplication issues
+* external service failure chains
+
+> Rank by severity (LOW → CRITICAL)
+
+---
+
+## 🚨 RULE
+
+If HIGH or CRITICAL exists:
+
+→ MUST generate ADR update
+
+---
+
+# ⚙️ PHASE 4 — IMPLEMENTATION (CONTINUE.DEV ONLY)
+
+---
+
+## ⚙️ Continue.dev Prompt
+
+> Implement "User Profile Syncing"
 >
-> * Security vulnerabilities
-> * Concurrency risks
-> * Consistency issues
-> * Failure modes (including external service outages)
+> Constraints:
 
-This is **pre-mortem engineering**.
+* must follow ADR-001
+* must follow active_constraints.md
+* must be idempotent
+* must be event-driven via Inngest
 
----
+> Output:
 
-## Step 5: Implementation (Hands Layer)
-
-Only now do you write code.
-
-> **Prompt (Continue.dev):**
-> Implement database schema for comments based on ADR-001 and the defined contract.
-> Output SQL migration.
+* DB migration (Neon)
+* Inngest function
+* API handler (Next.js App Router)
+* validation (Zod)
 
 ---
 
-# ⚙️ Part 4: System Construction Phases
+## 🧠 OpenCode Parallel Validation
 
-## Phase 1: Foundation
+> Verify:
 
-* Scaffold app:
+* contract compliance
+* constraint compliance
+* architecture drift
+
+---
+
+# 🧪 PHASE 5 — VALIDATION (REALITY GATE)
 
 ```bash
-npx create-next-app@latest
+npm run lint
+npm run test
+tsc --noEmit
 ```
 
-* Install core stack:
+---
 
-  * Clerk (auth)
-  * Sanity (CMS)
-  * Neon (Postgres)
-  * Inngest (events)
+## 🧠 OpenCode Prompt
+
+> Classify failures:
+
+* type errors
+* logic errors
+* architectural violations
+
+> Output fix strategy + rollback decision
 
 ---
 
-## Phase 2: Identity & Content
-
-* Auth integration:
-
-  > Implement ClerkProvider and protect `/dashboard`
-
-* Content modeling:
-
-  > Design Sanity schemas for Post and Author
+# 🧾 PHASE 6 — MEMORY UPDATE
 
 ---
 
-## Phase 3: Data Consistency Layer
+## 🧠 OpenCode Prompt
 
-Use Neon PostgreSQL for transactional correctness.
+> Update:
+>
+> `/docs/history/system-history.md`
+>
+> Include:
 
-> Create bookmark schema with:
-
-* unique constraints
-* deduplication rules
-* query optimization indexes
-
----
-
-## Phase 4: Event-Driven Architecture
-
-Introduce asynchronous workflows via Inngest.
-
-> On `post/published`:
-
-* Index content
-* Notify subscribers
-* Write audit logs
+* what changed
+* why it changed
+* system impact
+* assumptions updated
+* constraint evolution
 
 ---
 
-# 🧪 Part 5: Governance & System Integrity
-
-## 🔍 Adversarial Review Gate (Before Every Commit)
-
-Review as a hostile systems engineer:
-
-* Security flaws
-* Data integrity issues
-* Performance bottlenecks
-* Hidden coupling
-* Architectural debt
+# 👁 OBSERVER LAYER — ENTROPY CONTROL
 
 ---
 
-## 🧾 System Memory Rule
+## Drift Function
 
-After every feature:
-
-Update:
-
-```
-docs/history/system-history.md
+```text
+Entropy =
+  divergence(ADR vs Implementation)
++ divergence(Constraints vs Code)
++ unresolved HIGH risks
 ```
 
-Record:
+---
 
-* What changed
-* Why it changed
-* What broke
-* What assumptions changed
+## CIRCUIT BREAKER
 
-This ensures **traceable system evolution**.
+If:
+
+```text
+Entropy > threshold
+```
+
+Then:
+
+* halt Continue.dev
+* freeze implementation state
+* require OpenCode re-evaluation
+* require Human approval
 
 ---
 
-# 📋 Master Execution Checklist
+# 📋 FEATURE EXECUTION CHECKLIST
 
-Every feature must pass this pipeline:
+Every feature MUST pass:
 
-* [ ] Define → update `requirements.md`
-* [ ] Contract → define inputs/outputs/invariants
-* [ ] Reason → adversarial analysis (OpenCode)
-* [ ] Implement → generate code (Continue.dev)
-* [ ] Validate → tests + `tsc --noEmit`
-* [ ] Record → update system history
-
----
-
-# 🔁 System Summary
-
-You are not building software.
-
-You are operating a **self-correcting engineering system**:
-
-* Intent → Specification
-* Specification → Contract
-* Contract → Implementation
-* Implementation → Evidence
-* Evidence → Memory
-* Memory → Improved Intent
+* [ ] Context Load (OpenCode + Continue)
+* [ ] Constraint Compilation updated
+* [ ] Contract defined
+* [ ] Adversarial review completed
+* [ ] ADR updated if required
+* [ ] Implementation completed (Continue.dev)
+* [ ] Validation passed
+* [ ] Memory updated
+* [ ] Events emitted
 
 ---
 
-# 🚀 Bootstrap State (Dual Initialization Complete)
+# 🧠 FINAL SYSTEM MODEL (v2.2)
 
-The system is now initialized across two coupled layers:
-
-## 🧠 Cognitive Layer
-
-* Requirements defined
-* Architecture decisions recorded
-* Failure modes explicitly acknowledged
-
-## ⚙️ Execution Layer
-
-* Next.js scaffold initialized
-* Dependencies installed
-* System boundaries established
+```text
+Human (Intent)
+   ↓
+OpenCode (Meaning Engine)
+   ↓
+Contract Layer
+   ↓
+Continue.dev (Execution Engine)
+   ↓
+Validation (Reality Layer)
+   ↓
+Git + Docs (Memory Layer)
+   ↓
+Constraint Compiler
+   ↓
+Observer (Entropy Control)
+   ↓
+Back to Human
+```
 
 ---
 
-# 🧭 Next Phase Options
+# 🚀 RESULT
 
-You now proceed into **Phase 1: Contract Engineering**
+You now have a **runtime-grade engineering system** with:
 
-Choose one entry point:
-
-### A. Domain First (Recommended)
-
-* Post / Comment / Bookmark contracts
-* Domain modeling first
-
-### B. Infrastructure First
-
-* Auth integration
-* Database schema baseline
-* CI + testing pipeline
-* contract DSL format
-* and production-grade workflow automation rules
+* deterministic phase transitions
+* enforced tool separation
+* compiled constraint memory
+* event-driven architecture
+* drift detection + circuit breaking
+* reproducible system state evolution
