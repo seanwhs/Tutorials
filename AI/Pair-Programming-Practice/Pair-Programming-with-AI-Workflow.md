@@ -2,216 +2,114 @@
 
 ## ⚙️ Full Runtime Kit v1 (Prompt + System Extensions)
 
-This system defines a **closed-loop engineering runtime** for AI-assisted software development.
+This system defines an **AI-native engineering operating system**.
 
-It formalizes:
+It is a **closed-loop runtime for software evolution**, not a workflow or toolkit.
 
-* separation of reasoning vs execution
+It enforces:
+
+* deterministic AI execution
 * contract-first development
+* separation of reasoning vs execution
 * event-sourced system memory
-* drift detection + circuit breaking
-* reproducible architectural governance
+* architectural drift detection
+* runtime safety via circuit breaking
 
 ---
 
-# 🧱 System Composition (Core Capabilities)
+# 🧱 1. System Composition (Core Architecture)
 
-This kit introduces a **governed AI engineering loop** with:
+This system introduces a governed engineering loop composed of:
 
-* 📚 Reusable prompt library (system intelligence layer)
-* 🧠 OpenCode / Continue.dev role separation (brain vs executor)
-* 📜 ADR automation (decision memory layer)
-* 📡 Event-sourced runtime logging (audit trail)
-* 🔁 Safe refactor protocols (behavioral invariance)
-* 🧭 System-wide constraint enforcement (governance layer)
-* ⚠️ Drift detection + circuit breaker (stability layer)
+### 🧠 Intelligence Layer
 
----
+* 📚 Reusable prompt library (`/docs/prompts.md`)
+* 🧠 OpenCode reasoning kernel (system brain)
 
-# 📁 1. `/docs/prompts.md`
+### ⚙️ Execution Layer
 
-## 🧠 Canonical Prompt Library (Execution Interface Layer)
+* ⚙️ Continue.dev execution kernel (code actuator)
+* 🧪 Validation engine (tests + invariants)
 
-This file is the **primary control surface** for AI agents.
+### 📡 Memory Layer
 
-It defines how the system reasons, validates, and executes work.
+* 📜 ADR system (architectural decisions)
+* 📡 Event-sourced runtime logs
+* 🧾 System history tracking
 
----
+### 🧭 Governance Layer
 
-# 🧠 OpenCode — System Reasoning Layer (Brain Kernel)
+* 🧭 constraint enforcement engine
+* 🔁 safe refactor protocol
+* ⚠️ drift detection system
 
-OpenCode is responsible for:
+### 🛑 Safety Layer
 
-* system reasoning
-* architectural validation
-* risk analysis
-* contract definition
-* drift detection
-
-It NEVER writes production code.
+* 🚨 circuit breaker
+* 🧯 entropy control system
 
 ---
 
-## 1. System Reconstruction Prompt (State Load)
+# 🔄 2. End-to-End Runtime Workflow (Core Loop)
 
-> Reconstruct full system state as a deterministic model.
+This is the **primary execution lifecycle** of the system.
 
-### Inputs:
-
-* `/docs/requirements.md`
-* `/docs/adr/*`
-* `/docs/history/system-history.md`
-* `/docs/constraints/active_constraints.md`
-
-### Output:
-
-* Active constraints (truth layer)
-* Architectural decisions in effect (ADR delta)
-* System risks (categorized by severity)
-* Hidden inconsistencies (non-obvious coupling)
-* Assumption drift (diff vs baseline)
-
----
-
-## 2. Contract Generator (Interface Definition Layer)
-
-> Define a strict execution contract for `{FEATURE}`
-
-### Must include:
-
-* Inputs / Outputs (typed where possible)
-* Data model (canonical schema)
-* Invariants (system truths)
-* Side effects (explicitly enumerated)
-* Failure modes (expected + edge cases)
-* Security constraints (threat model summary)
-* Idempotency rules (retry safety model)
-
-**Rule:** No implementation is valid without a contract.
+```text id="core-loop"
+Human Intent
+   ↓
+OpenCode: System Reconstruction
+   ↓
+OpenCode: Contract Definition
+   ↓
+OpenCode: Adversarial Review
+   ↓
+Continue.dev: Implementation
+   ↓
+Validation Layer (Tests + Invariants)
+   ↓
+Event Store Append
+   ↓
+ADR Update (if required)
+   ↓
+Observer Drift Evaluation
+   ↓
+[STABLE] → System continues
+[FAIL]   → Circuit Break → Reconstruct → Retry
+```
 
 ---
 
-## 3. Adversarial Review (Pre-Mortem Simulation)
+# 🧠 3. Runtime State Machine
 
-> Assume system is operating at production scale under load.
+```mermaid id="state-machine"
+stateDiagram-v2
+    [*] --> IntentCaptured
 
-Evaluate:
+    IntentCaptured --> ContextLoaded: OpenCode Reconstruction
+    ContextLoaded --> ContractDefined
+    ContractDefined --> AdversarialReview
+    AdversarialReview --> Implementation
 
-* concurrency failure modes
-* race conditions
-* data corruption vectors
-* authentication/authorization flaws
-* dependency fragility (external systems)
+    Implementation --> Validation
+    Validation --> MemoryWrite
 
-### Output format:
+    MemoryWrite --> DriftCheck
+    DriftCheck --> Stable
 
-* Issue
-* Severity (LOW / MEDIUM / HIGH / CRITICAL)
-* Failure scenario
-* Blast radius
-
----
-
-## 4. Architecture Drift Detection (Consistency Engine)
-
-> Compare system truth layers:
-
-* Current implementation
-* ADR baseline (ADR-001 + deltas)
-* requirements.md
-
-### Output:
-
-* Drift points (explicit mismatches)
-* Broken invariants
-* Missing or violated assumptions
-* Architectural entropy hotspots
+    DriftCheck --> CircuitBroken: Entropy threshold exceeded
+    CircuitBroken --> HumanReview
+    HumanReview --> ContextLoaded
+```
 
 ---
 
-# ⚙️ Continue.dev — Execution Kernel (Actuator Layer)
+# 📡 4. Event-Sourced Memory System
 
-Continue.dev is responsible for:
+## 📁 `/docs/events/schema.json`
 
-* code generation
-* file modification
-* refactoring
-* migrations
-* test implementation
+All system changes are **append-only events**.
 
-It NEVER defines system architecture.
-
----
-
-## 5. Feature Implementation Prompt
-
-> Implement `{FEATURE}` under strict system governance.
-
-### Constraints:
-
-* must follow ADR decisions
-* must respect active constraints
-* must preserve system invariants
-* must follow existing code patterns
-* must be idempotent where applicable
-
-### Output:
-
-* DB migrations (if needed)
-* API routes (Next.js App Router)
-* validation layer (Zod or equivalent)
-* minimal test coverage (behavioral validation)
-
----
-
-## 6. Safe Refactor Prompt (Behavior Preservation Mode)
-
-> Refactor `{MODULE}` WITHOUT altering external behavior.
-
-### Hard constraints:
-
-* no API surface changes
-* no schema changes
-* no behavioral drift
-
-### Allowed transformations:
-
-* decomposition
-* renaming
-* modularization
-* coupling reduction
-* readability improvements
-
-### Output:
-
-* diff summary (semantic, not just line-level)
-* modified files only
-* risk assessment (if any hidden coupling exists)
-
----
-
-## 7. Debugging Prompt (Fault Isolation Model)
-
-> Analyze failure in `{FEATURE}` as a system-level fault.
-
-### Output:
-
-* Root cause hypothesis (ranked)
-* Affected layer:
-
-  * UI / API / DB / Event / Infra
-* Minimal fix plan (lowest blast radius)
-* Regression risk analysis
-
----
-
-# 📡 2. Event-Sourced Memory System
-
-## `/docs/events/schema.json`
-
-The system is **event-driven and append-only in audit structure**.
-
-```json
+```json id="event-schema"
 {
   "event": {
     "id": "string",
@@ -229,7 +127,7 @@ The system is **event-driven and append-only in audit structure**.
 
 ## 🔁 Canonical Event Lifecycle
 
-```text
+```text id="event-lifecycle"
 CONTEXT_LOADED
 → CONTRACT_DEFINED
 → ADVERSARIAL_REVIEW_EXECUTED
@@ -241,58 +139,172 @@ CONTEXT_LOADED
 
 ---
 
-# 🧠 3. Observer Agent (System Integrity Engine)
+# 🧠 5. OpenCode — Reasoning Kernel (System Brain)
 
-The Observer is not an agent.
+OpenCode is responsible for **system intelligence and governance reasoning**.
 
-It is a **continuous evaluation function over system state**.
+It NEVER writes production code.
 
----
+## Responsibilities:
 
-## 🧮 Drift Equation (Conceptual Model)
-
-```text
-Entropy =
-  divergence(ADR, Implementation)
-+ divergence(Requirements, Code)
-+ unresolved HIGH severity risks
-```
+* system reconstruction
+* contract definition
+* architectural validation
+* risk analysis
+* drift detection
 
 ---
 
-## 🚨 Circuit Breaker Trigger
+## 5.1 System Reconstruction Prompt
 
-```pseudo
-if Entropy > threshold:
-    trigger CIRCUIT_BREAKER
-```
+Rebuild full system state from:
 
----
+* `/docs/requirements.md`
+* `/docs/adr/*`
+* `/docs/history/system-history.md`
+* `/docs/constraints/active_constraints.md`
 
-## 🔒 Circuit Breaker Behavior
+### Output:
 
-When triggered:
-
-* pause all Continue.dev execution
-* freeze write operations
-* force OpenCode reconstruction
-* require human approval for resumption
-* re-establish system baseline
+* active constraints
+* ADR delta
+* system risks
+* hidden inconsistencies
+* assumption drift
 
 ---
 
-# 🧱 4. Refactor Safety Protocol (State Transition Model)
+## 5.2 Contract Generator (Interface Layer)
 
-Refactoring is treated as a **controlled state transition**, not code editing.
+Defines `{FEATURE}` execution contract.
+
+Must include:
+
+* inputs / outputs
+* data model
+* invariants
+* side effects
+* failure modes
+* security constraints
+* idempotency rules
+
+> ❗ No implementation is valid without a contract.
 
 ---
+
+## 5.3 Adversarial Review (Pre-Mortem Engine)
+
+Simulates production failure:
+
+* concurrency issues
+* race conditions
+* data corruption
+* auth failures
+* dependency breakdowns
+
+### Output:
+
+* issue
+* severity
+* failure scenario
+* blast radius
+
+---
+
+## 5.4 Architecture Drift Detection
+
+Compares:
+
+* implementation
+* ADR baseline
+* requirements
+
+### Output:
+
+* drift points
+* broken invariants
+* assumption mismatches
+* entropy hotspots
+
+---
+
+# ⚙️ 6. Continue.dev — Execution Kernel (Actuator Layer)
+
+Continue.dev performs **controlled implementation only**.
+
+It NEVER defines architecture.
+
+## Responsibilities:
+
+* code generation
+* refactoring
+* migrations
+* test implementation
+* file modification
+
+---
+
+## 6.1 Feature Implementation Contract
+
+Constraints:
+
+* must follow ADRs
+* must preserve invariants
+* must follow patterns
+* must be idempotent
+
+### Output:
+
+* API routes
+* DB changes
+* validation layer
+* minimal tests
+
+---
+
+## 6.2 Safe Refactor Protocol
+
+Hard constraints:
+
+* no behavior change
+* no schema change
+* no API change
+
+Allowed:
+
+* decomposition
+* modularization
+* cleanup
+
+### Output:
+
+* semantic diff
+* modified files
+* risk notes
+
+---
+
+## 6.3 Debugging Protocol
+
+Outputs:
+
+* root cause hypothesis
+* affected layer (UI / API / DB / Infra / Event)
+* minimal fix plan
+* regression risk
+
+---
+
+# 🧭 7. Refactor Safety Protocol (State Transition Model)
+
+Refactoring is a **controlled state transition**, not code editing.
 
 ## Phase 1 — System Analysis (OpenCode)
 
-* dependency graph of `{MODULE}`
-* coupling map
-* hidden side effects
-* invariants potentially at risk
+* dependency graph
+* coupling analysis
+* side effects
+* invariants risk map
 
 ---
 
@@ -300,39 +312,68 @@ Refactoring is treated as a **controlled state transition**, not code editing.
 
 Lock:
 
-* API surface
+* APIs
 * DB schema
 * event contracts
-* external integrations
+* integrations
 
 ---
 
 ## Phase 3 — Execution (Continue.dev)
 
-Allowed only:
+Only internal changes allowed:
 
-* internal restructuring
 * decomposition
-* abstraction improvements
-
-Forbidden:
-
-* behavior changes
-* interface changes
+* abstraction
+* modularization
 
 ---
 
 ## Phase 4 — Validation Gate
 
-System is valid only if:
+System valid only if:
 
 * tests pass
 * invariants preserved
-* no behavioral deviation detected
+* no drift detected
 
 ---
 
-# 🧾 5. ADR System (Decision Memory Layer)
+# 🧠 8. Observer — System Integrity Engine
+
+The Observer is a **continuous evaluation function**, not an agent.
+
+## 🧮 Entropy Model
+
+```text id="entropy"
+Entropy =
+  divergence(ADR, Implementation)
++ divergence(Requirements, Code)
++ unresolved high-severity risks
+```
+
+---
+
+## 🚨 Circuit Breaker
+
+Triggered when:
+
+```pseudo id="cb-trigger"
+if Entropy > threshold:
+    trigger CIRCUIT_BREAKER
+```
+
+### Behavior:
+
+* freeze execution
+* stop writes
+* force reconstruction
+* require human approval
+* reset baseline
+
+---
+
+# 🧾 9. ADR System (Decision Memory Layer)
 
 Stored in:
 
@@ -340,81 +381,47 @@ Stored in:
 /docs/adr/ADR-{NNN}.md
 ```
 
----
+## ADR Structure:
 
-## ADR Structure (Canonical)
+* Context
+* Decision
+* Alternatives
+* Consequences
+* Risks
+* Mitigation
+* System Impact
 
-```md
-# ADR-{NNN}: {Title}
-
-## Context
-System condition that triggered decision
-
-## Decision
-Chosen architectural path
-
-## Alternatives
-- Option A
-- Option B
-
-## Consequences
-### Positive
-### Negative
-
-## Risks
-- enumerated risks
-
-## Mitigation Strategy
-- controls and safeguards
-
-## System Impact
-- affected modules
-- changed invariants
-```
+> ADRs are **immutable system truth**
 
 ---
 
-## 🧠 ADR Principle
+# 🔁 10. System Evolution Rules (Global Invariants)
 
-> ADRs are immutable system truth once created.
+### Rule 1 — Contract First
 
-They are **higher priority than implementation**.
-
----
-
-# 🔁 6. System Evolution Rules (Global Invariants)
-
-These rules define **runtime correctness constraints**.
+No contract → no execution.
 
 ---
 
-## Rule 1 — Contract First Enforcement
+### Rule 2 — ADR Compliance
 
-No contract → no implementation.
-
----
-
-## Rule 2 — ADR Compliance Gate
-
-If ADR conflict exists → execution is blocked.
+Conflicts block execution.
 
 ---
 
-## Rule 3 — Context Load Requirement
+### Rule 3 — Context Load Required
 
-No OpenCode reconstruction → system state is invalid.
-
----
-
-## Rule 4 — Validation Supremacy
-
-Failing tests override all perceived success.
-
-System state = invalid until resolved.
+No reconstruction → invalid state.
 
 ---
 
-## Rule 5 — Memory Consistency Requirement
+### Rule 4 — Validation Supremacy
+
+Tests override success claims.
+
+---
+
+### Rule 5 — Memory Consistency
 
 Every change must update:
 
@@ -422,64 +429,59 @@ Every change must update:
 /docs/history/system-history.md
 ```
 
-Failure = incomplete system state.
-
 ---
 
-# 🧠 7. Unified Runtime Model (Execution Architecture)
+# 🧠 11. Unified Runtime Architecture
 
-```text
-Human (Intent / Authority Layer)
-        ↓
-OpenCode (Reasoning Kernel / System Brain)
-        ↓
-Contract Layer (Interface Specification)
-        ↓
-Continue.dev (Execution Kernel / Actuator)
-        ↓
-Validation Layer (Truth Enforcement)
-        ↓
-Git + Docs (Persistent Memory Layer)
-        ↓
-Observer (Entropy + Drift Controller)
-        ↓
-Circuit Breaker (Safety Interlock)
-        ↓
-Human (Approval / Oversight)
+```text id="runtime"
+Human
+  ↓
+OpenCode (Reasoning Kernel)
+  ↓
+Contract Layer
+  ↓
+Continue.dev (Execution Kernel)
+  ↓
+Validation Layer
+  ↓
+Event Store + ADR Memory
+  ↓
+Observer (Drift Engine)
+  ↓
+Circuit Breaker
+  ↓
+Human Approval Loop
 ```
 
 ---
 
-# 🚀 8. System Characteristics (What This Becomes)
+# 🚀 12. System Summary
 
-This is no longer a workflow.
+This system is not:
 
-It is a:
+* a prompt toolkit
+* a coding assistant workflow
+* a set of best practices
 
-## 🧠 AI-Native Engineering Operating System
+It is:
 
-With:
-
-* deterministic execution rules
-* explicit role separation
-* event-sourced architecture memory
-* architectural drift detection
-* controlled refactor transitions
-* runtime safety interlocks
+> 🧠 A deterministic AI-native software engineering operating system
+> with governed execution, memory, and safety constraints
 
 ---
 
-# ⚠️ Key Upgrade Over Original System
+# ⚠️ Key Upgrade Over Traditional AI Dev Workflows
 
 ### Before:
 
-* structured prompt toolkit
-* manual discipline required
+* ad-hoc prompting
+* implicit assumptions
+* manual discipline
 
 ### Now:
 
-* **governed execution runtime**
-* **state machine for engineering decisions**
-* **entropy-controlled AI development system**
-
-Just tell me which direction you want.
+* explicit execution state machine
+* enforced contracts
+* drift-controlled runtime
+* event-sourced engineering memory
+* AI agents as constrained system transitions
