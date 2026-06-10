@@ -1,8 +1,8 @@
-# 🧠 Governed Intelligence Engineering
+# 🧠 Governed Intelligence Engineering + OpenCode Protocol System
 
 ## Beyond AI Pair Programming
 
-### Building Stable Human–Machine Engineering Systems
+### A Human-Governed, Adversarially-Validated Engineering Intelligence System
 
 ---
 
@@ -19,370 +19,288 @@ As software generation approaches zero marginal cost, the scarce resources becom
 * governance
 * architectural coherence
 * operational reliability
+* system memory integrity
 
 The challenge is no longer generating software.
 
-The challenge is governing software generation.
-
-Therefore:
-
-> AI must be treated as an execution capability operating inside a governed engineering system rather than a source of authority.
+The challenge is governing software generation inside a **closed, verifiable engineering control system with structured intelligence feedback loops**.
 
 ---
 
-# 🧠 The First Law of AI Engineering
+# 🧠 First Law of AI Engineering
 
 Generation is cheap.
 
 Correctness is expensive.
 
-Every engineering process should be optimized around preserving correctness rather than maximizing generation speed.
+> System design must optimize for correctness preservation, not output velocity.
 
 ---
 
-# 🧩 Engineering as a Control System
+# 🧠 Second Law of AI Engineering
 
-Traditional AI workflows resemble:
+Any AI system without feedback loops will drift.
+
+---
+
+# 🧩 Engineering as a Closed Control System
+
+## ❌ Linear AI Workflow
 
 ```text
-Prompt
- ↓
-Generate
- ↓
-Accept
+Prompt → Generate → Accept
 ```
 
 This is not engineering.
 
-It is content generation.
+It is uncontrolled synthesis.
 
-Production engineering requires feedback loops.
+---
+
+## ✅ Governed Engineering System
 
 ```mermaid
 flowchart TD
 
 I[Intent]
-
 A[Architecture]
-
 P[Plan]
-
 E[Execution]
+R[Adversarial Review]
+V[Validation / Tests]
+M[Memory Layers]
 
-R[Review]
-
-V[Validation]
-
-M[Memory]
-
-I --> A
-A --> P
-P --> E
-E --> R
-R --> V
-V --> M
-
-V --> A
+I --> A --> P --> E --> R --> V --> M
+M --> A
 R --> P
+V --> E
 M --> I
 ```
 
-Every stage must have:
+### System Properties
+
+Every stage enforces:
 
 * feedback
 * verification
+* traceability
+* reversibility
 * accountability
-
-Without feedback loops, AI systems drift.
 
 ---
 
-# 🧠 Intelligence Layer Separation
-
-The most important design principle is separation of cognition.
-
-Different tools perform different forms of thinking.
+# 🧠 Intelligence Layer Architecture
 
 ```mermaid
 flowchart TD
 
-H[👤 Human Architect]
-
+H[👤 Human Authority]
 G[🧠 Gemini CLI<br/>Strategic Reasoning]
+O[⚡ OpenCode<br/>Repository Cognition]
+C[🤲 Continue.dev<br/>Execution Layer]
+T[🧪 Tests & Validation]
 
-O[⚡ OpenCode<br/>Repository Intelligence]
+Git[(Git Memory)]
+ADR[(ADR Memory)]
+SYS[(System Digest)]
 
-C[🤲 Continue.dev<br/>Implementation]
-
-R[🧪 Validation Systems]
-
-Git[(🧠 Git)]
-
-ADR[(📜 ADR)]
-
-History[(📚 System Digest)]
-
-H --> G
-G --> O
-O --> C
-C --> R
-
-R --> Git
-
+H --> G --> O --> C --> T --> Git
 G --> ADR
-ADR --> History
-Git --> History
+Git --> SYS
+SYS --> H
 ```
 
 ---
 
 # 👤 Human = Authority Layer
 
-Humans retain authority because humans own consequences.
-
-AI does not own:
-
-* outages
-* compliance violations
-* security incidents
-* business risk
-
-Humans do.
-
-Therefore authority cannot be delegated.
+Humans are the only true authority because they own consequences.
 
 ### Responsibilities
 
-* intent definition
-* architectural approval
-* risk acceptance
-* prioritization
-* escalation decisions
+* define intent
+* approve architecture
+* accept risk
+* authorize dependencies
+* approve production changes
 
-### Core Rule
-
-> Responsibility and authority must remain aligned.
+> Authority and responsibility must remain coupled.
 
 ---
 
-# 🧠 Gemini CLI = Strategic Cognition
+# 🧠 AI Role Separation Model
 
-Gemini should not be treated as a code generator.
+## 🧠 Gemini CLI — Strategic Cognition
 
-Its highest-value role is reasoning.
+Used for:
 
-Responsibilities:
-
-* architecture reviews
-* tradeoff analysis
+* architecture reasoning
 * system decomposition
 * threat modeling
-* ADR drafting
-* assumption discovery
+* scalability failure analysis
+* ADR creation
 
-Prompt examples:
+### Prompt Pattern
 
 ```text
-Challenge this architecture.
+Analyze this system for hidden assumptions, scaling failures, and governance risks.
 
-Identify hidden assumptions.
-
-What fails at 10x scale?
-
-What governance risks exist?
+What breaks at 10x scale?
+What assumptions are unstated?
+What are systemic risks?
 ```
 
 ---
 
-# ⚡ OpenCode = Repository Cognition
+## ⚡ OpenCode — Repository Cognition
 
-OpenCode understands systems.
+Used for:
 
-Not features.
-
-Responsibilities:
-
-* dependency graph analysis
-* coupling detection
-* boundary violations
-* impact assessment
+* dependency analysis
 * architectural drift detection
+* coupling identification
+* system-wide impact reasoning
 
-Prompt examples:
+### Prompt Pattern
 
 ```text
-Show hidden coupling.
+Identify coupling across modules.
 
-Identify modules impacted.
+Show architectural drift.
 
-Locate architectural erosion.
+Locate hidden dependencies.
 
-Detect cyclic dependencies.
+Map system-wide impact of this change.
 ```
 
 ---
 
-# 🤲 Continue.dev = Execution Layer
+## 🤲 Continue.dev — Execution Layer
 
-Continue.dev should operate under strict constraints.
-
-Responsibilities:
+Used for:
 
 * implementation
-* local refactoring
+* bounded refactoring
+* bug fixing
 * test generation
-* defect correction
 
-Prompt examples:
+### Core Constraint
 
-```text
-Implement minimal diff.
+> Never redesign architecture without explicit authorization.
 
-Preserve behavior.
-
-Do not redesign architecture.
-
-Generate tests before modification.
-```
-
-### Core Rule
-
-> Optimization without authorization is prohibited.
-
----
-
-# 🧠 Context Engineering
-
-## Context Is the Primary Resource
-
-Most AI failures are context failures.
-
-The quality of output is largely determined by:
+### Prompt Pattern
 
 ```text
-Context Quality
-×
-Constraint Quality
-×
-Validation Quality
+Implement with minimal diff.
+
+Preserve existing behavior.
+
+Avoid unnecessary abstraction.
+
+Add tests before modification.
 ```
 
 ---
 
-## Intent Template
+## 🧪 Test System — Reality Layer
 
-Every session should begin with a structured intent contract.
+Used for:
+
+* behavioral validation
+* regression detection
+* invariant enforcement
+
+> If it is not tested or observed, it does not exist.
+
+---
+
+# 🔁 Unified Engineering Execution Loop
+
+```text
+1. Human defines intent + constraints
+2. Gemini performs strategic reasoning
+3. OpenCode analyzes repository impact
+4. Continue.dev proposes implementation
+5. Adversarial review validates assumptions
+6. Tests enforce correctness
+7. Human approves or rejects
+8. Git commits system state
+9. System Digest updates
+```
+
+---
+
+# 🧠 Context Engineering Layer
+
+Context is the primary system resource.
+
+```text
+Correctness ∝ Context Quality × Constraint Quality × Validation Quality
+```
+
+---
+
+## Standard Intent Contract
 
 ```markdown
 # Objective
-
 What are we trying to achieve?
 
 # Constraints
-
-What cannot change?
+What must NOT change?
 
 # Success Criteria
-
-How will success be measured?
+How do we measure success?
 
 # Risks
+What could break?
 
-What can break?
-
-# Out Of Scope
-
-What must not be touched?
+# Out of Scope
+What must NOT be touched?
 ```
-
-This reduces ambiguity and drift.
 
 ---
 
 # 🧩 Contract-First Engineering
 
-Before implementation begins:
-
-Define:
-
-* inputs
-* outputs
-* side effects
-* invariants
-
-Example:
+No implementation begins without a contract.
 
 ```text
 Input:
-JWT Token
-
 Output:
-Authenticated User
-
-Invariant:
-Existing API contract unchanged
-
 Side Effects:
-Audit log entry created
+Invariants:
+Failure Modes:
 ```
-
-Only after agreement on the contract should implementation begin.
-
-This enables:
-
-* deterministic testing
-* specification-driven development
-* reviewable requirements
 
 ---
 
-# ⚠️ Adversarial Review Layer
+# ⚠️ Adversarial Review System
 
-One weakness of AI systems is alignment bias.
+## Default Assumption
 
-The reviewer often agrees with the builder.
+> Every change is unsafe until proven correct.
 
-To counter this:
-
-The Review Agent must operate under adversarial assumptions.
-
-Default assumption:
-
-> The implementation is unsafe until proven otherwise.
-
-Review priorities:
+### Review Priorities
 
 1. Security
-2. Data Integrity
-3. Concurrency
-4. Performance
-5. Maintainability
+2. Data integrity
+3. Concurrency safety
+4. System correctness
+5. Performance
+6. Maintainability
 
-Not:
+### Explicit Exclusions
 
-```text
-Code Style
-Formatting
-Elegance
-```
-
-The objective is risk discovery.
-
-Not encouragement.
+* formatting
+* stylistic preferences
+* unnecessary abstraction
 
 ---
 
 # 📜 Three Memory Layers
 
-Most systems only maintain one memory layer.
-
-Production systems require three.
-
----
-
-## Layer 1: Git Memory
-
-Stores:
+## 1. Git Memory (State Changes)
 
 ```text
 What changed?
@@ -390,9 +308,7 @@ What changed?
 
 ---
 
-## Layer 2: ADR Memory
-
-Stores:
+## 2. ADR Memory (Decision History)
 
 ```text
 Why did it change?
@@ -400,214 +316,325 @@ Why did it change?
 
 ---
 
-## Layer 3: System Digest Memory
-
-Stores:
-
-```text
-What is currently true?
-```
-
-File:
+## 3. System Digest (Operational Truth)
 
 ```text
 SYSTEM_HISTORY.md
 ```
 
-Updated every:
-
-```text
-3–5 commits
-or
-major architectural change
-```
-
 Contains:
 
-* active constraints
 * current architecture
-* accepted tradeoffs
-* known technical debt
-* unresolved risks
-
-This prevents context saturation and historical drift.
+* active constraints
+* known risks
+* technical debt
+* unresolved tradeoffs
 
 ---
 
-# ⚠️ Known AI Failure Modes
+# 🧠 Production AI Pair Programming Loop
 
-## Specification Drift
+```mermaid
+flowchart LR
 
-Requirements change subtly.
+H[Intent]
+A[Plan]
+C[Code Diff]
+R[Review]
+T[Tests]
+G[Git Commit]
 
-Mitigation:
-
-```text
-Restate constraints continuously.
+H --> A --> C --> R --> T --> G
+R --> C
+T --> R
 ```
 
 ---
 
-## Context Collapse
+# 🧠 Role Model (Execution Discipline)
 
-Earlier decisions disappear.
+## 🧠 Code Agent
 
-Mitigation:
+* minimal diff
+* preserve behavior
+* no redesign
+* no optimization unless required
+
+> “Change as little as possible.”
+
+---
+
+## 🧠 Review Agent
+
+* assumes failure
+* finds hidden risks
+* challenges assumptions
+* blocks unsafe changes
+
+> “Prove safety before acceptance.”
+
+---
+
+## 🧪 Test Agent
+
+* validates real behavior
+* enforces invariants
+* prevents regression drift
+
+> “If it is not validated, it does not exist.”
+
+---
+
+## 👤 Human Engineer
+
+* final authority
+* risk owner
+* system architect
+
+> “Nothing ships without explicit approval.”
+
+---
+
+# 🔁 End-to-End Feature Lifecycle
 
 ```text
-System Digest
-ADR Records
-Architecture Summaries
+1. Intent Definition
+2. System Analysis (Gemini + OpenCode)
+3. Contract Specification
+4. Implementation
+5. Adversarial Review
+6. Test Generation
+7. Validation Execution
+8. Human Approval
+9. Git Commit
+10. System Digest Update
 ```
 
 ---
 
-## Refactor Mania
+# 🧱 Git as Engineering Memory
 
-AI rewrites stable systems.
+Git is not version control.
 
-Mitigation:
+It is:
 
-```text
-Minimal Diff Policy
-```
+> 🧠 A structured reasoning history of system evolution
 
----
+### Commit Types
 
-## Abstraction Explosion
-
-AI introduces unnecessary patterns.
-
-Mitigation:
-
-```text
-Justification Required
-```
+| Type     | Meaning           |
+| -------- | ----------------- |
+| docs     | intent/design     |
+| feat     | new behavior      |
+| fix      | correction        |
+| refactor | structural change |
+| test     | validation        |
 
 ---
 
-## False Confidence
+# 🧠 Failure Mode Governance
 
-AI presents assumptions as facts.
-
-Mitigation:
-
-```text
-Evidence Required
-Validation Required
-Tests Required
-```
-
----
-
-## Reviewer Paradox
-
-Reviewer validates builder assumptions.
-
-Mitigation:
-
-```text
-Adversarial Review Persona
-Independent Validation
-Explicit Threat Modeling
-```
+* Specification drift → re-anchor contracts
+* Context collapse → maintain System Digest + ADRs
+* Refactor mania → enforce minimal diff
+* Abstraction explosion → require justification
+* False confidence → require tests + evidence
+* Reviewer bias → enforce adversarial review
 
 ---
 
 # 🚨 Human Red Lines
 
-The human must immediately reject any change that violates these rules.
+* No change without review
+* No commit without approval
+* No multi-module rewrite without intent
+* No untested production changes
+* No silent refactors
+* No unauthorized dependencies
 
 ---
 
-## Red Line #1
+# 🧪 Risk-Based Governance Model
 
-No explanation.
+| Risk     | Example  | Controls                 |
+| -------- | -------- | ------------------------ |
+| Low      | Docs     | Review                   |
+| Medium   | Feature  | Review + Tests           |
+| High     | Auth     | ADR + Adversarial Review |
+| Critical | Payments | Full validation pipeline |
 
-If the AI cannot explain:
+---
 
-```text
-Why?
+# ⚙️ Continue.dev Execution Configuration
+
+```json
+{
+  "models": [
+    {
+      "title": "Code Agent",
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "contextProviders": [
+    "codebase",
+    "openFiles",
+    "diff",
+    "terminal",
+    "problems"
+  ],
+  "customCommands": [
+    {
+      "name": "implement",
+      "prompt": "Minimal diff implementation under strict constraints."
+    },
+    {
+      "name": "review",
+      "prompt": "Adversarial review: security, correctness, architecture, failure modes."
+    },
+    {
+      "name": "test",
+      "prompt": "Generate regression and edge-case tests."
+    }
+  ]
+}
 ```
 
-The change is rejected.
+---
+
+# ⚡ OpenCode CLI Command System (Runtime Layer)
+
+## 🧠 Core Philosophy
+
+OpenCode is not a tool.
+
+It is a:
+
+> 🧠 Repository cognition interface for structured reasoning, impact analysis, and controlled change negotiation
 
 ---
 
-## Red Line #2
+## 🔍 inspect
 
-Unauthorized dependencies.
-
-New libraries require explicit approval.
-
-Always.
-
----
-
-## Red Line #3
-
-Broken tests.
-
-If existing tests fail:
-
-The human investigates first.
-
-The AI does not redefine requirements.
-
----
-
-## Red Line #4
-
-Architectural modification without ADR.
-
-Immediate rejection.
-
----
-
-## Red Line #5
-
-Multi-module rewrite without authorization.
-
-Immediate rejection.
-
----
-
-# 🧪 Risk-Based Governance
-
-| Risk     | Example               | Required Controls                            |
-| -------- | --------------------- | -------------------------------------------- |
-| Low      | Documentation         | Review                                       |
-| Medium   | Feature Change        | Review + Tests                               |
-| High     | Authentication        | Adversarial Review                           |
-| Critical | Payments / Compliance | Architecture Review + ADR + Validation Suite |
-
-Governance should scale with risk.
-
-Not effort.
-
----
-
-# 🚀 Final Identity Shift
-
-You are no longer managing coding assistants.
-
-You are governing a distributed intelligence system.
-
-Where:
-
-```text
-Human          = Authority
-Gemini CLI     = Strategic Cognition
-OpenCode       = Repository Cognition
-Continue.dev   = Execution
-Tests          = Reality
-Git            = Code Memory
-ADR            = Decision Memory
-System Digest  = Operational Memory
+```bash
+opencode inspect repo
+opencode inspect module <name>
+opencode inspect file <path>
 ```
 
-The objective is not generating software.
+Understand system structure and responsibilities.
 
-The objective is preserving correctness, coherence, and control while leveraging machine intelligence at scale.
+---
 
-That is the foundation of AI-native engineering.
+## 🧠 analyze
+
+```bash
+opencode analyze architecture
+opencode analyze consistency
+opencode analyze antipatterns
+```
+
+Deep structural reasoning.
+
+---
+
+## 🔗 trace
+
+```bash
+opencode trace module <name>
+opencode trace callchain <entry>
+opencode trace dataflow <entity>
+```
+
+Dependency and flow cognition.
+
+---
+
+## ⚠️ impact
+
+```bash
+opencode impact module <name>
+```
+
+Simulate system-wide effects of change.
+
+---
+
+## 🧠 review
+
+```bash
+opencode review system
+opencode review module <name>
+opencode review security
+```
+
+Adversarial evaluation layer.
+
+---
+
+## 🔧 refactor
+
+```bash
+opencode refactor plan <module>
+opencode refactor minimal <module>
+```
+
+Controlled change design.
+
+---
+
+## 🐞 debug
+
+```bash
+opencode debug error "<msg>"
+opencode debug test <name>
+opencode debug incident <id>
+```
+
+Failure reasoning engine.
+
+---
+
+## 🏗️ design
+
+```bash
+opencode design system <feature>
+```
+
+Architecture reasoning.
+
+---
+
+## 🧾 commit
+
+```bash
+opencode commit explain
+opencode commit summary
+opencode commit risk
+```
+
+Memory layer introspection.
+
+---
+
+# 🔁 Workflow Compositions
+
+```bash
+opencode inspect module auth
+opencode analyze architecture
+opencode trace module auth
+opencode impact module auth
+opencode review module auth
+```
+
+---
+
+# 🧠 Final System Identity
+
+You are not using AI tools.
+
+You are operating:
+
+> 🧠 A governed intelligence engineering system with multi-layer cognition, adversarial validation, and Git-backed memory discipline
+
+
