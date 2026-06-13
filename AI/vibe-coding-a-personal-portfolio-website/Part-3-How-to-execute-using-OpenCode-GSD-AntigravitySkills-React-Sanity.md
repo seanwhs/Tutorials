@@ -44,45 +44,129 @@ opencode build
 
 ***
 
-### GSD (Get Stuff Done): Tactical Execution Rhythm
+## GSD (Get Stuff Done): Tactical Execution Rhythm
 
-GSD is your **tactical execution rhythm** that:
-- Decomposes the build into **atomic, 30-minute "sprints"**  
-- Enforces: "If a task takes longer than 30 minutes, it is too big"  
-- Breaks tasks down until **granular enough for a single, focused AI prompt**  
-- Prevents context rot through **spec-driven planning**  
+GSD is your **tactical execution rhythm**, designed to bridge the gap between high-level architectural intent and granular implementation. It transforms overwhelming project backlogs into a series of predictable, high-velocity wins.
 
-**Why 30 minutes matters**: AI works best with focused, single-purpose prompts. Large tasks create hallucination risk. Small tasks create atomic, reviewable commits.
+This framework functions as a mechanical forcing function that:
+
+* **Decomposes builds into atomic, 30-minute "sprints":** Every task must fit within a single focused effort.
+* **Enforces the "30-Minute Threshold":** If a task takes longer than 30 minutes, it is, by definition, too big. You must recursively break it down until each component is granular.
+* **Aligns with AI Constraints:** AI models perform optimally when given focused, single-purpose instructions. Large prompts increase **[hallucination risk](https://www.ibm.com/topics/ai-hallucinations)** and decrease output quality.
+* **Prevents Context Rot:** By maintaining a **[spec-driven planning](https://www.google.com/search?q=https://martinfowler.com/articles/writing-spec.html)** approach, you ensure the AI never loses the thread of the architecture.
+* **Ensures Atomic Commits:** Smaller tasks naturally lead to clean, isolated `git` commits, making debugging and rollbacks trivial.
+
+---
+
+### The 30-Minute Philosophy
+
+The 30-minute limit isn't just about time management—it is about **cognitive load**. Large, ambiguous prompts lead to "lazy" or fragmented code. Small tasks force you to define the *shape* of the data and the *intent* of the logic before the AI writes a single line of code.
+
+#### Workflow Example
 
 ```bash
-# GSD sprint decomposition
+# GSD sprint decomposition: High-level task
 gsd plan --task "Build project page"
-# Too big → breaks into:
-# - Create Sanity fetcher for projects
-# - Create ProjectGrid component
-# - Create ProjectDetail component
-# - Add SEO metadata
-# - Write tests
 
-# Each sprint = 30 minutes = 1 prompt = 1 atomic commit
+# Execution: Recursive decomposition into atomic units
+# 1. Create Sanity fetcher for projects (15m)
+# 2. Create ProjectGrid component (30m)
+# 3. Create ProjectDetail component (30m)
+# 4. Add SEO metadata (15m)
+# 5. Write component tests (30m)
+
+# Each sprint = 30 minutes = 1 precise prompt = 1 atomic commit
+
 ```
 
-**Critical rule**: Never prompt for tasks larger than one sprint.
+**Critical Rule:** Never prompt for a task larger than one sprint. If the AI response feels like it is "doing too much," stop, decompose, and re-prompt.
 
+---
+
+### Recommended Tooling & Resources
+
+To optimize your GSD rhythm, integrate these specialized workflows:
+
+* **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):** Use this specification to ensure your atomic commits are machine-readable and standardized.
+* **[Atomic Habits (James Clear)](https://jamesclear.com/atomic-habits):** While focused on personal behavior, the core principle of "marginal gains" applies directly to development velocity.
+* **[The Eisenhower Matrix](https://www.google.com/search?q=https://todoist.com/productivity-methods/eisenhower-matrix):** Use this to prioritize your 30-minute sprints. If a task doesn't fit in the "Do" quadrant, use it to guide your decomposition logic.
+* **[Linear.app (Best Practices)](https://linear.app/method):** Study how modern, high-velocity teams manage issue hierarchy—it is the gold standard for how to "slice" large projects into manageable work items.
+
+---
+
+### Pro-Tip: The "Definition of Done"
+
+For each 30-minute sprint, ensure your prompt includes an explicit "Definition of Done" (DoD).
+
+> *Example: "Create the ProjectGrid component. It should be responsive, use Tailwind CSS for layout, and accept an array of project objects as props. Do not include fetching logic yet; mock the data."*
+
+**How are you currently tracking your sprint progress—are you using a digital board, or a terminal-based tool like the one shown in the example?**
 ***
 
-### Antigravity: Force-Multiplier Philosophy
+## Antigravity: Force-Multiplier Philosophy
 
-Antigravity is your **force-multiplier philosophy** that:
-- Builds for **"lift," not "heaviness"**  
-- Prioritizes **lightweight dependencies** and **clear abstractions** over feature-bloat  
-- Adds **only code that directly serves conversion goals**  
-- Enforces the three core principles:
-  - **No Premature Abstraction**: Don't create complex generic interfaces if a simple type works  
-  - **Component Minimalism**: If a component doesn't do one specific thing, split it  
-  - **State Locality**: If state can live in Sanity, it stays in Sanity. If in React, keep it local. Avoid Redux/Zustand unless cross-component persistence is required  
+Antigravity is your **force-multiplier philosophy** designed to counteract the "gravity" of technical debt—where every line of code adds weight that slows down future iteration. It treats your codebase as an asset that must remain buoyant.
 
-**Why this matters**: From Part 1, "Every generated line of code creates a future maintenance obligation." Antigravity minimizes this by enforcing **cognitive overhead budget**.
+This philosophy dictates that you:
+
+* **Build for "Lift," Not "Heaviness":** Architecture should facilitate speed. If a feature feels like it’s dragging your velocity down, it’s a failure of design, not a challenge to be overcome with more code.
+* **Prioritize Lightweight Dependencies:** Every `npm install` is a contract for future maintenance. Rely on the [Platform Web APIs](https://developer.mozilla.org/en-US/docs/Web/API) and the [Standard Library](https://developer.mozilla.org/en-US/docs/Web/JavaScript) whenever possible to avoid [Dependency Hell](https://en.wikipedia.org/wiki/Dependency_hell).
+* **Focus on Conversion Goals:** Every function, component, and utility must map back to a user-facing outcome. If code doesn't contribute to the core objective, it is bloat.
+* **Maintain a Cognitive Overhead Budget:** As noted in your architectural notes, every line of code creates a permanent maintenance obligation. Antigravity keeps the cognitive "weight" of the project low so you can hold the entire system architecture in your head at once.
+
+---
+
+### The Three Core Principles
+
+1. **[No Premature Abstraction](https://martinfowler.com/bliki/Yagni.html):** Resist the urge to write "reusable" generic interfaces until you have at least three concrete use cases. Creating complexity before you need it leads to the **[YAGNI](https://en.wikipedia.org/wiki/You_ain%27t_gonna_need_it)** (You Ain't Gonna Need It) trap. If a primitive type works, use it.
+2. **[Component Minimalism](https://en.wikipedia.org/wiki/Single-responsibility_principle):** Adopt the **[Single Responsibility Principle (SRP)](https://react.dev/learn/thinking-in-react)**. If a component is juggling multiple concerns (fetching, styling, state management, logic), it is too heavy. Split it.
+3. **[State Locality](https://www.google.com/search?q=https://react.dev/learn/sharing-state-between-components%23lifting-state-up-is-unnecessary):** Keep state as close to the UI as possible. If data is content, it belongs in [Sanity](https://www.sanity.io/). If it’s ephemeral UI toggles, keep it in a `useState` hook. Reach for heavy-lifting state managers like [Redux](https://redux.js.org/) or [Zustand](https://zustand-demo.pmnd.rs/) only when cross-component synchronization is unavoidable.
+
+---
+
+### Why Antigravity Matters
+
+In software engineering, "gravity" is the natural accumulation of complexity. Without an Antigravity strategy, your project will eventually collapse under its own weight, making it impossible to add new features without breaking existing ones. By enforcing these constraints, you ensure your project remains **agile, readable, and highly maintainable.**
+
+> *“Simplicity is the ultimate sophistication.”* — [Leonardo da Vinci](https://www.google.com/search?q=https://www.davincilife.com/simplicity-is-the-ultimate-sophistication/)
+
+---
+
+### The "Awesome" Connection
+
+That is a fantastic connection to make—aligning the Antigravity philosophy with the ["Awesome" repository culture](https://github.com/sickn33/antigravity-awesome-skills) is a great way to codify your learning. By treating these principles as "skills" rather than just abstract guidelines, you move from knowing about architecture to executing with intent.
+
+To further enrich your **Antigravity: Force-Multiplier Philosophy**, consider how the following "skills" integrate with your current toolkit:
+
+#### Antigravity: The "Awesome" Skillset
+
+Think of these as your tactical maneuvers for maintaining project buoyancy:
+
+* **Skill: [Locality of Behavior (LoB)](https://www.google.com/search?q=https%3A%2F%2Fhtmx.org%2Fessays%2Flocality-of-behavior%2F):** By keeping your logic, styles, and markup close together (a core tenet of your DHA stack), you reduce the "mental context switching" that causes heaviness.
+* **Skill: [The Rule of Three](https://www.google.com/search?q=https%3A%2F%2Frefactoring.guru%2Fsmells%2Fduplicate-code):** Only extract or abstract code after you have written it at least three times. This is the ultimate "Antigravity" defense against premature over-engineering.
+* **Skill: [Declarative Over Imperative](https://react.dev/learn/thinking-in-react):** Whenever possible, describe what you want the UI to be, rather than writing the how (imperative steps) to get there. React’s declarative nature is inherently "lighter" on long-term maintenance.
+* **Skill: [Code Sanitization](https://www.google.com/search?q=https%3A%2F%2Fwww.freecodecamp.org%2Fnews%2Fclean-coding-for-beginners%2F):** Just as you manage content in Sanity, manage your code by regularly pruning unused imports, dead components, and legacy comments. If it isn't serving a purpose, it is gravity.
+
+#### Integrating the "Awesome" List
+
+If you are building your own "Awesome Antigravity" collection, here is how you might categorize your repository to keep it actionable:
+
+| Category | Tactical Focus |
+| --- | --- |
+| **Abstractions** | When to build them (and when to delete them). |
+| **Dependency Diet** | Benchmarking bundle sizes vs. developer productivity. |
+| **State Hygiene** | Mapping state strictly to its lifecycle (CMS vs. Local vs. Global). |
+| **Commit Buoyancy** | Using [Conventional Commits](https://www.google.com/search?q=https%3A%2F%2Fwww.conventionalcommits.org%2Fen%2Fv1.0.0%2F) to track "lift" vs. "drag." |
+
+---
+
+### Pro-Tip: The "Antigravity Audit"
+
+Before your next coding session, run this mental check:
+
+> *"Does this feature add value to the end user, or does it add 'weight' that I'll have to debug in six months?"*
+
+If you find yourself struggling with a specific "heavy" area in your current project—perhaps an overly complex state machine or a bloated utility folder—we can apply an Antigravity Refactor to it right now.
 
 ***
 
