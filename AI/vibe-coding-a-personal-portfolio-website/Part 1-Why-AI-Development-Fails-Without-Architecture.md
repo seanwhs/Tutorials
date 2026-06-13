@@ -1,4 +1,5 @@
 **Part I: The Architecture of Intent**  
+
 **Why Engineering Must Precede the Prompt**
 
 This series maps the full arc from philosophy to practice:
@@ -20,15 +21,22 @@ This capability creates a dangerous inversion:
 
 This is not a tooling problem. It is a systems-design and governance failure. When you can generate a full-stack application in minutes, you bypass the cognitive labor that once forced architects to resolve contradictions in requirements before writing code.
 
-### The "Vibe Coding" Trap: The Feedback Loop of Decay
+### The "Vibe Coding" Trap
 
-The most visible symptom is **vibe coding** — iteratively prompting an LLM until surface behavior matches expectations. It feels hyper-productive, delivering instant gratification. But it initiates a self-reinforcing **Feedback Loop of Decay**:
+The most visible symptom is vibe coding—a workflow where a developer iterates through AI generations until the feature “seems” to work. The loop feels hyper-productive until the inevitable cost accumulates:
+
+- **Hours later**: An application exists.  
+- **Days later**: The wiring is opaque.  
+- **Weeks later**: The system becomes brittle.  
+- **Months later**: The codebase is abandoned or rewritten.
+
+This is not a failure of functional correctness. It is a failure of structural integrity.
+
+This seductive process initiates a self-reinforcing **Feedback Loop of Decay**:
 
 1. **Ignorance of Internal Wiring**: You didn’t author the logic, so you can’t easily debug edge cases or reason about implications.  
 2. **Black Box Accumulation**: Bugs are met with more prompts to “fix” them, layering patches onto an undocumented system and compounding hidden debt.  
 3. **The AI Tax**: The accumulating weight of opaque, generated code eventually exceeds the model’s context window and your own comprehension. Maintenance becomes prohibitively expensive, often leading to a full rewrite.
-
-This is not a failure of functional correctness. It is a failure of structural integrity.
 
 ### 1. The Illusion of Working Software
 
