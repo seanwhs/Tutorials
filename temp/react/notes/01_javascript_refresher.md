@@ -134,7 +134,7 @@ _Your main.js file should be below all other scripts_. It is very important to r
 We use _var_, _let_ and _const_ to declare a variable. The _var_ is functions scope, however _let_ and _const_ are block scope. In this challenge we use ES6 and above features of JavaScript. Avoid using _var_.
 
 ```js
-let firstName = 'Asabeneh'
+let firstName = 'UserOne'
 firstName = 'Eyob'
 
 const PI = 3.14 // Not allowed to reassign PI to a new value
@@ -143,7 +143,7 @@ const PI = 3.14 // Not allowed to reassign PI to a new value
 
 ### 2. Data types
 
-If you do not feel comfortable with data types check the following [link](https://github.com/Asabeneh/30-Days-Of-JavaScript/blob/master/02_Day_Data_types/02_day_data_types.md)
+If you do not feel comfortable with data types check the following [link](https://github.com/UserOne/30-Days-Of-JavaScript/blob/master/02_Day_Data_types/02_day_data_types.md)
 
 ### 3. Arrays
 
@@ -227,7 +227,7 @@ Number of countries: 5
 
 ```js
 const arr = [
-  'Asabeneh',
+  'UserOne',
   250,
   true,
   { country: 'Finland', city: 'Helsinki' },
@@ -564,8 +564,8 @@ toString:Converts array to string
 const numbers = [1, 2, 3, 4, 5]
 console.log(numbers.toString()) // 1,2,3,4,5
 
-const names = ['Asabeneh', 'Mathias', 'Elias', 'Brook']
-console.log(names.toString()) // Asabeneh,Mathias,Elias,Brook
+const names = ['UserOne', 'Mathias', 'Elias', 'Brook']
+console.log(names.toString()) // UserOne,Mathias,Elias,Brook
 ```
 
 ##### Joining array elements
@@ -576,13 +576,13 @@ join: It is used to join the elements of the array, the argument we passed in th
 const numbers = [1, 2, 3, 4, 5]
 console.log(numbers.join()) // 1,2,3,4,5
 
-const names = ['Asabeneh', 'Mathias', 'Elias', 'Brook']
+const names = ['UserOne', 'Mathias', 'Elias', 'Brook']
 
-console.log(names.join()) // Asabeneh,Mathias,Elias,Brook
-console.log(names.join('')) //AsabenehMathiasEliasBrook
-console.log(names.join(' ')) //Asabeneh Mathias Elias Brook
-console.log(names.join(', ')) //Asabeneh, Mathias, Elias, Brook
-console.log(names.join(' # ')) //Asabeneh # Mathias # Elias # Brook
+console.log(names.join()) // UserOne,Mathias,Elias,Brook
+console.log(names.join('')) //UserOneMathiasEliasBrook
+console.log(names.join(' ')) //UserOne Mathias Elias Brook
+console.log(names.join(', ')) //UserOne, Mathias, Elias, Brook
+console.log(names.join(' # ')) //UserOne # Mathias # Elias # Brook
 
 const webTechs = [
   'HTML',
@@ -859,9 +859,9 @@ const webTechs = [
 1. The following is an array of 10 students ages:
    `js const ages = [19, 22, 19, 24, 20, 25, 26, 24, 25, 24] ` - Sort the array and find the min and max age - Find the median age(one middle item or two middle items divided by two) - Find the average age(all items divided by number of items) - Find the range of the ages(max minus min) - Compare the value of (min - average) and (max - average), use _abs()_ method
 
-   1.Slice the first ten countries from the [countries array](https://github.com/Asabeneh/JavascriptForReact/tree/master/data/countries.js)
+   1.Slice the first ten countries from the [countries array](https://github.com/UserOne/JavascriptForReact/tree/master/data/countries.js)
 
-1. Find the middle country(ies) in the [countries array](https://github.com/Asabeneh/JavascriptForReact/tree/master/data/countries.js)
+1. Find the middle country(ies) in the [countries array](https://github.com/UserOne/JavascriptForReact/tree/master/data/countries.js)
 1. Divide the countries array into two equal arrays if it is even. If countries array is not even , one more country for the first half.
 
 ### 4. Conditionals
@@ -1376,7 +1376,7 @@ The for in loop can be used with object literals to get the keys of the object.
 
 ```js
 const user = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -1582,7 +1582,7 @@ const rectangle = {
 console.log(rectangle) // {length: 20, width: 20}
 
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -1611,7 +1611,7 @@ We can access values of object using two methods:
 
 ```js
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -1655,7 +1655,7 @@ Now, the person object has getFullName properties. The getFullName is function i
 
 ```js
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -1676,7 +1676,7 @@ const person = {
 }
 
 console.log(person.getFullName())
-// Asabeneh Yetayeh
+// UserOne Yetayeh
 ```
 
 #### Setting new key for an object
@@ -1687,7 +1687,7 @@ Setting a new keys in an object
 
 ```js
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -1729,7 +1729,7 @@ console.log(person.getPersonInfo())
 ```
 
 ```sh
-Asabeneh Yetayeh is a teacher.
+UserOne Yetayeh is a teacher.
 He lives in Finland.
 He teaches HTML, CSS, JavaScript, React, Node, MongoDB, Python, D3.js, Meteor, and SasS.
 ```
@@ -1742,7 +1742,7 @@ _Object.assign_: To copy an object without modifying the original object
 
 ```js
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   age: 250,
   country: 'Finland',
   city: 'Helsinki',
@@ -2032,7 +2032,7 @@ addTwoNumbers() // a function has to be called by its name to be executed
 
 ```js
 function printFullName() {
-  let firstName = 'Asabeneh'
+  let firstName = 'UserOne'
   let lastName = 'Yetayeh'
   let space = ' '
   let fullName = firstName + space + lastName
@@ -2048,7 +2048,7 @@ Function can also return values, if a function does not return values the value 
 
 ```js
 function printFullName() {
-  let firstName = 'Asabeneh'
+  let firstName = 'UserOne'
   let lastName = 'Yetayeh'
   let space = ' '
   let fullName = firstName + space + lastName
@@ -2118,7 +2118,7 @@ console.log(sumTwoNumbers(10, 20))
 function printFullName(firstName, lastName) {
   return `${firstName} ${lastName}`
 }
-console.log(printFullName('Asabeneh', 'Yetayeh'))
+console.log(printFullName('UserOne', 'Yetayeh'))
 ```
 
 #### Function with many parameters
@@ -2308,7 +2308,7 @@ const printFullName = (firstName, lastName) => {
   return `${firstName} ${lastName}`
 }
 
-console.log(printFullName('Asabeneh', 'Yetayeh'))
+console.log(printFullName('UserOne', 'Yetayeh'))
 ```
 
 The above function has only the return statement, therefore, we can explicitly return it as follows.
@@ -2316,7 +2316,7 @@ The above function has only the return statement, therefore, we can explicitly r
 ```js
 const printFullName = (firstName, lastName) => `${firstName} ${lastName}`
 
-console.log(printFullName('Asabeneh', 'Yetayeh'))
+console.log(printFullName('UserOne', 'Yetayeh'))
 ```
 
 #### Function with default parameters
@@ -2344,11 +2344,11 @@ function greetings(name = 'Peter') {
 }
 
 console.log(greetings())
-console.log(greetings('Asabeneh'))
+console.log(greetings('UserOne'))
 ```
 
 ```js
-function generateFullName(firstName = 'Asabeneh', lastName = 'Yetayeh') {
+function generateFullName(firstName = 'UserOne', lastName = 'Yetayeh') {
   let space = ' '
   let fullName = firstName + space + lastName
   return fullName
@@ -2400,11 +2400,11 @@ const greetings = (name = 'Peter') => {
 }
 
 console.log(greetings())
-console.log(greetings('Asabeneh'))
+console.log(greetings('UserOne'))
 ```
 
 ```js
-const generateFullName = (firstName = 'Asabeneh', lastName = 'Yetayeh') => {
+const generateFullName = (firstName = 'UserOne', lastName = 'Yetayeh') => {
   let space = ' '
   let fullName = firstName + space + lastName
   return fullName
@@ -2945,7 +2945,7 @@ We can just destructure step by step
 ```js
 const props = {
   user:{
-    firstName:'Asabeneh',
+    firstName:'UserOne',
     lastName:'Yetayeh',
     age:250
   },
@@ -2970,7 +2970,7 @@ const [skillOne, skillTwo, skillThree, skillFour, skillFive] = skills
 ```js
 const props = {
   user:{
-    firstName:'Asabeneh',
+    firstName:'UserOne',
     lastName:'Yetayeh',
     age:250
   },
@@ -3025,7 +3025,7 @@ Create a function called getPersonInfo. The getPersonInfo function takes an obje
 
 ```js
 const person = {
-  firstName: 'Asabeneh',
+  firstName: 'UserOne',
   lastName: 'Yetayeh',
   age: 250,
   country: 'Finland',
@@ -3045,7 +3045,7 @@ const person = {
 }
 
 /*
-Asabeneh Yetayeh lives in Finland. He is  250 years old. He is an Instructor and Developer. He teaches HTML, CSS, JavaScript, React, Redux, Node, MongoDB, Python and D3.js. He speaks Amharic, English and a little bit of Suomi(Finnish)
+UserOne Yetayeh lives in Finland. He is  250 years old. He is an Instructor and Developer. He teaches HTML, CSS, JavaScript, React, Redux, Node, MongoDB, Python and D3.js. He speaks Amharic, English and a little bit of Suomi(Finnish)
 */
 ```
 
@@ -3133,7 +3133,7 @@ We can copy an object using a spread operator
 
 ```js
 const user = {
-  name: 'Asabeneh',
+  name: 'UserOne',
   title: 'Programmer',
   country: 'Finland',
   city: 'Helsinki',
@@ -3144,14 +3144,14 @@ console.log(copiedUser)
 ```
 
 ```sh
-{name: "Asabeneh", title: "Programmer", country: "Finland", city: "Helsinki"}
+{name: "UserOne", title: "Programmer", country: "Finland", city: "Helsinki"}
 ```
 
 Modifying or changing the object while copying
 
 ```js
 const user = {
-  name: 'Asabeneh',
+  name: 'UserOne',
   title: 'Programmer',
   country: 'Finland',
   city: 'Helsinki',
@@ -3162,7 +3162,7 @@ console.log(copiedUser)
 ```
 
 ```sh
-{name: "Asabeneh", title: "instructor", country: "Finland", city: "Helsinki"}
+{name: "UserOne", title: "instructor", country: "Finland", city: "Helsinki"}
 ```
 
 ##### Spread operator with arrow function
@@ -3730,13 +3730,13 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh')
+const person1 = new Person('UserOne', 'Yetayeh')
 
 console.log(person1)
 ```
 
 ```sh
-Person {firstName: "Asabeneh", lastName: "Yetayeh"}
+Person {firstName: "UserOne", lastName: "Yetayeh"}
 ```
 
 As we have stated at the very beginning that once we create a class we can create many object using the class. Now, let us create many person objects using the Person class.
@@ -3750,7 +3750,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh')
+const person1 = new Person('UserOne', 'Yetayeh')
 const person2 = new Person('Lidiya', 'Tekle')
 const person3 = new Person('Abraham', 'Yetayeh')
 
@@ -3760,7 +3760,7 @@ console.log(person3)
 ```
 
 ```sh
-Person {firstName: "Asabeneh", lastName: "Yetayeh"}
+Person {firstName: "UserOne", lastName: "Yetayeh"}
 Person {firstName: "Lidiya", lastName: "Tekle"}
 Person {firstName: "Abraham", lastName: "Yetayeh"}
 ```
@@ -3779,13 +3779,13 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 
 console.log(person1)
 ```
 
 ```sh
-Person {firstName: "Asabeneh", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki"}
+Person {firstName: "UserOne", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki"}
 ```
 
 #### Default values with constructor
@@ -3795,7 +3795,7 @@ The constructor function properties may have a default value like other regular 
 ```js
 class Person {
   constructor(
-    firstName = 'Asabeneh',
+    firstName = 'UserOne',
     lastName = 'Yetayeh',
     age = 250,
     country = 'Finland',
@@ -3817,7 +3817,7 @@ console.log(person2)
 ```
 
 ```sh
-Person {firstName: "Asabeneh", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki"}
+Person {firstName: "UserOne", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki"}
 Person {firstName: "Lidiya", lastName: "Tekle", age: 28, country: "Finland", city: "Espoo"}
 ```
 
@@ -3840,7 +3840,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 const person2 = new Person('Lidiya', 'Tekle', 28, 'Finland', 'Espoo')
 
 console.log(person1.getFullName())
@@ -3848,7 +3848,7 @@ console.log(person2.getFullName())
 ```
 
 ```sh
-Asabeneh Yetayeh
+UserOne Yetayeh
 test.js:19 Lidiya Tekle
 ```
 
@@ -3873,7 +3873,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 const person2 = new Person('Lidiya', 'Tekle', 28, 'Finland', 'Espoo')
 
 console.log(person1.score)
@@ -3919,7 +3919,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 const person2 = new Person('Lidiya', 'Tekle', 28, 'Finland', 'Espoo')
 
 console.log(person1.getScore) // We do not need parenthesis to call a getter method
@@ -3969,7 +3969,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 const person2 = new Person('Lidiya', 'Tekle', 28, 'Finland', 'Espoo')
 
 person1.setScore = 1
@@ -4038,7 +4038,7 @@ class Person {
   }
 }
 
-const person1 = new Person('Asabeneh', 'Yetayeh', 250, 'Finland', 'Helsinki')
+const person1 = new Person('UserOne', 'Yetayeh', 250, 'Finland', 'Helsinki')
 const person2 = new Person('Lidiya', 'Tekle', 28, 'Finland', 'Espoo')
 const person3 = new Person('John', 'Doe', 50, 'Mars', 'Mars city')
 
@@ -4070,7 +4070,7 @@ console.log(person3.getPersonInfo())
 ["HTML", "CSS", "JavaScript"]
 ["Planning", "Managing", "Organizing"]
 []
-Asabeneh Yetayeh is 250. He lives Helsinki, Finland. He knows HTML, CSS and JavaScript
+UserOne Yetayeh is 250. He lives Helsinki, Finland. He knows HTML, CSS and JavaScript
 Lidiya Tekle is 28. He lives Espoo, Finland. He knows Planning, Managing and Organizing
 John Doe is 50. He lives Mars city, Mars.
 ```
@@ -4175,7 +4175,7 @@ class Student extends Person {
   }
 }
 
-const s1 = new Student('Asabeneh', 'Yetayeh', 'Finland', 250, 'Helsinki')
+const s1 = new Student('UserOne', 'Yetayeh', 'Finland', 250, 'Helsinki')
 console.log(s1)
 console.log(s1.saySomething())
 console.log(s1.getFullName())
@@ -4183,11 +4183,11 @@ console.log(s1.getPersonInfo())
 ```
 
 ```sh
-Student {firstName: "Asabeneh", lastName: "Yetayeh", age: "Finland", country: 250, city: "Helsinki", …}
+Student {firstName: "UserOne", lastName: "Yetayeh", age: "Finland", country: 250, city: "Helsinki", …}
 I am a child of the person class
-Asabeneh Yetayeh
-Student {firstName: "Asabeneh", lastName: "Yetayeh", age: "Finland", country: 250, city: "Helsinki", …}
-Asabeneh Yetayeh is Finland. He lives Helsinki, 250.
+UserOne Yetayeh
+Student {firstName: "UserOne", lastName: "Yetayeh", age: "Finland", country: 250, city: "Helsinki", …}
+UserOne Yetayeh is Finland. He lives Helsinki, 250.
 ```
 
 #### Overriding methods
@@ -4220,7 +4220,7 @@ class Student extends Person {
 }
 
 const s1 = new Student(
-  'Asabeneh',
+  'UserOne',
   'Yetayeh',
   250,
   'Finland',
@@ -4250,12 +4250,12 @@ console.log(s2.getPersonInfo())
 ```
 
 ```sh
-Student {firstName: "Asabeneh", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki", …}
+Student {firstName: "UserOne", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki", …}
 Student {firstName: "Lidiya", lastName: "Tekle", age: 28, country: "Finland", city: "Helsinki", …}
 I am a child of the person class
-Asabeneh Yetayeh
-Student {firstName: "Asabeneh", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki", …}
-Asabeneh Yetayeh is 250. He lives in Helsinki, Finland. He knows HTML, CSS and JavaScript
+UserOne Yetayeh
+Student {firstName: "UserOne", lastName: "Yetayeh", age: 250, country: "Finland", city: "Helsinki", …}
+UserOne Yetayeh is 250. He lives in Helsinki, Finland. He knows HTML, CSS and JavaScript
 I am a child of the person class
 Lidiya Tekle
 Student {firstName: "Lidiya", lastName: "Tekle", age: 28, country: "Finland", city: "Helsinki", …}
