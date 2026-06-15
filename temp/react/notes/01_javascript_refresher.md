@@ -127,6 +127,7 @@ console.log('Hello, World!')
 ```
 
 _Your main.js file should be below all other scripts_. It is very important to remember this.
+> JavaScript files are executed in the order they appear in the HTML document. When you place a script tag, the browser pauses rendering to download and execute that script. By placing main.js at the bottom, >you guarantee that any logic, variables, or functions defined in your earlier scripts are fully loaded and available for main.js to use.
 
 ### 1. Variables
 
