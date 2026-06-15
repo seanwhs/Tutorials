@@ -134,8 +134,8 @@ _Your main.js file should be below all other scripts_. It is very important to r
 We use _var_, _let_ and _const_ to declare a variable. The _var_ is functions scope, however _let_ and _const_ are block scope. In this challenge we use ES6 and above features of JavaScript. Avoid using _var_.
 
 ```js
-let firstName = 'UserOne'
-firstName = 'Eyob'
+let firstName = 'User One'
+firstName = 'New User'
 
 const PI = 3.14 // Not allowed to reassign PI to a new value
 // PI = 3.
@@ -143,7 +143,15 @@ const PI = 3.14 // Not allowed to reassign PI to a new value
 
 ### 2. Data types
 
-If you do not feel comfortable with data types check the following [link](https://github.com/UserOne/30-Days-Of-JavaScript/blob/master/02_Day_Data_types/02_day_data_types.md)
+JavaScript data types:
+- Number.
+- String.
+- Boolean.
+- Null.
+- Undefined.
+- BigInt.
+- Symbol.
+- Object.
 
 ### 3. Arrays
 
