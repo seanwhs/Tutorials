@@ -1,4 +1,4 @@
-
+# Javascript Refresher
 
 - [JavaScript Refresher](#javascript-refresher)
   - [0. Adding JavaScript to a Web Page](#0-adding-javascript-to-a-web-page)
