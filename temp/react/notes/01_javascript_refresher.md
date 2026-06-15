@@ -19,7 +19,7 @@ Create a project folder on your desktop or in any location, name it JavascriptFo
 <!DOCTYPE html>
 <html>
   <head>
-    <title>30DaysOfScript:Inline Script</title>
+    <title>ScriptingDemo:Inline Script</title>
   </head>
   <body>
     <button onclick="alert('Welcome to JavascriptForReact!')">Click Me</button>
@@ -38,7 +38,7 @@ First, let us write on the head part of the page.
 <!DOCTYPE html>
 <html>
   <head>
-    <title>30DaysOfScript:Internal Script</title>
+    <title>ScriptingDemo:Internal Script</title>
     <script>
       console.log('Welcome to JavascriptForReact')
     </script>
@@ -53,7 +53,7 @@ This is how we write an internal script most of the time. Writing the JavaScript
 <!DOCTYPE html>
 <html>
   <head>
-    <title>30DaysOfScript:Internal Script</title>
+    <title>ScriptingDemo:Internal Script</title>
   </head>
   <body>
     <button onclick="alert('Welcome to JavascriptForReact!');">Click Me</button>
