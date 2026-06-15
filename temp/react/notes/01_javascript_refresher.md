@@ -167,7 +167,7 @@ Create a project folder on your desktop or in any location, name it 30DaysOfJS a
     <title>30DaysOfScript:Inline Script</title>
   </head>
   <body>
-    <button onclick="alert('Welcome to 30DaysOfJavaScript!')">Click Me</button>
+    <button onclick="alert('Welcome to JavascriptForReact!')">Click Me</button>
   </body>
 </html>
 ```
@@ -185,7 +185,7 @@ First, let us write on the head part of the page.
   <head>
     <title>30DaysOfScript:Internal Script</title>
     <script>
-      console.log('Welcome to 30DaysOfJavaScript')
+      console.log('Welcome to JavascriptForReact')
     </script>
   </head>
   <body></body>
@@ -201,9 +201,9 @@ This is how we write an internal script most of the time. Writing the JavaScript
     <title>30DaysOfScript:Internal Script</title>
   </head>
   <body>
-    <button onclick="alert('Welcome to 30DaysOfJavaScript!');">Click Me</button>
+    <button onclick="alert('Welcome to JavascriptForReact!');">Click Me</button>
     <script>
-      console.log('Welcome to 30DaysOfJavaScript')
+      console.log('Welcome to JavascriptForReact')
     </script>
   </body>
 </html>
@@ -215,7 +215,7 @@ Similar to the internal script, the external script link can be on the header or
 First, we should create an external JavaScript file with .js extension. All files ending with .js extension. All files ending with .js extension are JavaScript files. Create a file named introduction.js inside your project directory and write the following code and link this .js file at the bottom of the body.
 
 ```js
-console.log('Welcome to 30DaysOfJavaScript')
+console.log('Welcome to JavascriptForReact')
 ```
 
 External scripts in the _head_:
@@ -224,7 +224,7 @@ External scripts in the _head_:
 <!DOCTYPE html>
 <html>
   <head>
-    <title>30DaysOfJavaScript:External script</title>
+    <title>JavascriptForReact:External script</title>
     <script src="introduction.js"></script>
   </head>
   <body></body>
@@ -237,7 +237,7 @@ External scripts in the _body_:
 <!DOCTYPE html>
 <html>
   <head>
-    <title>30DaysOfJavaScript:External script</title>
+    <title>JavascriptForReact:External script</title>
   </head>
   <body>
     //it could be in the header or in the body // Here is the recommended place
@@ -1003,9 +1003,9 @@ const webTechs = [
 1. The following is an array of 10 students ages:
    `js const ages = [19, 22, 19, 24, 20, 25, 26, 24, 25, 24] ` - Sort the array and find the min and max age - Find the median age(one middle item or two middle items divided by two) - Find the average age(all items divided by number of items) - Find the range of the ages(max minus min) - Compare the value of (min - average) and (max - average), use _abs()_ method
 
-   1.Slice the first ten countries from the [countries array](https://github.com/Asabeneh/30DaysOfJavaScript/tree/master/data/countries.js)
+   1.Slice the first ten countries from the [countries array](https://github.com/Asabeneh/JavascriptForReact/tree/master/data/countries.js)
 
-1. Find the middle country(ies) in the [countries array](https://github.com/Asabeneh/30DaysOfJavaScript/tree/master/data/countries.js)
+1. Find the middle country(ies) in the [countries array](https://github.com/Asabeneh/JavascriptForReact/tree/master/data/countries.js)
 1. Divide the countries array into two equal arrays if it is even. If countries array is not even , one more country for the first half.
 
 ### 4. Conditionals
