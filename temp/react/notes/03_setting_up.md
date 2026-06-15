@@ -149,7 +149,6 @@ User@DESKTOP-REACT  ~/Desktop/30-days-of-react (master)
 Now your React app should run at localhost 3000. Go to the App.js and modify the content by writing some text, you will see the latest changes on the browser.
 To stop the server, press Ctr + C in the CLI.
 
-![React Starting](../images/react_app_starting.png)
 
 ## React Boilerplate
 
@@ -182,14 +181,6 @@ It is good to know these folders and files.
 - .gitignore - React boilerplate comes with git initiated, and the .gitingore allows files and folders not to be pushed to GitHub
 - README.md - Markdown file to write documentation
 - yarn.lock or package-lock.json - a means to lock the version of the package
-
-![React Boilerplate](../images/react_boilerplate.png)
-
-Now lets remove all the files, which we do not need at the moment, and leave only the files we need right now.
-
-After removing most of the files, the structure of the boilerplate looks like this:
-
-![React Boilerplate Cleaned](../images/react_bolier_plate_cleaned.png)
 
 Now lets write code on index.js. First of, we should import React and ReactDOM. React allows us to write JSX and ReactDOM to render the JSX on the DOM. ReactDOM has a render method. Let's use all the JSX elements we created on Day 2. The ReactDOM render method takes two parameters, a JSX or a component and the root.
 
@@ -239,8 +230,6 @@ User@DESKTOP-REACT  ~/Desktop/30-days-of-react (master)
 
 If you do not have any bugs, your React app will be launched on the browser.
 
-![JSX using create react app](../images/jsx_use_create_react_app.png)
-
 Let's write more JSX elements and render them on the browser. This expression is a JSX element which is made of h2 HTML element.
 
 ```js
@@ -281,8 +270,6 @@ const rootElement = document.getElementById('root')
 
 ReactDOM.render(header, rootElement)
 ```
-
-![JSX using create react app](../images/rendering_more_jsx_content_create_react_app.png)
 
 Now, lets add all the JSX we created on Day 2.
 
@@ -338,8 +325,6 @@ ReactDOM.render(app, rootElement)
 // or
 //  ReactDOM.render([header, main, footer], rootElement)
 ```
-
-![JSX using create react app to render more jsx](../images/rendering_multiple_jsx_elements_create-react_app.png)
 
 ## Styles in JSX
 
@@ -409,8 +394,6 @@ const rootElement = document.getElementById('root')
 ReactDOM.render(app, rootElement)
 ```
 
-![Inline styling JSX](../images/styling_jsx_inline_create_react_app.png)
-
 Now, lets apply an internal style, we put all the CSS in the header of the index.html.
 
 ```js
@@ -472,8 +455,6 @@ const rootElement = document.getElementById('root')
 // we render the JSX element using the ReactDOM package
 ReactDOM.render(app, rootElement)
 ```
-
-![Inline styling JSX](../images/js_internal_style_create_react_app.png)
 
 ## Injecting data to JSX elements
 
@@ -574,8 +555,6 @@ const rootElement = document.getElementById('root')
 ReactDOM.render(app, rootElement)
 ```
 
-![Inline styling JSX](../images/inecting_data_to_jsx_create_react_app.png)
-
 ## Importing Media Objects in React
 
 How do we import images, video and audio in React? Let's see how we import images first.
@@ -597,8 +576,6 @@ const rootElement = document.getElementById('root')
 // we render the JSX element using the ReactDOM package
 ReactDOM.render(user, rootElement)
 ```
-
-![Rendering image](../images/rendering_image.png)
 
 Let's inject the user inside the main JSX element and see the result:
 
@@ -706,10 +683,6 @@ const rootElement = document.getElementById('root')
 ReactDOM.render(app, rootElement)
 ```
 
-![All JSX together final](../images/all_jsx_final.png)
-
-The boilerplate code can be found [here](../03/../03_Day_Setting_Up/30-days-of-react_boilerplate)
-
 # Exercises
 
 ## Exercises: Level 1
@@ -727,19 +700,14 @@ The boilerplate code can be found [here](../03/../03_Day_Setting_Up/30-days-of-r
 
 ## Exercises: Level 2
 
-1. Import and render the following images
-   ![Front end](../images/frontend_technologies.png)
+1. Import and render some  images
 
 2. Use h1, p, input and button HTML elements to create the following design using JSX
 
-![News Letter](../images/news_letter_design.png)
-
 ## Exercises: Level 3
 
-1. Design the following user card.
+1. Design a user card.
 
-![User Card](../images/user_card_design_jsx.png)
 
 🎉 CONGRATULATIONS ! 🎉
 
-[<< Day 2](../02_Day_Introduction_to_React/02_introduction_to_react.md) | [Day 4 >>](../04_Day_Components/04_components.md)
