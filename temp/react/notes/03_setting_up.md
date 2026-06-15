@@ -1,23 +1,4 @@
-<div align="center">
-  <h1> 30 Days Of React: Setting Up </h1>
-  <a class="header-badge" target="_blank" href="https://www.linkedin.com/in/asabeneh/">
-  <img src="https://img.shields.io/badge/style--5eba00.svg?label=LinkedIn&logo=linkedin&style=social">
-  </a>
-  <a class="header-badge" target="_blank" href="https://twitter.com/Asabeneh">
-  <img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/asabeneh?style=social">
-  </a>
-
-<sub>Author:
-<a href="https://www.linkedin.com/in/asabeneh/" target="_blank">Asabeneh Yetayeh</a><br>
-<small> October, 2020</small>
-</sub>
-
-</div>
-</div>
-
-[<< Day 2](../02_Day_Introduction_to_React/02_introduction_to_react.md) | [Day 4 >>](../04_Day_Components/04_components.md)
-
-![30 Days of React banner](../images/30_days_of_react_banner_day_3.jpg)
+# Setting Up
 
 - [Setting Up](#setting-up)
   - [Node](#node)
@@ -47,12 +28,6 @@ In the previous section, we learned about JSX and we accessed the React and Reac
 Node is a JavaScript runtime environment that allows JavaScript to run on the server. Node was created in 2009. Node has played a great role for the growth of JavaScript. The React application starts by default at localhost 3000. The create-react-app has configured a node server for the React Application. That is why we need node and node modules. We will see create-react-app soon.
 
 If you do not have node, install it. Install [node.js](https://nodejs.org/en/).
-
-![Node download](../images/download_node.png)
-
-After downloading double click and install
-
-![Install node](../images/install_node.png)
 
 We can check if node is installed on our local machine, by opening our device terminal or command prompt, and writing the following command:
 
@@ -108,7 +83,6 @@ A Package is a module or a collection of modules. For instance, React, ReactDOM 
 
 NPM was created in 2010. You do not need to install NPM separately - when you install node you will have also NPM. NPM is a default package manager for Node.js. It allows users to consume and distribute JavaScript modules that are available in the registry. NPM allows to create packages, use packages and distribute packages. NMP also played quite a big role in the growth of JavaScript. Currently, there is more than 350,000 packages in the NPM registry. Let's see the create-react-app on NPM registry. The number of downloads show the popularity of the package.
 
-![NPM create-react-app](../images/npm_registry.png)
 
 ## Visual Studio Code
 
@@ -132,43 +106,43 @@ You may need to install these extensions from Visual Studio Code
 To create a react project you can use one of the following ways. Let's assume you installed node. Open the command line interface (CLI), git bash or terminal on Mac or Linux. Then run the following command. I am using git bash.
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop
+User@DESKTOP-REACT  ~/Desktop
 $ npx create-react-app name-of-your-project
 ```
 
 If you do not like to write npx every time you create a project you may install create-react-app package globally in your computer using the following command.
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop
+User@DESKTOP-REACT  ~/Desktop
 $ npm install -g create-react-app
 ```
 
 After you installed create-react-app, you create a React application as follows:
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop
+User@DESKTOP-REACT  ~/Desktop
 $ create-react-app name-of-project
 ```
 
 # Your first React App
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~
+User@DESKTOP-REACT  ~
 \$ cd Desktop/
 ```
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop
+User@DESKTOP-REACT  ~/Desktop
 \$ npx create-react-app 30-days-of-react
 ```
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop
+User@DESKTOP-REACT  ~/Desktop
 \$ cd 30-days-of-react/
 ```
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop/30-days-of-react (master)
+User@DESKTOP-REACT  ~/Desktop/30-days-of-react (master)
 \$ npm start
 ```
 
@@ -259,7 +233,7 @@ ReactDOM.render(jsxElement, rootElement)
 If your application is not running, go to your project folder and run the following command
 
 ```sh
-Asabeneh@DESKTOP-KGC1AKC MINGW64 ~/Desktop/30-days-of-react (master)
+User@DESKTOP-REACT  ~/Desktop/30-days-of-react (master)
 \$ npm start
 ```
 
