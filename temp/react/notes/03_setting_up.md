@@ -32,7 +32,7 @@ If you do not have node, install it. Install [node.js](https://nodejs.org/en/).
 We can check if node is installed on our local machine, by opening our device terminal or command prompt, and writing the following command:
 
 ```sh
-asabeneh $ node -v
+user $ node -v
 v12.18.0
 ```
 
@@ -273,7 +273,7 @@ const header = (
     <h1>Welcome to 30 Days Of React</h1>
     <h2>Getting Started React</h2>
     <h3>JavaScript Library</h3>
-    <p>Asabeneh Yetayeh</p>
+    <p>user Yetayeh</p>
     <small>Oct 2, 2020</small>
   </header>
 )
@@ -298,7 +298,7 @@ const header = (
     <h1>Welcome to 30 Days Of React</h1>
     <h2>Getting Started React</h2>
     <h3>JavaScript Library</h3>
-    <p>Asabeneh Yetayeh</p>
+    <p>user Yetayeh</p>
     <small>Oct 2, 2020</small>
   </header>
 )
@@ -364,7 +364,7 @@ const header = (
       <h1>Welcome to 30 Days Of React</h1>
       <h2>Getting Started React</h2>
       <h3>JavaScript Library</h3>
-      <p>Asabeneh Yetayeh</p>
+      <p>user Yetayeh</p>
       <small>Oct 2, 2020</small>
     </div>
   </header>
@@ -424,7 +424,7 @@ const header = (
       <h1>Welcome to 30 Days Of React</h1>
       <h2>Getting Started React</h2>
       <h3>JavaScript Library</h3>
-      <p>Instructor: Asabeneh Yetayeh</p>
+      <p>Instructor: user Yetayeh</p>
       <small>Date: Oct 1, 2020</small>
     </div>
   </header>
@@ -488,7 +488,7 @@ const welcome = 'Welcome to 30 Days Of React'
 const title = 'Getting Started React'
 const subtitle = 'JavaScript Library'
 const author = {
-  firstName: 'Asabeneh',
+  firstName: 'user',
   lastName: 'Yetayeh',
 }
 const date = 'Oct 2, 2020'
@@ -579,17 +579,17 @@ ReactDOM.render(app, rootElement)
 ## Importing Media Objects in React
 
 How do we import images, video and audio in React? Let's see how we import images first.
-Create images folder in the src folder and save an image inside. For instance let's save asabeneh.jpg image and let's import this image to index.js. After importing we will inject it to a JSX expression, user. See the code below.
+Create images folder in the src folder and save an image inside. For instance let's save user.jpg image and let's import this image to index.js. After importing we will inject it to a JSX expression, user. See the code below.
 
 ```js
 // index.js
 import React from 'react'
 import ReactDOM from 'react-dom'
-import asabenehImage from './images/asabeneh.jpg'
+import userImage from './images/user.jpg'
 
 const user = (
   <div>
-    <img src={asabenehImage} alt='asabeneh image' />
+    <img src={userImage} alt='user image' />
   </div>
 )
 
@@ -607,13 +607,13 @@ Let's inject the user inside the main JSX element and see the result:
 import React from 'react'
 import ReactDOM from 'react-dom'
 // To get the root element from the HTML document
-import asabenehImage from './images/asabeneh.jpg'
+import userImage from './images/user.jpg'
 // JSX element, header
 const welcome = 'Welcome to 30 Days Of React'
 const title = 'Getting Started React'
 const subtitle = 'JavaScript Library'
 const author = {
-  firstName: 'Asabeneh',
+  firstName: 'user',
   lastName: 'Yetayeh',
 }
 const date = 'Oct 2, 2020'
@@ -658,7 +658,7 @@ const techsFormatted = techs.map((tech) => <li>{tech}</li>)
 
 const user = (
   <div>
-    <img src={asabenehImage} alt='asabeneh image' />
+    <img src={userImage} alt='user image' />
   </div>
 )
 
