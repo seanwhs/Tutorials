@@ -13,7 +13,7 @@ The following sections show different ways of adding JavaScript code to your web
 
 #### Inline Script
 
-Create a project folder on your desktop or in any location, name it 30DaysOfJS and create an **_index.html_** file in the project folder. Then paste the following code and open it in a browser, for example [Chrome](https://www.google.com/chrome/).
+Create a project folder on your desktop or in any location, name it JavascriptForReactand create an **_index.html_** file in the project folder. Then paste the following code and open it in a browser, for example [Chrome](https://www.google.com/chrome/).
 
 ```html
 <!DOCTYPE html>
@@ -107,7 +107,7 @@ Open the browser console to see the output of the console.log()
 #### Multiple External Scripts
 
 We can also link multiple external JavaScript files to a web page.
-Create a helloworld.js file inside the 30DaysOfJS folder and write the following code.
+Create a helloworld.js file inside the JavascriptForReactfolder and write the following code.
 
 ```js
 console.log('Hello, World!')
