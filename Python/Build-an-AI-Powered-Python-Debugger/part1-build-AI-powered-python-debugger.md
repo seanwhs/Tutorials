@@ -1,58 +1,55 @@
-# Build an AI-Powered Python Debugger Using OpenRouter  
+# Build an AI-Powered Python Debugger Using OpenRouter
+
 ## A Comprehensive Multi-Part Tutorial Series
 
-***
+---
 
 ## Overview
 
 Artificial intelligence has evolved into an essential programming assistant. Rather than manually parsing stack traces or scouring forums for solutions, you can build a streamlined application that analyzes Python code, explains errors, and suggests robust fixes automatically.
 
-In this series, you will build a complete AI-powered Python debugger using:
+In this series, you will build a complete, resilient AI-powered Python debugger using:
 
-- **Python** – the core logic engine  
-- **Panel** – a powerful library for creating high-performance web interfaces using pure Python [github](https://github.com/holoviz/panel)
-- **OpenRouter** – a universal API gateway to access various LLMs (including free models) via an OpenAI-compatible interface [openrouter](https://openrouter.ai/deepseek/deepseek-r1:free%C2%A0for)
+* **Python** – the core logic engine
+* **Panel** – a powerful library for creating high-performance web interfaces using pure Python [github](https://github.com/holoviz/panel)
+* **OpenRouter** – a universal API gateway to access various LLMs (including a resilient fallback pool of free models) via an OpenAI-compatible interface [openrouter](https://openrouter.ai/)
 
-Unlike many tutorials that require paid OpenAI keys, this project uses **OpenRouter with a free model**, making it accessible to anyone.
+Unlike many tutorials that break when a single free API endpoint experiences heavy traffic, this project implements a **multi-model fallback architecture** using OpenRouter's free tier, making it both completely free to run and highly reliable.
 
-***
+---
 
 ## What You’ll Build
 
-Your final application will feature a clean, interactive dashboard:
+Your final application will feature a fluid, production-ready interactive dashboard:
 
-| Component        | Functionality                                                           |
-|-----------------|-------------------------------------------------------------------------|
-| Code Input      | A syntax-highlighted editor for your Python code.  [panel.holoviz](https://panel.holoviz.org/reference/widgets/CodeEditor.html)     |
-| Analysis Engine | Auto-generates explanations, fixes, and unit tests.                    |
-| Follow-up Chat  | A conversational interface to refine the AI’s suggestions.             |
-| Reset Control   | Clears the state to start fresh debugging sessions.                    |
+| Component | Functionality |
+| --- | --- |
+| Code Input | A syntax-highlighted editor for your Python code. [panel.holoviz](https://panel.holoviz.org/reference/widgets/CodeEditor.html) |
+| Fallback Engine | Automatically cycles through alternative free LLMs if one hits a rate limit. |
+| Analysis Engine | Auto-generates explanations, fixes, and unit tests without raw chain-of-thought clutter. |
+| Follow-up Chat | A conversational interface to refine the AI’s suggestions. |
+| Dynamic UI | Responsive controls with side-by-side action buttons and fluid layouts. |
 
 By the end, your debugger will:
 
-- Identify bugs in Python code  
-- Explain the root cause of errors  
-- Provide corrected code  
-- Suggest unit tests  
-- Support follow-up questions about the same code  
-- Be testable with `pytest` [geeksforgeeks](https://www.geeksforgeeks.org/python/getting-started-with-pytest/)
-- Be packaged and ready to share with others  
+* Identify bugs and explain the root cause of errors
+* Provide clean, corrected code and suggest unit tests
+* Gracefully bypass API rate limits using an LLM pool
+* Support follow-up questions about the same code
+* Be testable with `pytest` [geeksforgeeks](https://www.geeksforgeeks.org/python/getting-started-with-pytest/)
+* Be packaged and ready for headless hosting (e.g., Hugging Face Spaces)
 
-***
+---
 
 ## Prerequisites
 
 You should have:
 
-- **Python 3.10+** installed  
-- A **code editor** (e.g., VS Code)  
-- **Foundational knowledge**:
-  - Basic familiarity with functions  
-  - Ability to execute scripts from the terminal  
+* **Python 3.10+** installed
+* A **code editor** (e.g., VS Code)
+* **Foundational knowledge**: Basic familiarity with functions and executing terminal commands.
 
-If you can run a simple `print("Hello, world!")` script, you’re ready.
-
-***
+---
 
 # Phase 1: Setup & Environment
 
@@ -64,25 +61,28 @@ Create your workspace and isolate your dependencies to ensure a clean build.
 mkdir ai-debugger
 cd ai-debugger
 python -m venv venv
+
 ```
 
 Activate the virtual environment:
 
-- **Windows**:
+* **Windows**:
 
 ```bash
 venv\Scripts\activate
+
 ```
 
-- **macOS/Linux**:
+* **macOS/Linux**:
 
 ```bash
 source venv/bin/activate
+
 ```
 
-When active, your prompt usually starts with `(venv)`.
+When active, your prompt will display `(venv)`.
 
-***
+---
 
 ## Step 2 – Dependencies
 
@@ -90,40 +90,37 @@ Install the necessary libraries to handle the web UI, API requests, and testing:
 
 ```bash
 pip install panel openai python-dotenv pytest
+
 ```
 
 Packages explained:
 
-- **Panel** – builds the web interface using pure Python. [github](https://github.com/holoviz/panel)
-- **OpenAI SDK** – communicates with OpenRouter via an OpenAI-compatible API. [openrouter](https://openrouter.ai/docs/guides/routing/routers/free-router)
-- **python-dotenv** – loads environment variables from a `.env` file. [medium](https://medium.com/pythoneers/environment-variables-in-python-with-the-dotenv-env-module-f2e40df6dbc9)
-- **pytest** – testing framework used in later parts. [testdriven](https://testdriven.io/blog/pytest-for-beginners/)
+* **Panel** – Builds the web interface using pure Python.
+* **OpenAI SDK** – Communicates with OpenRouter via an OpenAI-compatible API.
+* **python-dotenv** – Loads environment variables securely from a `.env` file.
+* **pytest** – Testing framework used to verify the AI's generated code solutions.
 
-***
+---
 
 ## Step 3 – API Configuration
 
 ### Register
 
-- Sign up at [OpenRouter.ai](https://openrouter.ai/).  
-- Create an API key in your dashboard.
+* Sign up at [OpenRouter.ai](https://openrouter.ai/).
+* Navigate to your dashboard and create a new API key.
 
 ### Environment File
 
-Create a `.env` file in your root folder:
+Create a `.env` file in your project root directory:
 
 ```env
 OPENROUTER_API_KEY=your_api_key_here
+
 ```
 
-Replace `your_api_key_here` with your actual key.
+> ⚠️ **Security Note:** Never hard-code your API keys. Add `.env` to your `.gitignore` file immediately to prevent public exposure.
 
-### Security Note
-
-- **Never** hard-code API keys in your source code.  
-- Add `.env` to your `.gitignore` to prevent accidental exposure of credentials.
-
-***
+---
 
 # Phase 2: Building the Logic
 
@@ -133,47 +130,60 @@ Replace `your_api_key_here` with your actual key.
 
 In your project root, create `app.py`.
 
-### Initialize the Application
+### Initialize Configuration and Client
 
 ```python
 import os
-
 import panel as pn
-
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load configuration
+# Load configuration from .env file
 load_dotenv()
-pn.extension()
 
-# Initialize client pointing to OpenRouter
+# Debug: check if the variable is loaded properly
+print(f"DEBUG: API Key loaded: {os.getenv('OPENROUTER_API_KEY') is not None}")
+
+# Initialize the Panel extension explicitly loading 'codeeditor' assets 
+# to prevent WebSocket timeouts on headless hosting setups like Hugging Face
+pn.extension('codeeditor')
+
+# Agent Configuration: Define stable free models to iterate through if one fails
+MODELS_POOL = [
+    "openai/gpt-oss-20b:free",
+    "cohere/north-mini-code:free",
+    "meta-llama/llama-3.2-3b-instruct:free"
+]
+
+# Initialize OpenRouter Client with explicit identification headers
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1",
+    default_headers={
+        "HTTP-Referer": "https://huggingface.co/spaces/seanwhs/AI-Enabled-Python-Debugger",
+        "X-Title": "AI Enabled Python Debugger"
+    }
 )
 
-MODEL_NAME = "deepseek/deepseek-r1-0528:free"
 ```
 
-Explanation:
+### Explanation:
 
-- `load_dotenv()` reads your `.env` file. [geeksforgeeks](https://www.geeksforgeeks.org/python/using-python-environment-variables-with-python-dotenv/)
-- `pn.extension()` initializes Panel’s JavaScript/CSS resources. [github](https://github.com/holoviz/panel)
-- The `OpenAI` client is configured with:
-  - Your API key from the environment  
-  - `base_url` pointing to OpenRouter instead of OpenAI [openrouter](https://openrouter.ai/deepseek/deepseek-r1:free%C2%A0for)
-- `MODEL_NAME` selects a free model from OpenRouter. [openrouter](https://openrouter.ai/deepseek/deepseek-r1:free)
+* **`pn.extension('codeeditor')`**: Explicitly loads the code editor components. This is crucial for cloud setups (like Hugging Face Spaces) to prevent asset loading delays and WebSocket timeouts.
+* **`MODELS_POOL`**: Rather than relying on a single model, we declare an array of capable, free-tier models to serve as immediate fallbacks.
+* **`default_headers`**: OpenRouter requires these headers to correctly rank and display your app on public leaderboard platforms.
 
-***
+---
 
 ## Step 5 – Defining the System Prompt
 
-The system prompt defines the “personality” and output structure of your debugger.
+The system prompt defines the personality, goals, and strict response formatting constraints for your AI agent.
 
 ```python
 SYSTEM_PROMPT = """
-You are an expert Python debugging assistant.
+You are an expert Python debugging assistant. 
+Do not include your internal reasoning or chain-of-thought process in the final output 
+unless requested.
 
 When given Python code:
 
@@ -190,293 +200,234 @@ Return your answer using these Markdown sections:
 ## Unit Tests
 ## Improvements
 """
-```
 
-This prompt:
-
-- Tells the AI its role (expert debugging assistant).  
-- Defines exactly how to respond.  
-- Requests unit tests in a `## Unit Tests` section.
-
-***
-
-# Phase 3: UI & Interactivity
-
-## Step 6 – Implementing Streamed Responses
-
-To keep the UI responsive, we use a generator function to stream tokens as they arrive from the API.
-
-```python
+# Initialize conversation history with the system role
 conversation_messages = [
     {
-        "role": "system",
-        "content": SYSTEM_PROMPT,
+        'role': 'system', 
+        'content': SYSTEM_PROMPT
     }
 ]
 
-def debug_code_stream(code: str):
-    """
-    Generator that yields chunks of the model's response as they arrive,
-    while preserving conversation history.
-    """
-    # Add user message to conversation history
-    conversation_messages.append(
-        {
-            "role": "user",
-            "content": code,
-        }
-    )
-
-    stream = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=conversation_messages,
-        stream=True,
-    )
-
-    full_reply = ""
-
-    for chunk in stream:
-        delta = chunk.choices[0].delta
-        if delta and delta.content:
-            text = delta.content
-            full_reply += text
-            yield text
-
-    # Store AI response in history
-    conversation_messages.append(
-        {
-            "role": "assistant",
-            "content": full_reply,
-        }
-    )
 ```
 
-Key concepts:
+> 💡 **Key Cleanliness Choice:** The instruction *"Do not include your internal reasoning or chain-of-thought process"* keeps the UI clean by filtering out raw `<think>` tokens used by modern reasoning models.
 
-- `stream=True` tells the API to send chunks instead of one big response.  
-- The `yield` statement makes this a generator, so you can iterate over chunks.  
-- `conversation_messages` preserves history for follow-up questions.
+---
 
-***
+# Phase 3: UI & Interactivity
 
-## Step 7 – Finalizing the UI
+## Step 6 – Implementing Resilient Streamed Responses
 
-Use `pn.widgets` to create the input areas and connect them to the processing functions defined in Step 6. Finish by calling `.servable()` to prepare the app for the Panel server.
-
-### Create Widgets
+To prevent the web page from freezing during heavy API loads, we use a generator function to stream text chunks. We also wrap our API calls in an error-handling loop that automatically falls back to alternative models if a rate limit (`HTTP 429`) is hit.
 
 ```python
-code_input = pn.widgets.CodeEditor(
-    name="Python Code",
-    language="python",
-    height=350,
-    sizing_mode="stretch_width",
-)
+def debug_code_stream(code: str, instance: None = None):
+    """
+    Generator that yields chunks of the model's response as they arrive,
+    while iterating through a fallback pool if rate limits are hit.
+    """
+    conversation_messages.append({'role': 'user', 'content': code})
+    
+    stream = None
+    # Try each model in the pool sequentially if an error occurs (like a 429)
+    for model in MODELS_POOL:
+        try:
+            stream = client.chat.completions.create(
+                model=model,
+                messages=conversation_messages,
+                max_tokens=2048,
+                stream=True
+            )
+            break  # Successfully acquired a stream, break out of the loop
+        except Exception as e:
+            print(f"Model {model} failed with error: {e}. Trying next fallback...")
+            continue
+            
+    if not stream:
+        yield "⚠️ **Error:** All free OpenRouter endpoints are currently swamped or unavailable. Please try again in a few moments."
+        return
 
+    full_reply = ''
+    # Process and yield chunks as they arrive from the working API connection
+    for chunk in stream:
+        if chunk.choices[0].delta.content:
+            text = chunk.choices[0].delta.content
+            full_reply += text
+            yield text
+            
+    # Store the final full AI response in history to maintain context
+    conversation_messages.append({'role': 'assistant', 'content': full_reply})
+
+```
+
+---
+
+## Step 7 – Finalizing the Interactive UI Layout
+
+Now, we create our Panel widgets, define how user actions run our streaming logic, and set up a clean layout.
+
+```python
+# Create Widgets
+code_input = pn.widgets.CodeEditor(
+    name='Python Code',
+    language='python',
+    height=350,
+    sizing_mode='stretch_width',
+)
+    
 debug_button = pn.widgets.Button(
-    name="Debug Code",
-    button_type="primary",
+    name='Debug Code',
+    button_type='primary',
+    sizing_mode='stretch_width'
 )
 
 followup_input = pn.widgets.TextInput(
-    name="Follow-up Question",
-    placeholder="Ask a question about the previous analysis...",
+    name='Follow-Up Question',
+    placeholder='Ask a question about the previous analysis...',
+    sizing_mode='stretch_width'
 )
 
 followup_button = pn.widgets.Button(
-    name="Ask Follow-up",
-    button_type="secondary",
+    name='Ask Follow-Up',
+    button_type='light',
+    sizing_mode='stretch_width'
 )
 
 reset_button = pn.widgets.Button(
-    name="Reset Conversation",
-    button_type="danger",
+    name='Reset Conversation',
+    button_type='danger',
+    sizing_mode='stretch_width'
 )
 
+# UI FIX: No hardcoded height. The component expands dynamically with content.
 output = pn.pane.Markdown(
-    "AI analysis will appear here.",
-    height=400,
+    '### AI Analysis will appear here...',
+    sizing_mode='stretch_width',
+    margin=(15, 5, 15, 5)
 )
-```
-
-- `CodeEditor` provides syntax highlighting and line numbers. [panel.holoviz](https://panel.holoviz.org/reference/widgets/CodeEditor.html)
-- `TextInput` and buttons enable follow-up questions.  
-- `Markdown` renders the AI’s response with headings and code blocks.
-
-### Wire Interactions
-
-```python
+    
+# Define Event Handlers (The "Glue" between logic and UI)
 def on_click(event):
     code = code_input.value.strip()
-
     if not code:
         output.object = "Please enter some Python code."
         return
 
     output.object = "Analyzing...\n"
-
     try:
         full_text = ""
-        for chunk in debug_code_stream(code):
+        for chunk in debug_code_stream(code, None):
             full_text += chunk
             output.object = full_text
     except Exception as e:
         output.object = f"Error: {e}"
 
-
 def on_followup(event):
     question = followup_input.value.strip()
-
     if not question:
         output.object = "Please enter a follow-up question."
         return
 
     output.object = "Thinking about your follow-up...\n"
-
     try:
         full_text = ""
-        for chunk in debug_code_stream(question):
+        for chunk in debug_code_stream(question, None):
             full_text += chunk
             output.object = full_text
     except Exception as e:
         output.object = f"Error: {e}"
 
-
 def on_reset(event):
     global conversation_messages
-    conversation_messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT,
-        }
-    ]
+    conversation_messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
     output.object = "Conversation reset. Paste new code to start a fresh analysis."
     followup_input.value = ""
     code_input.value = ""
 
-
+# Link Buttons to Event Handlers
 debug_button.on_click(on_click)
 followup_button.on_click(on_followup)
 reset_button.on_click(on_reset)
-```
 
-### Layout
-
-```python
+# Define Layout (Stack Components fluidly)
 app = pn.Column(
-    "# AI Python Debugger",
+    "# 🐍 AI Python Debugger",
     code_input,
     debug_button,
+    pn.layout.Divider(), # Visual separation before output
     output,
-    "## Follow-up",
+    pn.layout.Divider(), # Visual separation after output
+    "## 💬 Follow-up Conversation",
     followup_input,
-    followup_button,
-    reset_button,
+    pn.Row(followup_button, reset_button), # Placed bottom action buttons side-by-side
     width=800,
+    sizing_mode='stretch_width'
 )
 
 app.servable()
+
 ```
 
-`pn.Column` stacks everything vertically. [github](https://github.com/holoviz/panel)
+### Key UI Enhancements:
 
-***
+* **`pn.Row(followup_button, reset_button)`**: Positions related actions efficiently on the same line to save screen space.
+* **`pn.layout.Divider()`**: Clean horizontal rules help separate user inputs from the AI's output.
+* **Dynamic Output Resizing**: Removing `height=400` from the markdown pane prevents responses from getting cut off or forcing unnecessary inner scrollbars.
+
+---
 
 # Phase 4: Deployment & Testing
 
-## Step 8 – Launch the Application
+## Step 8 – Launching the Application
 
-From the `ai-debugger` directory (with your virtual environment active):
+From your root project directory (with your virtual environment active), run the server command:
 
 ```bash
 panel serve app.py --show
+
 ```
 
-Your browser opens automatically with the debugger interface. [github](https://github.com/holoviz/panel/blob/main/panel/__init__.py)
+Your default browser will automatically open to `http://localhost:5006/app`.
 
-***
+---
 
-## Step 9 – Test the Debugger
+## Step 9 – Verification & Testing
 
-### Test 1 – IndexError
+### Test Case 1: Out-of-Bounds Error
 
-Paste this code:
+Paste the following broken snippet into the **Python Code** window and click **Debug Code**:
 
 ```python
 numbers = [1, 2, 3]
-print(numbers [panel.holoviz](https://panel.holoviz.org/api/panel.widgets.codeeditor.html))
+print(numbers[5])
+
 ```
 
-The AI should:
+The AI response panel will dynamically stream responses into your structured Markdown sections: `## Error`, `## Explanation`, `## Fixed Code`, and `## Unit Tests`.
 
-- Identify the `IndexError`  
-- Explain why index 5 is out of range  
-- Show corrected code  
-- Suggest unit tests  
+### Test Case 2: Multi-Turn Conversation
 
-### Test 2 – NameError
+In the **Follow-Up Question** input box below the output, type:
 
-```python
-name = "Alice"
-print(age)
-```
+> *"Can you rewrite the fix using a try-except block instead?"*
 
-The AI should identify a `NameError` and explain that `age` is not defined.
+Click **Ask Follow-Up**. Thanks to our chat history array management, the model remembers your code snippet and modifies its earlier response contextually.
 
-***
+---
 
-## Step 10 – Run Unit Tests with `pytest`
+## Step 10 – Project Directory Blueprint
 
-### Create a Test File
-
-1. Create a `tests` folder:
-
-```bash
-mkdir tests
-```
-
-2. Create `tests/test_debugger_examples.py`.
-
-3. Copy the AI’s suggested tests into this file.
-
-### Create Sample Functions
-
-Create `code_examples.py` in the project root:
-
-```python
-def divide(a, b):
-    return a / b
-
-def get_item(lst, index):
-    return lst[index]
-```
-
-Adjust imports in your test file to match these functions.
-
-### Run Tests
-
-```bash
-pytest
-```
-
-You should see green dots for passing tests and a summary like `2 passed in 0.03s`.
-
-***
-
-## Step 11 – Project Structure
-
-Ensure your directory follows standard practices:
+Your finalized, production-ready workspace structure should look exactly like this:
 
 ```text
 ai-debugger/
 ├── app.py
-├── code_examples.py
-├── tests/
-│   └── test_debugger_examples.py
 ├── .env
 ├── .gitignore
 ├── requirements.txt
 └── README.md
+
 ```
 
 ### `.gitignore`
@@ -486,6 +437,7 @@ venv/
 .env
 __pycache__/
 .pytest_cache/
+
 ```
 
 ### `requirements.txt`
@@ -495,36 +447,5 @@ panel
 openai
 python-dotenv
 pytest
+
 ```
-
-Install with:
-
-```bash
-pip install -r requirements.txt
-```
-
-### README
-
-Add a `README.md` with:
-
-- Project description  
-- Features  
-- Setup instructions  
-- Usage examples  
-- Project structure  
-
-This documents usage instructions for other developers and makes your project shareable.
-
-***
-
-## Next Steps
-
-This framework provides a scalable foundation. From here, you can extend the project by adding features like:
-
-- File-upload support  
-- Advanced linting tools  
-- Multi-language support (e.g., JavaScript)  
-- Abort/stop controls for long-running AI responses  
-- Enhanced prompt engineering for better unit test generation  
-
-***
