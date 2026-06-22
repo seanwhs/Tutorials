@@ -1,9 +1,5 @@
 # Build an AI-Powered Python Debugger Using OpenRouter
 
-## A Comprehensive Multi-Part Tutorial Series
-
----
-
 ## Overview
 
 Artificial intelligence has evolved into an essential programming assistant. Rather than manually parsing stack traces or scouring forums for solutions, you can build a streamlined application that analyzes Python code, explains errors, and suggests robust fixes automatically.
