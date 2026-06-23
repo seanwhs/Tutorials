@@ -1,27 +1,26 @@
 # Part 4 — Connecting Markly to an AI Model with OpenRouter
 
-Up to this point, Markly can successfully upload assignments and extract their contents. That's a major milestone, but the application still isn't "intelligent." It simply reads documents and displays their text.
+Up to this point, Markly can successfully upload assignments and extract their contents. That’s already a major milestone, but the application still isn’t *intelligent*. It can read documents, but it cannot evaluate them or generate meaningful feedback.
 
-In this chapter, we'll connect Markly to a Large Language Model (LLM) using **OpenRouter**. Once the connection is established, our application will be able to send a student's assignment to the AI and receive feedback in return.
+In this chapter, we upgrade Markly into an **AI-powered system** by connecting it to Large Language Models (LLMs) using **OpenRouter**.
 
-This is the point where Markly begins to transform from a document processing application into an AI-powered grading assistant.
+We’ll also go one step further than a basic integration: instead of relying on a single model, we’ll build a **multi-model failover system** that makes Markly more resilient and reliable.
 
-By the end of this chapter, you'll learn how to:
+By the end of this chapter, you’ll learn how to:
 
 * Store API keys securely using environment variables
-* Connect to OpenRouter using the OpenAI Python SDK
-* Understand the anatomy of an LLM request
-* Send prompts to an AI model
-* Display AI responses inside the application
-* Organize AI-related code inside `engine.py`
+* Connect to OpenRouter using the **Async OpenAI SDK**
+* Understand asynchronous LLM requests
+* Use a pool of models for redundancy
+* Implement automatic failover when a model fails
+* Build an AI orchestration layer (`engine.py`)
+* Integrate AI responses into Markly’s UI
 
 ---
 
 # What is OpenRouter?
 
-There are many companies that provide access to Large Language Models.
-
-Some of the most well-known include:
+There are many companies that provide access to Large Language Models:
 
 * OpenAI
 * Anthropic
@@ -32,13 +31,13 @@ Some of the most well-known include:
 * Cohere
 * Qwen
 
-Each company offers its own models, pricing, APIs, and capabilities.
+Each provider has its own models, pricing, and APIs.
 
-Normally, switching between providers means learning a different API for each one.
+Normally, switching between them means rewriting parts of your application.
 
-OpenRouter simplifies this process.
+OpenRouter solves this problem by acting as a **unified routing layer**.
 
-Instead of integrating separately with every AI provider, your application communicates with **one API**, and OpenRouter routes your request to whichever model you choose.
+Instead of connecting to each provider individually, your application connects to one API:
 
 ```text
                 Markly
@@ -55,494 +54,349 @@ Instead of integrating separately with every AI provider, your application commu
               AI Response
 ```
 
-This makes it easy to experiment with different models without changing your application's code.
+This allows us to swap models simply by changing a string.
 
 ---
 
-# Why Use the OpenAI Python SDK?
+# Why We Use the Async OpenAI SDK
 
-Although we're using OpenRouter, we'll actually write our code using the **OpenAI Python SDK**.
+Although we are using OpenRouter, we still use the **OpenAI Python SDK** because OpenRouter is fully API-compatible.
 
-That may sound strange at first.
+In this version, we take it a step further by using:
 
-Here's why.
+> **AsyncOpenAI**
 
-OpenRouter is designed to be **compatible** with the OpenAI API.
+Why?
 
-Instead of learning a completely new client library, we simply tell the OpenAI SDK to send requests to OpenRouter instead of OpenAI.
+Because AI requests are slow network operations. If we make them synchronously, the UI (or server) has to wait.
 
-That means almost all OpenAI examples work with only a few small changes.
+With async calls, Markly can:
+
+* Handle multiple requests efficiently
+* Avoid blocking the UI
+* Prepare for future scaling (multiple graders, batch marking, etc.)
 
 ---
 
 # Securing Your API Key
 
-Earlier, we created a `.env` file.
+Make sure your `.env` file contains:
 
 ```text
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
-Why didn't we simply write:
+We never hardcode secrets like this:
 
 ```python
-API_KEY = "sk-xxxxxxxxxxxxxxxx"
+API_KEY = "sk-xxxx"
 ```
 
-inside our code?
+Because if the code is ever shared or pushed to GitHub, the key becomes exposed.
 
-Because API keys are secrets.
-
-If you accidentally upload your project to GitHub, anyone can see that key and potentially use your account.
-
-A better approach is to store secrets outside the source code.
-
-The `.env` file allows us to do exactly that.
+Instead, we load it securely at runtime.
 
 ---
 
-# Loading Environment Variables
+# Setting Up the AI Engine
 
 Open **engine.py**.
 
-Let's begin by importing a few libraries.
+We start with imports:
 
 ```python
 import os
+import asyncio
+import random
 
 from dotenv import load_dotenv
-
-from openai import OpenAI
+from openai import AsyncOpenAI
 ```
 
-Now load the environment variables.
+---
+
+## Load Environment Variables
 
 ```python
 load_dotenv()
-```
-
-This reads the `.env` file and makes its contents available to Python.
-
-We can now retrieve the API key.
-
-```python
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 ```
 
-If your `.env` file contains
-
-```text
-OPENROUTER_API_KEY=abc123
-```
-
-then
-
-```python
-print(API_KEY)
-```
-
-would display
-
-```text
-abc123
-```
-
-Never print your real API key in production.
-
-We're only showing this example so you understand what `os.getenv()` returns.
+This reads the `.env` file and retrieves your API key safely.
 
 ---
 
-# Creating the OpenRouter Client
+## Create the Async Client
 
-Next, create an OpenAI client.
+Now we create the OpenRouter client:
 
 ```python
-client = OpenAI(
-
+client = AsyncOpenAI(
     api_key=API_KEY,
-
     base_url="https://openrouter.ai/api/v1"
-
 )
 ```
 
-Let's examine the parameters.
+### What’s different here?
 
-## api_key
+| Feature     | Purpose                       |
+| ----------- | ----------------------------- |
+| AsyncOpenAI | Enables non-blocking requests |
+| base_url    | Redirects SDK to OpenRouter   |
 
-```python
-api_key=API_KEY
-```
-
-This tells OpenRouter who is making the request.
-
-Without an API key, the request will be rejected.
+Everything else behaves like the OpenAI API.
 
 ---
 
-## base_url
+# Introducing a Model Pool (Multi-Model Strategy)
 
-Normally the OpenAI SDK sends requests to OpenAI.
-
-By changing the `base_url`, we redirect every request to OpenRouter instead.
+Instead of relying on a single AI model, we define a **pool of models**:
 
 ```python
-base_url="https://openrouter.ai/api/v1"
+MODELS_POOL = [
+    "openai/gpt-oss-20b:free",
+    "qwen/qwen3-coder:free",
+    "google/gemma-4-31b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+]
 ```
 
-Everything else remains exactly the same.
+### Why multiple models?
+
+Because in real-world systems:
+
+* Some models fail
+* Some hit rate limits
+* Some become temporarily unavailable
+
+So instead of failing the whole system, we **try another model automatically**.
+
+This is called:
+
+> **Failover orchestration**
 
 ---
 
-# Understanding Chat Completions
+# Step 1 — Single Model Request
 
-Modern LLMs communicate using **messages**.
+We define a low-level function that talks to one model.
 
-Instead of sending one giant string, we send a conversation.
+```python
+async def ask_ai(prompt, model_name):
+    """Performs a single async request to OpenRouter."""
+    try:
+        response = await client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
 
-For example,
+        return response.choices[0].message.content
 
-```text
-System:
-You are a teacher.
-
-User:
-Grade this assignment.
-
-Assistant:
-...
+    except Exception as e:
+        raise Exception(f"Model {model_name} failed: {e}")
 ```
 
-Each message has two parts.
+### What’s happening here?
 
-| Field   | Purpose         |
-| ------- | --------------- |
-| role    | Who is speaking |
-| content | What they said  |
+* We send a prompt
+* The model generates a response
+* We extract only the useful text
+* If anything fails, we pass the error upward
 
-The three most common roles are:
+We deliberately **don’t hide failures here**.
 
-| Role      | Meaning                 |
-| --------- | ----------------------- |
-| system    | Instructions for the AI |
-| user      | The user's request      |
-| assistant | Previous AI responses   |
+We let the next layer handle them.
 
 ---
 
-# Your First AI Request
+# Step 2 — Model Failover Orchestrator
 
-Let's write our first function.
+Now we build the intelligence layer.
 
 ```python
-def ask_ai(prompt):
-
-    response = client.chat.completions.create(
-
-        model="openai/gpt-oss-20b:free",
-
-        messages=[
-
-            {
-                "role": "user",
-                "content": prompt
-            }
-
-        ]
-
-    )
-
-    return response.choices[0].message.content
+async def get_ai_response_with_failover(prompt):
+    """Tries multiple models until one succeeds."""
 ```
 
-Although this function is short, several things happen behind the scenes.
+We start by randomizing the model order:
 
-```text
-Python
-   │
-   ▼
-OpenAI SDK
-   │
-   ▼
-OpenRouter
-   │
-   ▼
-Large Language Model
-   │
-   ▼
-Generated Response
-   │
-   ▼
-Python
+```python
+shuffled_models = list(MODELS_POOL)
+random.shuffle(shuffled_models)
 ```
 
-The SDK handles all of the networking for us.
+### Why shuffle?
+
+This ensures:
+
+* No single model is always overloaded
+* Fair usage distribution
+* Better resilience
 
 ---
 
-# Understanding the Response
-
-The response object contains a lot of information.
+## Try Each Model One by One
 
 ```python
-response
+for model in shuffled_models:
+    try:
+        print(f"Trying: {model}...")
+        return await ask_ai(prompt, model)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        await asyncio.sleep(1)
 ```
 
-includes
+### What this means:
 
-* generated text
-* model name
-* token usage
-* finish reason
-* request metadata
+* Try model 1
+* If it fails → try model 2
+* If it fails → try model 3
+* Continue until success
 
-We're interested in only one field.
-
-```python
-response.choices[0].message.content
-```
-
-This contains the actual response produced by the model.
-
-For example,
-
-```text
-The student's essay demonstrates a clear understanding
-of the topic but would benefit from stronger supporting evidence...
-```
+This makes Markly **self-healing**.
 
 ---
 
-# Testing the Connection
-
-Before integrating the AI into our application, let's test the function.
-
-Temporarily add
+## If Everything Fails
 
 ```python
-print(
-    ask_ai(
-        "Say hello!"
-    )
-)
+return "Error: All models in the pool failed."
 ```
 
-Run
+This is your final fallback safety net.
+
+---
+
+# Step 3 — Testing the Engine
+
+We define an entry point:
+
+```python
+async def main():
+    prompt = "Explain the event loop in one sentence."
+    result = await get_ai_response_with_failover(prompt)
+
+    print(f"\nFinal Result:\n{result}")
+```
+
+Run it:
 
 ```bash
 python engine.py
 ```
 
-If everything is configured correctly, you should see something similar to
+Expected output:
 
 ```text
-Hello! How can I help you today?
+Trying: qwen/qwen3-coder:free...
+Trying: meta-llama/llama-3.3-70b-instruct:free...
+
+Final Result:
+The event loop is a mechanism that continuously checks for and executes asynchronous tasks in a program.
 ```
-
-Congratulations!
-
-Markly can now communicate with a Large Language Model.
 
 ---
 
-# Turning the AI into a Teacher
+# Understanding the Architecture
 
-At the moment, our AI behaves like a general chatbot.
+At this point, Markly is no longer a simple API client.
 
-If we ask
+It is now an **AI orchestration system**.
 
 ```text
-Grade this assignment.
+Teacher Input
+     │
+     ▼
+Markly Engine
+     │
+     ▼
+Model Router (Failover System)
+     │
+     ▼
+Multiple LLMs (OpenRouter)
+     │
+     ▼
+Best Available Response
 ```
 
-the quality of the response will vary considerably.
+---
 
-We need to provide better instructions.
+# Why This Design Matters
 
-This is where **system prompts** become useful.
+This architecture introduces three important engineering principles:
 
-Instead of saying only
+## 1. Resilience
+
+If one model fails, others take over.
+
+## 2. Flexibility
+
+You are not locked into one provider.
+
+## 3. Scalability
+
+You can add more models without changing core logic.
+
+---
+
+# Connecting Back to Markly UI
+
+In `app.py`, nothing changes conceptually.
+
+Instead of calling a single model:
+
+```python
+grade_assignment()
+```
+
+You now call:
+
+```python
+await get_ai_response_with_failover(prompt)
+```
+
+Or wrap it inside a synchronous bridge depending on Panel constraints.
+
+The UI remains simple:
 
 ```text
-Grade this assignment.
+Upload → Extract → Send to Engine → Display Feedback
 ```
 
-we'll first tell the AI who it is.
-
-```python
-messages=[
-
-    {
-        "role":"system",
-        "content":"You are an experienced teacher."
-    },
-
-    {
-        "role":"user",
-        "content":prompt
-    }
-
-]
-```
-
-Now every response will be generated from the perspective of an experienced educator.
-
-This simple addition dramatically improves consistency.
+But the engine behind it is now significantly more powerful.
 
 ---
 
-# Building a Reusable Grading Function
+# What We’ve Built So Far
 
-Rather than exposing `ask_ai()` to the rest of the application, let's create a function with a more meaningful name.
+Markly now supports:
 
-```python
-def grade_assignment(
-    assignment_text
-):
-    prompt = f"""
-Please grade the following assignment.
-
-Provide:
-
-- strengths
-- weaknesses
-- suggestions
-- final grade
-
-Assignment
-
-{assignment_text}
-"""
-
-    return ask_ai(prompt)
-```
-
-Notice how this function hides the complexity of prompt construction.
-
-The rest of the application only needs to write
-
-```python
-feedback = grade_assignment(text)
-```
-
-without worrying about how the prompt is created.
-
-This is another example of good software design: keep the user interface separate from AI-specific logic.
+* Document upload (PDF/DOCX)
+* Text extraction
+* AI grading via LLMs
+* Async API calls
+* Multi-model failover system
+* Resilient AI orchestration layer
 
 ---
 
-# Connecting the AI to the Interface
+# What’s Still Missing
 
-Open `app.py`.
+Right now, Markly still behaves like a **generic AI grader**.
 
-Locate the `preview_assignment()` function that currently displays the extracted text.
+It does not yet understand:
 
-Instead of showing the raw assignment, we'll send it to the AI.
+* Subject differences (Math vs English vs Science)
+* Grading rubrics
+* Teaching styles
+* Evaluation consistency
 
-First, import the grading function.
+In the next chapter, we’ll solve this by introducing:
 
-```python
-from engine import grade_assignment
-```
+> 🎓 **Teacher Personas (Subject-Specific AI Grading Systems)**
 
-Now update the button callback.
-
-```python
-def grade(event):
-
-    if upload.value is None:
-
-        feedback.object = """
-## Feedback
-
-Please upload an assignment first.
-"""
-
-        return
-
-    assignment = extract_text_from_file(
-        upload.value,
-        upload.filename
-    )
-
-    feedback.object = """
-## Feedback
-
-⏳ Grading assignment...
-"""
-
-    result = grade_assignment(
-        assignment
-    )
-
-    feedback.object = result
-```
-
-Let's walk through what happens when the teacher clicks **Grade Assignment**:
-
-1. Check whether a file has been uploaded.
-2. Extract the assignment's text.
-3. Display a temporary "Grading..." message.
-4. Send the assignment to the LLM.
-5. Wait for the response.
-6. Replace the temporary message with the AI's feedback.
-
-Although this process only takes a few lines of code, a significant amount of work is happening behind the scenes.
-
----
-
-# Testing the Application
-
-Restart the Panel server:
-
-```bash
-panel serve app.py --autoreload
-```
-
-Now:
-
-1. Upload a PDF or DOCX assignment.
-2. Choose any subject (we'll make this meaningful in the next chapter).
-3. Click **Grade Assignment**.
-
-After a short delay, the AI should return feedback on the student's work.
-
-At this stage, the feedback will likely be generic because we're not yet telling the AI *what kind of teacher it should be*. A mathematics assignment and an English essay may receive similarly structured comments, even though they require different evaluation criteria.
-
----
-
-# Current Architecture
-
-Our application has grown considerably since the beginning of the tutorial.
-
-```text
-Teacher
-    │
-    ▼
-Upload Assignment
-    │
-    ▼
-Extract Text
-    │
-    ▼
-Create Prompt
-    │
-    ▼
-OpenRouter
-    │
-    ▼
-Large Language Model
-    │
-    ▼
-Teacher Feedback
-    │
-    ▼
-Display Results
-```
-
-We've now built the core AI pipeline. Markly can upload documents, extract their contents, send them to a language model, and display AI-generated feedback.
-
-However, there's still a major limitation: the AI behaves like a general-purpose assistant rather than a subject specialist.
-
-In the next instalment, we'll introduce one of Markly's defining features: **Teacher Personas**. We'll create specialized prompts for Mathematics, English, Science, and Programming, allowing the same language model to adopt different grading philosophies and produce feedback that more closely resembles the expectations of experienced educators in each discipline.
+This is where Markly starts to feel like a real educational assistant rather than a generic chatbot.
