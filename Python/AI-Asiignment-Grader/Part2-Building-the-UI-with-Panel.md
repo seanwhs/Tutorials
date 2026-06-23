@@ -1,85 +1,85 @@
 # Part 2 — Building the User Interface with Panel
 
-Now that our project is set up, it's time to build something we can actually see.
+Now that the project is set up, it’s time to build something visible and interactive.
 
-Before we add AI, upload assignments, or generate grading reports, we need a user interface. This is where teachers will interact with Markly.
+Before we introduce AI grading, file processing, or feedback generation, we need a user interface. This is the layer teachers will actually use when working with Markly.
 
-One of the goals of this tutorial is to build the entire application using **Python only**. We won't write HTML, CSS, or JavaScript. Instead, we'll use **Panel**, a powerful Python library that lets us build modern web applications entirely in Python.
+A key goal of this tutorial is to build the entire application using **Python only**. That means no HTML, no CSS, and no JavaScript. Instead, we’ll use Panel, a powerful library that lets us build full web applications directly in Python.
 
-By the end of this chapter, you'll have a working web application with:
+By the end of this chapter, you’ll have a working interface with:
 
-* A professional-looking title
-* A short description
+* A title and description
 * A file upload widget
 * A subject selector
-* A **Grade Assignment** button
-* An area to display grading feedback
+* A “Grade Assignment” button
+* A feedback display area
 
-Although the application won't perform any grading yet, we'll have laid the foundation for everything that follows.
+It won’t perform any grading yet, but it will establish the complete structure we’ll build on in later parts.
 
 ---
 
 # What is Panel?
 
-Panel is an open-source Python library for building interactive web applications.
+Panel is an open-source library for building interactive web applications using only Python.
 
-Normally, web applications require several technologies:
+In traditional web development, you typically work with multiple technologies:
 
-* HTML for the page structure
+* HTML for structure
 * CSS for styling
 * JavaScript for interactivity
 * Python for backend logic
 
-Panel removes much of this complexity.
+Panel removes this fragmentation by letting you define the entire interface using Python objects.
 
-Instead of writing code in four different languages, you build everything using Python objects.
-
-For example, instead of writing HTML like this:
+Instead of writing HTML like:
 
 ```html
 <button>Grade Assignment</button>
 ```
 
-you simply write:
+you write:
 
 ```python
 pn.widgets.Button(name="Grade Assignment")
 ```
 
-Panel automatically converts your Python code into a modern web application.
+Panel then renders it as a modern web UI automatically.
 
-This makes it an excellent choice for educators, researchers, and data scientists who are comfortable with Python but don't necessarily want to learn front-end web development.
+Official documentation:
+[Panel Documentation](https://panel.holoviz.org?utm_source=chatgpt.com)
+
+This makes Panel especially useful for educators, data scientists, and Python developers who want to build applications without learning frontend frameworks.
 
 ---
 
 # Understanding Widgets
 
-Every interactive element in Panel is called a **widget**.
+In Panel, every interactive element is called a **widget**.
 
-A widget is simply a graphical component that allows users to interact with your application.
+A widget is a UI component that either captures user input or triggers an action.
 
-Some common widgets include:
+Common widgets include:
 
-| Widget           | Purpose                         |
-| ---------------- | ------------------------------- |
-| Button           | Performs an action when clicked |
-| TextInput        | Allows users to type text       |
-| FileInput        | Upload files                    |
-| Select           | Choose from a dropdown list     |
-| RadioButtonGroup | Select one option               |
-| Checkbox         | Toggle an option on or off      |
-| StaticText       | Display information             |
-| Markdown         | Display formatted text          |
+| Widget           | Purpose                    |
+| ---------------- | -------------------------- |
+| Button           | Triggers an action         |
+| TextInput        | Accepts text input         |
+| FileInput        | Uploads files              |
+| Select           | Dropdown selection         |
+| RadioButtonGroup | Selects one option         |
+| Checkbox         | Toggles a setting          |
+| StaticText       | Displays plain text        |
+| Markdown         | Displays formatted content |
 
-We'll use several of these throughout Markly.
+We’ll use several of these to construct Markly’s interface.
 
 ---
 
 # Our First Panel Application
 
-Create or open **app.py**.
+Create or open `app.py`.
 
-We'll begin with the simplest possible Panel application.
+Start with the simplest possible Panel app:
 
 ```python
 import panel as pn
@@ -89,121 +89,102 @@ pn.extension()
 pn.pane.Markdown("# Hello Markly!").servable()
 ```
 
-Let's understand each line.
-
 ---
 
-## Importing Panel
+## Import Panel
 
 ```python
 import panel as pn
 ```
 
-This imports the Panel library.
-
-Using the alias `pn` makes the code shorter and follows the convention used throughout the Panel documentation.
+This imports Panel and assigns it the alias `pn`, which is the standard convention.
 
 ---
 
-## Initializing Panel
+## Initialize Panel
 
 ```python
 pn.extension()
 ```
 
-This line loads Panel's JavaScript and CSS resources.
+This activates Panel’s frontend resources (JavaScript and CSS). Without it, widgets may not render correctly.
 
-Think of it as turning the Panel engine on.
-
-Without this line, many widgets will not function correctly.
-
-For most applications, `pn.extension()` is one of the very first lines you'll write.
+Think of it as starting the UI runtime.
 
 ---
 
-## Creating Markdown
+## Create a Markdown Pane
 
 ```python
 pn.pane.Markdown("# Hello Markly!")
 ```
 
-Panel includes different kinds of "panes."
+A **pane** is a display component in Panel.
 
-A pane is simply something that displays information.
-
-Examples include:
+It can render:
 
 * Markdown
 * Images
 * HTML
-* DataFrames
-* Matplotlib figures
+* Tables
+* Plots
 
-Here we're using a Markdown pane.
-
-Because Markdown understands headings, the `#` creates a large title.
+Here, we use Markdown to create a heading using `#`.
 
 ---
 
-## Making the Component Visible
+## Make It Visible
 
 ```python
 .servable()
 ```
 
-Creating a widget isn't enough.
+This tells Panel: *“Render this component in the web application.”*
 
-We also need to tell Panel to display it.
-
-That's exactly what `.servable()` does.
+Without `.servable()`, nothing appears in the browser.
 
 ---
 
 # Running the Application
 
-Open your terminal.
+To run your Panel application, open a terminal and navigate to your project directory.
 
-Navigate to your project directory.
-
-Run:
+Then execute:
 
 ```bash
-panel serve app.py --autoreload
+panel serve app.py --show --autoreload
 ```
 
-Let's understand the command.
+This command does three important things:
 
-| Option       | Meaning                                         |
-| ------------ | ----------------------------------------------- |
-| panel serve  | Starts a web server                             |
-| app.py       | Runs your application                           |
-| --autoreload | Automatically reloads whenever you save changes |
+| Command / Flag     | Meaning                                                 |
+| ------------------ | ------------------------------------------------------- |
+| panel serve app.py | Starts the Panel server and runs your app               |
+| --show             | Automatically opens the app in your browser             |
+| --autoreload       | Reloads the app automatically whenever you save changes |
 
-After a few seconds, you'll see something similar to:
+After running it, you will see output similar to:
 
 ```
 Launching server at:
-
 http://localhost:5006
 ```
 
-Open your browser and visit:
+If the browser does not open automatically, simply visit:
 
 ```
 http://localhost:5006
 ```
 
-Congratulations!
-
-You've just created your first Panel web application.
+At this point, your first Python-based web application is running. Any edits you make to `app.py` will be reflected instantly thanks to auto-reload.
 
 ---
 
 # Designing the Main Interface
 
-Let's replace our "Hello Markly" page with something more professional.
+Now let’s replace the simple “Hello Markly” page with a structured layout.
 
-Update **app.py**.
+Update `app.py`:
 
 ```python
 import panel as pn
@@ -212,13 +193,12 @@ pn.extension()
 
 title = pn.pane.Markdown("""
 # 🎓 Markly
-
 ### AI-Powered Context-Aware Grading Assistant
 """)
 
 description = pn.pane.Markdown("""
 Upload a student assignment, choose a subject,
-and let AI generate detailed teacher-style feedback.
+and receive AI-generated feedback.
 """)
 
 app = pn.Column(
@@ -229,61 +209,49 @@ app = pn.Column(
 app.servable()
 ```
 
-Run the application again.
-
-The page now looks much more like the beginning of a real application.
-
-Notice that we're using a **Column**.
+Now the interface looks like the beginning of a real application.
 
 ---
 
 # Understanding Layouts
 
-A user interface is simply a collection of components arranged on the screen.
+A web UI is simply a structured arrangement of components.
 
-Panel provides several layout containers.
+Panel provides layout containers to organize them.
 
-The most common are:
+Common layouts include:
 
-| Layout    | Description            |
-| --------- | ---------------------- |
-| Column    | Vertical arrangement   |
-| Row       | Horizontal arrangement |
-| Tabs      | Multiple pages         |
-| GridBox   | Grid layout            |
-| Accordion | Expandable sections    |
+| Layout    | Description          |
+| --------- | -------------------- |
+| Column    | Vertical stacking    |
+| Row       | Horizontal layout    |
+| Tabs      | Multi-page interface |
+| GridBox   | Grid-based layout    |
+| Accordion | Collapsible sections |
 
-Our application currently uses:
+We are currently using:
 
 ```python
 pn.Column(...)
 ```
 
-which stacks components vertically.
+Which stacks elements vertically:
 
 ```
 Title
-
+↓
 Description
-
-Next Widget
-
-Next Widget
-
-Next Widget
+↓
+Next component
 ```
-
-Later we'll combine Columns and Rows to build more sophisticated layouts.
 
 ---
 
 # Adding a File Upload Widget
 
-Teachers need a way to upload assignments.
+Teachers need to upload assignments.
 
-Panel provides the **FileInput** widget.
-
-Add the following code.
+We use the `FileInput` widget:
 
 ```python
 upload = pn.widgets.FileInput(
@@ -291,27 +259,15 @@ upload = pn.widgets.FileInput(
 )
 ```
 
-Let's understand the parameter.
+The `accept` parameter restricts file types to supported formats.
 
-```python
-accept=".pdf,.docx,.png,.jpg,.jpeg"
-```
-
-This limits which files the user can select.
-
-Instead of uploading anything, the file picker now accepts only supported assignment formats.
-
-At this stage, uploading a file doesn't actually do anything.
-
-We'll process uploaded files in the next chapter.
+At this stage, the upload works visually but does not yet process files. We’ll handle that later.
 
 ---
 
 # Adding a Subject Selector
 
-Different subjects require different grading strategies.
-
-Let's allow the teacher to choose one.
+Different subjects require different grading logic.
 
 ```python
 subject = pn.widgets.Select(
@@ -325,21 +281,17 @@ subject = pn.widgets.Select(
 )
 ```
 
-Unlike a normal HTML dropdown, this is simply another Python object.
-
-Later we'll use
+Later, we’ll use:
 
 ```python
 subject.value
 ```
 
-to determine which grading prompt should be sent to the AI.
+to determine how the AI should evaluate the assignment.
 
 ---
 
 # Adding the Grade Button
-
-Next, create a button.
 
 ```python
 grade_button = pn.widgets.Button(
@@ -348,29 +300,15 @@ grade_button = pn.widgets.Button(
 )
 ```
 
-The parameter
+The `button_type="primary"` styling makes it visually prominent as the main action.
 
-```python
-button_type="primary"
-```
-
-gives the button a more prominent appearance.
-
-Users naturally recognize it as the main action on the page.
-
-Currently, clicking the button won't do anything.
-
-We'll connect it to our grading engine later.
+At this stage, clicking it does nothing—we’ll connect it to the grading logic later.
 
 ---
 
-# Creating an Output Area
+# Creating the Feedback Area
 
-Eventually, the AI will generate detailed feedback.
-
-We need somewhere to display it.
-
-Create a Markdown pane.
+We need a place to display AI-generated feedback.
 
 ```python
 feedback = pn.pane.Markdown("""
@@ -380,15 +318,13 @@ Waiting for assignment...
 """)
 ```
 
-For now, it simply displays placeholder text.
-
-Later we'll replace this with AI-generated grading comments.
+This is placeholder content for now and will later be replaced with AI output.
 
 ---
 
-# Assembling the Interface
+# Assembling the Full Interface
 
-Now combine everything into a single layout.
+Now combine everything:
 
 ```python
 import panel as pn
@@ -397,7 +333,6 @@ pn.extension()
 
 title = pn.pane.Markdown("""
 # 🎓 Markly
-
 ### AI-Powered Context-Aware Grading Assistant
 """)
 
@@ -444,43 +379,41 @@ app = pn.Column(
 app.servable()
 ```
 
-Run the application again.
-
-You should now see:
-
-* A title
-* A description
-* A file upload button
-* A subject dropdown
-* A grading button
-* A feedback section
-
-Although none of these components interact yet, we've created the complete skeleton of our application.
-
 ---
 
-# Understanding the Current Architecture
+# What We’ve Built So Far
 
-At this point, our application consists only of user interface components.
+At this stage, Markly is a complete UI shell:
 
 ```
 Teacher
-    │
-    ▼
-Uploads Assignment
-    │
-    ▼
-Selects Subject
-    │
-    ▼
+  ↓
+Uploads file
+  ↓
+Selects subject
+  ↓
 Clicks Grade
-    │
-    ▼
-Nothing Happens Yet 🙂
+  ↓
+(No backend logic yet)
 ```
 
-That's perfectly fine.
+This is intentional. Most real-world applications are built in layers:
 
-Professional software is almost always built incrementally. We first create the interface, then connect the logic behind each component.
+1. UI first
+2. Logic second
+3. Intelligence (AI) last
 
-In the next instalment, we'll bring the application to life by handling uploaded files. We'll learn how the `FileInput` widget stores uploaded data, extract useful information from PDF and Word documents, and prepare that content for submission to the AI grading engine. By the end of the next section, Markly will be able to read the contents of student assignments instead of simply accepting file uploads.
+---
+
+# What’s Next?
+
+In the next part, we’ll make Markly functional.
+
+You’ll learn how to:
+
+* Access uploaded files from `FileInput`
+* Extract text from PDFs and Word documents
+* Normalize assignment content for AI processing
+* Prepare structured prompts for grading
+
+Once this is done, Markly will evolve from a static interface into a working AI-powered grading system.
