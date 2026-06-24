@@ -154,13 +154,13 @@ macOS/Linux
 source venv/bin/activate
 ```
 
-If successful, your terminal prompt should change.
+If successful, your terminal prompt should change:
 
 ```
 (venv)
 ```
 
-This indicates that any libraries you install will be placed inside this project's environment rather than globally on your computer.
+This indicates that any libraries you install will be isolated to this project.
 
 ---
 
@@ -176,40 +176,40 @@ pip install pymupdf
 pip install python-docx
 pip install pillow
 pip install reportlab
+pip install pytesseract
 ```
 
-Alternatively, install everything at once.
+Alternatively, install everything at once:
 
 ```bash
 pip install \
 panel \
 openai \
-python-dotx \
 python-dotenv \
 pymupdf \
 python-docx \
 pillow \
+pytesseract \
 reportlab
 ```
 
-Once installation finishes, verify everything works.
+Once installation finishes, verify everything works:
 
 ```bash
 pip list
 ```
 
-You should see the newly installed packages.
+You should see all installed packages listed.
 
 ---
 
 ## Step 1.5 Create the Project Structure
 
-Inside your project folder, create the following files.
+Inside your project folder, create the following files:
 
 ```
 markly/
 
-│
 ├── app.py
 ├── engine.py
 ├── personas.py
@@ -219,133 +219,79 @@ markly/
 └── assets/
 ```
 
-Let's briefly understand the purpose of each file.
-
 ### app.py
 
 This file contains the application's user interface.
-
-Everything the teacher sees—including buttons, upload widgets, and grading results—will be built here.
-
-Think of this as the "front desk" of the application.
 
 ---
 
 ### engine.py
 
-This file communicates with the language model.
-
-Instead of mixing AI code into the interface, we'll isolate it inside its own module.
-
-This separation makes our application much easier to maintain.
+Handles communication with the language model.
 
 ---
 
 ### personas.py
 
-One of Markly's unique features is that it behaves differently depending on the subject.
-
-All of those prompts will live inside this file.
-
-For example,
-
-* Mathematics Teacher
-* English Teacher
-* Science Teacher
-* Programming Instructor
-
-Each persona instructs the AI how to evaluate assignments from that discipline.
+Stores teacher-style grading prompts (Math, English, Science, etc.).
 
 ---
 
 ### utils.py
 
-Many tasks don't belong in the user interface or AI engine.
+Handles file processing:
 
-For example,
-
-* Reading PDF files
-* Reading DOCX files
-* Converting images
-* Extracting text
-* Helper functions
-
-These utility functions will be stored here.
+* PDF reading
+* DOCX reading
+* Image OCR
+* Text extraction
 
 ---
 
 ### assets/
 
-This folder stores resources used by the application.
-
-Examples include:
-
-* logos
-* icons
-* screenshots
-* sample assignments
-
-Keeping these separate helps organize the project.
+Stores images, icons, and sample files.
 
 ---
 
 # Step 1.6 Save Your API Key
 
-We'll communicate with language models using OpenRouter.
-
-Create a file named
-
-```
-.env
-```
-
-Add the following.
+Create a `.env` file:
 
 ```text
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
-Never hardcode API keys inside your Python source code.
-
-Using environment variables keeps sensitive information out of your repository and makes it much safer to share your project with others.
+Never hardcode API keys in Python files.
 
 ---
 
 # Step 1.7 Create requirements.txt
 
-To make your project easy to install on another computer—or deploy to a cloud platform—we'll record all dependencies in a `requirements.txt` file.
-
-Run the following command:
+Generate dependency list:
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-This captures the exact versions of every installed package.
-
-Later, anyone can recreate your environment by running:
+To reinstall later:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-This simple step is considered a best practice for Python development and is essential when deploying to services like Hugging Face Spaces.
-
 ---
 
 # What We've Accomplished
 
-Although we haven't written any application code yet, we've completed several important setup tasks:
+Although we haven't written application logic yet, we've already:
 
-* Created an isolated Python environment
-* Installed all required libraries
-* Organized our project into logical modules
-* Secured our API key using environment variables
-* Generated a `requirements.txt` file for reproducibility
+* Created a clean project structure
+* Set up a virtual environment
+* Installed all required dependencies (including OCR support via `pytesseract`)
+* Secured API keys properly
+* Prepared reproducible deployment setup
 
-Having a clean project structure from the beginning makes it much easier to expand the application as new features are added.
+---
 
-In the next part, we'll build our first **Panel** application, explore how Panel creates interactive web interfaces using pure Python, and create the foundation of the Markly user interface before adding file uploads and AI-powered grading.
-
-
-
+In the next part, we'll build the **Panel-based user interface**, where users can upload assignments, select subjects, and trigger the grading pipeline.
