@@ -1,39 +1,37 @@
 # Part 9 — Automatic Subject Detection (AI Classification Layer)
 
-Up to this point, Markly requires the teacher to manually select a subject:
+Up to this point, Markly requires the teacher to manually select a subject before grading:
 
 * Mathematics
 * English
 * Science
 * Programming
 
-That works, but in real classroom workflows, it introduces friction.
+This works, but it introduces unnecessary friction in real classroom workflows.
 
-Teachers don’t always want to think about classification. They just want to upload a file and get feedback.
+Teachers don’t want to think about classification. They just want to upload a file and get meaningful feedback.
 
-Also, manual selection creates a subtle but important problem:
+More importantly, manual selection introduces a subtle but critical risk:
 
-* A math worksheet might be accidentally graded as English
+* A math worksheet might be graded as English
 * A programming assignment might be graded as Science
-* Handwritten work might be misclassified
+* A handwritten response might be misinterpreted entirely
 
-Even with good personas, the *wrong subject = wrong grading lens*
+Even if the grading system is strong, **the wrong subject means the wrong grading lens**.
 
-In this chapter, we’ll remove that responsibility from the teacher.
+In this chapter, we remove that responsibility from the teacher.
 
-We’ll teach Markly to automatically detect the subject of an assignment using the same LLM we already use for grading.
+We introduce a new capability:
 
-This introduces a new capability:
-
-> **AI-as-a-classifier before AI-as-a-grader**
+> **AI as a classifier before AI as a grader**
 
 ---
 
 # The New Architecture
 
-We are adding a new step in the pipeline:
+We are inserting a new step into the pipeline: subject classification.
 
-```text id="cls_arch_1"
+```text
 Upload Assignment
         │
         ▼
@@ -52,84 +50,71 @@ Grade Assignment
 Generate Report
 ```
 
-Instead of asking:
+Instead of asking the teacher:
 
 > “Which subject is this?”
 
-we will ask the AI:
+We now ask the model:
 
-> “What subject does this look like?”
+> “What subject does this appear to be?”
 
 ---
 
-# Why This Works Surprisingly Well
+# Why This Works
 
-LLMs are very strong at pattern recognition.
+LLMs are surprisingly strong at semantic classification, even without explicit rules.
 
-Even without explicit rules, they can infer subject type from:
+They infer subject type from patterns in the content:
 
 ### Mathematics
 
-* equations
-* symbols
-* step-by-step working
+* Equations and symbols
+* Step-by-step derivations
+* Structured problem solving
 
 ### English
 
-* paragraphs
-* essays
-* grammar structure
+* Paragraphs and essays
+* Grammar structures
+* Narrative or argumentative writing
 
 ### Programming
 
-* syntax like `def`, `for`, `{}`, indentation
+* Keywords like `def`, `for`, `class`
+* Syntax and indentation
+* Logical code structure
 
 ### Science
 
-* diagrams
-* terminology
-* experimental structure
+* Experimental descriptions
+* Technical terminology
+* Diagrams or structured explanations
 
-So we are essentially using the model as a **semantic classifier**.
-
----
-
-# Step 1 — Creating a Subject Classifier Prompt
-
-Open `engine.py`.
-
-We will create a dedicated function.
-
-```python id="cls_fn_1"
-def detect_subject(content):
-```
-
-Now we need a prompt that forces structured output.
-
-LLMs are naturally verbose, so we must constrain them.
+In effect, we are using the model as a **semantic classifier**, not just a generator.
 
 ---
 
-## The Classification Prompt
+# Step 1 — Create a Subject Classification Prompt
 
-```python id="cls_prompt_1"
+Open `engine.py` and add a dedicated prompt for classification.
+
+```python
 SUBJECT_DETECTION_PROMPT = """
 You are an academic subject classifier.
 
 Your task is to determine the subject of a student assignment.
 
 Choose ONLY one of the following:
-
 - Mathematics
 - English
 - Science
 - Programming
 
 Rules:
-- Output ONLY the subject name.
-- Do not explain.
-- Do not add punctuation.
-- Do not add extra text.
+- Output ONLY the subject name
+- Do not explain
+- Do not add punctuation
+- Do not include any extra text
 
 Assignment:
 """
@@ -137,48 +122,43 @@ Assignment:
 
 ---
 
-# Why We Force “Only One Word Output”
+## Why Strict Output Matters
 
-Without strict constraints, the model might respond like:
+Without constraints, the model might respond like:
 
 ```text
-This appears to be a mathematics assignment because...
+This appears to be a Mathematics assignment because it contains equations...
 ```
 
-That breaks our pipeline.
+That breaks automation.
 
-We want clean machine-readable output:
+We need a clean, machine-readable output:
 
 ```text
 Mathematics
 ```
 
-This is critical for automation.
+This is what allows downstream components to function reliably.
 
 ---
 
-# Step 2 — Implementing Subject Detection
+# Step 2 — Implement Subject Detection
 
-Now we implement the function.
+Now implement the classification function.
 
-```python id="cls_fn_2"
+```python
 def detect_subject(content):
 
     prompt = SUBJECT_DETECTION_PROMPT + content
 
     response = client.chat.completions.create(
-
         model="openai/gpt-oss-20b:free",
-
         messages=[
-
             {
                 "role": "user",
                 "content": prompt
             }
-
         ],
-
         temperature=0
     )
 
@@ -187,81 +167,59 @@ def detect_subject(content):
 
 ---
 
-## Why `temperature=0`?
+## Why `temperature = 0`
 
-This is important.
+We are no longer generating creative text.
 
-We are switching from:
-
-* creative generation ❌
-  to
-* classification / deterministic output ✅
+We are performing classification.
 
 Setting:
 
 ```python
-temperature=0
+temperature = 0
 ```
 
-forces:
+ensures:
 
-* consistency
-* repeatability
-* reduced randomness
+* deterministic output
+* consistent classification
+* reduced randomness between identical inputs
 
-This is exactly what we want for classification.
+This is essential for production-grade pipelines.
 
 ---
 
-# Step 3 — Connecting It to the Grading Pipeline
+# Step 3 — Integrate Into the Grading Pipeline
 
-Now open `app.py`.
-
-Previously we had:
+Previously, Markly relied on manual subject selection:
 
 ```python
-result = grade_assignment(
-    assignment,
-    subject.value
-)
+result = grade_assignment(content, subject.value)
 ```
 
-We will replace this logic.
+We now replace this with automatic detection.
 
 ---
 
-## Step 3.1 Remove Manual Subject Selection (Optional UI Change)
+## Update App Logic
 
-You can either:
-
-### Option A (recommended now)
-
-Keep dropdown as fallback
-
-### Option B (better UX)
-
-Hide it completely later
-
-For now, we keep it for debugging.
-
----
-
-## Step 3.2 Inject Subject Detection
-
-Update the callback:
-
-```python id="cls_ui_1"
+```python
 from engine import grade_assignment, detect_subject
 ```
 
-Now modify the grading flow:
+---
 
-```python id="cls_ui_2"
-content = extract_text_from_file(
-    upload.value,
-    upload.filename
-)
+## Step 3.1 Extract Content First
 
+```python
+content = extract_text_from_file(upload.value, upload.filename)
+```
+
+---
+
+## Step 3.2 Detect Subject Automatically
+
+```python
 status.object = "Detecting subject..."
 status.alert_type = "primary"
 
@@ -272,37 +230,29 @@ status.object = f"Detected subject: {predicted_subject}"
 
 ---
 
-# Step 4 — Using the Detected Subject
+## Step 3.3 Pass Into Grading Engine
 
-Now we pass it into the grading engine:
-
-```python id="cls_ui_3"
+```python
 result = grade_assignment(
     content,
     predicted_subject
 )
 ```
 
-That’s it.
-
-We’ve removed manual classification from the teacher entirely.
+At this point, the teacher is no longer involved in classification.
 
 ---
 
-# Step 5 — Handling Image Assignments
+# Step 4 — Handling Image-Based Assignments
 
-We must also handle vision inputs.
+For images, we follow a simplified fallback approach:
 
-Modify logic:
-
-```python id="cls_img_1"
+```python
 if filename.endswith((".png", ".jpg", ".jpeg")):
 
     image = image_to_base64(upload.value)
 
-    # For images, we can still classify using text prompt fallback
-    # OR reuse vision model later (we keep simple for now)
-
+    # Placeholder content for classification
     content = "[IMAGE_ASSIGNMENT]"
 
     predicted_subject = detect_subject(content)
@@ -310,39 +260,41 @@ if filename.endswith((".png", ".jpg", ".jpeg")):
     result = grade_image(image, predicted_subject)
 ```
 
+Later, this can be upgraded to full vision-based classification, but this keeps the system simple for now.
+
 ---
 
-# Important Design Insight
+# Step 5 — The Architectural Shift
 
-We are now using the LLM in **two different roles**:
+We are now using the LLM in two distinct roles:
 
-### 1. Classifier
+### 1. Classifier (Pre-processing Layer)
 
 ```text
 Input: assignment
 Output: subject
 ```
 
-### 2. Teacher
+### 2. Teacher (Grading Layer)
 
 ```text
 Input: assignment + persona
-Output: grading feedback
+Output: feedback
 ```
 
-This is a powerful architectural pattern:
+This is a key architectural pattern:
 
-> **Multi-stage LLM pipelines**
+> **Multi-stage LLM pipeline design**
+
+Instead of one large prompt doing everything, we decompose intelligence into stages.
 
 ---
 
 # Step 6 — Improving Classification Accuracy
 
-Right now, classification uses raw text only.
+We can refine the prompt further for better accuracy:
 
-We can improve it with stronger prompting:
-
-```python id="cls_prompt_2"
+```python
 SUBJECT_DETECTION_PROMPT = """
 You are an expert academic curriculum classifier.
 
@@ -355,125 +307,117 @@ Subjects:
 - Programming (code, syntax, algorithms)
 
 Return ONLY one word:
-
 Mathematics, English, Science, or Programming.
 
 Assignment:
 """
 ```
 
-This reduces ambiguity significantly.
+This improves decision boundaries and reduces ambiguity between subjects.
 
 ---
 
-# Step 7 — Confidence Debugging (Optional Enhancement)
+# Step 7 — Optional Debugging Enhancement
 
-We can also ask for confidence:
+For development purposes, you may log confidence:
 
-```python id="cls_conf_1"
-Return format:
-
-Subject: <one word>
-Confidence: <0-1>
+```python
+print("Detected subject:", predicted_subject)
 ```
 
-But we do NOT use this in production yet.
+You can also extend later to:
 
-We only log it:
-
-```python id="cls_log_1"
-print("Detected:", predicted_subject)
+```text
+Subject: Mathematics
+Confidence: 0.92
 ```
 
-This helps debugging misclassifications.
+But for now, we keep production output simple.
 
 ---
 
 # What We Just Built
 
-Markly is now capable of:
+Markly has evolved significantly:
 
 ### Before
 
 * Teacher manually selects subject
+* System is static and rule-driven
 
 ### Now
 
-* AI automatically determines subject
-* Routes to correct persona
-* Applies correct grading strategy
+* AI automatically detects subject
+* System adapts based on input
+* Persona is assigned dynamically
+* Grading becomes context-aware
 
 ---
 
 # Updated System Architecture
 
-```text id="cls_arch_2"
+```text
                     Teacher
                        │
                        ▼
               Upload Assignment
                        │
                        ▼
-           Extract Text / Image
+        Extract Text / Image Content
                        │
                        ▼
-        ┌─────────────────────────┐
-        │  Subject Classification │
-        │        (LLM)           │
-        └─────────────────────────┘
+        🧠 Subject Classification (LLM)
                        │
                        ▼
-             Select Persona Automatically
+        Select Persona Automatically
                        │
                        ▼
-               Grade Assignment
+              Grade Assignment
                        │
                        ▼
-              Generate PDF Report
+            Generate PDF Report
 ```
 
 ---
 
 # Why This Is a Big Step
 
-This chapter introduces something important:
+Markly is no longer a fixed workflow system.
 
-> Markly is no longer a fixed pipeline.
-> It is now an adaptive AI system.
+It is now an **adaptive AI system**.
 
-We are no longer telling the system:
+Instead of asking the user:
 
-* “This is Mathematics”
+> “What is this?”
 
-We are asking:
+We now ask:
 
-* “What *is* this?”
+> “What does this look like?”
 
-This shift is what makes modern AI applications feel intelligent.
+That shift—from explicit instruction to inference—is what defines modern AI-native applications.
 
 ---
 
 # What’s Next
 
-At this point, Markly is already a fairly complete system:
+So far, Markly can:
 
-* Multimodal input (text + images)
-* Subject-aware grading
-* Automatic classification
-* PDF report generation
-* Professional UI experience
+* Process text and images
+* Detect subject automatically
+* Apply persona-based grading
+* Generate structured feedback reports
 
-But there is still one major limitation:
+But there is still a major limitation:
 
-> The system is stateless.
+> The system has no memory.
 
-Every assignment is treated independently.
+Each submission is treated independently.
 
-There is no memory of:
+It does not know:
 
-* previous submissions
-* student progress
-* recurring mistakes
-* improvement over time
+* whether a student improved
+* repeated mistakes
+* long-term learning patterns
+* historical performance
 
-In the next instalment, we will upgrade Markly into a **student-aware system**, where the AI tracks performance trends and generates longitudinal feedback like a real teacher would over a semester.
+In the next chapter, we will evolve Markly into a **student-aware system**, capable of tracking learning over time and generating longitudinal feedback like a real teacher.
