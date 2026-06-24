@@ -13,79 +13,72 @@ From a technical perspective, the application works.
 
 However, from a user's perspective, the experience can still be improved.
 
-Imagine clicking **Grade Assignment** on a 20-page assignment.
+And now there is an important addition:
 
-Nothing appears to happen.
+> The grading result is no longer just text on a screen — it becomes a downloadable PDF report.
 
-After several seconds, the feedback suddenly appears.
-
-During that time, the teacher might wonder:
-
-* Did I click the button?
-* Is the application still working?
-* Has it frozen?
-* Should I click the button again?
-
-Professional applications constantly communicate with their users.
-
-They explain what they're doing.
-
-They show progress.
-
-They handle errors gracefully.
-
-They prevent accidental mistakes.
-
-In this chapter, we'll transform Markly from a working prototype into a polished application suitable for everyday classroom use.
-
-We'll add:
-
-* Status messages
-* Progress indicators
-* Loading spinners
-* Button disabling
-* Better validation
-* Error handling
-* Cleaner layouts
-* Better feedback presentation
-
-None of these improvements change the AI itself.
-
-Instead, they make the application feel significantly more professional.
+This changes how users interact with the system.
 
 ---
 
-# Thinking Like a User
+# Why This Matters Now
 
-When developers test their own software, they already know what's happening behind the scenes.
+Imagine clicking **Grade Assignment** on a 20-page submission.
 
-Users don't.
+Previously:
 
-Consider this sequence.
+* You waited
+* Feedback appeared in the browser
+
+Now:
+
+* You wait
+* Feedback appears in the browser
+* A **Download Report** button becomes available
+
+This introduces a new UX concept:
+
+> The system produces a tangible output artifact.
+
+That means the interface must clearly communicate:
+
+* When the report is ready
+* When it can be downloaded
+* What state the system is currently in
+
+Without this clarity, users may still feel uncertain:
+
+* “Did the PDF generate correctly?”
+* “Can I download it yet?”
+* “Is it still processing?”
+
+Professional applications eliminate this ambiguity.
+
+---
+
+# Thinking Like a User (Revisited)
+
+When developers test software, they see internal state changes.
+
+Users only see the interface.
+
+Consider the difference:
+
+### Developer view
 
 ```text
-Teacher
-    │
-Clicks Grade
-    │
-Nothing Happens
-    │
-Waits...
-    │
-Still Nothing...
+extract → grade → generate PDF → return object
 ```
 
-Eventually,
+### Teacher view
 
 ```text
-Feedback Appears
+Click button → ??? → result appears
 ```
 
-Technically everything worked.
+Now with PDF generation added, the “???” step includes more uncertainty.
 
-Psychologically it feels broken.
-
-Instead, the application should constantly communicate.
+We must explicitly communicate progress:
 
 ```text
 Teacher
@@ -93,539 +86,273 @@ Teacher
 Clicks Grade
     │
 ▼
-
 Reading Assignment...
 
 ▼
-
 Sending to AI...
 
 ▼
-
 Generating Feedback...
 
 ▼
-
-Creating PDF...
+Creating PDF Report...
 
 ▼
+Making Download Available...
 
+▼
 Done!
 ```
 
-Notice how much more reassuring this feels.
+This last step is new and important:
+
+> “Making Download Available” is a first-class UX event.
 
 ---
 
-# Adding a Status Area
+# Adding a Status Area (Enhanced Meaning)
 
-Let's create a dedicated status message.
+We already introduced a status component.
 
-Near the top of `app.py`, add:
+Now we extend its meaning beyond grading into **artifact generation**.
 
 ```python
 status = pn.pane.Alert(
-
     "Ready.",
-
     alert_type="primary"
-
 )
 ```
 
-Unlike a Markdown pane,
+During workflow, we now explicitly reflect the PDF lifecycle:
 
-an **Alert** is designed to communicate status.
+```python
+status.object = "Generating PDF report..."
+status.alert_type = "primary"
+```
 
-Panel supports several alert types.
+When the file is ready:
 
-| Alert   | Meaning                   |
-| ------- | ------------------------- |
-| primary | General information       |
-| success | Completed successfully    |
-| warning | Something needs attention |
-| danger  | Error                     |
+```python
+status.object = "Report ready for download."
+status.alert_type = "success"
+```
 
-This gives us a simple way to keep teachers informed.
+This subtle change is important.
+
+We are no longer just grading.
+
+We are producing a deliverable.
 
 ---
 
-# Updating Status Throughout the Workflow
+# Updating Status Throughout the Full Workflow
 
-Instead of only updating the feedback area,
-
-we'll also update the status.
-
-For example,
+The updated pipeline now looks like this:
 
 ```python
 status.object = "Reading assignment..."
 ```
 
-After extraction,
-
 ```python
 status.object = "Sending assignment to AI..."
 ```
 
-When the AI finishes,
-
 ```python
-status.object = "Generating report..."
+status.object = "Generating feedback..."
 ```
 
-Finally,
+```python
+status.object = "Creating PDF report..."
+```
 
 ```python
-status.object = "Completed."
+status.object = "Preparing download..."
+```
+
+```python
+status.object = "Ready."
 status.alert_type = "success"
 ```
 
-Now the teacher always knows what's happening.
+Each stage reduces uncertainty.
+
+Each stage builds trust.
 
 ---
 
-# Preventing Multiple Clicks
+# Introducing the Download State (New UX Concept)
 
-One common problem with AI applications is repeated button presses.
-
-Imagine a teacher clicking
-
-```text
-Grade Assignment
-```
-
-five times.
-
-The application might accidentally send five identical requests.
-
-That wastes:
-
-* API credits
-* processing time
-* bandwidth
-
-Instead,
-
-disable the button while grading.
+We now add a key interface element:
 
 ```python
-grade_button.disabled = True
+download = pn.widgets.FileDownload(
+    file=None,
+    filename="markly_report.pdf",
+    button_type="success"
+)
 ```
 
-When everything finishes,
+But more importantly, this widget is **state-dependent**.
 
-```python
-grade_button.disabled = False
-```
+It should only become active when:
 
-The workflow becomes
-
-```text
-Click Button
-
-↓
-
-Button Disabled
-
-↓
-
-AI Processing
-
-↓
-
-Button Enabled
-```
-
-Simple,
-
-but extremely effective.
+> The PDF report has been successfully generated.
 
 ---
 
-# Showing a Loading Spinner
+# Enabling the Download Button
 
-Status messages are useful,
+Before grading:
 
-but a visual indicator is even better.
+```python
+download.file = None
+download.disabled = True
+```
 
-Panel includes a loading spinner.
+After PDF generation:
 
-Create one.
+```python
+download.file = pdf_bytes
+download.disabled = False
+```
+
+Now the user flow becomes explicit:
+
+```text
+Before grading:
+[ Download Report ] ❌ disabled
+
+After grading:
+[ Download Report ] ✅ enabled
+```
+
+This removes guesswork completely.
+
+---
+
+# Preventing User Confusion
+
+Without proper UX design, this problem appears:
+
+* Feedback is visible
+* But download is not yet ready
+* User clicks download too early
+
+So we reinforce clarity with status + button state sync:
+
+```python
+status.object = "Preparing downloadable report..."
+download.disabled = True
+```
+
+Only when everything is complete:
+
+```python
+status.object = "Report ready."
+download.disabled = False
+status.alert_type = "success"
+```
+
+---
+
+# Spinner Behavior (Now Covers PDF Generation)
+
+The spinner now represents the entire pipeline, not just AI grading.
 
 ```python
 spinner = pn.indicators.LoadingSpinner(
-
     value=False,
-
     width=40,
-
     height=40
 )
 ```
 
-Initially,
-
-the spinner isn't visible.
-
-When grading begins,
+Workflow:
 
 ```python
 spinner.value = True
 ```
 
-When grading finishes,
+Stops only after:
+
+* AI response complete
+* PDF generated
+* Download ready
 
 ```python
 spinner.value = False
 ```
 
-Now teachers immediately know that work is in progress.
+This ensures users never see a “half-finished” state.
 
 ---
 
-# Handling Missing Uploads
+# Handling Missing or Partial Outputs
 
-Currently,
+We now have two outputs:
 
-our application checks whether a file exists.
+1. Feedback (text)
+2. PDF (file)
 
-```python
-if upload.value is None:
-```
+So failure handling must distinguish between them.
 
-Let's make the error message more helpful.
-
-Instead of
-
-```text
-Please upload a file.
-```
-
-display
+### Missing upload
 
 ```python
-feedback.object = """
-## No Assignment Uploaded
-
-Please upload a PDF, Word document,
-or image before clicking
-**Grade Assignment**.
-"""
-
 status.object = "No assignment uploaded."
-
 status.alert_type = "warning"
 ```
 
-Small improvements like this reduce user frustration.
+### AI failure
+
+```python
+status.object = "AI processing failed."
+status.alert_type = "danger"
+download.disabled = True
+```
+
+### PDF generation failure
+
+```python
+status.object = "Failed to generate PDF report."
+status.alert_type = "danger"
+download.disabled = True
+```
+
+This separation is important:
+
+> Not all failures are equal anymore.
 
 ---
 
-# Handling Unsupported File Types
+# Updated Error Handling Pattern
 
-Suppose someone uploads
-
-```text
-music.mp3
-```
-
-or
-
-```text
-video.mp4
-```
-
-Our helper already raises
-
-```python
-ValueError
-```
-
-Let's catch it.
-
-```python
-try:
-
-    assignment = extract_text_from_file(...)
-
-except ValueError as e:
-
-    feedback.object = str(e)
-
-    status.object = "Unsupported file."
-
-    status.alert_type = "danger"
-
-    return
-```
-
-Now the application fails gracefully instead of crashing.
-
----
-
-# Handling API Errors
-
-Network problems happen.
-
-API services occasionally become unavailable.
-
-Users may accidentally enter an invalid API key.
-
-Instead of showing a stack trace,
-
-display a friendly message.
-
-```python
-try:
-
-    result = grade_assignment(...)
-
-except Exception as e:
-
-    feedback.object = f"""
-## AI Error
-
-Unable to contact the AI service.
-
-Details:
-
-{e}
-"""
-
-    status.object = "AI request failed."
-
-    status.alert_type = "danger"
-
-    return
-```
-
-Professional software always anticipates failure.
-
----
-
-# Always Clean Up
-
-Notice something.
-
-Our grading function now has many places where it can return early.
-
-If we're not careful,
-
-the spinner might continue spinning forever.
-
-Or
-
-the button might remain disabled.
-
-Instead,
-
-use
-
-```python
-finally:
-```
-
-```python
-try:
-
-    ...
-
-finally:
-
-    spinner.value = False
-
-    grade_button.disabled = False
-```
-
-The `finally` block always executes,
-
-whether the operation succeeds or fails.
-
-This is an important programming technique whenever resources need to be cleaned up.
-
----
-
-# Improving the Feedback Display
-
-At the moment,
-
-the AI returns one long Markdown document.
-
-We can improve readability by placing the feedback inside a scrollable container.
-
-```python
-feedback = pn.pane.Markdown(
-
-    "",
-
-    height=500,
-
-    sizing_mode="stretch_width"
-)
-```
-
-Long reports no longer make the page grow indefinitely.
-
----
-
-# Organizing the Layout
-
-Our interface currently places everything in one long column.
-
-Instead,
-
-let's separate controls from results.
-
-```python
-controls = pn.Column(
-
-    upload,
-
-    subject,
-
-    grade_button,
-
-    download
-)
-```
-
-```python
-results = pn.Column(
-
-    status,
-
-    spinner,
-
-    feedback
-)
-```
-
-Finally,
-
-combine them.
-
-```python
-app = pn.Row(
-
-    controls,
-
-    results
-)
-```
-
-The application now resembles professional desktop software.
-
-```text
-+------------------------------------------------------+
-
-Upload Assignment        Feedback
-
-Subject                  ------------------
-
-Grade Button             AI Response
-
-Download PDF
-
-                         ...
-
-+------------------------------------------------------+
-```
-
-The controls remain visible while teachers read the feedback.
-
----
-
-# Displaying Assignment Information
-
-Teachers often forget which assignment they uploaded.
-
-Let's display some metadata.
-
-```python
-details = pn.pane.Markdown("")
-```
-
-After uploading,
-
-update it.
-
-```python
-details.object = f"""
-### Assignment
-
-**Filename**
-
-{upload.filename}
-
-**Subject**
-
-{subject.value}
-"""
-```
-
-Now the interface provides useful context throughout the grading process.
-
----
-
-# Improving Visual Hierarchy
-
-People naturally scan pages from top to bottom.
-
-Organize the interface accordingly.
-
-```text
-Application Title
-
-Application Description
-
-----------------------------
-
-Upload Assignment
-
-Choose Subject
-
-Grade Assignment
-
-Download PDF
-
-----------------------------
-
-Status
-
-----------------------------
-
-Feedback
-```
-
-A clean visual hierarchy makes software feel much easier to use, even when the functionality hasn't changed.
-
----
-
-# Bringing Everything Together
-
-At this point, your grading callback might follow a structure like this:
+The grading function now becomes more structured:
 
 ```python
 def grade(event):
 
     grade_button.disabled = True
     spinner.value = True
+    download.disabled = True
 
-    status.object = "Reading assignment..."
+    status.object = "Processing..."
     status.alert_type = "primary"
 
     try:
 
-        # Read assignment
+        # 1. Read assignment
+        # 2. Send to AI
+        # 3. Generate feedback
+        # 4. Create PDF report
 
-        # Send to AI
+        status.object = "Finalizing report..."
+        status.alert_type = "primary"
 
-        # Generate report
+        # Enable download
+        download.file = pdf_bytes
 
-        # Update feedback
-
-        status.object = "Grading complete."
+        status.object = "Report ready for download."
         status.alert_type = "success"
 
     except Exception as e:
@@ -641,41 +368,129 @@ def grade(event):
         grade_button.disabled = False
 ```
 
-Notice how much easier this is to follow.
+Notice the key improvement:
 
-The application's state changes are clearly communicated at every stage.
+> The download state is now part of the lifecycle.
 
 ---
 
-# Current Architecture
+# Improving Feedback + Download Relationship
 
-Although we haven't added any new AI capabilities, the application's overall workflow has become much more robust.
+The feedback pane and PDF are now two representations of the same data:
 
-```text
-                    Teacher
-                       │
-                       ▼
-              Upload Assignment
-                       │
-                       ▼
-            Validate Assignment
-                       │
-                       ▼
-           Display Status Updates
-                       │
-                       ▼
-         Disable Controls & Show Spinner
-                       │
-                       ▼
-              AI Grading Pipeline
-                       │
-                       ▼
-          Generate PDF Report
-                       │
-                       ▼
-        Enable Controls & Show Results
+| Output              | Purpose               |
+| ------------------- | --------------------- |
+| Feedback (Markdown) | Immediate readability |
+| PDF Report          | Persistent document   |
+
+So we structure UI expectations clearly:
+
+* Feedback = instant view
+* PDF = shareable artifact
+
+This distinction should be communicated in the UI or documentation.
+
+---
+
+# Organizing the Layout (Updated)
+
+The layout now reflects a complete workflow:
+
+```python
+controls = pn.Column(
+    upload,
+    subject,
+    grade_button,
+    download
+)
+
+results = pn.Column(
+    status,
+    spinner,
+    feedback
+)
+
+app = pn.Row(
+    controls,
+    results
+)
 ```
 
-These user experience improvements are often overlooked in AI tutorials, but they make a substantial difference in real-world use. A responsive interface that communicates clearly and handles errors gracefully builds confidence and reduces frustration.
+Now the download button logically belongs with input controls:
 
-In the next instalment, we'll tackle one of the most interesting enhancements to Markly: **automatic subject detection**. Instead of asking teachers to manually select "Mathematics," "English," or "Programming," we'll use AI to analyze the uploaded assignment and determine the most appropriate teacher persona automatically. This will make the grading workflow even smoother while introducing another practical application of LLMs: classification.
+> Because it is part of the action lifecycle, not the result display.
+
+---
+
+# Visual UX Flow (Updated)
+
+```text
+Application Start
+       │
+       ▼
+Upload Assignment
+       │
+       ▼
+Select Subject
+       │
+       ▼
+Click Grade
+       │
+       ▼
+Status Updates + Spinner
+       │
+       ▼
+AI Processing
+       │
+       ▼
+PDF Generated
+       │
+       ▼
+Download Button Enabled
+       │
+       ▼
+Teacher Downloads Report
+```
+
+This is now a complete end-to-end system.
+
+---
+
+# Key UX Principle Introduced in This Part
+
+With the addition of PDF export, Markly now demonstrates a core principle:
+
+> A good AI application does not just generate output — it delivers usable artifacts with clear lifecycle states.
+
+This includes:
+
+* Progress communication
+* State transitions
+* Action gating (disabled buttons)
+* Artifact availability (download readiness)
+
+---
+
+# Bringing It All Together
+
+The system is no longer just:
+
+```text
+Upload → AI → Feedback
+```
+
+It is now:
+
+```text
+Upload → Validate → AI Grade → Generate Feedback → Create PDF → Enable Download → Deliver Report
+```
+
+Each stage has:
+
+* A visible status
+* A clear transition
+* A predictable outcome
+
+---
+
+In the next part, we’ll make Markly even more intelligent by introducing **automatic subject detection**, allowing the system to infer whether an assignment is Mathematics, English, or Programming without manual selection — using the LLM itself as a classifier.
