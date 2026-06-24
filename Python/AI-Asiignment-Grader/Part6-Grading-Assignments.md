@@ -2,291 +2,190 @@
 
 So far, Markly has been able to grade assignments that contain **extractable text**.
 
-For example:
+This includes:
 
 * PDF worksheets
 * Microsoft Word documents
-* Typed reports
-* Essays
+* Typed essays
+* Digital reports
 
-These are relatively straightforward because we can extract the text before sending it to the language model.
+These formats are relatively easy to handle because we can extract the text and send it to a language model.
 
-However, many classroom assignments don't contain selectable text at all.
+But in real classrooms, not all assignments are digital.
 
-Teachers frequently receive:
-
-* Handwritten mathematics worksheets
-* Scanned examination papers
-* Photos taken using a mobile phone
-* Whiteboard exercises
-* Science diagrams
-* Geography maps
-* Flowcharts
-* Programming code written on paper
-
-Traditional text extraction libraries cannot understand these documents.
-
-Consider this assignment.
-
-```
-+------------------------------+
-| Solve:                       |
-|                              |
-| 2x + 5 = 15                  |
-|                              |
-| Student's Working:           |
-|                              |
-| 2x = 15 + 5                  |
-| 2x = 20                      |
-| x = 10                       |
-+------------------------------+
-```
-
-A human teacher immediately notices the mistake:
-
-The student should have **subtracted** 5, not added it.
-
-Unfortunately, a PDF text extractor cannot identify this reasoning if the work is handwritten.
-
-This is where **vision-capable language models** become incredibly powerful.
-
-Instead of extracting text ourselves, we'll allow the AI to "look" at the image directly.
-
----
-
-# What is a Vision Model?
-
-Most people think of Large Language Models as systems that only understand text.
-
-Modern models are actually **multimodal**.
-
-That means they can process multiple kinds of information.
+Teachers often receive work that contains **no selectable text at all**.
 
 For example:
 
+* Handwritten mathematics solutions
+* Scanned exam papers
+* Photos taken from mobile phones
+* Whiteboard exercises
+* Science diagrams
+* Flowcharts and sketches
+* Geography maps
+
+In these cases, traditional text extraction tools fail completely.
+
+A PDF parser cannot understand reasoning like this:
+
+```text
+2x + 5 = 15  
+2x = 15 + 5  
+x = 10
+```
+
+A human teacher immediately notices the mistake:
+the student added 5 instead of subtracting it.
+
+But a text extraction tool only sees pixels—not reasoning.
+
+To solve this, we need a different kind of model.
+
+---
+
+# Introducing Vision Models
+
+Most people think Large Language Models only understand text.
+
+Modern models are actually **multimodal**.
+
+This means they can understand:
+
 * Text
 * Images
-* Charts
 * Diagrams
 * Tables
 * Handwritten notes
+* Charts and figures
 
 Instead of asking:
 
-```
-Read this paragraph.
-```
+> “Read this assignment”
 
-we can ask:
+we can now ask:
 
-```
-Look at this image and grade the student's work.
-```
+> “Look at this image and grade the student’s work.”
 
-The model combines visual understanding with language understanding.
+This brings the model much closer to how a human teacher works.
 
-Think of it like giving the assignment directly to a teacher.
-
-```text
-Teacher
-   │
-Looks at worksheet
-   │
-Reads handwriting
-   │
-Understands diagrams
-   │
-Provides feedback
-```
-
-Vision models work in a remarkably similar way.
+A teacher does not convert everything into text first—they directly observe the work.
 
 ---
 
-# How Do Vision Models Receive Images?
+# How Vision Models Work
 
-Unlike PDFs, we don't upload image files directly from Python.
+Vision models do not receive image files directly.
 
-Instead, the image must become part of the request.
+Instead, we send:
 
-The API expects something like this:
+* instructions (text)
+* image data
 
+together in a single request.
+
+Conceptually:
+
+```text
+Teacher Instructions + Student Image → AI Model → Feedback
 ```
-User Message
 
-├── Text
-└── Image
-```
-
-Both pieces are sent together.
-
-The model then considers both when generating its response.
-
-Fortunately, the OpenAI SDK makes this process straightforward.
+The model then interprets both at the same time.
 
 ---
 
-# Understanding Base64
+# Preparing Images for the Model
 
-Before an image can travel across the internet, it must be converted into text.
+Before sending an image to the model, we need to convert it into a format that can be transmitted over the internet.
 
-This may sound impossible.
+This is where **Base64 encoding** comes in.
 
-How can an image become text?
+Base64 converts image bytes into a text representation.
 
-The answer is **Base64 encoding**.
-
-Imagine you have a JPEG image.
+For example:
 
 ```
-assignment.jpg
+Original image → binary data → Base64 string
 ```
 
-Internally, it's just a sequence of bytes.
+This allows the image to be embedded directly inside an API request.
 
-```
-1010101000110101...
-```
-
-Base64 converts those bytes into characters.
-
-```
-/9j/4AAQSkZJRgABAQ...
-```
-
-Although this looks like random text, it completely represents the original image.
-
-Later, the AI converts the Base64 data back into the original picture.
-
-The workflow looks like this.
+The workflow looks like this:
 
 ```text
-Image
-   │
-   ▼
-Raw Bytes
-   │
-   ▼
+Image File
+   ↓
+Bytes
+   ↓
 Base64 Encoding
-   │
-   ▼
-JSON Request
-   │
-   ▼
+   ↓
+API Request
+   ↓
 Vision Model
 ```
 
 ---
 
-# Creating an Image Helper
+# Creating a Helper Function
 
-Open **utils.py**.
-
-Let's create a reusable helper that converts uploaded images into Base64.
-
-First, import the library.
+Let’s add a helper function in `utils.py` to handle image conversion.
 
 ```python
 import base64
-```
-
-Now add a new function.
-
-```python
-import base64
-
 
 def image_to_base64(file_bytes):
     """
-    Convert uploaded image bytes into
-    a Base64 string.
+    Convert image bytes into a Base64 string.
+    This allows the image to be sent to the model.
     """
-
-    return base64.b64encode(
-        file_bytes
-    ).decode("utf-8")
+    return base64.b64encode(file_bytes).decode("utf-8")
 ```
 
-Let's examine what happens.
+### What this does
 
-The uploaded image already exists as bytes.
+* `file_bytes` → raw uploaded image data
+* `base64.b64encode()` → converts it to encoded bytes
+* `.decode("utf-8")` → converts bytes into a string
 
-```python
-file_bytes
-```
+The final result is a long string that represents the image.
 
-We encode those bytes.
-
-```python
-base64.b64encode(file_bytes)
-```
-
-The result is still bytes.
-
-To turn it into a normal Python string, we call
-
-```python
-.decode("utf-8")
-```
-
-The final result looks something like
-
-```
-/9j/4AAQSkZJRgABAQAAAQABAAD...
-```
-
-You never need to read or understand this string.
-
-Its only purpose is to transport the image.
+You don’t need to read or interpret it—it is only used for transport.
 
 ---
 
-# Creating a Vision Grading Function
+# Creating the Vision Grading Function
 
-Our existing grading function assumes the assignment is plain text.
+Now we extend Markly to support image-based grading.
 
-Images require a different API request.
-
-Open **engine.py**.
-
-Let's create another function.
+In `engine.py`, create a new function:
 
 ```python
-def grade_image(
-    image_base64,
-    subject
-):
+def grade_image(image_base64, subject):
 ```
 
-Notice that instead of receiving text,
-
-it receives the encoded image.
+Instead of extracting text, we directly send the image to the model.
 
 ---
 
-# Building the Vision Prompt
+# Designing the Vision Prompt
 
-Unlike text assignments, we cannot reference specific paragraphs or sentences directly.
+Unlike text-based grading, we cannot reference paragraphs or sentences.
 
-Instead, we'll ask the AI to examine the image carefully.
-
-Let's create a prompt.
+Instead, we instruct the model to carefully analyze visual content.
 
 ```python
 VISION_PROMPT = """
 You are an experienced teacher.
 
-Carefully examine this student assignment.
+Carefully examine the student's assignment.
 
-Look for:
+Identify:
+- Correct answers
+- Incorrect reasoning
+- Missing steps
+- Conceptual misunderstandings
 
-• Correct answers
-• Incorrect answers
-• Missing working
-• Conceptual misunderstandings
-• Evidence of student reasoning
-
-Provide:
+Provide feedback in the following format:
 
 ## Strengths
 
@@ -298,211 +197,116 @@ Provide:
 """
 ```
 
-Notice that the wording is intentionally different.
-
-Instead of
-
-> Read the assignment
-
-we say
-
-> Examine this student assignment.
-
-This encourages the model to analyze visual information.
+This ensures the model produces structured, consistent feedback.
 
 ---
 
 # Sending Images to the Model
 
-The request format is slightly different from ordinary text.
+The OpenAI API allows us to send both text and images in the same request.
+
+Here is the structure:
 
 ```python
 response = client.chat.completions.create(
-
-    model="...",
-
+    model="gpt-4.1-mini",
     messages=[
-
         {
             "role": "user",
-
             "content": [
-
                 {
                     "type": "text",
-
                     "text": VISION_PROMPT
                 },
-
                 {
                     "type": "image_url",
-
                     "image_url": {
                         "url": f"data:image/jpeg;base64,{image_base64}"
                     }
-
                 }
-
             ]
-
         }
-
     ]
-
 )
 ```
 
-At first glance, this looks much more complicated than our earlier requests.
-
-Let's break it down.
-
 ---
 
-## The Content List
+## Key Idea: Mixed Input Messages
 
-Previously,
-
-our message looked like this.
+Previously, messages were simple strings:
 
 ```python
-{
-    "role":"user",
-    "content":"Grade this assignment."
-}
+"Grade this assignment"
 ```
 
-Now,
+Now, messages become a **list of inputs**:
 
-`content`
-
-is no longer a string.
-
-Instead,
-
-it's a **list**.
-
-```python
-content = [
-
-    text,
-
-    image
-
-]
+```text
+Text + Image → Single Request
 ```
 
 This tells the model:
 
-> Here is some text...
+> “Here are instructions… and here is the assignment image.”
 
-followed by
-
-> ...and here is an image.
-
-The AI considers both together.
+It processes both together.
 
 ---
 
-## The Image URL
+## Why "image_url"?
 
-You might wonder why we're using something called
+Even though we are not using a real URL, the API accepts:
 
-```
-image_url
-```
+* web URLs
+* cloud-hosted images
+* Base64 data URLs
 
-when we don't actually have a URL.
-
-The OpenAI API uses the same field whether the image comes from:
-
-* a website
-* cloud storage
-* Base64 data
-
-In our case,
-
-the "URL" is actually a **data URL**.
+We use a **data URL format**:
 
 ```
 data:image/jpeg;base64,...
 ```
 
-Everything after the comma is the Base64 image.
+This embeds the image directly inside the request.
 
 ---
 
-# Combining Text and Images
+# Combining Text and Visual Understanding
 
-Notice that our prompt still contains text.
+This step is important.
 
-This is important.
+The model needs both:
 
-Without instructions,
+* **instructions (what to do)**
+* **image (what to analyze)**
 
-the AI wouldn't know what we expect.
+Without instructions, the model may describe the image instead of grading it.
 
-We're effectively saying
+So we are effectively combining:
 
+```text
+Teacher Instructions + Student Work → Graded Feedback
 ```
-Teacher Instructions
-
-+
-
-Student Assignment Image
-
-↓
-
-Teacher Feedback
-```
-
-The prompt provides context,
-
-while the image provides evidence.
 
 ---
 
-# Updating the User Interface
+# Updating the Application Logic
 
-Our application now needs to decide
+Now we update `app.py` to support both file types.
 
-whether the uploaded assignment is
-
-* text-based
-
-or
-
-* image-based.
-
-Return to **app.py**.
-
-Instead of always calling
-
-```python
-grade_assignment()
-```
-
-we'll inspect the filename.
+We detect the uploaded file type:
 
 ```python
 filename = upload.filename.lower()
 ```
 
-If the file is an image,
-
-we'll call the vision model.
+Then route it accordingly:
 
 ```python
-if filename.endswith(
-    (
-        ".png",
-        ".jpg",
-        ".jpeg"
-    )
-):
+if filename.endswith((".png", ".jpg", ".jpeg")):
 
-    image = image_to_base64(
-        upload.value
-    )
+    image = image_to_base64(upload.value)
 
     result = grade_image(
         image,
@@ -522,13 +326,11 @@ else:
     )
 ```
 
-This simple conditional creates two completely different grading pipelines.
-
 ---
 
-# The Two Pipelines
+# Two Parallel Pipelines
 
-Markly now supports both text and images.
+Markly now supports two complete workflows:
 
 ```text
                  Upload Assignment
@@ -536,28 +338,28 @@ Markly now supports both text and images.
         ┌────────────────┴───────────────┐
         │                                │
         ▼                                ▼
-   PDF / DOCX                        Image
+   Text-based files                 Image-based files
         │                                │
-        ▼                                ▼
- Extract Text                  Convert to Base64
+   Extract text                  Convert to Base64
         │                                │
-        ▼                                ▼
- Text Grading                  Vision Grading
+   Text model                    Vision model
         │                                │
         └──────────────┬─────────────────┘
                        ▼
-             Teacher Feedback
+                Teacher Feedback
 ```
 
-This branching workflow is an example of a design pattern known as **dispatching**. The application examines the uploaded file and dispatches it to the most appropriate processing pipeline.
+This design pattern is called **dispatching**.
+
+The system decides how to process input based on its type.
 
 ---
 
-# Improving the Vision Prompt with Subject Personas
+# Improving with Teacher Personas
 
-Earlier, we introduced subject-specific personas for text assignments. We don't want to lose that capability when grading images.
+We can now combine vision input with subject-specific teaching styles.
 
-Instead of using a single generic vision prompt, we can combine the teacher persona with image-specific instructions.
+Instead of using a generic prompt, we inject a **teacher persona**.
 
 ```python
 persona = PERSONAS[subject]
@@ -565,10 +367,9 @@ persona = PERSONAS[subject]
 vision_prompt = f"""
 {persona}
 
-The student's work is provided as an image rather than text.
+The student's work is provided as an image.
 
-Carefully inspect every visible answer, calculation,
-diagram, annotation, and handwritten note.
+Carefully examine all visible writing, diagrams, and working steps.
 
 Do not assume missing information.
 
@@ -576,47 +377,65 @@ Base your feedback only on what is visible.
 """
 ```
 
-This approach gives the model two kinds of guidance:
+This ensures:
 
-1. **How to think** (the teacher persona).
-2. **How to interpret the input** (the image instructions).
-
-The result is more accurate and more consistent feedback across different subjects.
+* Math teachers focus on reasoning
+* Science teachers focus on concepts
+* English teachers focus on clarity and structure
 
 ---
 
-# Current Architecture
+# Final Architecture
 
-Markly has now evolved into a genuinely **multimodal AI application**.
+Markly is now a **multimodal AI grading system**.
 
 ```text
                     Teacher
                        │
-                       ▼
               Upload Assignment
                        │
-             Detect File Type
+              File Type Detection
                        │
-         ┌─────────────┴─────────────┐
-         ▼                           ▼
-    PDF / DOCX                    Image
-         │                           │
-         ▼                           ▼
-   Extract Text            Convert to Base64
-         │                           │
-         ▼                           ▼
-   Teacher Persona          Teacher Persona
-         │                           │
-         ▼                           ▼
-      Text Model              Vision Model
-         │                           │
-         └─────────────┬─────────────┘
+        ┌──────────────┴──────────────┐
+        │                             │
+     Text File                    Image File
+        │                             │
+   Extract Text               Base64 Encoding
+        │                             │
+     LLM                        Vision Model
+        │                             │
+        └──────────────┬──────────────┘
                        ▼
-              Teacher Feedback
+               Grading Feedback
 ```
 
-At this stage, Markly can successfully grade typed documents, scanned worksheets, and handwritten assignments using subject-aware prompts. It already resembles a practical classroom tool.
+---
 
-However, the feedback still appears as plain Markdown inside the browser. Teachers often need something they can download, print, archive, or share with students and parents.
+# What We Have Built
 
-In the next instalment, we'll build a **professional PDF report generator** using ReportLab. We'll transform the AI's feedback into a polished grading report complete with headings, metadata, and formatting, making Markly's output suitable for real classroom workflows.
+At this stage, Markly can:
+
+* Grade essays and typed assignments
+* Analyze scanned worksheets
+* Understand handwritten math solutions
+* Interpret diagrams and visual reasoning
+* Apply subject-specific teacher personas
+
+This brings us significantly closer to a real classroom AI assistant.
+
+---
+
+# Next Step
+
+In the next part, we will transform Markly’s output into a **professional PDF grading report**.
+
+Instead of raw text in the browser, we will generate:
+
+* structured reports
+* formatted sections
+* downloadable feedback documents
+* printable teacher reports
+
+This will make Markly suitable for real educational workflows.
+
+---
