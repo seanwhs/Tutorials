@@ -1,473 +1,392 @@
 # Part 3 — Uploading and Reading Student Assignments
 
-Our user interface is now complete, but it doesn't actually *do* anything yet.
+At this point, our user interface is complete—but still passive.
 
-If you click **Grade Assignment**, nothing happens. If you upload a PDF, the application accepts it, but never opens or reads it.
+Teachers can upload assignments and click **Grade Assignment**, but nothing meaningful happens yet.
 
-In this chapter, we'll change that.
+Uploads are accepted, but never interpreted.
 
-We'll learn how to:
+In this chapter, we fix that.
 
-* Understand how Panel uploads files
-* Read PDF assignments
-* Read Microsoft Word documents
-* Prepare image files for AI vision models
-* Organize our code into reusable helper functions
-* Display the extracted text inside the application
+We will turn raw file uploads into **readable text that our AI can understand**.
 
-By the end of this chapter, Markly will be able to **understand what was uploaded**, which is the first step toward intelligent grading.
+By the end of this section, Markly will be able to:
+
+* Understand how Panel handles file uploads
+* Extract text from PDF documents
+* Extract text from Microsoft Word files
+* Read images using OCR (Optical Character Recognition)
+* Build a unified file-processing pipeline
+* Display extracted assignment content inside the app
+
+This is the foundation of every AI grading system: **document understanding before intelligence**.
 
 ---
 
 # Understanding File Uploads in Panel
 
-Let's begin by understanding how the `FileInput` widget works.
+Let’s revisit how the `FileInput` widget works.
 
-When a teacher uploads a file, Panel stores several pieces of information.
+When a teacher uploads a file, Panel stores it in memory with three important properties:
 
-| Property    | Description                    |
-| ----------- | ------------------------------ |
-| `value`     | The uploaded file as raw bytes |
-| `filename`  | Original filename              |
-| `mime_type` | File type (PDF, image, etc.)   |
+| Property    | Meaning            |
+| ----------- | ------------------ |
+| `value`     | Raw file bytes     |
+| `filename`  | Original file name |
+| `mime_type` | Detected file type |
 
-For example, suppose a teacher uploads:
-
-```
-math_assignment.pdf
-```
-
-Internally, Panel stores something similar to this:
-
-```python
-upload.filename
-```
-
-returns
-
-```text
-math_assignment.pdf
-```
-
-while
-
-```python
-upload.value
-```
-
-contains thousands of bytes representing the actual PDF document.
-
-Those bytes are what we'll use to read the assignment.
-
----
-
-# Why Everything is Stored as Bytes
-
-This surprises many beginners.
-
-When you upload a file, Panel **does not save it to your hard drive**.
-
-Instead, it stores the uploaded file entirely in memory.
-
-Imagine the upload process like this.
-
-```text
-Student Assignment
-        │
-        ▼
-Browser Upload
-        │
-        ▼
-Memory (Bytes)
-        │
-        ▼
-Python Program
-```
-
-This has several advantages.
-
-* Faster processing
-* No temporary files
-* Better security
-* Easier deployment to cloud platforms
-
-Instead of opening a filename, we'll work directly with bytes.
-
----
-
-# Separating Responsibilities
-
-Our `app.py` file should focus only on the user interface.
-
-Reading PDFs has nothing to do with buttons or dropdown menus.
-
-Instead, we'll create helper functions inside **utils.py**.
-
-This follows an important software engineering principle called the **Single Responsibility Principle (SRP)**.
-
-Each module should have one clear responsibility.
-
-| File          | Responsibility   |
-| ------------- | ---------------- |
-| `app.py`      | User interface   |
-| `utils.py`    | File processing  |
-| `engine.py`   | AI communication |
-| `personas.py` | Teacher prompts  |
-
-Keeping these concerns separate makes the application easier to maintain as it grows.
-
----
-
-# Creating Our First Helper Function
-
-Open **utils.py**.
-
-Let's begin with a very simple function.
-
-```python
-def extract_text_from_file(file_bytes, filename):
-    """
-    Extract text from an uploaded assignment.
-
-    Parameters
-    ----------
-    file_bytes : bytes
-        The uploaded file.
-
-    filename : str
-        Original filename.
-
-    Returns
-    -------
-    str
-        Extracted text.
-    """
-
-    return ""
-```
-
-This doesn't do anything yet, but it establishes the interface that the rest of our application will use.
-
-Notice that the rest of Markly doesn't need to know *how* the extraction works.
-
-It simply calls:
-
-```python
-text = extract_text_from_file(...)
-```
-
-This abstraction keeps our code clean.
-
----
-
-# Reading PDF Documents
-
-The majority of assignments are distributed as PDFs.
-
-Fortunately, the **PyMuPDF** library makes reading PDFs remarkably straightforward.
-
-First, import the library.
-
-```python
-import fitz
-```
-
-The package is installed as **PyMuPDF**, but imported using the name `fitz`.
-
-This historical naming often confuses beginners, so don't worry if it seems unusual.
-
-Now update the function.
-
-```python
-import fitz
-
-def extract_pdf(file_bytes):
-
-    document = fitz.open(
-        stream=file_bytes,
-        filetype="pdf"
-    )
-
-    text = ""
-
-    for page in document:
-
-        text += page.get_text()
-
-    return text
-```
-
-Let's understand what's happening.
-
----
-
-## Opening a PDF from Memory
-
-Normally you might open a PDF like this.
-
-```python
-fitz.open("assignment.pdf")
-```
-
-But we don't have a filename.
-
-Remember, Panel uploaded the file directly into memory.
-
-Instead, we open the document using:
-
-```python
-fitz.open(
-    stream=file_bytes,
-    filetype="pdf"
-)
-```
-
-The `stream` parameter tells PyMuPDF that the PDF already exists in memory.
-
----
-
-## Reading Every Page
-
-A PDF may contain multiple pages.
-
-Rather than assuming there's only one, we loop through all pages.
-
-```python
-for page in document:
-```
-
-Each page is represented by a `Page` object.
-
-We then ask that page to extract its text.
-
-```python
-page.get_text()
-```
-
-Finally, we concatenate all pages into one long string.
-
-```
-Page 1
-
-+
-Page 2
-
-+
-Page 3
-
-↓
-
-Complete Assignment Text
-```
-
-This combined text is what we'll eventually send to the language model.
-
----
-
-# Reading Microsoft Word Documents
-
-Many teachers ask students to submit essays in Microsoft Word format.
-
-We'll use the `python-docx` library to read these files.
-
-Import the library.
-
-```python
-from docx import Document
-import io
-```
-
-Unlike PyMuPDF, `Document()` expects a file-like object rather than raw bytes.
-
-That's where `io.BytesIO` becomes useful.
-
-Create another helper.
-
-```python
-from docx import Document
-import io
-
-def extract_docx(file_bytes):
-
-    document = Document(
-        io.BytesIO(file_bytes)
-    )
-
-    text = ""
-
-    for paragraph in document.paragraphs:
-
-        text += paragraph.text + "\n"
-
-    return text
-```
-
----
-
-# What is BytesIO?
-
-This line deserves a closer look.
-
-```python
-io.BytesIO(file_bytes)
-```
-
-Imagine that `python-docx` expects to read from a normal file.
-
-Something like this.
+For example, uploading:
 
 ```
 essay.docx
 ```
 
-But our uploaded assignment only exists as bytes.
-
-`BytesIO` creates an in-memory file that behaves just like a normal file.
-
-```text
-Raw Bytes
-     │
-     ▼
- BytesIO Object
-     │
-     ▼
- python-docx
-```
-
-It's one of the most useful tools when working with uploaded files.
-
----
-
-# What About Images?
-
-Images are different.
-
-Unlike PDFs or DOCX files, we usually don't extract text ourselves.
-
-Instead, we'll send the image directly to a **vision-capable language model**.
-
-For now, our helper function only needs to recognize image files.
+gives us:
 
 ```python
-def is_image(filename):
-
-    filename = filename.lower()
-
-    return filename.endswith(
-        (
-            ".png",
-            ".jpg",
-            ".jpeg"
-        )
-    )
+upload.filename
 ```
 
-Later, we'll convert these images into Base64 before sending them to the AI.
+```text
+essay.docx
+```
+
+and:
+
+```python
+upload.value
+```
+
+```text
+(b'...binary file data...')
+```
+
+That byte data is what we must process.
 
 ---
 
-# Combining Everything Together
+# Why Everything Becomes Bytes
 
-Now let's update our main helper.
+This design surprises many beginners.
+
+Panel does **not save files to disk**.
+
+Instead, everything is stored in memory as bytes.
+
+Think of it like this:
+
+```text
+User Upload
+     ↓
+Browser
+     ↓
+Memory (bytes)
+     ↓
+Python application
+```
+
+This approach is useful because:
+
+* No temporary files needed
+* Faster processing
+* Easier cloud deployment
+* Safer file handling
+
+So instead of working with file paths, we work directly with **binary data streams**.
+
+---
+
+# Designing a Clean File Processing System
+
+Before writing code, let’s structure our responsibilities properly.
+
+We follow a key principle:
+
+> Each module should do one thing well.
+
+| File          | Responsibility                 |
+| ------------- | ------------------------------ |
+| `app.py`      | UI and user interaction        |
+| `utils.py`    | File parsing and extraction    |
+| `engine.py`   | AI / LLM communication (later) |
+| `personas.py` | Teacher feedback styles        |
+
+This separation keeps Markly scalable as it grows.
+
+---
+
+# Our File Processing Pipeline
+
+Before diving into code, here’s what we are building:
+
+```text
+Uploaded File
+     ↓
+Detect File Type
+     ↓
+Route to Extractor
+     ↓
+Convert to Text
+     ↓
+Return Clean String
+```
+
+We will support three input types:
+
+* PDF → text extraction
+* DOCX → paragraph extraction
+* Images → OCR (text recognition)
+
+---
+
+# Installing Required Tools (Important)
+
+To handle images, we use:
+
+* `pytesseract` (OCR engine wrapper)
+* `Pillow` (image processing)
+
+Make sure you have installed:
+
+```bash
+pip install pytesseract pillow
+```
+
+You also need **Tesseract OCR engine** installed on your system.
+
+Without it, image extraction will not work.
+
+---
+
+# Building the PDF Extractor
+
+Let’s start with PDFs.
+
+We use **PyMuPDF (`fitz`)**, which is fast and reliable.
 
 ```python
 import fitz
-import io
-
-from docx import Document
-
 
 def extract_pdf(file_bytes):
+    document = fitz.open(stream=file_bytes, filetype="pdf")
 
-    document = fitz.open(
-        stream=file_bytes,
-        filetype="pdf"
+    return "\n".join(
+        page.get_text() for page in document
     )
-
-    text = ""
-
-    for page in document:
-
-        text += page.get_text()
-
-    return text
-
-
-def extract_docx(file_bytes):
-
-    document = Document(
-        io.BytesIO(file_bytes)
-    )
-
-    text = ""
-
-    for paragraph in document.paragraphs:
-
-        text += paragraph.text + "\n"
-
-    return text
-
-
-def extract_text_from_file(file_bytes, filename):
-
-    filename = filename.lower()
-
-    if filename.endswith(".pdf"):
-
-        return extract_pdf(file_bytes)
-
-    elif filename.endswith(".docx"):
-
-        return extract_docx(file_bytes)
-
-    elif filename.endswith(
-        (
-            ".png",
-            ".jpg",
-            ".jpeg"
-        )
-    ):
-
-        return "[IMAGE FILE]"
-
-    else:
-
-        raise ValueError(
-            f"Unsupported file type: {filename}"
-        )
 ```
 
-Notice that we have divided the work into several smaller functions.
+### What’s happening here?
 
-This makes each function easier to understand, test, and reuse.
+* We open the PDF directly from memory (`stream=file_bytes`)
+* We loop through every page
+* We extract text from each page
+* We join everything into one clean string
+
+Result:
+
+```text
+Page 1 text
+Page 2 text
+Page 3 text
+```
+
+Becomes:
+
+```text
+Full assignment content in one string
+```
 
 ---
 
-# Connecting the Helper to the User Interface
+# Building the DOCX Extractor
 
-Let's return to **app.py**.
+Now let’s handle Microsoft Word files.
 
-Import the helper.
+We use `python-docx`.
+
+```python
+from docx import Document
+import io
+```
+
+DOCX files require a file-like object, so we convert bytes using `BytesIO`.
+
+```python
+def extract_docx(file_bytes):
+    document = Document(io.BytesIO(file_bytes))
+
+    return "\n".join(
+        paragraph.text for paragraph in document.paragraphs
+    )
+```
+
+### Key idea
+
+Word documents are structured as paragraphs, so we simply iterate through them.
+
+---
+
+# Understanding BytesIO (Critical Concept)
+
+This line is important:
+
+```python
+io.BytesIO(file_bytes)
+```
+
+It creates an **in-memory file wrapper**.
+
+Why is this needed?
+
+Because `python-docx` expects something like:
+
+```
+file.docx (on disk)
+```
+
+But we only have:
+
+```
+raw bytes in memory
+```
+
+So `BytesIO` acts like a bridge:
+
+```text
+Bytes → File-like object → python-docx
+```
+
+---
+
+# Extracting Text from Images (OCR)
+
+Now we reach the most interesting part.
+
+Images do not contain text directly.
+
+So we use **OCR (Optical Character Recognition)**.
+
+We use:
+
+* `Pillow` → loads images
+* `pytesseract` → extracts text
+
+```python
+import pytesseract
+from PIL import Image
+import io
+```
+
+Now the extractor:
+
+```python
+def extract_image(file_bytes):
+    image = Image.open(io.BytesIO(file_bytes))
+    return pytesseract.image_to_string(image)
+```
+
+---
+
+## How OCR Works (Simple Explanation)
+
+```text
+Image of handwriting or printed text
+              ↓
+        Tesseract OCR
+              ↓
+       Recognized text output
+```
+
+So an image like:
+
+```
+Math assignment written on paper
+```
+
+Becomes:
+
+```text
+Student's handwritten answer converted into text
+```
+
+This is extremely powerful for real-world grading systems.
+
+---
+
+# Unified File Extraction Function
+
+Now we combine everything into one entry point.
+
+This is the function the rest of Markly will use.
+
+```python
+def extract_text_from_file(file_bytes, filename):
+
+    ext = filename.lower().split('.')[-1]
+
+    if ext == "pdf":
+        return extract_pdf(file_bytes)
+
+    elif ext == "docx":
+        return extract_docx(file_bytes)
+
+    elif ext in ("png", "jpg", "jpeg"):
+        return extract_image(file_bytes)
+
+    else:
+        raise ValueError(f"Unsupported file type: {filename}")
+```
+
+---
+
+# Why This Design Is Powerful
+
+Instead of scattering logic across the app, we now have:
+
+### One function to rule them all:
+
+```python
+extract_text_from_file()
+```
+
+This gives us:
+
+* Clean abstraction
+* Easy testing
+* Easy extension (e.g., TXT, HTML later)
+* Simple AI integration
+
+---
+
+# Connecting to the UI
+
+Now let’s plug this into `app.py`.
+
+First import the function:
 
 ```python
 from utils import extract_text_from_file
 ```
 
-Next, we'll define what happens when the teacher clicks the **Grade Assignment** button.
+---
 
-At the moment, we won't call the AI yet. Instead, we'll simply extract the text and display it.
+# Creating the Preview Function
+
+When a teacher clicks **Grade Assignment**, we:
+
+1. Check if a file exists
+2. Extract text
+3. Display it in the UI
 
 ```python
 def preview_assignment(event):
 
     if upload.value is None:
-
         feedback.object = """
 ## Feedback
 
 Please upload an assignment first.
 """
-
         return
 
     text = extract_text_from_file(
@@ -482,60 +401,87 @@ Please upload an assignment first.
 """
 ```
 
-Finally, register the function with the button.
+---
+
+# Connecting the Button
 
 ```python
-grade_button.on_click(
-    preview_assignment
-)
+grade_button.on_click(preview_assignment)
 ```
 
-This creates our first interactive application.
-
-Now, when the teacher clicks **Grade Assignment**, Panel calls `preview_assignment()` automatically.
+Now the UI becomes interactive.
 
 ---
 
-# Trying It Out
+# Testing the System
 
-Restart the application.
+Run the app:
 
 ```bash
 panel serve app.py --autoreload
 ```
 
-Upload a PDF or DOCX file.
+Then:
 
-Click **Grade Assignment**.
+1. Upload a PDF
+2. Upload a Word document
+3. Upload an image
+4. Click **Grade Assignment**
 
-Instead of displaying "Waiting for assignment...", the application should now show the extracted text.
+You should now see:
 
-Congratulations! 🎉
-
-Markly is officially reading student submissions.
+* Extracted PDF text
+* Paragraphs from DOCX
+* OCR results from images
 
 ---
 
-# Current Application Workflow
-
-Our application has become much smarter.
+# System Workflow (Current State)
 
 ```text
 Teacher
-    │
-    ▼
-Upload Assignment
-    │
-    ▼
-Read PDF / DOCX
-    │
-    ▼
-Extract Text
-    │
-    ▼
-Display Preview
+   ↓
+Upload File
+   ↓
+Panel stores bytes
+   ↓
+File type detected
+   ↓
+Extractor selected
+   ↓
+Text extracted (PDF / DOCX / OCR)
+   ↓
+Displayed in UI
 ```
 
-This may not seem like a huge change, but it's a significant milestone. Before an AI can evaluate a student's work, it first needs access to the assignment's content. We've now built a reliable document ingestion pipeline that supports multiple file formats while keeping our code modular and maintainable.
+---
 
-In the next instalment, we'll take the next major step: connecting Markly to an LLM through the OpenRouter API. You'll learn how to securely load your API key, send prompts to the model, receive responses, and display AI-generated feedback inside the application. This is where Markly transforms from a document reader into an intelligent grading assistant.
+# Why This Is a Major Milestone
+
+At first, Markly could only **accept files**.
+
+Now it can:
+
+* Read documents
+* Interpret multiple formats
+* Extract meaningful content
+* Prepare data for AI analysis
+
+This is the critical bridge between:
+
+> “File upload system” → “AI-powered grading system”
+
+---
+
+# What’s Next
+
+In the next chapter, we’ll connect Markly to an LLM using **OpenRouter**.
+
+You will learn how to:
+
+* Send extracted text to a model
+* Design grading prompts
+* Receive structured feedback
+* Render AI responses in the UI
+
+This is where Markly stops being a document reader—and becomes a **real grading assistant**.
