@@ -1,123 +1,272 @@
-# Part 6 — Grading Images with Vision Models
+# Part 6 — Teaching Markly to See: Building a Multimodal Grading System
 
-So far, Markly has been able to grade assignments that contain **extractable text**.
+## Why Text Extraction Eventually Breaks
 
-This includes:
+Until now, Markly has relied on text extraction.
 
-* PDF worksheets
-* Microsoft Word documents
-* Typed essays
-* Digital reports
+This works well for:
 
-These formats are relatively easy to handle because we can extract the text and send it to a language model.
+* Essays
+* Reports
+* Typed assignments
+* Digital worksheets
 
-But in real classrooms, not all assignments are digital.
-
-Teachers often receive work that contains **no selectable text at all**.
+because the text already exists inside the file.
 
 For example:
 
-* Handwritten mathematics solutions
-* Scanned exam papers
-* Photos taken from mobile phones
-* Whiteboard exercises
-* Science diagrams
-* Flowcharts and sketches
-* Geography maps
-
-In these cases, traditional text extraction tools fail completely.
-
-A PDF parser cannot understand reasoning like this:
-
 ```text
-2x + 5 = 15  
-2x = 15 + 5  
-x = 10
+The mitochondria is the powerhouse of the cell.
 ```
 
-A human teacher immediately notices the mistake:
-the student added 5 instead of subtracting it.
+can be extracted directly.
 
-But a text extraction tool only sees pixels—not reasoning.
+However, many classroom submissions contain no machine-readable text at all.
 
-To solve this, we need a different kind of model.
+Examples:
+
+* Handwritten math homework
+* Scanned exam papers
+* Mobile phone photos
+* Whiteboard solutions
+* Mind maps
+* Flowcharts
+* Science diagrams
+
+To a computer, these files are simply collections of coloured pixels.
+
+```text
+██████████████
+██████████████
+██████████████
+```
+
+The computer sees an image.
+
+The teacher sees reasoning.
+
+This difference is the central challenge of multimodal AI.
 
 ---
 
-# Introducing Vision Models
+# Understanding Multimodal AI
 
-Most people think Large Language Models only understand text.
+Traditional language models process:
 
-Modern models are actually **multimodal**.
+```text
+Text → Text
+```
 
-This means they can understand:
+Vision models process:
 
-* Text
-* Images
+```text
+Text + Images → Text
+```
+
+This is called **multimodal processing**.
+
+The model can simultaneously examine:
+
+* Written instructions
 * Diagrams
 * Tables
-* Handwritten notes
-* Charts and figures
+* Handwriting
+* Equations
+* Charts
+* Drawings
+
+and combine them into a single understanding.
 
 Instead of asking:
 
-> “Read this assignment”
+```text
+Grade this text.
+```
 
 we can now ask:
 
-> “Look at this image and grade the student’s work.”
+```text
+Look at this worksheet and grade it.
+```
 
-This brings the model much closer to how a human teacher works.
-
-A teacher does not convert everything into text first—they directly observe the work.
+This feels much closer to how a human teacher works.
 
 ---
 
-# How Vision Models Work
+# OCR vs Vision Models
 
-Vision models do not receive image files directly.
+Many beginners assume OCR and vision models are the same thing.
 
-Instead, we send:
-
-* instructions (text)
-* image data
-
-together in a single request.
-
-Conceptually:
-
-```text
-Teacher Instructions + Student Image → AI Model → Feedback
-```
-
-The model then interprets both at the same time.
+They are not.
 
 ---
 
-# Preparing Images for the Model
+## OCR
 
-Before sending an image to the model, we need to convert it into a format that can be transmitted over the internet.
+OCR means:
 
-This is where **Base64 encoding** comes in.
+> Optical Character Recognition
 
-Base64 converts image bytes into a text representation.
+OCR attempts to convert images into text.
 
-For example:
+Example:
 
-```
-Original image → binary data → Base64 string
-```
-
-This allows the image to be embedded directly inside an API request.
-
-The workflow looks like this:
+Image:
 
 ```text
-Image File
+2x + 5 = 15
+```
+
+OCR Output:
+
+```text
+2x + 5 = 15
+```
+
+This works reasonably well for printed text.
+
+---
+
+### OCR Problem #1 — Handwriting
+
+A student's writing may look like:
+
+```text
+2x + S = 15
+```
+
+OCR might read:
+
+```text
+2x + 5 = I5
+```
+
+Errors accumulate quickly.
+
+---
+
+### OCR Problem #2 — Layout
+
+OCR struggles with:
+
+* Arrows
+* Diagrams
+* Tables
+* Flowcharts
+* Mathematical working
+
+A teacher understands relationships.
+
+OCR only extracts characters.
+
+---
+
+## Vision Models
+
+Vision models do not simply read text.
+
+They understand:
+
+* location
+* layout
+* structure
+* visual relationships
+
+A vision model can recognize:
+
+```text
+Student crossed out answer
+       ↓
+New answer written below
+```
+
+Something OCR completely loses.
+
+---
+
+# Why Markly Uses Both OCR and Vision
+
+A common mistake is:
+
+```text
+Vision models exist
+→ remove OCR
+```
+
+That would be a bad engineering decision.
+
+OCR is still valuable because:
+
+* It is faster
+* It is cheaper
+* It works well on clean documents
+* It reduces model costs
+
+So Markly follows a layered approach:
+
+```text
+Document
+   │
+   ├─ Text Exists?
+   │      │
+   │      ├─ Yes → Text Pipeline
+   │      │
+   │      └─ No → Vision Pipeline
+   │
+   └─ Image Assignment
+          │
+          ▼
+      Vision Pipeline
+```
+
+This design balances:
+
+* Cost
+* Speed
+* Accuracy
+
+---
+
+# How Images Travel Through APIs
+
+A common beginner question is:
+
+> "How do we send an image inside an API request?"
+
+HTTP requests are text-based.
+
+Images are binary data.
+
+So we convert them into a transport-friendly format called Base64.
+
+---
+
+## Understanding Base64
+
+Normal image:
+
+```text
+assignment.jpg
+```
+
+contains binary bytes.
+
+Base64 converts those bytes into text:
+
+```text
+iVBORw0KGgoAAAANS...
+```
+
+This text can safely travel through an API.
+
+Pipeline:
+
+```text
+Image
    ↓
 Bytes
    ↓
-Base64 Encoding
+Base64
    ↓
 API Request
    ↓
@@ -126,66 +275,132 @@ Vision Model
 
 ---
 
-# Creating a Helper Function
+# Building image_to_base64()
 
-Let’s add a helper function in `utils.py` to handle image conversion.
+Create in `utils.py`:
 
 ```python
 import base64
 
 def image_to_base64(file_bytes):
     """
-    Convert image bytes into a Base64 string.
-    This allows the image to be sent to the model.
+    Converts image bytes into a Base64 string.
     """
-    return base64.b64encode(file_bytes).decode("utf-8")
+
+    return base64.b64encode(
+        file_bytes
+    ).decode("utf-8")
 ```
-
-### What this does
-
-* `file_bytes` → raw uploaded image data
-* `base64.b64encode()` → converts it to encoded bytes
-* `.decode("utf-8")` → converts bytes into a string
-
-The final result is a long string that represents the image.
-
-You don’t need to read or interpret it—it is only used for transport.
 
 ---
 
-# Creating the Vision Grading Function
+# Understanding Every Function Call
 
-Now we extend Markly to support image-based grading.
+## base64.b64encode()
 
-In `engine.py`, create a new function:
+Input:
 
 ```python
-def grade_image(image_base64, subject):
+b"\xff\xd8..."
 ```
 
-Instead of extracting text, we directly send the image to the model.
+Output:
+
+```python
+b"aVZCT1..."
+```
+
+Still bytes.
 
 ---
 
-# Designing the Vision Prompt
+## decode("utf-8")
 
-Unlike text-based grading, we cannot reference paragraphs or sentences.
+Converts:
 
-Instead, we instruct the model to carefully analyze visual content.
+```python
+bytes
+```
+
+into:
+
+```python
+str
+```
+
+which can be embedded inside JSON.
+
+---
+
+# Designing the Vision Grading Engine
+
+Text grading currently looks like:
+
+```python
+grade_assignment(text, subject)
+```
+
+Vision grading requires:
+
+```python
+grade_image(image_base64, subject)
+```
+
+Notice the difference.
+
+Instead of sending extracted text:
+
+```python
+essay_text
+```
+
+we send:
+
+```python
+image_base64
+```
+
+---
+
+# Why Vision Prompts Matter Even More
+
+Without instructions:
+
+```text
+Describe this image.
+```
+
+The model may say:
+
+```text
+The image appears to contain handwriting.
+```
+
+That is useless for grading.
+
+We must explicitly define the teacher's job.
+
+---
+
+# Building a Vision Prompt
 
 ```python
 VISION_PROMPT = """
 You are an experienced teacher.
 
-Carefully examine the student's assignment.
+Carefully examine the student's work.
 
 Identify:
-- Correct answers
-- Incorrect reasoning
-- Missing steps
-- Conceptual misunderstandings
 
-Provide feedback in the following format:
+- correct answers
+- incorrect answers
+- reasoning mistakes
+- missing working steps
+- conceptual misunderstandings
+
+Provide constructive educational feedback.
+
+Use the following structure:
 
 ## Strengths
 
@@ -197,245 +412,157 @@ Provide feedback in the following format:
 """
 ```
 
-This ensures the model produces structured, consistent feedback.
+Notice that we are defining:
+
+* Role
+* Evaluation criteria
+* Output format
+
+This is prompt engineering.
 
 ---
 
-# Sending Images to the Model
+# Injecting Teacher Personas Into Vision Grading
 
-The OpenAI API allows us to send both text and images in the same request.
+The generic prompt is useful.
 
-Here is the structure:
+But Markly already has personas.
+
+Instead of:
 
 ```python
-response = client.chat.completions.create(
-    model="gpt-4.1-mini",
-    messages=[
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": VISION_PROMPT
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_base64}"
-                    }
-                }
-            ]
-        }
-    ]
-)
+VISION_PROMPT
 ```
 
----
-
-## Key Idea: Mixed Input Messages
-
-Previously, messages were simple strings:
+we combine:
 
 ```python
-"Grade this assignment"
+PERSONAS[subject]
 ```
 
-Now, messages become a **list of inputs**:
-
-```text
-Text + Image → Single Request
-```
-
-This tells the model:
-
-> “Here are instructions… and here is the assignment image.”
-
-It processes both together.
-
----
-
-## Why "image_url"?
-
-Even though we are not using a real URL, the API accepts:
-
-* web URLs
-* cloud-hosted images
-* Base64 data URLs
-
-We use a **data URL format**:
-
-```
-data:image/jpeg;base64,...
-```
-
-This embeds the image directly inside the request.
-
----
-
-# Combining Text and Visual Understanding
-
-This step is important.
-
-The model needs both:
-
-* **instructions (what to do)**
-* **image (what to analyze)**
-
-Without instructions, the model may describe the image instead of grading it.
-
-So we are effectively combining:
-
-```text
-Teacher Instructions + Student Work → Graded Feedback
-```
-
----
-
-# Updating the Application Logic
-
-Now we update `app.py` to support both file types.
-
-We detect the uploaded file type:
+with:
 
 ```python
-filename = upload.filename.lower()
+Image-specific instructions
 ```
 
-Then route it accordingly:
-
-```python
-if filename.endswith((".png", ".jpg", ".jpeg")):
-
-    image = image_to_base64(upload.value)
-
-    result = grade_image(
-        image,
-        subject.value
-    )
-
-else:
-
-    assignment = extract_text_from_file(
-        upload.value,
-        upload.filename
-    )
-
-    result = grade_assignment(
-        assignment,
-        subject.value
-    )
-```
-
----
-
-# Two Parallel Pipelines
-
-Markly now supports two complete workflows:
-
-```text
-                 Upload Assignment
-                         │
-        ┌────────────────┴───────────────┐
-        │                                │
-        ▼                                ▼
-   Text-based files                 Image-based files
-        │                                │
-   Extract text                  Convert to Base64
-        │                                │
-   Text model                    Vision model
-        │                                │
-        └──────────────┬─────────────────┘
-                       ▼
-                Teacher Feedback
-```
-
-This design pattern is called **dispatching**.
-
-The system decides how to process input based on its type.
-
----
-
-# Improving with Teacher Personas
-
-We can now combine vision input with subject-specific teaching styles.
-
-Instead of using a generic prompt, we inject a **teacher persona**.
+Example:
 
 ```python
 persona = PERSONAS[subject]
 
-vision_prompt = f"""
+prompt = f"""
 {persona}
 
 The student's work is provided as an image.
 
-Carefully examine all visible writing, diagrams, and working steps.
+Carefully analyze all visible content.
 
-Do not assume missing information.
+Do not assume information that cannot be seen.
 
-Base your feedback only on what is visible.
+Base feedback only on visible evidence.
 """
 ```
 
-This ensures:
+Now:
 
-* Math teachers focus on reasoning
-* Science teachers focus on concepts
-* English teachers focus on clarity and structure
+* Math teachers inspect calculations
+* English teachers inspect writing quality
+* Programming teachers inspect code screenshots
+* Science teachers inspect diagrams
 
 ---
 
-# Final Architecture
+# Understanding Multimodal Messages
 
-Markly is now a **multimodal AI grading system**.
+Text-only requests look like:
 
-```text
-                    Teacher
-                       │
-              Upload Assignment
-                       │
-              File Type Detection
-                       │
-        ┌──────────────┴──────────────┐
-        │                             │
-     Text File                    Image File
-        │                             │
-   Extract Text               Base64 Encoding
-        │                             │
-     LLM                        Vision Model
-        │                             │
-        └──────────────┬──────────────┘
-                       ▼
-               Grading Feedback
+```python
+{
+  "role": "user",
+  "content": "Grade this assignment"
+}
 ```
 
----
+Vision requests look like:
 
-# What We Have Built
+```python
+{
+  "role": "user",
+  "content": [
+      {...text...},
+      {...image...}
+  ]
+}
+```
 
-At this stage, Markly can:
+The message now contains multiple content types.
 
-* Grade essays and typed assignments
-* Analyze scanned worksheets
-* Understand handwritten math solutions
-* Interpret diagrams and visual reasoning
-* Apply subject-specific teacher personas
+This is the origin of the word:
 
-This brings us significantly closer to a real classroom AI assistant.
+```text
+Multimodal
+```
 
----
-
-# Next Step
-
-In the next part, we will transform Markly’s output into a **professional PDF grading report**.
-
-Instead of raw text in the browser, we will generate:
-
-* structured reports
-* formatted sections
-* downloadable feedback documents
-* printable teacher reports
-
-This will make Markly suitable for real educational workflows.
+Multiple modes of information.
 
 ---
+
+# What Markly Is Becoming
+
+At the start of this tutorial, Markly was:
+
+```text
+Upload File
+      ↓
+Extract Text
+      ↓
+Send To AI
+```
+
+After this chapter:
+
+```text
+Upload Assignment
+        │
+        ▼
+ File Type Detection
+        │
+ ┌──────┴───────┐
+ │              │
+ ▼              ▼
+Text         Image
+ │              │
+ ▼              ▼
+LLM        Vision Model
+ │              │
+ └──────┬───────┘
+        ▼
+ Teacher Feedback
+```
+
+This is a major architectural milestone.
+
+Markly is no longer just a document reader.
+
+It is now a multimodal educational AI system capable of understanding both language and visual reasoning.
+
+---
+
+## What We've Built
+
+By the end of this chapter, Markly can:
+
+* Grade PDFs
+* Grade DOCX assignments
+* Grade handwritten worksheets
+* Analyze diagrams
+* Evaluate photographed assignments
+* Apply teacher personas to visual submissions
+* Support multimodal AI workflows
+
+Most importantly, we have laid the foundation for a future feature:
+
+> Teacher-style red-pen annotations directly on student work.
+
+Because before Markly can write feedback onto a page, it must first learn how to see the page.
