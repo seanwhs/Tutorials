@@ -1,127 +1,212 @@
-# Part 4 — Connecting Markly to an AI Model with OpenRouter
+# Part 4 — Connecting Markly to AI with OpenRouter
 
-Up to this point, Markly can successfully upload assignments and extract their contents. That’s already a major milestone, but the application still isn’t *intelligent*. It can read documents, but it cannot evaluate them or generate meaningful feedback.
+At this point, Markly can successfully:
 
-In this chapter, we upgrade Markly into an **AI-powered system** by connecting it to Large Language Models (LLMs) using **OpenRouter**.
+* Upload assignments
+* Read PDF files
+* Read Word documents
+* Extract text from images
 
-We’ll go beyond a basic integration and build something closer to a real production-grade architecture:
+This is a huge milestone.
 
-> A **concurrent multi-model AI orchestration system** with built-in timeout and automatic cancellation.
+However, Markly still has one major limitation:
 
-Instead of waiting for models one by one, Markly will now run them **in parallel** and return the fastest valid response.
+> It can read assignments, but it cannot understand them.
+
+A human teacher does much more than read text.
+
+A teacher can:
+
+* Understand what the student is trying to say
+* Detect mistakes
+* Evaluate quality
+* Assign marks
+* Provide feedback
+
+This is where Artificial Intelligence enters the picture.
+
+In this chapter, we will connect Markly to a Large Language Model (LLM) so that it can begin behaving like a teaching assistant.
+
+By the end of this chapter, Markly will be able to:
+
+* Connect to OpenRouter
+* Send extracted assignments to an AI model
+* Receive AI-generated responses
+* Build reusable prompting functions
+* Separate AI logic from the user interface
+* Create the foundation for grading and feedback generation
 
 ---
 
-By the end of this chapter, you’ll learn how to:
+# Understanding the Role of the AI Engine
 
-* Store API keys securely using environment variables
-* Connect to OpenRouter using the **Async OpenAI SDK**
-* Understand asynchronous + concurrent LLM execution
-* Run multiple models in parallel for faster responses
-* Implement timeout-based request control (internal abort system)
-* Cancel unnecessary tasks to save resources
-* Build a robust AI orchestration layer (`engine.py`)
-* Integrate AI responses into Markly’s UI
+Before writing any code, let's understand the architecture.
+
+Currently our application looks like this:
+
+```text
+Teacher
+   │
+   ▼
+Upload Assignment
+   │
+   ▼
+Extract Text
+   │
+   ▼
+Display Text
+```
+
+The missing piece is the intelligence layer.
+
+After this chapter:
+
+```text
+Teacher
+   │
+   ▼
+Upload Assignment
+   │
+   ▼
+Extract Text
+   │
+   ▼
+AI Model
+   │
+   ▼
+Feedback
+```
+
+The AI model becomes the "brain" of the application.
 
 ---
 
-# What is OpenRouter?
+# What Is OpenRouter?
 
-There are many companies that provide access to Large Language Models:
+OpenRouter is a service that provides access to many different AI models through a single API.
+
+Instead of connecting directly to:
 
 * OpenAI
 * Anthropic
 * Google
-* Meta
-* Mistral AI
 * DeepSeek
-* Cohere
-* Qwen
+* Meta
 
-Each provider exposes its own models, APIs, and limitations.
+you connect to OpenRouter.
 
-Normally, switching between them requires rewriting application logic.
-
-OpenRouter simplifies this by acting as a **unified routing layer**.
-
-Instead of connecting to each provider separately, Markly connects to a single API:
+OpenRouter then routes your request to the model you choose.
 
 ```text
                 Markly
                    │
                    ▼
-             OpenRouter API
+               OpenRouter
                    │
       ┌────────────┼────────────┐
       ▼            ▼            ▼
-   GPT Models   Claude      Llama Models
-      │            │            │
-      └────────────┼────────────┘
-                   ▼
-              AI Response
+     GPT         Claude      Llama
 ```
 
-This makes model experimentation as simple as changing a string.
+This makes experimentation much easier because changing models often requires changing only a single line of code.
 
 ---
 
-# Why We Use Async OpenAI SDK
+# Why Use OpenRouter?
 
-Although we are using OpenRouter, we still use the **OpenAI Python SDK** because it is fully API-compatible.
+Without OpenRouter:
 
-In this version, we rely on:
+```text
+Application
+   ├── OpenAI API
+   ├── Anthropic API
+   ├── Google API
+   └── DeepSeek API
+```
 
-> **AsyncOpenAI + asyncio concurrency**
+Every provider has:
 
-Why this matters:
+* Different URLs
+* Different SDKs
+* Different authentication methods
 
-Traditional LLM calls are slow because they depend on network latency and model load.
+With OpenRouter:
 
-If we call models one-by-one:
+```text
+Application
+      │
+      ▼
+ OpenRouter API
+      │
+      ▼
+ Any Supported Model
+```
 
-* We wait for each model sequentially
-* Total latency increases
-* UI feels slow
+One API.
 
-With async + concurrency:
+Many models.
 
-* All models are triggered at the same time
-* The fastest successful response wins
-* Slower models are automatically discarded
-
-This is closer to how production AI systems behave.
+Much simpler.
 
 ---
 
 # Securing Your API Key
 
-Your `.env` file should contain:
+Earlier, we created a `.env` file.
+
+It should contain:
 
 ```text
-OPENROUTER_API_KEY=your_api_key_here
+OPENROUTER_API_KEY=your_key_here
 ```
 
-Never hardcode secrets:
+Never do this:
 
 ```python
-API_KEY = "sk-xxxx"
+API_KEY = "sk-123456"
 ```
 
-Because this exposes your credentials if the code is shared or uploaded.
+Hardcoding secrets is dangerous because:
 
-Instead, we load it at runtime.
+* Keys may be uploaded to GitHub
+* Other developers may see them
+* Attackers may misuse them
+
+Instead, we load them from the environment.
 
 ---
 
-# Setting Up the AI Engine
+# Creating engine.py
 
-Open **engine.py**.
+Open:
 
-We start with the core imports:
+```text
+engine.py
+```
+
+This file will contain all AI-related logic.
+
+Keeping AI code separate from UI code follows an important software engineering principle:
+
+> Separation of Concerns
+
+Each file should have one primary responsibility.
+
+| File        | Responsibility   |
+| ----------- | ---------------- |
+| app.py      | User Interface   |
+| utils.py    | File Processing  |
+| personas.py | Teacher Prompts  |
+| engine.py   | AI Communication |
+
+---
+
+# Importing Required Libraries
+
+Start with:
 
 ```python
 import os
-import asyncio
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -129,18 +214,36 @@ from openai import AsyncOpenAI
 
 ---
 
-## Load Environment Variables
+# Loading Environment Variables
 
 ```python
 load_dotenv()
+
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 ```
 
-This safely retrieves the API key from your environment.
+What happens here?
+
+```text
+.env
+   │
+   ▼
+load_dotenv()
+   │
+   ▼
+Environment Variables
+   │
+   ▼
+os.getenv(...)
+```
+
+Now the application can safely access the API key.
 
 ---
 
-## Initialize the OpenRouter Client
+# Creating the OpenRouter Client
+
+Next:
 
 ```python
 client = AsyncOpenAI(
@@ -149,341 +252,324 @@ client = AsyncOpenAI(
 )
 ```
 
-| Component   | Purpose                       |
-| ----------- | ----------------------------- |
-| AsyncOpenAI | Enables asynchronous requests |
-| base_url    | Routes traffic to OpenRouter  |
-
 ---
 
-# Introducing the Model Pool
+## Why AsyncOpenAI?
 
-Instead of relying on a single model, we define a pool:
+Earlier Python applications often used:
 
 ```python
-MODELS_POOL = [
-    "openai/gpt-oss-20b:free",
-    "qwen/qwen3-coder:free",
-    "google/gemma-4-31b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-]
+OpenAI()
 ```
 
-### Why multiple models?
+which is synchronous.
 
-Because real-world AI systems must handle:
+That means:
 
-* Rate limits
-* Model downtime
-* Latency variation
-* Temporary API failures
-
-So instead of failing, we **switch strategies dynamically**.
-
----
-
-# Step 1 — Single Model Request with Timeout Control
-
-We define a low-level function that talks to one model.
-
-```python
-async def ask_ai(prompt, model_name, timeout=10.0):
-    """
-    Performs a single async request with timeout control.
-    """
-    try:
-        response = await client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=timeout
-        )
-
-        return response.choices[0].message.content
-
-    except asyncio.TimeoutError:
-        raise Exception(f"Model {model_name} exceeded timeout.")
-
-    except Exception as e:
-        raise Exception(f"Model {model_name} failed: {e}")
+```text
+Request Sent
+      │
+      ▼
+Wait...
+      ▼
+Wait...
+      ▼
+Wait...
+      ▼
+Response
 ```
 
----
+The application is blocked until the response arrives.
 
-### What’s new here?
-
-We introduced an important concept:
-
-> **Internal request timeout (abort mechanism)**
-
-This ensures:
-
-* Slow models don’t block execution
-* Hanging requests are automatically terminated
-* System remains responsive
-
-Think of it as a **safety timer per model call**.
-
----
-
-# Step 2 — Concurrent Model Execution (Core Innovation)
-
-Now we move from sequential logic → concurrent orchestration.
+With:
 
 ```python
-async def get_ai_response_concurrently(prompt, timeout=10.0):
-    """
-    Runs multiple models in parallel and returns the first successful result.
-    """
+AsyncOpenAI()
 ```
 
----
+the application can continue working while waiting for the model.
 
-## Create Tasks for All Models
+This becomes important later when we add:
 
-```python
-tasks = [
-    asyncio.create_task(ask_ai(prompt, model, timeout))
-    for model in MODELS_POOL
-]
-```
-
-Now every model starts **at the same time**.
+* streaming responses
+* multiple AI requests
+* vision models
+* grading pipelines
 
 ---
 
-## Track Pending Tasks
+# Sending Your First AI Request
+
+Create a simple function:
 
 ```python
-pending = set(tasks)
-```
-
-We maintain a dynamic set of unfinished tasks.
-
----
-
-## Wait for First Successful Result
-
-```python
-while pending:
-    done, pending = await asyncio.wait(
-        pending,
-        return_when=asyncio.FIRST_COMPLETED
+async def ask_ai(prompt):
+    response = await client.chat.completions.create(
+        model="openai/gpt-oss-20b:free",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     )
-```
 
-### Key idea:
-
-We don’t wait for all models.
-
-We stop at the **first completed task** (successful or failed).
-
----
-
-## Handle Completed Tasks
-
-```python
-for task in done:
-    try:
-        return task.result()
-```
-
-If a model succeeds:
-
-* We immediately return the result
-* We ignore slower models
-
-If it fails:
-
-```python
-except Exception as e:
-    print(f"Task failed, checking next: {e}")
-```
-
-We continue waiting for others.
-
----
-
-## Fallback if Everything Fails
-
-```python
-return "Error: All models in the pool failed."
+    return response.choices[0].message.content
 ```
 
 ---
 
-# Step 3 — Critical Resource Cleanup
+# Understanding Messages
 
-This is an important production-level detail.
+Modern LLMs communicate using messages.
+
+A message contains:
 
 ```python
-finally:
-    for task in pending:
-        if not task.done():
-            task.cancel()
-
-    await asyncio.gather(*pending, return_exceptions=True)
+{
+    "role": "user",
+    "content": "Hello"
+}
 ```
 
-### Why this matters:
+Roles can be:
 
-Without cleanup:
+| Role      | Purpose      |
+| --------- | ------------ |
+| system    | Instructions |
+| user      | Human input  |
+| assistant | AI response  |
 
-* Background tasks continue running
-* Memory leaks may occur
-* API quotas may be wasted
+Example:
 
-So we explicitly:
+```python
+messages = [
+    {
+        "role": "system",
+        "content": "You are a helpful teacher."
+    },
+    {
+        "role": "user",
+        "content": "Explain fractions."
+    }
+]
+```
 
-* Cancel unused tasks
-* Await cancellation cleanup
-* Ensure no orphan processes remain
-
-This is what makes the system **production-safe**.
+This conversation is sent to the model.
 
 ---
 
-# Step 4 — Testing the Engine
+# Testing the Connection
+
+Add:
+
+```python
+import asyncio
+```
+
+Then:
 
 ```python
 async def main():
-    prompt = "Explain the event loop in one sentence."
-    result = await get_ai_response_concurrently(prompt)
-    print(f"\nFinal Result:\n{result}")
+    result = await ask_ai(
+        "Explain what a programming bug is."
+    )
+
+    print(result)
+
+asyncio.run(main())
 ```
 
-Run it:
+Run:
 
 ```bash
 python engine.py
 ```
 
----
-
-### Example output:
+Example:
 
 ```text
-Final Result:
-The event loop is a system that continuously checks and executes asynchronous tasks in a program.
+A programming bug is an error or flaw in software that causes unexpected behaviour.
 ```
 
-Behind the scenes:
+Congratulations.
+
+Markly is now talking to an AI model.
+
+---
+
+# Making the Function Reusable
+
+Soon we will have many AI features:
+
+* Subject detection
+* Assignment grading
+* Report generation
+* Teacher feedback
+* Student progress summaries
+
+Rather than rewriting AI calls repeatedly, create a reusable helper.
+
+```python
+async def generate_response(messages):
+
+    response = await client.chat.completions.create(
+        model="openai/gpt-oss-20b:free",
+        messages=messages
+    )
+
+    return response.choices[0].message.content
+```
+
+Now any feature can call:
+
+```python
+await generate_response(messages)
+```
+
+---
+
+# Building Our First Educational Prompt
+
+Let's test with an assignment.
+
+```python
+assignment = """
+Python is a programming language.
+It was invented by Guido van Rossum.
+"""
+```
+
+Prompt:
+
+```python
+messages = [
+    {
+        "role": "system",
+        "content": "You are a teacher."
+    },
+    {
+        "role": "user",
+        "content": f"""
+Review this assignment:
+
+{assignment}
+
+Provide feedback.
+"""
+    }
+]
+```
+
+Send it to the model.
+
+The response will resemble teacher feedback.
+
+---
+
+# Why Prompts Matter
+
+The same model behaves differently depending on instructions.
+
+Prompt:
 
 ```text
-Model A → slow (ignored)
-Model B → error
-Model C → fast winner ✔
-Model D → still running → cancelled
+Provide feedback.
 ```
 
----
+Produces generic results.
 
-# Understanding the Architecture
-
-Markly is now a **concurrent AI orchestration system**.
+Prompt:
 
 ```text
-Teacher Input
-     │
-     ▼
-Markly Engine
-     │
-     ▼
-Parallel Model Execution
-     │
-     ▼
-OpenRouter (Multiple LLMs)
-     │
-     ▼
-Fastest Successful Response
-     │
-     ▼
-Teacher Feedback
+Act as an experienced teacher.
+
+Identify strengths.
+Identify weaknesses.
+Provide suggestions.
+Assign a score out of 10.
 ```
 
----
+Produces much better educational feedback.
 
-# Why This Design Matters
-
-## 1. Speed (Low Latency)
-
-Instead of waiting for multiple sequential calls, we take the fastest response.
-
-## 2. Fault Tolerance
-
-If one model fails, others continue.
-
-## 3. Efficiency
-
-Unused tasks are cancelled, saving compute and API usage.
-
-## 4. Production Readiness
-
-This mirrors real-world AI routing systems used in:
-
-* AI copilots
-* Multi-model gateways
-* Enterprise AI routers
+This idea becomes the foundation of the next chapter.
 
 ---
 
-# Connecting Back to Markly UI
+# Connecting the AI to the User Interface
 
-In `app.py`, the interface remains unchanged.
+Back in `app.py`, we currently display extracted text.
 
 Instead of:
 
 ```python
-grade_assignment()
+feedback.object = text
 ```
 
-We now call:
+we will eventually do:
 
 ```python
-await get_ai_response_concurrently(prompt)
+feedback.object = ai_feedback
 ```
 
-The UI flow stays simple:
+The workflow becomes:
 
 ```text
-Upload → Extract → Send to Engine → Display Feedback
+Upload Assignment
+        │
+        ▼
+Extract Text
+        │
+        ▼
+Build Prompt
+        │
+        ▼
+Send To AI
+        │
+        ▼
+Receive Feedback
+        │
+        ▼
+Display Results
 ```
 
-But the backend is now significantly more advanced.
+This is the first complete AI pipeline in Markly.
 
 ---
 
-# What We’ve Built So Far
+# What We Built
 
-Markly now includes:
+By the end of this chapter, Markly can:
 
-* Document upload (PDF/DOCX)
-* Text extraction
-* Async AI calls
-* Multi-model execution
-* Concurrent model orchestration
-* Timeout-based internal abort system
-* Automatic task cancellation
-* Fastest-response selection strategy
+* Connect to OpenRouter
+* Authenticate securely
+* Send prompts to AI models
+* Receive responses
+* Separate AI logic from UI logic
+* Build reusable AI functions
+* Create educational feedback
 
----
+Most importantly:
 
-# What’s Still Missing
-
-Even though Markly is now fast and resilient, it still behaves like a **generic AI grader**.
-
-It does not yet understand:
-
-* Subject-specific grading logic
-* Rubrics and marking schemes
-* Teaching styles
-* Assessment consistency
+> Markly has evolved from a document reader into an AI-powered application.
 
 ---
 
-# Next Chapter Preview
+# What's Next?
 
-In the next chapter, we will upgrade Markly’s intelligence layer:
+Right now, Markly behaves like a generic assistant.
 
-> 🎓 **Teacher Personas — Subject-Aware AI Grading**
+A mathematics teacher and an English teacher grade very differently.
 
-This will transform Markly from a generic AI system into a **multi-disciplinary educational assistant** that behaves like different types of teachers depending on context.
+In the next chapter, we will build:
+
+# Part 5 — Teacher Personas and Subject-Aware Grading
+
+You'll learn how to create specialized AI teachers that evaluate assignments according to:
+
+* Mathematics reasoning
+* English writing quality
+* Science understanding
+* Programming correctness
+
+This is where Markly starts behaving less like a chatbot and more like a real educator.
