@@ -1,421 +1,697 @@
-# Part 11 — Building a Rubric & Validation Layer (Making Markly Reliable)
+# Part 11 — Building a Rubric & Validation Layer (Making Markly Trustworthy)
 
-At this stage, Markly is already doing a lot:
+Up to this point, Markly has grown into a surprisingly capable educational AI platform.
 
-* Multimodal grading (text + images)
-* Subject detection
-* Persona-based evaluation
-* PDF report generation
-* UI polish and status handling
-* Student memory and progress tracking
+It can:
 
-But there’s a hidden problem in everything built so far:
+* Grade text-based assignments
+* Analyze handwritten worksheets and scanned submissions
+* Detect subjects automatically
+* Apply subject-specific teacher personas
+* Generate professional PDF reports
+* Track student progress over time
+* Maintain historical performance records
 
-> We are still fully trusting the LLM’s judgment.
+From a feature perspective, the system already feels complete.
 
-That works for demos, but not for real educational environments where grading must be consistent, defensible, and repeatable.
+However, there is a fundamental problem hiding underneath everything we have built so far:
 
-Teachers expect:
+> We are still allowing the LLM to decide the grade.
 
-* Stable scoring criteria across students
-* Justifiable marks tied to explicit standards
-* Consistent grading across runs
-* Auditability of how marks were derived
+For demonstrations, prototypes, and personal projects, this may be acceptable.
 
-LLMs, however:
-
-* can vary in strictness across runs
-* may shift emphasis between criteria
-* can over/under-weight implicit signals
-* sometimes produce unstructured reasoning
-
-So we introduce a critical system layer:
-
-> **A rubric-driven validation engine**
-
-This is what moves Markly from a “smart assistant” to a **reliable assessment system**.
+For real educational environments, it is not.
 
 ---
 
-# The Core Idea: Separate Thinking from Scoring
+# The Reliability Problem
+
+Imagine two students submitting similar work.
+
+Student A receives:
+
+```text
+8/10
+```
+
+Student B receives:
+
+```text
+10/10
+```
+
+A teacher immediately asks:
+
+> Why?
+
+Where did those numbers come from?
+
+Which criteria were used?
+
+Could another teacher arrive at the same result?
+
+Could the same assignment receive a different score tomorrow?
+
+Without explicit grading standards, these questions are impossible to answer.
+
+And that creates a trust problem.
+
+---
+
+# Why LLMs Alone Are Not Enough
+
+Large Language Models are excellent at:
+
+* Understanding content
+* Identifying mistakes
+* Explaining concepts
+* Generating feedback
+
+But they are not naturally designed for:
+
+* Consistent scoring
+* Auditability
+* Policy enforcement
+* Institutional assessment standards
+
+Even with temperature set to zero, models can still:
+
+* Emphasize different weaknesses
+* Weight criteria differently
+* Interpret grading expectations differently
+
+In other words:
+
+> LLMs are strong evaluators, but weak authorities.
+
+Educational systems require the opposite.
+
+They require:
+
+* Explicit criteria
+* Repeatable decisions
+* Transparent scoring
+
+So we introduce a new architectural layer.
+
+---
+
+# The Core Design Principle
+
+We separate:
+
+### Evaluation
+
+From
+
+### Scoring
+
+---
 
 Before:
-
-```text
-Student Work → LLM → Feedback + Grade
-```
-
-After:
-
-```text
-Student Work → LLM Analysis → Rubric Scoring Engine → Final Grade
-```
-
-The key shift:
-
-* The LLM no longer “decides the grade”
-* It only evaluates evidence against criteria
-* The system computes the final score deterministically
-
----
-
-# Step 1 — Defining a Rubric System
-
-Create:
-
-```text
-rubrics.py
-```
-
-Each subject now has explicit, structured scoring dimensions.
-
----
-
-## Mathematics Rubric
-
-```python
-MATHEMATICS_RUBRIC = {
-    "accuracy": 4,
-    "working": 3,
-    "clarity": 2,
-    "final_answer": 1
-}
-```
-
----
-
-## English Rubric
-
-```python
-ENGLISH_RUBRIC = {
-    "grammar": 3,
-    "structure": 3,
-    "argument": 3,
-    "vocabulary": 1
-}
-```
-
----
-
-## Programming Rubric
-
-```python
-PROGRAMMING_RUBRIC = {
-    "correctness": 4,
-    "readability": 2,
-    "efficiency": 2,
-    "design": 2
-}
-```
-
----
-
-# Why This Matters
-
-Instead of asking:
-
-> “What grade should this get?”
-
-We now define:
-
-> “What dimensions define a good answer?”
-
-This is a shift from:
-
-* subjective grading → structured evaluation
-* implicit criteria → explicit scoring rules
-* model opinion → system-defined standards
-
----
-
-# Step 2 — Forcing the LLM into Rubric Evaluation Mode
-
-In `engine.py`, introduce a strict evaluation prompt:
-
-```python
-RUBRIC_EVALUATION_PROMPT = """
-You are a strict grading assistant.
-
-You must evaluate the student work using ONLY the rubric provided.
-
-IMPORTANT RULES:
-- Do NOT assign a final grade
-- Evaluate each rubric category independently
-- Provide a score per category
-- Base scoring only on evidence in the submission
-- Keep reasoning short and factual
-
-Rubric:
-{rubric}
-
-Student Work:
-{assignment}
-
-Return format:
-
-Category Scores:
-- category: score/maximum
-- category: score/maximum
-
-Short Justification:
-...
-"""
-```
-
-This is crucial: it constrains the model to structured evaluation rather than narrative grading.
-
----
-
-# Step 3 — LLM as an Evaluator (Not a Judge)
-
-```python
-def evaluate_with_rubric(assignment, rubric):
-```
-
-### LLM Call
-
-```python
-response = client.chat.completions.create(
-    model="openai/gpt-oss-20b:free",
-    messages=[
-        {
-            "role": "user",
-            "content": RUBRIC_EVALUATION_PROMPT.format(
-                rubric=rubric,
-                assignment=assignment
-            )
-        }
-    ],
-    temperature=0
-)
-```
-
-Key design choice:
-
-* temperature = 0 → reduces variability in scoring behavior
-
----
-
-# Step 4 — Parsing Structured Scores
-
-We extract numeric values from the LLM output:
-
-```python
-import re
-
-def parse_scores(text):
-    scores = re.findall(r"(\d+)\s*/\s*(\d+)", text)
-    return [(int(a), int(b)) for a, b in scores]
-```
-
-This converts:
-
-```text
-accuracy: 3/4
-working: 2/3
-```
-
-into structured numeric data:
-
-```python
-[(3, 4), (2, 3)]
-```
-
----
-
-# Step 5 — Deterministic Grade Computation
-
-Now grading is fully system-controlled:
-
-```python
-def compute_final_grade(parsed_scores):
-    total_obtained = sum(a for a, b in parsed_scores)
-    total_max = sum(b for a, b in parsed_scores)
-    return total_obtained, total_max
-```
-
-At this point:
-
-> The grade is no longer “generated” — it is computed.
-
----
-
-# Step 6 — LLM for Feedback Only
-
-We reintroduce the LLM, but with a restricted role:
-
-> It explains results, not determines them.
-
-```python
-FINAL_FEEDBACK_PROMPT = """
-You are a teacher.
-
-Based on the rubric scores below, provide feedback.
-
-Rubric Scores:
-{scores}
-
-Include:
-- strengths
-- weaknesses
-- improvement advice
-- summary
-"""
-```
-
-This separation is important:
-
-* Scoring → deterministic system
-* Feedback → language model
-
----
-
-# Step 7 — Full Rubric-Based Pipeline
-
-```python
-def grade_with_rubric(assignment, rubric):
-
-    raw = evaluate_with_rubric(assignment, rubric)
-
-    parsed = parse_scores(raw)
-
-    obtained, total = compute_final_grade(parsed)
-
-    feedback = client.chat.completions.create(
-        model="openai/gpt-oss-20b:free",
-        messages=[
-            {
-                "role": "user",
-                "content": FINAL_FEEDBACK_PROMPT.format(
-                    scores=raw
-                )
-            }
-        ],
-        temperature=0
-    )
-
-    return {
-        "score": f"{obtained}/{total}",
-        "feedback": feedback.choices[0].message.content
-    }
-```
-
----
-
-# Step 8 — Integrating Into Markly
-
-Replace:
-
-```python
-result = grade_assignment(...)
-```
-
-With:
-
-```python
-result = grade_with_rubric(
-    assignment,
-    rubrics[predicted_subject]
-)
-```
-
----
-
-# What This Solves
-
-### Before (Unstructured AI Grading)
-
-* Inconsistent scoring
-* Hidden reasoning
-* No clear grading standard
-* Hard to audit
-
-### After (Rubric-Based System)
-
-* Consistent evaluation criteria
-* Transparent scoring breakdown
-* Deterministic final grade computation
-* Explainable feedback layer
-
----
-
-# Updated System Architecture
 
 ```text
 Student Work
       │
       ▼
-LLM: Evidence Extraction
+      LLM
       │
       ▼
-Rubric Evaluation Layer (Structured Output)
+Feedback + Grade
+```
+
+The model performs everything.
+
+---
+
+After:
+
+```text
+Student Work
+      │
+      ▼
+LLM Evaluation
+      │
+      ▼
+Rubric Validation Layer
       │
       ▼
 Deterministic Scoring Engine
       │
       ▼
-LLM: Feedback Generator (Explanation Only)
-      │
-      ▼
-PDF Report Generator
+Teacher Feedback
+```
+
+The model no longer owns the final grade.
+
+The system does.
+
+This is one of the most important architectural upgrades in the entire Markly project.
+
+---
+
+# Introducing Rubrics
+
+Teachers do not grade using intuition alone.
+
+They grade using standards.
+
+A rubric defines:
+
+* what matters
+* how much it matters
+* how marks are allocated
+
+Instead of asking:
+
+> "What grade should this receive?"
+
+We ask:
+
+> "How well does this submission satisfy each criterion?"
+
+This transforms grading from an opinion into a structured evaluation process.
+
+---
+
+# Creating `rubrics.py`
+
+Create a dedicated module:
+
+```text
+markly/
+
+app.py
+engine.py
+personas.py
+utils.py
+storage.py
+report.py
+rubrics.py
+```
+
+The responsibility of this file is simple:
+
+> Define grading standards.
+
+---
+
+# Mathematics Rubric
+
+```python
+MATHEMATICS_RUBRIC = {
+    "Calculation Accuracy": 4,
+    "Methodology": 3,
+    "Working Shown": 2,
+    "Final Answer": 1
+}
+```
+
+Total:
+
+```text
+10 Marks
 ```
 
 ---
 
-# Why This Is a Major Engineering Upgrade
+# English Rubric
 
-This introduces three key production-grade properties:
-
-### 1. Consistency
-
-Same input → same scoring breakdown
-
-### 2. Auditability
-
-Every mark maps to a rubric dimension
-
-### 3. Control
-
-The system, not the model, owns grading logic
+```python
+ENGLISH_RUBRIC = {
+    "Grammar": 3,
+    "Structure": 3,
+    "Argument": 2,
+    "Vocabulary": 2
+}
+```
 
 ---
 
-# Final Evolution of Markly (So Far)
+# Science Rubric
 
-* **Early version:** simple LLM grading tool
-* **Multimodal version:** handles text + images
-* **UX version:** professional reporting pipeline
-* **Memory version:** tracks student progress
-* **Rubric version (now):** structured, reliable evaluation system
+```python
+SCIENCE_RUBRIC = {
+    "Scientific Accuracy": 4,
+    "Conceptual Understanding": 3,
+    "Reasoning": 2,
+    "Communication": 1
+}
+```
 
 ---
 
-# What Markly Has Become
+# Programming Rubric
 
-At this stage, Markly is no longer a demo.
+```python
+PROGRAMMING_RUBRIC = {
+    "Correctness": 4,
+    "Readability": 2,
+    "Efficiency": 2,
+    "Design": 2
+}
+```
 
-It is a structured AI-assisted assessment system with:
+---
+
+# Centralized Rubric Registry
+
+Just like personas, we create a registry.
+
+```python
+RUBRICS = {
+    "Mathematics": MATHEMATICS_RUBRIC,
+    "English": ENGLISH_RUBRIC,
+    "Science": SCIENCE_RUBRIC,
+    "Programming": PROGRAMMING_RUBRIC
+}
+```
+
+This allows simple retrieval:
+
+```python
+rubric = RUBRICS[predicted_subject]
+```
+
+---
+
+# Constraining the Model
+
+The next challenge is preventing the model from inventing grades.
+
+We want the model to evaluate evidence only.
+
+Create a dedicated rubric prompt:
+
+```python
+RUBRIC_EVALUATION_PROMPT = """
+You are a grading evaluator.
+
+Evaluate the student submission using ONLY the rubric provided.
+
+Rules:
+
+- Score every category independently.
+- Do not calculate totals.
+- Do not assign a final grade.
+- Base scoring only on visible evidence.
+- Keep reasoning concise.
+
+Rubric:
+
+{rubric}
+
+Student Work:
+
+{assignment}
+
+Return EXACTLY:
+
+Category Scores:
+
+- Category: score/max
+- Category: score/max
+
+Justification:
+
+...
+"""
+```
+
+Notice the wording.
+
+We intentionally remove authority from the model.
+
+The model becomes an assessor.
+
+Not a grader.
+
+---
+
+# Stage 1 — Evidence Extraction
+
+Implement:
+
+```python
+async def evaluate_with_rubric(
+    assignment,
+    rubric
+):
+```
+
+The model now produces something like:
+
+```text
+Category Scores:
+
+Calculation Accuracy: 3/4
+Methodology: 2/3
+Working Shown: 2/2
+Final Answer: 1/1
+
+Justification:
+
+Minor arithmetic mistake in Question 4.
+```
+
+This output is structured.
+
+That means software can process it.
+
+---
+
+# Parsing Scores
+
+Add a parser:
+
+```python
+import re
+
+def parse_scores(text):
+
+    matches = re.findall(
+        r"(\d+)\s*/\s*(\d+)",
+        text
+    )
+
+    return [
+        (int(a), int(b))
+        for a, b in matches
+    ]
+```
+
+Example:
+
+```python
+[(3,4), (2,3), (2,2), (1,1)]
+```
+
+---
+
+# Deterministic Grade Computation
+
+This is where control returns to the system.
+
+```python
+def compute_final_score(scores):
+
+    obtained = sum(
+        score
+        for score, maximum in scores
+    )
+
+    maximum = sum(
+        maximum
+        for score, maximum in scores
+    )
+
+    return obtained, maximum
+```
+
+Output:
+
+```python
+(8, 10)
+```
+
+The grade is now calculated by code.
+
+Not generated by AI.
+
+---
+
+# Why This Matters
+
+Before:
+
+```text
+LLM decides score
+```
+
+After:
+
+```text
+LLM supplies evidence
+
+System computes score
+```
+
+This distinction is subtle but enormously important.
+
+The grading standard now belongs to Markly.
+
+Not the model provider.
+
+---
+
+# Stage 2 — Feedback Generation
+
+Now we reuse the model for what it does best:
+
+Language.
+
+Create a second prompt:
+
+```python
+FEEDBACK_PROMPT = """
+You are a teacher.
+
+Using the rubric evaluation below,
+generate constructive feedback.
+
+Rubric Results:
+
+{rubric_results}
+
+Include:
+
+## Strengths
+
+## Areas for Improvement
+
+## Suggestions
+
+## Summary
+"""
+```
+
+The model now explains results.
+
+It no longer determines them.
+
+---
+
+# Building the Validation Layer
+
+We can now create a complete grading workflow:
+
+```python
+async def grade_with_rubric(
+    assignment,
+    subject
+):
+
+    rubric = RUBRICS[subject]
+
+    evaluation = await evaluate_with_rubric(
+        assignment,
+        rubric
+    )
+
+    scores = parse_scores(evaluation)
+
+    obtained, total = compute_final_score(
+        scores
+    )
+
+    feedback = await generate_feedback(
+        evaluation
+    )
+
+    return {
+        "subject": subject,
+        "score": f"{obtained}/{total}",
+        "evaluation": evaluation,
+        "feedback": feedback
+    }
+```
+
+---
+
+# Adding Validation Checks
+
+Once scoring becomes structured, we can validate results automatically.
+
+Example:
+
+```python
+def validate_scores(scores):
+
+    for score, maximum in scores:
+
+        if score > maximum:
+            raise ValueError(
+                "Invalid rubric score detected."
+            )
+
+        if score < 0:
+            raise ValueError(
+                "Negative score detected."
+            )
+```
+
+This catches malformed model output before it reaches teachers.
+
+---
+
+# Architecture After Validation
+
+Markly now contains multiple intelligence layers.
+
+```text
+Upload Assignment
+         │
+         ▼
+Content Extraction
+         │
+         ▼
+Subject Detection
+         │
+         ▼
+Teacher Persona
+         │
+         ▼
+Rubric Evaluation
+         │
+         ▼
+Validation Layer
+         │
+         ▼
+Deterministic Scoring
+         │
+         ▼
+Feedback Generation
+         │
+         ▼
+Student Memory Update
+         │
+         ▼
+PDF Report
+```
+
+Notice something important:
+
+The LLM appears multiple times.
+
+But each usage has a narrowly defined responsibility.
+
+This is how production AI systems are built.
+
+---
+
+# What We Have Achieved
+
+Before this chapter, Markly was:
+
+```text
+AI-assisted grading
+```
+
+After this chapter, Markly becomes:
+
+```text
+AI-assisted evaluation
++
+System-controlled scoring
+```
+
+That distinction is what makes the platform trustworthy.
+
+---
+
+# Why This Is One of the Most Important Chapters
+
+This chapter introduces three characteristics that educational institutions care deeply about:
+
+### Consistency
+
+The same rubric is applied every time.
+
+### Auditability
+
+Every mark maps to an explicit criterion.
+
+### Control
+
+The grading policy belongs to the application, not the model.
+
+These three properties are foundational for any serious assessment platform.
+
+---
+
+# Markly's Evolution So Far
+
+```text
+Part 1–3
+Document Processing
+
+Part 4
+Multi-Model AI Orchestration
+
+Part 5
+Teacher Personas
+
+Part 6
+Vision-Based Grading
+
+Part 7
+PDF Reporting
+
+Part 8
+Professional UX
+
+Part 9
+Automatic Subject Detection
+
+Part 10
+Student Memory
+
+Part 11
+Rubric Validation & Deterministic Scoring
+```
+
+Markly is no longer a grading demo.
+
+It is now a layered educational AI system with:
 
 * multimodal understanding
-* subject-aware reasoning
-* student memory tracking
-* rubric-based scoring
-* deterministic grading logic
-* explainable feedback generation
-* professional report output
+* adaptive subject awareness
+* teacher personas
+* persistent student memory
+* rubric-driven assessment
+* deterministic scoring
+* explainable feedback
+* professional reporting
 
 ---
 
-# Next Step Preview
+# Next Chapter Preview
 
-The next evolution is operational and production-focused:
+Even with rubric validation in place, there is still an unanswered question:
 
-We will add:
+> Can we explain exactly how every grade was produced months later?
 
-* grading audit trails (who/what produced each score)
-* analytics dashboards for teachers
-* bias detection across student groups
-* role-based access control (teacher vs admin)
-* dataset export for institutional analysis
+To solve that, the next chapter introduces:
 
-This is where Markly transitions from a project into a **real educational AI system architecture**.
+**Audit Trails, Analytics, and Educational Observability**
+
+where Markly will begin tracking:
+
+* grading decisions
+* rubric evaluations
+* model responses
+* score distributions
+* teacher-level analytics
+* institutional reporting
+
+This is the final step that transforms Markly from an AI grading application into a full educational assessment platform.
