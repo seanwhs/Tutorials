@@ -1,0 +1,716 @@
+# Part III — Working with Real SGX Market Data
+
+# Lesson 3.9 — Connecting the `MarketDataService` to a Live Financial API
+
+> **Learning Objectives**
+>
+> By the end of this lesson, you will be able to:
+>
+> * Understand what a financial data provider is.
+> * Learn how APIs expose market data.
+> * Select an appropriate API for our SGX Stock Monitor.
+> * Understand API endpoints.
+> * Learn what query parameters are.
+> * Construct request URLs.
+> * Send requests from our `MarketDataService`.
+> * Understand API responses.
+> * Retrieve live SGX stock information.
+> * Prepare for integrating our service with the Panel dashboard.
+
+---
+
+# Introduction
+
+Our `MarketDataService` now has a solid structure.
+
+It contains:
+
+* configuration
+* methods
+* responsibilities
+
+However,
+
+it still doesn't retrieve any real data.
+
+Today's lesson changes that.
+
+For the first time,
+
+our application will communicate with a real financial data provider.
+
+This marks the transition from a software skeleton into a working stock monitoring application.
+
+---
+
+# Where Does Market Data Come From?
+
+A common beginner question is:
+
+> "Where does Yahoo Finance get its stock prices?"
+
+or
+
+> "How does Google know the latest DBS share price?"
+
+The answer is:
+
+They don't invent the information.
+
+Instead,
+
+they obtain market data from financial exchanges and market data providers.
+
+---
+
+# Financial Data Providers
+
+Market data providers collect information from stock exchanges and make it available through APIs.
+
+Examples include:
+
+* Alpha Vantage
+* Finnhub
+* Twelve Data
+* Polygon.io
+* Financial Modeling Prep
+* Yahoo Finance (unofficial APIs)
+
+Some providers specialize in:
+
+* US stocks
+* Global markets
+* Forex
+* Cryptocurrencies
+* Commodities
+
+Others provide broader coverage.
+
+---
+
+# Which API Will We Use?
+
+For this tutorial,
+
+we'll use a financial API that provides:
+
+* HTTP access
+* JSON responses
+* Free developer access
+* Documentation
+* Support for SGX-listed stocks
+
+Our focus is **learning software engineering**, not tying ourselves to one specific provider.
+
+This is why we created the `MarketDataService`.
+
+If we decide to change providers later,
+
+the rest of our application will remain unchanged.
+
+---
+
+# What Is an API Endpoint?
+
+Earlier,
+
+we learned that an API consists of URLs.
+
+One specific URL that performs a particular task is called an **endpoint**.
+
+For example,
+
+an API might expose endpoints like:
+
+```text
+/stock
+
+/company
+
+/search
+
+/quote
+
+/history
+```
+
+Each endpoint performs a different function.
+
+---
+
+# Example Endpoint
+
+Conceptually,
+
+our stock quote endpoint might look like:
+
+```text
+https://api.example.com/quote
+```
+
+Notice that this endpoint alone isn't enough.
+
+The server doesn't yet know which stock we want.
+
+---
+
+# Introducing Query Parameters
+
+Suppose we want the DBS share price.
+
+How do we tell the server?
+
+We add **query parameters**.
+
+Example:
+
+```text
+https://api.example.com/quote?symbol=D05
+```
+
+Everything after the question mark (`?`) consists of parameters.
+
+---
+
+# Understanding Query Parameters
+
+Let's break it apart.
+
+```text
+https://api.example.com/quote
+
+?
+
+symbol
+
+=
+
+D05
+```
+
+Meaning:
+
+```
+Endpoint:
+https://api.example.com/quote
+
+Parameter:
+symbol
+
+Value:
+D05
+```
+
+---
+
+# Multiple Parameters
+
+An API may require more than one parameter.
+
+Example:
+
+```text
+...?symbol=D05&currency=SGD
+```
+
+Notice the ampersand (`&`).
+
+It separates multiple parameters.
+
+---
+
+# Why Parameters Matter
+
+Imagine ordering coffee.
+
+You don't simply say
+
+> "Coffee."
+
+You specify:
+
+* Size
+* Milk
+* Sugar
+
+Parameters provide additional information.
+
+APIs work the same way.
+
+---
+
+# Should We Build URLs Manually?
+
+A beginner might write:
+
+```python
+url = self.base_url + "?symbol=" + symbol
+```
+
+This works,
+
+but it isn't ideal.
+
+Professional code usually allows the `requests` library to build query strings automatically.
+
+---
+
+# Using Query Parameters with `requests`
+
+Instead of manually constructing URLs,
+
+we can pass a dictionary.
+
+Conceptually,
+
+```python
+params = {
+    "symbol": symbol
+}
+```
+
+Then,
+
+```python
+requests.get(
+
+    self.base_url,
+
+    params=params
+
+)
+```
+
+The `requests` library safely constructs the URL for us.
+
+---
+
+# Why Is This Better?
+
+Suppose the symbol contains spaces or special characters.
+
+The `requests` library automatically performs **URL encoding**.
+
+This prevents many subtle bugs.
+
+Professional developers almost always use the `params` argument instead of manually concatenating URLs.
+
+---
+
+# Updating Our Service
+
+Our service now becomes responsible for:
+
+```text
+Receive Symbol
+
+↓
+
+Build Parameters
+
+↓
+
+HTTP Request
+
+↓
+
+Receive Response
+
+↓
+
+Return Response Object
+```
+
+Notice that we still haven't parsed JSON.
+
+We'll do that shortly.
+
+---
+
+# Building the Request
+
+Conceptually,
+
+our method now performs:
+
+```text
+get_stock("D05")
+
+↓
+
+Create Parameters
+
+↓
+
+requests.get()
+
+↓
+
+Response
+```
+
+The method hides all of this complexity from the user interface.
+
+---
+
+# Using Instance Variables
+
+Earlier,
+
+we stored
+
+```python
+self.base_url
+```
+
+and
+
+```python
+self.timeout
+```
+
+Now we can reuse them.
+
+Instead of hardcoding values,
+
+our request uses the service's configuration.
+
+This makes future changes much easier.
+
+---
+
+# The Complete Flow
+
+Our application now follows this sequence.
+
+```text
+User
+
+↓
+
+Panel Search Box
+
+↓
+
+get_stock("D05")
+
+↓
+
+Build HTTP Request
+
+↓
+
+Financial API
+
+↓
+
+HTTP Response
+```
+
+At this point,
+
+we've successfully contacted the server.
+
+---
+
+# What Does the Server Return?
+
+Remember from previous lessons,
+
+the server returns a
+
+```python
+Response
+```
+
+object.
+
+Conceptually,
+
+it contains:
+
+```text
+Status Code
+
+Headers
+
+Body
+
+Encoding
+```
+
+Our next task is to process that response.
+
+---
+
+# Validating the Response
+
+Before using the returned data,
+
+our service should ask:
+
+```text
+Did the request succeed?
+```
+
+If the answer is
+
+```text
+Yes
+```
+
+continue.
+
+Otherwise,
+
+handle the error gracefully.
+
+This is where the defensive programming techniques from the previous lesson become useful.
+
+---
+
+# Parsing Comes Next
+
+Once we've confirmed the request succeeded,
+
+our next workflow becomes:
+
+```text
+Response
+
+↓
+
+response.json()
+
+↓
+
+Python Dictionary
+
+↓
+
+Extract Fields
+
+↓
+
+Normalize Data
+```
+
+We've already learned each of these steps individually.
+
+Now we're combining them into one service.
+
+---
+
+# Our Service Is Growing
+
+Originally,
+
+our service looked like this.
+
+```text
+MarketDataService
+
+├── base_url
+
+├── timeout
+
+└── get_stock()
+```
+
+Now,
+
+`get_stock()` has meaningful responsibilities.
+
+```text
+MarketDataService
+
+├── Configuration
+
+├── Build Parameters
+
+├── Send Request
+
+├── Validate Response
+
+└── Return Data
+```
+
+Each lesson adds another capability.
+
+---
+
+# Thinking Like a Software Engineer
+
+Notice something important.
+
+The Panel dashboard still doesn't know:
+
+* the API URL
+* query parameters
+* HTTP requests
+* networking
+
+It simply calls:
+
+```text
+get_stock("D05")
+```
+
+This is excellent software design.
+
+The complexity stays inside the service.
+
+---
+
+# Looking Ahead
+
+Soon,
+
+our workflow will become:
+
+```text
+Panel
+
+↓
+
+MarketDataService
+
+↓
+
+Financial API
+
+↓
+
+JSON
+
+↓
+
+Normalized Dictionary
+
+↓
+
+Panel Widgets
+```
+
+The dashboard receives clean,
+
+well-structured Python data,
+
+not raw API responses.
+
+---
+
+# Teacher's Notes
+
+> One of the strengths of the `requests` library is that it handles many low-level networking details automatically, including URL encoding, query string construction, and connection management. Beginners often try to manually build URLs using string concatenation, but this approach becomes error-prone as APIs become more complex.
+>
+> Another architectural decision worth highlighting is that the Panel application never communicates directly with the API. By routing all requests through the `MarketDataService`, we've isolated the external dependency. This makes our application easier to maintain, easier to test, and much easier to migrate to a different data provider in the future.
+
+---
+
+# Common Mistakes
+
+## ❌ Mistake 1
+
+Building URLs using string concatenation.
+
+Prefer passing query parameters through the `params` argument of `requests.get()`.
+
+---
+
+## ❌ Mistake 2
+
+Hardcoding API URLs throughout the application.
+
+Store them in the service configuration.
+
+---
+
+## ❌ Mistake 3
+
+Allowing the Panel UI to know API details.
+
+Keep networking logic inside the service layer.
+
+---
+
+## ❌ Mistake 4
+
+Assuming the API always returns valid data.
+
+Always validate the HTTP response before parsing it.
+
+---
+
+## ❌ Mistake 5
+
+Thinking an API endpoint and a complete request URL are the same thing.
+
+An endpoint defines the resource.
+
+Query parameters specify exactly what data you want.
+
+---
+
+# Summary
+
+In this lesson, you learned:
+
+* Financial data providers expose stock information through HTTP APIs.
+* APIs organize functionality into endpoints.
+* Query parameters allow us to specify what information we want.
+* The `requests` library automatically constructs request URLs using the `params` argument.
+* Our `MarketDataService` is responsible for creating requests and communicating with external APIs.
+* Configuration values such as the base URL and timeout are reused throughout the service.
+* The Panel dashboard remains independent of networking details.
+* Separating API communication into a dedicated service produces cleaner, more maintainable software.
+
+Our `MarketDataService` can now communicate with a live financial API. In the next lesson, we'll complete the implementation by processing the server's response, parsing JSON, validating the returned data, and transforming it into a clean Python dictionary that our Panel application can display.
+
+---
+
+# Exercises
+
+## Exercise 1 — Understanding Request URLs
+
+Suppose the endpoint is:
+
+```text
+https://api.example.com/quote
+```
+
+Using the stock symbol `D05`, identify:
+
+* The endpoint
+* The query parameter name
+* The query parameter value
+* The complete request URL
+
+---
+
+## Exercise 2 — Responsibilities
+
+Classify each task as belonging to either the **Panel Dashboard** or the **MarketDataService**:
+
+* Accept user input
+* Build query parameters
+* Send HTTP requests
+* Display stock prices
+* Validate HTTP responses
+* Show error messages to the user
+
+Explain why each task belongs in that component.
+
+---
+
+## Exercise 3 — Architecture Review
+
+Draw the complete workflow for retrieving a stock quote, starting from the user clicking the **Search** button and ending with the stock price appearing on the screen.
+
+Label each step and identify which component is responsible for it.
+
+---
+
+# Coming Up Next
+
+In **Lesson 3.10 — Completing the `MarketDataService`: Parsing and Returning Clean Data**, we'll implement the final stage of our service. You'll learn how to convert HTTP responses into Python dictionaries, validate required fields, normalize inconsistent API responses, handle missing values gracefully, and return a clean, application-friendly data structure. By the end of that lesson, our `MarketDataService` will be complete and ready to power the Panel user interface with live SGX market data.
