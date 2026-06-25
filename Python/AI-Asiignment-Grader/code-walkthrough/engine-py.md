@@ -1,5 +1,12 @@
-## 1. Imports and client setup
+**✅ Enhanced & Polished Walkthrough: `engine.py` — AI Orchestration & Grading Core**
 
+---
+
+## Module Deep Dive: `engine.py` — AI Pipeline, Subject Detection, and Model Racing
+
+This module is the **brain** of the Markly project. It transforms the normalized text and images from `utils.py` into structured teacher feedback, grades, and machine-readable markup instructions. It handles prompt engineering, asynchronous AI calls via OpenRouter, model racing for reliability, subject-specific rubrics, and structured output for downstream visual annotations.
+
+### 1. Imports and Client Setup
 ```python
 import os
 import asyncio
@@ -8,88 +15,70 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 ```
 
-### Why this block exists
-This block brings in the basic tools the script needs before it can do any real work. `os` helps read environment variables, `asyncio` supports asynchronous programming, `re` handles text pattern matching, `load_dotenv()` loads secret values from a `.env` file, and `AsyncOpenAI` creates the AI client.
+**Why this block exists**  
+It equips the module with everything needed for secure configuration, asynchronous AI communication, and text parsing. `AsyncOpenAI` enables efficient concurrent requests to multiple models.
 
-### Python concepts used
-- `import` loads modules into the program.
-- `asyncio` is Python’s built-in async system.
-- `re` is the regular expression module for searching text patterns.
-- `load_dotenv()` is used to load environment variables from a file.
-- `AsyncOpenAI` is an async client, so later API calls can use `await`.
+**Python concepts used**  
+- Module imports (standard library + third-party)  
+- `asyncio` for non-blocking I/O  
+- `re` for robust post-processing of AI output  
+- Environment-based configuration via `dotenv`
 
-### Pattern analysis
-This is a **setup block**. It prepares the program’s dependencies first, before defining the actual grading logic.
+**Pattern analysis**  
+**Setup & dependency declaration** block — all foundational tools are loaded upfront.
 
-### What if
-Try imagining what would happen if `asyncio` were removed. The later async functions would no longer work properly, because the program depends on non-blocking API calls.
+**What if**  
+Removing `asyncio` would break all async functions, forcing synchronous (slower) calls and reducing the effectiveness of model racing.
 
-***
+---
 
-## 2. Environment loading and shared client
-
+### 2. Environment Loading and Shared Client
 ```python
 load_dotenv()
 API_KEY = os.getenv("OPENROUTER_API_KEY")
-
 client = AsyncOpenAI(
     api_key=API_KEY,
     base_url="https://openrouter.ai/api/v1"
 )
 ```
 
-### Why this block exists
-This block solves the problem of securely storing and retrieving the API key. Instead of hardcoding secrets into the source file, the program reads the key from the environment and creates one reusable client for all future AI requests.
+**Why this block exists**  
+Securely loads the OpenRouter API key and creates a single reusable async client for all AI interactions.
 
-### Python concepts used
-- `load_dotenv()` loads values from a `.env` file into the environment.
-- `os.getenv(...)` fetches a variable safely.
-- Keyword arguments like `api_key=` and `base_url=` make the client configuration readable.
+**Python concepts used**  
+- Environment variable loading and safe retrieval  
+- Client instantiation with configuration keywords  
 
-### Pattern analysis
-This is a **shared service object** pattern. The client is built once and reused everywhere, which is cleaner than creating a new client for every request.
+**Pattern analysis**  
+**Shared service object** pattern — one client instance reused across the entire module.
 
-### What if
-Rename `OPENROUTER_API_KEY` in your `.env` file to something else and see how the program loses access to the key. That shows why the variable name matters.
+**What if**  
+A mismatched environment variable name would cause all AI calls to fail, highlighting the importance of consistent configuration.
 
-***
+---
 
-## 3. Prompt templates
-
+### 3. Prompt Templates
 ```python
-SUBJECT_DETECTION_PROMPT = """
-You are an academic subject classifier.
-
-Choose ONLY one:
-Mathematics, English, Science, Programming.
-
-Return ONLY the word.
-No explanation.
-
-Assignment:
-"""
+SUBJECT_DETECTION_PROMPT = """..."""
+# Similar constants exist for: JSON_SCHEMA_PROMPT, MATH_MARKING_PROMPT, ENGLISH_MARKING_PROMPT, etc.
 ```
 
-This same style is used for `JSON_SCHEMA_PROMPT`, `MATH_MARKING_PROMPT`, `ENGLISH_MARKING_PROMPT`, `SCIENCE_MARKING_PROMPT`, `PROGRAMMING_MARKING_PROMPT`, `GENERIC_MARKING_PROMPT`, and `VISION_PROMPT`.
+**Why this block exists**  
+Centralized, reusable instructions that guide the AI’s behavior for different tasks (subject classification, subject-specific marking, structured JSON output, vision analysis).
 
-### Why this block exists
-These prompts tell the AI how to behave. One prompt is for identifying the subject, others are for grading style, and one is for strict JSON markup. Each prompt narrows the model’s behavior so the output is more predictable.
+**Python concepts used**  
+- Triple-quoted multiline strings  
+- Constant naming convention (UPPER_CASE)  
 
-### Python concepts used
-- Triple-quoted strings store multiline text.
-- Uppercase names indicate constants by convention.
-- These strings are later combined with user content using normal string concatenation or f-strings.
+**Pattern analysis**  
+**Prompt engineering as code** — separating instructions from logic makes prompts easier to tune and version.
 
-### Pattern analysis
-This is **prompt construction**. The code is not calling the AI yet — it is preparing the instructions that will be sent to the AI later.
+**What if**  
+Removing constraints like “Return ONLY the word” from the subject prompt would lead to noisier, less parseable outputs.
 
-### What if
-Remove the line `Return ONLY the word.` from the subject prompt and see how the model might start giving explanations instead of a clean label.
+---
 
-***
-
-## 4. Subject prompt mapping
-
+### 4. Subject Prompt Mapping
 ```python
 SUBJECT_PROMPTS = {
     "Mathematics": MATH_MARKING_PROMPT,
@@ -99,48 +88,35 @@ SUBJECT_PROMPTS = {
 }
 ```
 
-### Why this block exists
-Different subjects need different marking styles. A math assignment should be judged differently from an English essay or a programming solution, so the code stores the right prompt for each subject.
+**Why this block exists**  
+Routes grading logic to the appropriate subject-specific rubric and tone.
 
-### Python concepts used
-- Dictionaries store key/value pairs.
-- `.get(subject, default)` is used later to safely retrieve a prompt.
-- This avoids long chains of `if` and `elif`.
+**Python concepts used**  
+- Dictionary as a dispatch table  
+- Safe lookup with `.get(subject, default)`  
 
-### Pattern analysis
-This is a **dispatch table**. The subject name acts like a key, and the dictionary selects the right behavior.
+**Pattern analysis**  
+**Strategy / dispatch table** pattern — avoids lengthy `if-elif` chains and makes adding new subjects trivial.
 
-### What if
-Add a new subject like `"History"` and give it its own prompt. That helps you see how easily the design can scale.
+**What if**  
+Adding `"History": HISTORY_MARKING_PROMPT` demonstrates the scalability of this design.
 
-***
+---
 
-## 5. Vision prompt
-
+### 5. Vision Prompt
 ```python
-VISION_PROMPT = """
-Analyze the assignment and provide:
-Strengths, Mistakes, Suggestions, Final Grade
-"""
+VISION_PROMPT = """Analyze the assignment and provide: Strengths, Mistakes, Suggestions, Final Grade"""
 ```
 
-### Why this block exists
-This prompt gives a vision model a simple checklist for what to produce after looking at an image of student work.
+**Why this block exists**  
+Provides a clear checklist for multimodal (vision) models when grading image-based submissions.
 
-### Python concepts used
-- It is just a string constant.
-- It is inserted into later API calls as part of the model instruction.
+**Pattern analysis**  
+**Concern separation** — prompt text is defined once and reused.
 
-### Pattern analysis
-This is **separation of concerns**. The instruction text lives in its own variable instead of being buried inside the function.
+---
 
-### What if
-Make the prompt more detailed, such as asking for “exactly 3 strengths and 3 mistakes,” and see how the output becomes more structured.
-
-***
-
-## 6. Model pool
-
+### 6. Model Pool
 ```python
 MODELS_POOL = [
     "openai/gpt-oss-20b:free",
@@ -150,338 +126,133 @@ MODELS_POOL = [
 ]
 ```
 
-### Why this block exists
-This list gives the program multiple models to try. If one model is slow or fails, another may still respond successfully.
+**Why this block exists**  
+Enables model racing — multiple models compete to provide the fastest reliable response.
 
-### Python concepts used
-- Lists store ordered collections.
-- Each item is a model name string.
+**Pattern analysis**  
+**Fallback & redundancy** strategy for resilience and speed.
 
-### Pattern analysis
-This is a **fallback and racing strategy**. Instead of relying on one model, the program gives itself several chances to get a usable answer.
+---
 
-### What if
-Remove one model from the list and observe that the system still works, just with fewer options.
-
-***
-
-## 7. Grade extraction helper
-
+### 7. Grade Extraction Helper
 ```python
 def extract_grade(text: str) -> str:
-    if not text:
-        return "N/A"
-    patterns = [
-        r"\b(\d{1,2}(?:\.\d+)?)\s*/\s*10\b",
-        r"\bGrade[:\s]*([A-F][+-]?)\b",
-        r"\b(\d{1,2}(?:\.\d+)?)\s*/\s*(?:100|20|50)\b",
-    ]
-    for pat in patterns:
-        m = re.search(pat, text, re.I)
-        if m:
-            if "Grade" in pat:
-                return m.group(1)
-            return m.group(0).replace(" ", "")
-    return "N/A"
+    # Regex patterns for common grade formats (X/10, A-, 85/100, etc.)
 ```
 
-### Why this block exists
-AI responses are not always nicely formatted. This helper tries to pull a grade out of different possible text patterns, such as `8/10`, `A-`, or `75/100`.
+**Why this block exists**  
+Extracts a clean grade from free-form AI responses, bridging unstructured LLM output with structured data.
 
-### Python concepts used
-- Functions are defined with `def`.
-- Type hints like `text: str` describe expected types.
-- `re.search()` finds a match using a regular expression.
-- `if not text` checks for empty input.
-- `m.group(...)` extracts matched text.
+**Python concepts used**  
+- Type hints, regex pattern matching, defensive programming  
 
-### Pattern analysis
-This is a **robust parser**. It accepts that AI text may vary and tries several patterns in sequence.
+**Pattern analysis**  
+**Robust post-processing parser** — compensates for variability in model outputs.
 
-### What if
-Add another regex for a phrase like `85 percent` and see how the parser becomes more flexible.
+---
 
-***
-
-## 8. Subject detection
-
+### 8. Subject Detection
 ```python
 async def detect_subject(content):
-    response = await client.chat.completions.create(
-        model="openai/gpt-oss-20b:free",
-        messages=[{
-            "role": "user",
-            "content": SUBJECT_DETECTION_PROMPT + content
-        }],
-        temperature=0
-    )
-    return response.choices[0].message.content.strip()
+    # Uses a cheap/fast model with temperature=0 for consistent classification
 ```
 
-### Why this block exists
-Before the program can grade the work, it needs to know what subject it is looking at. This function sends the content to a classifier model and gets back one subject label.
+**Why this block exists**  
+Determines the academic subject when the user doesn’t specify one, enabling the correct rubric and persona.
 
-### Python concepts used
-- `async def` defines an asynchronous function.
-- `await` pauses execution until the API returns.
-- `messages` is the chat-style request format.
-- `temperature=0` encourages more consistent output.
+**Key dependency**: Relies on clean `extracted_text` from `utils.py`.
 
-### Pattern analysis
-This is a **classification step** in a pipeline. It performs one small task, and later steps depend on its result.
+---
 
-### What if
-Change `temperature` from `0` to a higher value and see whether the classification becomes less stable.
-
-***
-
-## 9. Single-model request helper
-
+### 9. Single-Model Request Helper
 ```python
 async def ask_ai(prompt, model_name, timeout=10.0):
-    try:
-        response = await client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=timeout,
-        )
-        return response.choices[0].message.content
-    except Exception:
-        return None
+    # Try/except wrapper around the API call
 ```
 
-### Why this block exists
-This function sends one prompt to one model and returns the response. It also protects the program by catching errors and returning `None` instead of crashing.
+**Why this block exists**  
+Encapsulates a single API request with error tolerance.
 
-### Python concepts used
-- `try/except` handles runtime errors.
-- Default arguments like `timeout=10.0` make the function easier to use.
-- Returning `None` is a simple way to signal failure.
+**Pattern analysis**  
+**Error-tolerant wrapper** — isolates low-level details.
 
-### Pattern analysis
-This is an **error-tolerant helper**. It hides the low-level API request details and gives callers a simple result.
+---
 
-### What if
-Remove the `try/except` and notice how a single failed request would stop the entire flow.
-
-***
-
-## 10. Concurrent model racing
-
+### 10. Concurrent Model Racing
 ```python
 async def get_ai_response_concurrently(prompt, timeout=10.0):
-    tasks = [
-        asyncio.create_task(ask_ai(prompt, m, timeout))
-        for m in MODELS_POOL
-    ]
-    done, pending = await asyncio.wait(
-        tasks,
-        return_when=asyncio.FIRST_COMPLETED
-    )
-    for task in done:
-        result = task.result()
-        if result:
-            for p in pending:
-                p.cancel()
-            return result
-    return "Error: All models failed"
+    # Launches all models in parallel, returns first successful result
 ```
 
-### Why this block exists
-This function asks several models the same question at the same time and uses the first usable answer. That makes the system faster and more resilient.
+**Why this block exists**  
+The heart of reliability: races multiple models and takes the winner, cancelling the rest.
 
-### Python concepts used
-- List comprehensions build lists compactly.
-- `asyncio.create_task(...)` starts tasks concurrently.
-- `asyncio.wait(..., FIRST_COMPLETED)` waits for the first task to finish.
-- `task.result()` retrieves the output.
-- `p.cancel()` stops tasks that are no longer needed.
+**Python concepts used**  
+- `asyncio.create_task`, `asyncio.wait(..., FIRST_COMPLETED)`, task cancellation  
 
-### Pattern analysis
-This is the main **orchestration** layer for model racing. It does not generate prompts itself; it coordinates multiple helper calls and chooses the best outcome.
+**Pattern analysis**  
+**Orchestration with concurrency** — dramatically improves speed and resilience.
 
-### What if
-Change `FIRST_COMPLETED` to a strategy that waits for all tasks and compare the behavior. You’ll see the difference between “fastest answer wins” and “collect all answers first.”
+---
 
-### Main purpose
-The main purpose of `get_ai_response_concurrently()` is to **improve reliability and speed by racing multiple AI models and returning the first valid result**. It is the program’s fallback mechanism when one model might fail or be too slow.
-
-***
-
-## 11. Image grading
-
+### 11–13. Image Grading Functions
 ```python
 async def grade_image(image_base64, subject):
-    response = await client.chat.completions.create(
-        model="openai/gpt-4o",
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": f"Subject: {subject}\n{VISION_PROMPT}"},
-                {"type": "image_url", "image_url": {
-                    "url": f"data:image/jpeg;base64,{image_base64}"
-                }}
-            ]
-        }]
-    )
-    return response.choices[0].message.content
-```
+    # Multimodal call with vision model
 
-### Why this block exists
-This function sends an image of a student assignment to a vision-capable model and asks for feedback. It combines text instructions and image data in one request.
-
-### Python concepts used
-- f-strings insert variable values into strings.
-- The `content` field contains multiple message parts.
-- Base64 encoding lets the image be embedded in the request body.
-
-### Pattern analysis
-This is a **multimodal API call**. The model receives both text and image input at once.
-
-### What if
-Make the prompt more specific, for example by asking for a grading rubric, and see how that changes the response.
-
-***
-
-## 12. Image grading with markup
-
-```python
 async def grade_image_with_markup(image_base64, subject):
-    marking_prompt = SUBJECT_PROMPTS.get(subject, GENERIC_MARKING_PROMPT)
-
-    full_prompt = f"""
-Subject: {subject}
-
-You are doing STRICT RED PEN EXAM MARKING.
-
-CRITICAL:
-- Mark EVERYTHING visible
-- Be extremely dense
-- Do NOT skip steps
-- Mimic real teacher annotations
-
-{marking_prompt}
-
-{JSON_SCHEMA_PROMPT}
-"""
+    # Structured JSON output for visual annotations
 ```
 
-### Why this block exists
-This function prepares a stricter version of the image grading task. Instead of just returning feedback, it asks for structured annotations that can be turned into markup on the image.
+**Why these exist**  
+Handle visual assignments by sending both text instructions and base64 images to multimodal models (e.g., GPT-4o), with optional strict JSON formatting for markup generation.
 
-### Python concepts used
-- `.get(subject, default)` provides a safe dictionary lookup.
-- Triple-quoted f-strings make it easy to build large prompts.
+**Key dependency**: `image_to_base64()` output from `utils.py`.
 
-### Pattern analysis
-This is **prompt construction** again, but now with a stronger output contract. It combines the subject-specific prompt with a JSON schema prompt.
+---
 
-### What if
-Replace the fallback `GENERIC_MARKING_PROMPT` with the math prompt and see how the default behavior changes.
-
-***
-
-## 13. JSON-enforced vision call
-
-```python
-    response = await client.chat.completions.create(
-        model="openai/gpt-4o",
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": full_prompt},
-                {"type": "image_url", "image_url": {
-                    "url": f"data:image/jpeg;base64,{image_base64}"
-                }}
-            ]
-        }],
-        max_completion_tokens=1200,
-        response_format={"type": "json_object"},
-    )
-    return response.choices[0].message.content
-```
-
-### Why this block exists
-The program wants structured output that it can later parse and render. Asking for JSON makes the result easier to consume in code.
-
-### Python concepts used
-- Keyword arguments control model behavior.
-- `max_completion_tokens` limits how much the model can write.
-- `response_format={"type": "json_object"}` requests machine-readable output.
-
-### Pattern analysis
-This is a **structured response contract**. The code is telling the model not just what to say, but what format to say it in.
-
-### What if
-Remove `response_format` and compare how much harder it becomes to use the response programmatically.
-
-***
-
-## 14. Assignment judging
-
+### 14. Text-Based Assignment Judging
 ```python
 async def judge_assignment(content, rubric):
-    prompt = f"""
-You are a strict teacher grading a student assignment.
-
-Use this rubric:
-{rubric}
-
-Student work:
-{content}
-
-Return:
-- short overall feedback
-- a clear grade in the form X/10
-- concise corrections if needed
-"""
-    return await get_ai_response_concurrently(prompt, timeout=10.0)
+    # Builds prompt + delegates to concurrent racing
 ```
 
-### Why this block exists
-This function handles text-based assignments. It builds a grading prompt using the rubric and student work, then sends that prompt to the concurrent model-racing helper.
+**Why this block exists**  
+Main entry point for text-only submissions, combining rubric, student work, and model racing.
 
-### Python concepts used
-- Another f-string builds the request dynamically.
-- The function delegates the actual model selection to another helper.
+---
 
-### Pattern analysis
-This is an **orchestration function**. It does not do everything itself; it prepares the task and hands it off to `get_ai_response_concurrently()`.
-
-### What if
-Add a rule like “return exactly three corrections” and see how the output becomes more controlled.
-
-***
-
-## 15. Main guard
-
+### 15. Main Guard
 ```python
 if __name__ == "__main__":
-    asyncio.run(asyncio.sleep(0))
+    asyncio.run(asyncio.sleep(0))  # Placeholder for testing
 ```
 
-### Why this block exists
-This makes the file behave differently when run directly versus imported into another module. Right now it doesn’t perform a real action, but it sets up the standard entry-point structure.
+**Why this block exists**  
+Standard Python entry point that keeps the module import-safe.
 
-### Python concepts used
-- `__name__ == "__main__"` is the standard main-guard pattern.
-- `asyncio.run(...)` runs an async coroutine from normal Python code.
+---
 
-### Pattern analysis
-This is a **script entry point**. It keeps the file import-safe while still allowing it to be executed directly.
+## Big-Picture Reading of `engine.py`
 
-### What if
-Replace `asyncio.sleep(0)` with a real function call to test the pipeline end to end.
+`engine.py` is the **orchestration and intelligence layer** of Markly. It connects the dots between:
 
-## Core idea of the design
+- Clean input from `utils.py` (text + optional base64 image)
+- Subject detection → rubric & persona selection
+- Prompt construction → concurrent AI calls (model racing)
+- Structured output → `markup.py`, `report.py`, and `storage.py`
 
-The whole file is built as a pipeline:
-1. Load configuration.
-2. Build prompts.
-3. Ask the AI for subject detection or grading.
-4. Use async helpers to make requests.
-5. Use orchestration functions to connect the pieces.
+### Core Design Principles Demonstrated
+- **Separation of concerns**: Prompt templates, API helpers, orchestration, and parsing are cleanly divided.
+- **Resilience**: Model racing + error handling + graceful fallbacks.
+- **Extensibility**: Easy to add subjects, models, or new prompt styles.
+- **Performance**: Heavy use of `asyncio` and `FIRST_COMPLETED` racing.
+- **Quality control**: Temperature=0 for detection, JSON mode for markup, regex parsing for grades.
 
-The separation between prompt construction, async API calling, and orchestration makes the code easier to understand and extend. Prompt construction is about **what to ask**. Async API calling is about **sending and waiting efficiently**. Orchestration is about **combining smaller helpers into a complete workflow**.
+This architecture turns raw student work into consistent, teacher-like feedback while remaining fast and fault-tolerant.
 
-What do you want next: a similarly annotated walkthrough of `utils.py`, `markup.py`, `report.py`, and `storage.py`, or a cleaned-up “teacher notes” version you can drop into your tutorial?
+---
+
+**How it fits the overall pipeline**  
+`utils.py` → **engine.py** (this module) → `markup.py` (visual annotations) → `report.py` (PDF) → `storage.py` (history).
+
