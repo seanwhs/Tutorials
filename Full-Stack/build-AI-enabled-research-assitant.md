@@ -874,3 +874,73 @@ Visit your live production URL. Try uploading a sample PDF and performing a rese
 ---
 
 Your assistant is now live and accessible to the world! Are you planning to add any further features, like document sharing or collaborative research workspaces, now that your app is hosted?
+
+---
+## Appendix D: Structuring Your Project for GitHub
+
+To maintain a professional workflow and enable seamless deployment with Vercel, your project repository should follow a clean, organized structure. This ensures that your source code, environment configurations, and documentation are easily accessible to both you and your automated deployment tools.
+
+---
+
+### 1. Recommended Repository Layout
+
+Organize your files to separate concerns (components, API routes, and utilities) clearly. A standard layout for this AI Assistant looks like this:
+
+```text
+/my-ai-assistant
+├── /app                # Next.js App Router (pages and API routes)
+│   ├── /api            # API logic (agent, ingest, summarize)
+│   ├── /auth           # Authentication page
+│   └── layout.tsx      # Root layout
+├── /components         # UI elements (FileUploader, DocumentList, Chat)
+│   └── /ui             # Reusable UI components (Progress, Buttons)
+├── /lib                # Shared logic (Supabase client, memory helpers)
+├── .env.local          # Local environment variables (DO NOT COMMIT THIS!)
+├── package.json        # Project dependencies and scripts
+└── README.md           # Documentation for your assistant
+
+```
+
+---
+
+### 2. Protecting Your Secrets
+
+**Crucial:** Never commit your `.env.local` or any file containing API keys to GitHub. If these keys are leaked, malicious actors could deplete your OpenAI credits or access your database.
+
+1. **Create a `.gitignore` file** in your root directory if it doesn't exist.
+2. Add `.env.local` to the file:
+```bash
+# .gitignore
+node_modules
+.next
+.env.local
+.DS_Store
+
+```
+
+
+3. This ensures Git ignores these sensitive files while still tracking your code.
+
+---
+
+### 3. README Best Practices
+
+Your `README.md` is the "face" of your repository. Include these sections to make it useful:
+
+* **Project Title & Description:** A brief summary of what the AI assistant does.
+* **Prerequisites:** List the API keys required (Supabase, OpenAI, Tavily, Helicone).
+* **Setup Instructions:** Clear, step-by-step commands to clone and run the project locally.
+* **Tech Stack:** List the primary technologies (Next.js, Supabase, LangChain, OpenAI).
+
+---
+
+### 4. GitHub Workflow for Development
+
+1. **Branches:** Use `main` for your production-ready code. Create a `dev` or feature branch (e.g., `git checkout -b feature/agent-memory`) when working on new features.
+2. **Pull Requests:** When you are ready to merge a feature into `main`, open a Pull Request (PR). This allows you to review your code before it goes live.
+3. **Deployment Integration:** By connecting your GitHub repository directly to Vercel, every time you push code to `main`, Vercel will automatically trigger a new deployment, keeping your live research assistant perfectly in sync with your latest updates.
+
+---
+
+By keeping your repository clean and your secrets secure, you ensure that your project remains easy to maintain and scale. Is there a specific part of the Git or GitHub workflow that you find challenging to manage?
+
