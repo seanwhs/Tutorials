@@ -1,10 +1,12 @@
-**✅ Code Walkthrough: `engine.py` — AI Orchestration & Grading Core**
+# **✅ Python Primer: `engine.py` — AI Orchestration & Grading Core**
+
+This primer teaches **core Python concepts** using real code from `engine.py` in the Markly app. Each section explains the Python idea in simple terms, shows the original code, gives a beginner-friendly mini demo you can copy and run, and links it to the Markly grading system.
 
 ---
 
-## Module Deep Dive: `engine.py` — AI Pipeline, Subject Detection, and Model Racing
+## Module Deep Dive: `engine.py`
 
-This module is the **brain** of the Markly project. It transforms the normalized text and images from `utils.py` into structured teacher feedback, grades, and machine-readable markup instructions. It handles prompt engineering, asynchronous AI calls via OpenRouter, model racing for reliability, subject-specific rubrics, and structured output for downstream visual annotations.
+This file is the **brain** of Markly. It shows how to organize real-world Python code for talking to AI, handling different subjects, and making reliable decisions.
 
 ### 1. Imports and Client Setup
 ```python
@@ -15,20 +17,21 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 ```
 
-**Why this block exists**  
-It equips the module with everything needed for secure configuration, asynchronous AI communication, and text parsing. `AsyncOpenAI` enables efficient concurrent requests to multiple models.
+**Python Concept: Importing Modules**  
+`import` lets you bring in ready-made tools.  
+- `import os`, `import asyncio`, `import re` → built-in Python tools.  
+- `from ... import ...` → brings specific tools from other libraries.
 
-**Python concepts used**  
-- Module imports (standard library + third-party)  
-- `asyncio` for non-blocking I/O  
-- `re` for robust post-processing of AI output  
-- Environment-based configuration via `dotenv`
+**Mini Demo You Can Try**:
+```python
+import os
+import asyncio
 
-**Pattern analysis**  
-**Setup & dependency declaration** block — all foundational tools are loaded upfront.
+print(os.name)                    # Shows info about your system
+print("All modules imported!")
+```
 
-**What if**  
-Removing `asyncio` would break all async functions, forcing synchronous (slower) calls and reducing the effectiveness of model racing.
+**In Markly**: These imports prepare everything needed for AI communication and text processing.
 
 ---
 
@@ -42,39 +45,42 @@ client = AsyncOpenAI(
 )
 ```
 
-**Why this block exists**  
-Securely loads the OpenRouter API key and creates a single reusable async client for all AI interactions.
+**Python Concepts**:
+- **Variables**: Store information (`API_KEY = ...`).
+- **Keyword arguments**: Pass settings by name (`api_key=...`).
+- `os.getenv()`: Safely get secret values (returns default if missing).
 
-**Python concepts used**  
-- Environment variable loading and safe retrieval  
-- Client instantiation with configuration keywords  
+**Mini Demo**:
+```python
+def create_ai_helper(key):
+    print(f"Connected with key: {key}")
 
-**Pattern analysis**  
-**Shared service object** pattern — one client instance reused across the entire module.
+create_ai_helper("example-secret-key")   # Using keyword style
+```
 
-**What if**  
-A mismatched environment variable name would cause all AI calls to fail, highlighting the importance of consistent configuration.
+**In Markly**: Creates one reusable AI client shared across the whole file.
 
 ---
 
 ### 3. Prompt Templates
 ```python
-SUBJECT_DETECTION_PROMPT = """..."""
-# Similar constants exist for: JSON_SCHEMA_PROMPT, MATH_MARKING_PROMPT, ENGLISH_MARKING_PROMPT, etc.
+SUBJECT_DETECTION_PROMPT = """... long text ..."""
 ```
 
-**Why this block exists**  
-Centralized, reusable instructions that guide the AI’s behavior for different tasks (subject classification, subject-specific marking, structured JSON output, vision analysis).
+**Python Concepts**:
+- **Constants**: Variables written in `UPPER_CASE` that don’t change.
+- **Triple-quoted multiline strings**: Great for long blocks of text.
 
-**Python concepts used**  
-- Triple-quoted multiline strings  
-- Constant naming convention (UPPER_CASE)  
+**Mini Demo**:
+```python
+WELCOME_PROMPT = """Hello student!
+Tell me about your assignment.
+I will help grade it."""
 
-**Pattern analysis**  
-**Prompt engineering as code** — separating instructions from logic makes prompts easier to tune and version.
+print(WELCOME_PROMPT)
+```
 
-**What if**  
-Removing constraints like “Return ONLY the word” from the subject prompt would lead to noisier, less parseable outputs.
+**In Markly**: Stores clear instructions for the AI in one easy-to-edit place.
 
 ---
 
@@ -83,176 +89,210 @@ Removing constraints like “Return ONLY the word” from the subject prompt wou
 SUBJECT_PROMPTS = {
     "Mathematics": MATH_MARKING_PROMPT,
     "English": ENGLISH_MARKING_PROMPT,
-    "Science": SCIENCE_MARKING_PROMPT,
-    "Programming": PROGRAMMING_MARKING_PROMPT,
 }
 ```
 
-**Why this block exists**  
-Routes grading logic to the appropriate subject-specific rubric and tone.
+**Python Concept: Dictionaries**  
+Dictionaries store data as `key: value` pairs. Perfect for quick lookups.
 
-**Python concepts used**  
-- Dictionary as a dispatch table  
-- Safe lookup with `.get(subject, default)`  
-
-**Pattern analysis**  
-**Strategy / dispatch table** pattern — avoids lengthy `if-elif` chains and makes adding new subjects trivial.
-
-**What if**  
-Adding `"History": HISTORY_MARKING_PROMPT` demonstrates the scalability of this design.
-
----
-
-### 5. Vision Prompt
+**Mini Demo**:
 ```python
-VISION_PROMPT = """Analyze the assignment and provide: Strengths, Mistakes, Suggestions, Final Grade"""
+subject_prompts = {
+    "Math": "Show your calculations",
+    "English": "Check grammar and spelling"
+}
+
+chosen = subject_prompts.get("Math", "Default prompt")
+print(chosen)
 ```
 
-**Why this block exists**  
-Provides a clear checklist for multimodal (vision) models when grading image-based submissions.
-
-**Pattern analysis**  
-**Concern separation** — prompt text is defined once and reused.
+**In Markly**: Acts as a **dispatch table** — picks the right prompt without many `if` statements.
 
 ---
 
-### 6. Model Pool
+### 5. Vision Prompt & Model Pool
 ```python
+VISION_PROMPT = """Analyze the assignment..."""
+
 MODELS_POOL = [
     "openai/gpt-oss-20b:free",
     "qwen/qwen3-coder:free",
     "google/gemma-4-31b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
 ]
 ```
 
-**Why this block exists**  
-Enables model racing — multiple models compete to provide the fastest reliable response.
+**Python Concepts**:
+- **Lists**: Ordered groups of items inside `[]`.
+- You can loop through them with `for`.
 
-**Pattern analysis**  
-**Fallback & redundancy** strategy for resilience and speed.
+**Mini Demo**:
+```python
+models = ["fast-model", "smart-model", "reliable-model"]
+
+for model in models:
+    print("Trying model:", model)
+```
+
+**In Markly**: Lists of models and prompts for flexible AI usage.
 
 ---
 
-### 7. Grade Extraction Helper
+### 6. Grade Extraction Helper
 ```python
 def extract_grade(text: str) -> str:
-    # Regex patterns for common grade formats (X/10, A-, 85/100, etc.)
+    # Regex patterns for common grade formats
 ```
 
-**Why this block exists**  
-Extracts a clean grade from free-form AI responses, bridging unstructured LLM output with structured data.
+**Python Concepts**:
+- **Defining Functions**: `def name(parameters):` — reusable code blocks.
+- **Type hints**: `: str` and `-> str` (helpful notes, not required).
+- `re` module: Pattern matching in text.
 
-**Python concepts used**  
-- Type hints, regex pattern matching, defensive programming  
+**Mini Demo**:
+```python
+import re
 
-**Pattern analysis**  
-**Robust post-processing parser** — compensates for variability in model outputs.
+def extract_grade(text):
+    match = re.search(r'(\d+/\d+|[A-F][+-]?)', text)
+    return match.group(1) if match else "N/A"
+
+print(extract_grade("Student received A- on the test"))
+```
+
+**In Markly**: Cleans up messy AI output into a usable grade.
 
 ---
 
-### 8. Subject Detection
+### 7. Subject Detection Function
 ```python
 async def detect_subject(content):
-    # Uses a cheap/fast model with temperature=0 for consistent classification
+    # Uses a cheap/fast model...
 ```
 
-**Why this block exists**  
-Determines the academic subject when the user doesn’t specify one, enabling the correct rubric and persona.
+**Python Concept: Async Functions**  
+`async def` lets functions **wait** for slow tasks (like AI answers) without freezing everything.
 
-**Key dependency**: Relies on clean `extracted_text` from `utils.py`.
+**Mini Demo**:
+```python
+import asyncio
+
+async def detect_subject(content):
+    print("Detecting subject...")
+    await asyncio.sleep(1)          # Simulate waiting for AI
+    return "Mathematics"
+
+# Run the async function
+result = asyncio.run(detect_subject("2x + 3 = 7"))
+print(result)
+```
+
+**In Markly**: Automatically figures out the subject of an assignment.
 
 ---
 
-### 9. Single-Model Request Helper
+### 8. Single-Model Request Helper
 ```python
 async def ask_ai(prompt, model_name, timeout=10.0):
     # Try/except wrapper around the API call
 ```
 
-**Why this block exists**  
-Encapsulates a single API request with error tolerance.
+**Python Concepts**:
+- **Default parameters**: `timeout=10.0` (optional value).
+- **try / except**: Catch problems so the program doesn’t crash.
 
-**Pattern analysis**  
-**Error-tolerant wrapper** — isolates low-level details.
+**Mini Demo**:
+```python
+try:
+    result = 10 / 2
+except Exception:
+    result = "Something went wrong"
+print(result)
+```
+
+**In Markly**: Safely talks to one AI model at a time.
 
 ---
 
-### 10. Concurrent Model Racing
+### 9. Concurrent Model Racing
 ```python
 async def get_ai_response_concurrently(prompt, timeout=10.0):
-    # Launches all models in parallel, returns first successful result
+    # Launches all models in parallel...
 ```
 
-**Why this block exists**  
-The heart of reliability: races multiple models and takes the winner, cancelling the rest.
+**Python Concept: Concurrency with asyncio**  
+Run several tasks at the same time and use the first good result.
 
-**Python concepts used**  
-- `asyncio.create_task`, `asyncio.wait(..., FIRST_COMPLETED)`, task cancellation  
+**Key Ideas**:
+- `asyncio.create_task()` starts background work.
+- `asyncio.wait(..., FIRST_COMPLETED)` waits for the fastest success.
 
-**Pattern analysis**  
-**Orchestration with concurrency** — dramatically improves speed and resilience.
+**In Markly**: Makes grading faster and more reliable by racing multiple AIs.
 
 ---
 
-### 11–13. Image Grading Functions
+### 10. Image Grading Functions
 ```python
 async def grade_image(image_base64, subject):
-    # Multimodal call with vision model
+    ...
 
 async def grade_image_with_markup(image_base64, subject):
-    # Structured JSON output for visual annotations
+    ...
 ```
 
-**Why these exist**  
-Handle visual assignments by sending both text instructions and base64 images to multimodal models (e.g., GPT-4o), with optional strict JSON formatting for markup generation.
+**Python Concepts**:
+- **Multiple similar functions**: Good code reuse.
+- Passing data into functions (e.g., image data and subject name).
 
-**Key dependency**: `image_to_base64()` output from `utils.py`.
+**In Markly**: Handles photo-based homework using AI vision.
 
 ---
 
-### 14. Text-Based Assignment Judging
+### 11. Text-Based Assignment Judging
 ```python
 async def judge_assignment(content, rubric):
     # Builds prompt + delegates to concurrent racing
 ```
 
-**Why this block exists**  
-Main entry point for text-only submissions, combining rubric, student work, and model racing.
+**Python Concept: Function Composition**  
+Building bigger functions by combining smaller ones.
+
+**In Markly**: Main function for grading normal text assignments.
 
 ---
 
-### 15. Main Guard
+### 12. Main Guard
 ```python
 if __name__ == "__main__":
-    asyncio.run(asyncio.sleep(0))  # Placeholder for testing
+    asyncio.run(asyncio.sleep(0))
 ```
 
-**Why this block exists**  
-Standard Python entry point that keeps the module import-safe.
+**Python Concept: Entry Point Guard**  
+This code runs only when you execute the file directly, not when another file imports it.
+
+**Mini Demo**:
+```python
+if __name__ == "__main__":
+    print("Running tests for this file directly!")
+```
 
 ---
 
-## Big-Picture Reading of `engine.py`
+## Big-Picture Python Concepts You Learned
 
-`engine.py` is the **orchestration and intelligence layer** of Markly. It connects the dots between:
+- **Organizing code**: Imports, constants, functions, modules
+- **Data structures**: Lists, Dictionaries, Strings
+- **Control flow**: `if`, `try/except`, loops
+- **Functions**: `def`, parameters, return values, async functions
+- **Waiting efficiently**: `asyncio`
+- **Error handling**: Graceful recovery with `try/except`
+- **Modular design**: Each piece has one clear job
 
-- Clean input from `utils.py` (text + optional base64 image)
-- Subject detection → rubric & persona selection
-- Prompt construction → concurrent AI calls (model racing)
-- Structured output → `markup.py`, `report.py`, and `storage.py`
-
-### Core Design Principles Demonstrated
-- **Separation of concerns**: Prompt templates, API helpers, orchestration, and parsing are cleanly divided.
-- **Resilience**: Model racing + error handling + graceful fallbacks.
-- **Extensibility**: Easy to add subjects, models, or new prompt styles.
-- **Performance**: Heavy use of `asyncio` and `FIRST_COMPLETED` racing.
-- **Quality control**: Temperature=0 for detection, JSON mode for markup, regex parsing for grades.
-
-This architecture turns raw student work into consistent, teacher-like feedback while remaining fast and fault-tolerant.
+These are essential Python skills used in professional projects like Markly.
 
 ---
 
-**How it fits the overall pipeline**  
-`utils.py` → **engine.py** (this module) → `markup.py` (visual annotations) → `report.py` (PDF) → `storage.py` (history).
+**Practice Suggestions**:
+1. Create a new file. Add a dictionary of subjects and a simple function that returns a prompt.
+2. Turn that function into `async def` and add `await asyncio.sleep(1)`.
+3. Test it with `python yourfile.py`.
 
