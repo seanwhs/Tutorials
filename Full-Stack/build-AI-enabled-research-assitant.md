@@ -18,7 +18,7 @@ Everything stays **secure** with PostgreSQL Row Level Security (RLS), production
 
 ---
 
-### Updated Prerequisites
+### Prerequisites
 
 ```bash
 npm install @supabase/supabase-js @tanstack/react-query pdf-parse openai langchain @langchain/openai @langchain/community
@@ -692,7 +692,7 @@ const openai = new OpenAI({
 
 ---
 
-## Appendix: Testing Your Assistant with Sample PDFs
+## Appendix A: Testing Your Assistant with Sample PDFs
 
 ### Sample Research Goals
 - Summarization: “Summarize the key findings”
@@ -708,4 +708,169 @@ const openai = new OpenAI({
 - RAG Guidelines: https://arxiv.org/pdf/2402.01733.pdf
 - Attention Is All You Need: https://arxiv.org/pdf/1706.03762.pdf
 
-You now have a complete, professional AI Research Assistant. Start small, test thoroughly, and scale up. Happy building! 🚀
+---
+
+# Appendix B Supabase: Your Open-Source Firebase Alternative
+
+Supabase is a comprehensive **Backend-as-a-Service (BaaS)** platform built on top of PostgreSQL. It provides a suite of developer tools that work in perfect harmony to handle the heavy lifting of your backend, allowing you to focus entirely on building your application's logic.
+
+For a project like an AI-powered Research Assistant, Supabase is an ideal choice because it eliminates the need to manually manage database clusters, authentication servers, or API middleware. It offers:
+
+* **Managed PostgreSQL:** A real, industry-standard relational database.
+* **Authentication:** Built-in email, password, and social login management.
+* **Row Level Security (RLS):** Powerful, granular database-level security that ensures users only access their own data—a critical requirement for privacy-focused research tools.
+* **Vector Support:** Through the `pgvector` extension, Supabase natively supports the high-dimensional vector data required for storing and searching your AI's document embeddings.
+* **Instant APIs:** It automatically generates secure REST and GraphQL APIs based on your database schema.
+
+By leveraging Supabase, you aren't just storing files; you are creating a robust, scalable infrastructure that treats your research documents and conversation history as secure, queryable assets.
+
+---
+
+### Appendix B: Getting Started with Supabase
+
+Follow these steps to set up your database backend and configure your application to interact with it.
+
+#### 1. Create a Supabase Account
+
+1. Navigate to [supabase.com](https://supabase.com/) and click **Start your project**.
+2. Log in using your GitHub account (recommended) or email.
+3. Click **New project** and select your organization.
+4. Choose a name for your project, a secure database password, and your preferred region.
+5. Once the project spins up, go to **Project Settings** > **API**. You will need these for your environment variables:
+* **Project URL:** Found under "Project URL".
+* **anon key:** Found under "Project API keys" (the public one).
+* **service_role key:** Found under "Project API keys" (the secret one—**keep this safe and never expose it in client-side code**).
+
+
+
+#### 2. Configure Your Environment
+
+Create a `.env.local` file in the root of your Next.js project and add your keys:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+OPENAI_API_KEY=your_openai_key
+TAVILY_API_KEY=your_tavily_key
+HELICONE_API_KEY=your_helicone_key
+
+```
+
+#### 3. Executing Database Tasks
+
+You will perform most database tasks directly in the Supabase Dashboard.
+
+* **Initializing Schema:** In your Supabase Dashboard, click the **SQL Editor** icon in the left sidebar, click **New query**, and paste the SQL block provided in **Step 1** of the main tutorial. Click **Run**.
+* **Enabling Vector Search:** Run the following command in the **SQL Editor** to support AI embeddings:
+```sql
+create extension if not exists vector;
+
+```
+
+
+* **Setting up Hybrid Search:** To enable the `hybrid_search` functionality used in the agent, add this function via the **SQL Editor**:
+```sql
+create or replace function hybrid_search(
+  query_text text,
+  query_embedding vector(1536),
+  match_threshold float,
+  match_count int
+)
+returns table (id bigint, content text, similarity float)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    document_sections.id,
+    document_sections.content,
+    1 - (document_sections.embedding <=> query_embedding) as similarity
+  from document_sections
+  where 1 - (document_sections.embedding <=> query_embedding) > match_threshold
+  order by similarity desc
+  limit match_count;
+end;
+$$;
+
+```
+
+
+
+#### 4. Managing User Authentication
+
+* **Sign-ups:** Handled automatically when calling `supabase.auth.signUp()`.
+* **Testing:** You can view or manually create test users by clicking the **Authentication** (person icon) in the sidebar.
+
+#### 5. Deployment Note
+
+When deploying to Vercel or other platforms, ensure you add all the keys from your `.env.local` to the hosting provider's **Environment Variables** settings.
+
+---
+## Appendix C: Deploying Your Research Assistant to Vercel
+
+Vercel is the platform that created Next.js, making it the most seamless environment for hosting your AI research assistant. Because your project uses Next.js, deploying to Vercel is highly optimized, handles your API routes automatically, and offers a generous free tier for personal projects.
+
+---
+
+### 1. Preparing Your Repository
+
+Before you begin, ensure your code is pushed to a Git provider (GitHub, GitLab, or Bitbucket):
+
+1. Initialize git in your project folder: `git init`
+2. Commit your changes: `git add .` and `git commit -m "Initial commit"`
+3. Create a new repository on your preferred provider and push your code.
+
+---
+
+### 2. Connect to Vercel
+
+1. Navigate to [vercel.com](https://vercel.com/) and sign up or log in using your GitHub account.
+2. Click **Add New...** > **Project**.
+3. **Import your repository:** Find your project in the list and click **Import**.
+4. **Configure Project:**
+* **Framework Preset:** Ensure this is set to **Next.js**.
+* **Root Directory:** Keep the default (`./`).
+* **Environment Variables:** This is the most critical step. Click the "Environment Variables" dropdown and copy all your keys from your `.env.local` file into the Vercel dashboard:
+* `NEXT_PUBLIC_SUPABASE_URL`
+* `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+* `SUPABASE_SERVICE_ROLE_KEY`
+* `OPENAI_API_KEY`
+* `TAVILY_API_KEY`
+* `HELICONE_API_KEY`
+
+
+
+
+5. Click **Deploy**.
+
+---
+
+### 3. Finalizing Your Production Setup
+
+Once the deployment finishes, Vercel will provide you with a live URL (e.g., `your-project.vercel.app`).
+
+#### Update Supabase Callback URL
+
+Since your authentication (Step 8) redirects users after login, you must tell Supabase your new production URL:
+
+1. Go to your **Supabase Dashboard**.
+2. Navigate to **Authentication** > **URL Configuration**.
+3. Add your new Vercel production URL to the **Site URL** field.
+4. Add the URL to the **Redirect URLs** (e.g., `https://your-project.vercel.app/`).
+
+#### Testing
+
+Visit your live production URL. Try uploading a sample PDF and performing a research query to ensure that the environment variables are correctly mapped and that the database connection is secure.
+
+---
+
+### 4. Why Vercel for AI?
+
+* **Edge Functions:** Vercel automatically deploys your API routes as Serverless or Edge functions, which helps keep your research assistant fast even when running heavy OpenAI calls.
+* **Automatic CI/CD:** Every time you push a change to your Git repository, Vercel automatically rebuilds and deploys your application, giving you a live preview link for every pull request.
+* **Zero-Config Scaling:** As your research library grows, Vercel scales your API handling capacity without you needing to manage servers or load balancers.
+
+---
+
+Your assistant is now live and accessible to the world! Are you planning to add any further features, like document sharing or collaborative research workspaces, now that your app is hosted?
