@@ -1,27 +1,45 @@
+Certainly — here is a cleaner rewrite in the same style, with inline comments added directly to the code blocks.
+
+***
+
+✅ **Direct rewrite following your example style**
+
+# Python Primer: `markup_pdf.py` — PDF Report Builder
+
+This primer teaches core Python concepts using real code from a PDF report module. Each section shows the original code, explains the Python idea simply, provides a short runnable mini-demo, and ties it back to the module.
+
+***
+
+## Module Deep Dive: `markup_pdf.py`
+
+This file is the **report layer**: it takes grading results and packages them into downloadable PDFs, either as an image-plus-feedback report or as a text-only report.
+
+***
+
 ## 1. Imports and PDF tools
 
 ```python
-import io
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
-from reportlab.lib.units import mm
-from reportlab.lib.styles import getSampleStyleSheet
+import io  # In-memory binary buffers for PDF output
+from reportlab.lib.pagesizes import A4  # Standard page size for the report
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle  # High-level PDF layout building blocks
+from reportlab.lib.units import mm  # Measurement unit for precise table widths and spacing
+from reportlab.lib.styles import getSampleStyleSheet  # Predefined paragraph style set
 ```
 
-### Why this block exists
-This section brings in the PDF-building tools. `io` lets the code create PDFs in memory, `A4` defines the page size, and the `platypus` classes help assemble text, tables, and styles into a document. This module’s job is to turn grading results into a polished report the user can download.
+**Python Concept: Importing Modules + Library Components**  
+Imports let you use external libraries. You can bring in entire modules or selected names from them. Using `io.BytesIO` keeps output in memory so you do not need temporary files, and ReportLab’s `platypus` classes provide high-level building blocks for paragraphs and tables [docs.reportlab][groups.google].
 
-### Python concepts used
-- Imports from nested packages.
-- In-memory binary buffers with `io`.
-- Layout components from a PDF library.
-- Measurement units like `mm` for precise sizing.
+**Mini Demo**:
+```python
+import io
 
-### Pattern analysis
-This is a **document generation setup**. It prepares the building blocks for a report instead of using low-level drawing commands everywhere.
+buf = io.BytesIO()  # Create an in-memory binary buffer
+buf.write(b"hello")  # Write bytes into it
+buf.seek(0)  # Reset pointer to the beginning
+print(buf.read())  # b'hello'
+```
 
-### What if
-Change the page size from `A4` to `letter` and see how the layout proportions shift.
+**In `markup_pdf.py`**: These imports assemble the tools used to build A4 PDF documents and style content consistently [docs.reportlab].
 
 ***
 
@@ -30,22 +48,21 @@ Change the page size from `A4` to `letter` and see how the layout proportions sh
 ```python
 def _base_styles():
     """Initializes and configures the document paragraph styles."""
-    return getSampleStyleSheet()
+    return getSampleStyleSheet()  # Return the default ReportLab stylesheet
 ```
 
-### Why this block exists
-This function creates a standard style set for paragraphs and headings. It gives the report a consistent visual structure without manually defining every font and spacing rule.
+**Python Concept: Small Helper Functions**  
+This function wraps `getSampleStyleSheet()` so the rest of the module can reuse one shared style set. That makes later customization easier and keeps formatting consistent [docs.reportlab].
 
-### Python concepts used
-- A function that returns a library-generated object.
-- A docstring describing purpose.
-- Helper naming with a leading underscore.
+**Mini Demo**:
+```python
+from reportlab.lib.styles import getSampleStyleSheet
 
-### Pattern analysis
-This is a **style initialization helper**. It centralizes formatting so other functions can reuse the same style definitions.
+styles = getSampleStyleSheet()  # Load default paragraph styles
+print(list(styles.keys())[:5])  # Show a few available style names
+```
 
-### What if
-Modify the returned stylesheet later to add your own custom heading style and compare the result.
+**In `markup_pdf.py`**: Use this helper to ensure paragraphs and headings reuse the same style set across different report builders [docs.reportlab].
 
 ***
 
@@ -55,28 +72,30 @@ Modify the returned stylesheet later to add your own custom heading style and co
 def _meta_table(student, subject, filename, styles):
     """Generates a small metadata table for tracking assignment context."""
     data = [
-        [Paragraph("<b>Student</b>", styles["SmallMeta"]), Paragraph(student, styles["BodyText"])],
-        [Paragraph("<b>Subject</b>", styles["SmallMeta"]), Paragraph(subject, styles["BodyText"])],
-        [Paragraph("<b>File</b>", styles["SmallMeta"]), Paragraph(filename, styles["SmallMeta"])],
+        [Paragraph("<b>Student</b>", styles["SmallMeta"]), Paragraph(student, styles["BodyText"])],  # Student name row
+        [Paragraph("<b>Subject</b>", styles["SmallMeta"]), Paragraph(subject, styles["BodyText"])],  # Subject row
+        [Paragraph("<b>File</b>", styles["SmallMeta"]), Paragraph(filename, styles["SmallMeta"])],  # Source file row
     ]
-    t = Table(data, colWidths=[38*mm, None])
-    # Styling for the table... [22]
+    t = Table(data, colWidths=[38*mm, None])  # Fixed label column, flexible value column
+    # Styling for the table would be applied here with TableStyle
     return t
 ```
 
-### Why this block exists
-This builds a small information table so the report clearly shows which student, subject, and file it refers to. That helps with organization and record keeping.
+**Python Concept: Nested Lists for Tables**  
+Table data is usually stored as a list of rows, where each row is a list of cells. `Paragraph(...)` allows formatted text inside table cells, and `colWidths=[38*mm, None]` keeps the first column fixed while letting the second column adapt [groups.google][blog.csdn].
 
-### Python concepts used
-- Lists of lists represent table rows and columns.
-- `Paragraph(...)` lets table cells contain formatted text.
-- `colWidths=[38*mm, None]` fixes one column width and lets the other adapt.
+**Mini Demo**:
+```python
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, Table
 
-### Pattern analysis
-This is a **metadata block**. It separates identification details from the main feedback content.
+styles = getSampleStyleSheet()
+data = [[Paragraph("<b>Key</b>", styles["Normal"]), Paragraph("Value", styles["Normal"])]]
+t = Table(data, colWidths=[50, None])
+print(type(t))  # <class 'reportlab.platypus.tables.Table'>
+```
 
-### What if
-Add a fourth row for the submission date and see how the report becomes more complete.
+**In `markup_pdf.py`**: This table separates identity metadata from feedback content and makes the final PDF easier to scan [blog.csdn].
 
 ***
 
@@ -85,25 +104,33 @@ Add a fourth row for the submission date and see how the report becomes more com
 ```python
 def create_marked_pdf(student, subject, filename, marked_image_buffer, overall_feedback="", grade="", report_text="", corrections=None):
     """Creates a two-page PDF with annotated image and feedback report."""
-    buffer = io.BytesIO()
-    PAGE_W, PAGE_H = A4
-    # PDF assembly logic (Page 1: Image, Page 2: Text Report)... [20]
+    buffer = io.BytesIO()  # Build the PDF entirely in memory
+    PAGE_W, PAGE_H = A4  # Use A4 dimensions for layout calculations
+    # PDF assembly logic goes here:
+    # Page 1: marked image
+    # Page 2: written report and feedback
     return buffer
 ```
 
-### Why this block exists
-This is the main export function for image-based assignments. It creates a report with the marked-up image on one page and the teacher-style written feedback on another page.
+**Python Concept: In-Memory Output + Default Parameters**  
+This function builds the PDF in a `BytesIO` buffer instead of writing it to disk. Default values like `overall_feedback=""` and `corrections=None` make the function easier to call in different situations [gist.github].
 
-### Python concepts used
-- In-memory output with `BytesIO`.
-- Default parameter values like `overall_feedback=""`.
-- Page constants from the PDF library.
+**Mini Demo**:
+```python
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+import io
 
-### Pattern analysis
-This is an **output assembly function**. It combines multiple pieces into one downloadable document.
+buf = io.BytesIO()
+doc = SimpleDocTemplate(buf, pagesize=A4)
+styles = getSampleStyleSheet()
+doc.build([Paragraph("Hello PDF", styles["Title"])])
+buf.seek(0)
+print(len(buf.getvalue()))  # non-zero bytes
+```
 
-### What if
-Change it from two pages to one page and observe how much tighter the layout would need to become.
+**In `markup_pdf.py`**: This is the output assembly function that combines an annotated image page with a textual feedback page for download [gist.github].
 
 ***
 
@@ -112,32 +139,66 @@ Change it from two pages to one page and observe how much tighter the layout wou
 ```python
 def create_pdf_report(student, subject, filename, feedback):
     """Generates a streamlined, text-focused PDF report for non-image assignments."""
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    # Text-only feedback assembly... [23]
+    buffer = io.BytesIO()  # Store the PDF output in memory
+    doc = SimpleDocTemplate(buffer, pagesize=A4)  # Create a document template for text flowables
+    # Text-only feedback assembly would go here
     return buffer
 ```
 
-### Why this block exists
-This is the simpler report path for assignments that do not need image annotations. It builds a text-focused PDF containing the grading feedback and context.
+**Python Concept: Branching Code Paths**  
+This function handles the simpler text-only workflow. It uses the same page size and the same document-building style, but skips image-based layout work [blog.csdn][gist.github].
 
-### Python concepts used
-- `SimpleDocTemplate` is a high-level document builder.
-- Returns a binary buffer instead of writing to disk.
-- The same PDF page size is reused for consistency.
+**Mini Demo**:
+```python
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+import io
 
-### Pattern analysis
-This is a **branch-specific report builder**. It handles the text workflow separately from the image workflow.
+buf = io.BytesIO()
+doc = SimpleDocTemplate(buf, pagesize=A4)
+styles = getSampleStyleSheet()
 
-### What if
-Add a summary heading at the top and compare how it changes readability.
+elements = [
+    Paragraph("Report", styles["Heading1"]),
+    Spacer(1, 12),
+    Paragraph("Feedback goes here.", styles["BodyText"]),
+]
+
+doc.build(elements)
+buf.seek(0)
+print(len(buf.getvalue()))
+```
+
+**In `markup_pdf.py`**: Use this function when assignments do not need image annotations; it is a lighter-weight path that still produces consistent, downloadable PDFs [gist.github].
+
+***
 
 ## Big-picture reading of the module
 
-This file is the report layer of the system. Its main job is to take the grading result and package it into a readable, shareable PDF. It does not decide grades or create annotations; it only formats the output.
+This module is the **presentation layer** of the system. It formats grading output into polished PDFs, using reusable helpers, metadata tables, and separate code paths for image-based and text-only submissions [docs.reportlab].
 
-The main ideas here are:
-- **Consistent document styling**.
-- **Table-based metadata** for clarity.
-- **Separate paths for image and text submissions**.
-- **In-memory PDF generation** for smooth download handling.
+The main ideas are:
+- Consistent document styling with one stylesheet.
+- Metadata tables for clarity.
+- Separate builders for image and text flows.
+- In-memory PDF generation for fast downloads [docs.reportlab][gist.github].
+
+***
+
+## Practice suggestions
+
+- Try swapping `A4` for `letter` in your page-size import and observe layout differences.
+- Add a `"Submitted on"` row to `_meta_table` and update the `TableStyle` to test spacing and wrapping [blog.csdn].
+- Create a small script that builds both a one-page text report and a two-page marked report to compare element placement.
+
+***
+
+## References
+
+- ReportLab Paragraphs and styles documentation [docs.reportlab].
+- ReportLab examples and community notes showing `BytesIO`, document building patterns, and table-with-paragraphs usage [gist.github][groups.google].
+
+***
+
+One important style note: if you are polishing this for teaching material, docstrings are usually better than many inline comments because they explain intent without cluttering the code [peps.python][the-examples-book].
