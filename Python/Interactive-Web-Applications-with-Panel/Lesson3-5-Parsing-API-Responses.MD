@@ -1,377 +1,41 @@
 # Part III — Working with Real SGX Market Data
 
-# Lesson 3.4 — Understanding JSON: The Language of APIs
+# Lesson 3.5 — Parsing Real API Responses
 
 > **Learning Objectives**
 >
 > By the end of this lesson, you will be able to:
 >
-> * Understand what JSON is.
-> * Learn why almost every modern API uses JSON.
-> * Understand JSON objects and arrays.
-> * Learn how JSON maps naturally to Python dictionaries and lists.
-> * Use `response.json()` to convert API responses into Python objects.
-> * Navigate nested JSON structures.
-> * Extract stock information from API responses.
-> * Understand common JSON parsing mistakes.
-> * Prepare to build our Market Data Service.
+> * Understand what it means to parse an API response.
+> * Learn a systematic approach to exploring unfamiliar JSON structures.
+> * Extract useful stock information from API responses.
+> * Use dictionary methods safely.
+> * Handle missing or incomplete data.
+> * Validate API responses before using them.
+> * Separate raw API data from application data.
+> * Prepare to build a reusable Market Data Service.
 
 ---
 
 # Introduction
 
-In the previous lesson, we successfully sent an HTTP request using the `requests` library.
+In the previous lesson, we learned how APIs return data using JSON.
 
-```python
-import requests
-
-response = requests.get(url)
-```
-
-We also learned that the server sends back a **Response**.
-
-But...
-
-what exactly is inside that response?
-
-For a normal website,
-
-the response might contain HTML.
-
-For a financial API,
-
-the response usually contains **JSON**.
-
-Today's lesson introduces one of the most important data formats in modern software development.
-
----
-
-# Why Do APIs Need a Data Format?
-
-Imagine two people speaking different languages.
-
-```text
-Person A
-
-↓
-
-English
-
-↓
-
-???
-
-↓
-
-Japanese
-
-↓
-
-Person B
-```
-
-Communication becomes difficult.
-
-Computers face the same problem.
-
-Applications written in:
-
-* Python
-* Java
-* JavaScript
-* Go
-* C#
-* Rust
-
-must all communicate with one another.
-
-They need a common language.
-
-That language is usually **JSON**.
-
----
-
-# What Is JSON?
-
-JSON stands for
-
-> **JavaScript Object Notation**
-
-Despite the name,
-
-JSON is **not limited to JavaScript**.
-
-Today,
-
-it is used by almost every programming language.
-
-Python,
-
-Java,
-
-Go,
-
-Rust,
-
-Swift,
-
-C#,
-
-Kotlin,
-
-and many others all understand JSON.
-
----
-
-# A Simple Definition
-
-JSON is
-
-> **A lightweight text format used to exchange structured data between applications.**
-
-Notice the word
-
-**text**.
-
-JSON is just text.
-
-You can open a JSON file in any text editor.
-
----
-
-# Why Not Invent Our Own Format?
-
-Imagine if every company invented its own way of representing stock prices.
-
-Company A
-
-```text
-Price = 41.35
-```
-
-Company B
-
-```text
-CurrentPrice -> SGD41.35
-```
-
-Company C
-
-```text
-StockValue(DBS)=41.35
-```
-
-Applications would constantly need custom code for every provider.
-
-JSON solves this problem.
-
-Everyone agrees on one format.
-
----
-
-# JSON Looks Like This
-
-Here's a simple example.
-
-```json
-{
-    "company": "DBS",
-    "price": 41.35,
-    "currency": "SGD"
-}
-```
-
-Even if you've never seen JSON before,
-
-it's surprisingly readable.
-
----
-
-# JSON Is Built from Two Main Structures
-
-Almost every JSON document is built using only two structures.
-
-* Objects
-* Arrays
-
-Everything else is built from these.
-
----
-
-# JSON Objects
-
-A JSON object stores information as
-
-**key-value pairs**.
-
-Example
-
-```json
-{
-    "company": "DBS",
-    "price": 41.35,
-    "volume": 3200000
-}
-```
-
-Think of it as a labeled container.
-
-```text
-Company → DBS
-
-Price → 41.35
-
-Volume → 3,200,000
-```
-
-Each label is called a **key**.
-
-Each associated value is called a **value**.
-
----
-
-# JSON Arrays
-
-Sometimes,
-
-we need to store multiple items.
-
-JSON uses arrays.
-
-Example
-
-```json
-[
-    "DBS",
-    "OCBC",
-    "UOB"
-]
-```
-
-Arrays preserve order.
-
-Item 1
-
-↓
-
-DBS
-
-Item 2
-
-↓
-
-OCBC
-
-Item 3
-
-↓
-
-UOB
-
----
-
-# Arrays Can Contain Objects
-
-Real APIs often return arrays of objects.
-
-Example
-
-```json
-[
-    {
-        "symbol": "D05",
-        "company": "DBS"
-    },
-    {
-        "symbol": "O39",
-        "company": "OCBC"
-    }
-]
-```
-
-This is extremely common.
-
----
-
-# JSON Values
-
-JSON supports several value types.
-
-| JSON Type | Example   |
-| --------- | --------- |
-| String    | `"DBS"`   |
-| Number    | `41.35`   |
-| Boolean   | `true`    |
-| Null      | `null`    |
-| Object    | `{ ... }` |
-| Array     | `[ ... ]` |
-
-These should look familiar.
-
-Python supports similar data types.
-
----
-
-# JSON vs Python
-
-This is where learning becomes easier.
-
-JSON maps naturally to Python.
-
-| JSON   | Python      |
-| ------ | ----------- |
-| Object | Dictionary  |
-| Array  | List        |
-| String | String      |
-| Number | int / float |
-| true   | True        |
-| false  | False       |
-| null   | None        |
-
-This similarity is one reason JSON became so popular.
-
----
-
-# Converting JSON into Python
-
-Remember our response object?
-
-```python
-response = requests.get(url)
-```
-
-Instead of using
-
-```python
-response.text
-```
-
-we usually write
+We also learned that
 
 ```python
 response.json()
 ```
 
----
+converts JSON into normal Python objects.
 
-# What Does `response.json()` Do?
-
-Suppose the server sends
-
-```json
-{
-    "company": "DBS",
-    "price": 41.35
-}
-```
-
-Calling
+For example,
 
 ```python
 data = response.json()
 ```
 
-converts the JSON into a Python dictionary.
+might produce
 
 ```python
 {
@@ -380,362 +44,742 @@ converts the JSON into a Python dictionary.
 }
 ```
 
-Notice how similar they look.
+That's useful.
+
+But real APIs are rarely this simple.
+
+Today's lesson teaches one of the most valuable skills every software developer needs:
+
+> **Learning how to understand and extract information from unfamiliar API responses.**
 
 ---
 
-# Understanding the Conversion
+# What Does "Parsing" Mean?
 
-Conceptually,
+The word **parse** appears everywhere in programming.
 
-the process is
+Beginners often think it means something complicated.
+
+It doesn't.
+
+Parsing simply means:
+
+> **Reading structured information and extracting the parts you need.**
+
+Imagine receiving this document.
 
 ```text
-JSON Text
+Company: DBS
 
-↓
+Price: 41.35
 
-response.json()
+Currency: SGD
 
-↓
-
-Python Dictionary
+Volume: 3,200,000
 ```
 
-Once converted,
+You don't need the entire document.
 
-we work entirely with Python objects.
-
----
-
-# Accessing Values
-
-Suppose
-
-```python
-data = response.json()
-```
-
-contains
-
-```python
-{
-    "company": "DBS",
-    "price": 41.35
-}
-```
-
-We retrieve values exactly like any other dictionary.
-
-```python
-print(data["company"])
-```
-
-Output
+Perhaps you only need
 
 ```text
-DBS
+Price
 ```
+
+Extracting that value is parsing.
 
 ---
 
-Likewise,
+# Parsing Is Like Reading a Form
 
-```python
-print(data["price"])
-```
-
-Output
+Imagine completing a registration form.
 
 ```text
-41.35
+Name
+
+Address
+
+Phone
+
+Email
+
+Age
 ```
 
----
-
-# A Realistic Stock Response
-
-Many APIs return something like this.
-
-```json
-{
-    "symbol": "D05",
-    "company": "DBS Group Holdings",
-    "price": 41.35,
-    "currency": "SGD",
-    "volume": 3250000,
-    "change": 0.42
-}
-```
-
-After
-
-```python
-response.json()
-```
-
-we can access individual values.
-
-```python
-data["company"]
-
-data["price"]
-
-data["volume"]
-```
-
----
-
-# Nested JSON
-
-Real APIs are often more complicated.
-
-Example
-
-```json
-{
-    "company": {
-        "symbol": "D05",
-        "name": "DBS"
-    },
-    "market": {
-        "currency": "SGD",
-        "exchange": "SGX"
-    }
-}
-```
-
-Notice that objects can contain other objects.
-
----
-
-# Accessing Nested Data
-
-Suppose
-
-```python
-data = response.json()
-```
-
-To access the company name,
-
-we write
-
-```python
-data["company"]["name"]
-```
-
-Execution
-
-```text
-Dictionary
-
-↓
-
-company
-
-↓
-
-Nested Dictionary
-
-↓
-
-name
-
-↓
-
-DBS
-```
-
----
-
-# Arrays Inside Objects
-
-APIs frequently combine objects and arrays.
-
-Example
-
-```json
-{
-    "prices": [
-        41.20,
-        41.30,
-        41.35,
-        41.40
-    ]
-}
-```
-
-Accessing the first price
-
-```python
-data["prices"][0]
-```
-
-Accessing the last price
-
-```python
-data["prices"][-1]
-```
-
----
-
-# A More Complex Example
-
-```json
-{
-    "company": "DBS",
-    "prices": [
-        {
-            "date": "2026-06-25",
-            "close": 41.20
-        },
-        {
-            "date": "2026-06-26",
-            "close": 41.35
-        }
-    ]
-}
-```
-
-To retrieve today's closing price,
-
-we write
-
-```python
-data["prices"][1]["close"]
-```
-
-Notice how we move through the structure one level at a time.
-
----
-
-# Visualizing Nested Structures
-
-```text
-Dictionary
-
-├── company
-
-└── prices
-
-      ├── Item 0
-
-      │      ├── date
-
-      │      └── close
-
-      └── Item 1
-
-             ├── date
-
-             └── close
-```
-
-Understanding the hierarchy is essential.
-
----
-
-# Thinking Like a Python Developer
-
-When beginners see JSON,
-
-they often think
-
-> "This is some strange new format."
+A receptionist doesn't memorize the entire form.
 
 Instead,
 
-remember this rule.
+they extract the required fields.
 
-> **JSON becomes normal Python objects after calling `response.json()`.**
-
-From that point onward,
-
-you work with:
-
-* dictionaries
-* lists
-* strings
-* numbers
-
-Nothing magical remains.
+Programs do exactly the same thing.
 
 ---
 
-# What Happens If the Response Isn't JSON?
+# Why Parsing Matters
 
-Not every response contains JSON.
+Our API might return
 
-Some servers return:
+50 pieces of information.
 
-* HTML
-* XML
-* Images
-* PDFs
-* Plain text
+Our dashboard only displays
 
-If you call
+* Company Name
+* Stock Symbol
+* Current Price
+* Daily Change
+* Volume
+
+Everything else can be ignored.
+
+Parsing allows us to retrieve only what we need.
+
+---
+
+# Step 1 — Never Guess the Structure
+
+One of the biggest beginner mistakes is writing code before understanding the data.
+
+Suppose someone tells you
+
+> "The API returns stock information."
+
+Should you immediately write
 
 ```python
-response.json()
+data["price"]
 ```
 
-on a response that isn't valid JSON,
+No.
 
-Python raises an exception.
+You don't even know if the API uses the key
 
-We'll learn how to handle this safely in a later lesson.
+```text
+price
+```
+
+It might use
+
+```text
+lastPrice
+```
+
+or
+
+```text
+current_price
+```
+
+Always inspect the response first.
 
 ---
 
-# Our Future SGX Workflow
+# Step 2 — Print the Entire Response
+
+When working with a new API,
+
+the first thing professionals do is
+
+```python
+print(data)
+```
+
+or
+
+```python
+from pprint import pprint
+
+pprint(data)
+```
+
+The goal is simple.
+
+Understand the structure.
+
+Don't start extracting values yet.
+
+---
+
+# Why Use `pprint`?
+
+Python includes a module called
+
+```python
+pprint
+```
+
+which stands for
+
+> Pretty Print
+
+Instead of displaying everything on one long line,
+
+it formats nested dictionaries and lists neatly.
+
+Example:
+
+```python
+from pprint import pprint
+
+pprint(data)
+```
+
+Output becomes much easier to read.
+
+---
+
+# A Sample Response
+
+Suppose our API returns
+
+```python
+{
+    "symbol": "D05",
+    "companyName": "DBS Group Holdings",
+    "currency": "SGD",
+    "market": "SGX",
+    "price": {
+        "current": 41.35,
+        "open": 41.10,
+        "high": 41.60,
+        "low": 41.00
+    },
+    "volume": 3250000
+}
+```
+
+At first,
+
+this may look intimidating.
+
+Let's break it down.
+
+---
+
+# Looking for the Top-Level Keys
+
+The first question is
+
+> **What keys exist?**
+
+We identify
+
+```text
+symbol
+
+companyName
+
+currency
+
+market
+
+price
+
+volume
+```
+
+These are our entry points.
+
+---
+
+# Notice Something Interesting
+
+The value of
+
+```text
+price
+```
+
+isn't a number.
+
+Instead,
+
+it's another dictionary.
+
+```python
+"price": {
+    "current": 41.35,
+    "open": 41.10,
+    "high": 41.60,
+    "low": 41.00
+}
+```
+
+This means we must go one level deeper.
+
+---
+
+# Navigating the Structure
+
+Visualizing helps.
+
+```text
+Dictionary
+
+├── symbol
+
+├── companyName
+
+├── currency
+
+├── market
+
+├── price
+
+│      ├── current
+
+│      ├── open
+
+│      ├── high
+
+│      └── low
+
+└── volume
+```
+
+Now the hierarchy is clear.
+
+---
+
+# Extracting Values
+
+Suppose we want the company name.
+
+```python
+company = data["companyName"]
+```
+
+Current price
+
+```python
+price = data["price"]["current"]
+```
+
+Volume
+
+```python
+volume = data["volume"]
+```
+
+Notice that each level is accessed separately.
+
+---
+
+# Think Before You Code
+
+Professionals don't memorize JSON.
+
+Instead,
+
+they ask themselves:
+
+1. What is the current object?
+2. What keys does it contain?
+3. Which key leads to the value I want?
+
+This simple process prevents many errors.
+
+---
+
+# What If a Key Doesn't Exist?
+
+Suppose we write
+
+```python
+price = data["lastPrice"]
+```
+
+but the API actually contains
+
+```python
+"current"
+```
+
+Python raises an error.
+
+```text
+KeyError
+```
+
+Our application crashes.
+
+Not ideal.
+
+---
+
+# A Safer Approach
+
+Instead of
+
+```python
+data["price"]
+```
+
+we can write
+
+```python
+data.get("price")
+```
+
+The `get()` method returns the value if the key exists.
+
+If it doesn't,
+
+it returns
+
+```python
+None
+```
+
+instead of raising an exception.
+
+---
+
+# Example
+
+```python
+company = data.get("companyName")
+```
+
+If the key exists
+
+```text
+DBS Group Holdings
+```
+
+is returned.
+
+If it doesn't,
+
+```python
+None
+```
+
+is returned.
+
+No crash occurs.
+
+---
+
+# Providing a Default Value
+
+We can even specify a default.
+
+```python
+price = data.get("price", {})
+```
+
+Meaning
+
+> If `"price"` doesn't exist,
+
+use an empty dictionary instead.
+
+---
+
+Another example
+
+```python
+currency = data.get("currency", "Unknown")
+```
+
+If the API doesn't provide a currency,
+
+our application displays
+
+```text
+Unknown
+```
+
+instead of crashing.
+
+---
+
+# Parsing Nested Data Safely
+
+Consider
+
+```python
+price = data["price"]["current"]
+```
+
+What if
+
+```python
+price
+```
+
+doesn't exist?
+
+We can write
+
+```python
+price_data = data.get("price", {})
+
+current_price = price_data.get("current")
+```
+
+Notice how each level is validated separately.
+
+---
+
+# Missing Data Happens
+
+Beginners often assume APIs always return complete information.
+
+Real APIs don't.
+
+Sometimes:
+
+* Markets are closed.
+* Trading is suspended.
+* A company is delisted.
+* The provider has incomplete information.
+
+Your application must handle missing values gracefully.
+
+---
+
+# Validating Before Displaying
+
+Suppose
+
+```python
+current_price
+```
+
+is
+
+```python
+None
+```
+
+Should we display
+
+```text
+Price: None
+```
+
+No.
+
+Instead,
+
+our application might display
+
+```text
+Price unavailable
+```
+
+This creates a better user experience.
+
+---
+
+# Building a Cleaner Object
+
+Notice something.
+
+The API might return
+
+30 fields.
+
+Our dashboard needs only
+
+5.
+
+Instead of passing the entire response around,
+
+we can create a smaller dictionary.
+
+Example
+
+```python
+stock = {
+    "symbol": data.get("symbol"),
+    "company": data.get("companyName"),
+    "price": data.get("price", {}).get("current"),
+    "volume": data.get("volume"),
+    "currency": data.get("currency")
+}
+```
+
+Now our UI receives only the information it needs.
+
+---
+
+# Why Is This Better?
+
+Imagine six different APIs.
+
+Each returns different field names.
+
+API A
+
+```text
+companyName
+```
+
+API B
+
+```text
+name
+```
+
+API C
+
+```text
+company
+```
+
+Our dashboard shouldn't need to know this.
+
+Instead,
+
+our parsing code converts every response into one consistent format.
+
+```python
+{
+    "company": "...",
+    "price": "...",
+    "volume": "...",
+    "currency": "..."
+}
+```
+
+The UI becomes independent of the API.
+
+---
+
+# This Is Data Transformation
+
+Notice what's happening.
+
+```text
+Raw API Response
+
+↓
+
+Parse
+
+↓
+
+Extract
+
+↓
+
+Rename Fields
+
+↓
+
+Clean Python Dictionary
+
+↓
+
+Dashboard
+```
+
+This process is called
+
+**data transformation**.
+
+Professional applications perform this constantly.
+
+---
+
+# Separation of Responsibilities
+
+A beginner might write
+
+```text
+Button Click
+
+↓
+
+API Request
+
+↓
+
+JSON Parsing
+
+↓
+
+Formatting
+
+↓
+
+Display
+```
+
+inside one callback.
+
+A professional separates these tasks.
+
+```text
+Button Click
+
+↓
+
+Market Data Service
+
+↓
+
+Download Data
+
+↓
+
+Parse Data
+
+↓
+
+Return Clean Dictionary
+
+↓
+
+Panel UI
+```
+
+Each layer has one responsibility.
+
+---
+
+# Our Future Workflow
 
 Soon,
 
-our application will work like this.
+our application will look like this.
 
 ```text
-User
+HTTP Request
 
 ↓
 
-Search Button
+JSON Response
 
 ↓
 
-requests.get()
+Parse JSON
 
 ↓
 
-HTTP Response
+Validate Data
 
 ↓
 
-response.json()
+Create Stock Dictionary
 
 ↓
 
-Python Dictionary
-
-↓
-
-Extract Price
-
-↓
-
-Update Dashboard
+Panel Dashboard
 ```
 
-We're almost ready to display live market data.
+The dashboard never sees the raw API response.
 
 ---
 
 # Teacher's Notes
 
-> One of the biggest advantages of JSON is its simplicity. Once converted into Python objects, there's very little new syntax to learn. Focus on understanding the hierarchy of dictionaries and lists rather than memorizing JSON itself.
+> One habit that distinguishes experienced developers is that they never assume an API response will match their expectations. They inspect the response, validate its contents, and extract only the fields their application requires.
 >
-> When working with unfamiliar APIs, it's common to print the entire JSON response first. This allows you to inspect its structure before writing code to extract specific values. As we'll see in the next lesson, learning to explore API responses is an essential debugging skill.
+> Another important principle is **separation of concerns**. Parsing API data is not the responsibility of the user interface. The UI should receive clean, consistent Python objects that are ready to display. This makes applications easier to maintain and allows the underlying API to change without forcing major changes to the interface.
 
 ---
 
@@ -743,60 +787,57 @@ We're almost ready to display live market data.
 
 ## ❌ Mistake 1
 
-Using
+Writing extraction code before inspecting the API response.
 
-```python
-response.text
-```
-
-when you actually want structured data.
-
-For JSON APIs,
-
-prefer
-
-```python
-response.json()
-```
+Always print or pretty-print the response first.
 
 ---
 
 ## ❌ Mistake 2
 
-Thinking JSON is a Python dictionary.
+Using
 
-JSON is text.
+```python
+data["key"]
+```
 
-`response.json()` converts that text into Python objects.
+for every lookup.
+
+Prefer
+
+```python
+data.get("key")
+```
+
+when keys may be missing.
 
 ---
 
 ## ❌ Mistake 3
 
-Confusing objects and arrays.
+Passing raw API responses directly to the UI.
 
-Remember:
+Instead,
 
-* Objects use keys.
-* Arrays use indexes.
+convert them into a simplified data structure tailored to your application's needs.
 
 ---
 
 ## ❌ Mistake 4
 
-Trying to access nested values without understanding the structure.
+Ignoring missing values.
 
-Print the entire response first and identify each level before writing extraction code.
+Real-world APIs frequently omit fields.
+
+Plan for incomplete data.
 
 ---
 
 ## ❌ Mistake 5
 
-Assuming every API returns the same JSON structure.
+Combining networking, parsing, and UI code in a single function.
 
-Each API defines its own response format.
-
-Always read the API documentation or inspect the returned data.
+Keep each responsibility separate.
 
 ---
 
@@ -804,100 +845,87 @@ Always read the API documentation or inspect the returned data.
 
 In this lesson, you learned:
 
-* JSON is the most common format used by modern APIs to exchange structured data.
-* JSON is built primarily from **objects** and **arrays**.
-* JSON objects map naturally to Python dictionaries.
-* JSON arrays map naturally to Python lists.
-* Use `response.json()` to convert JSON responses into Python data structures.
-* Access JSON values using standard dictionary keys and list indexes.
-* Real-world APIs often return nested objects and arrays.
-* Understanding the structure of a JSON response is the first step toward extracting useful information.
+* Parsing means extracting useful information from structured data.
+* Always inspect an unfamiliar API response before writing extraction code.
+* Use `pprint` to visualize complex dictionaries and lists.
+* Navigate nested dictionaries one level at a time.
+* Prefer the `get()` method when working with optional fields.
+* Handle missing data gracefully instead of allowing your application to crash.
+* Transform raw API responses into clean Python dictionaries before passing them to the UI.
+* Parsing and data transformation belong in a dedicated service layer, not inside the Panel interface.
 
-Our SGX Stock Monitor can now communicate with APIs and understand the language they speak. In the next lesson, we'll learn how to **inspect, explore, and parse real API responses**, turning raw JSON into meaningful stock information that can be displayed on our dashboard.
+Our SGX Stock Monitor can now communicate with APIs, understand JSON, and extract meaningful information. The next step is making our application resilient by learning how to handle network failures, invalid responses, rate limits, and other real-world problems.
 
 ---
 
 # Exercises
 
-## Exercise 1 — Convert JSON to Python
+## Exercise 1 — Explore Before Extracting
 
-Given the following JSON:
+Given the following response:
 
-```json
-{
-    "company": "DBS",
-    "price": 41.35,
-    "currency": "SGD"
-}
-```
-
-Answer the following:
-
-* Which Python data type will `response.json()` return?
-* How would you access:
-
-  * The company name?
-  * The stock price?
-  * The currency?
-
----
-
-## Exercise 2 — Explore a Nested Structure
-
-Given:
-
-```json
-{
-    "company": {
-        "symbol": "D05",
-        "name": "DBS Group Holdings"
+```python
+data = {
+    "symbol": "D05",
+    "companyName": "DBS Group Holdings",
+    "price": {
+        "current": 41.35,
+        "high": 41.60,
+        "low": 41.00
     },
-    "market": {
-        "exchange": "SGX",
-        "currency": "SGD"
-    }
+    "volume": 3250000
 }
 ```
 
-Write the Python expressions needed to retrieve:
+Without writing extraction code immediately:
 
-* The company symbol
-* The company name
-* The exchange
-* The currency
+1. List every top-level key.
+2. Identify which values are dictionaries.
+3. Draw the hierarchy of the data structure.
 
 ---
 
-## Exercise 3 — Objects and Arrays
+## Exercise 2 — Safe Data Extraction
 
-Given:
+Using the same dictionary, write Python code to safely retrieve:
 
-```json
+* Company name
+* Current price
+* Daily high
+* Daily low
+* Volume
+
+Use `get()` wherever appropriate.
+
+---
+
+## Exercise 3 — Normalize API Data
+
+Suppose three different APIs return company names using different keys:
+
+```python
+# API A
 {
-    "watchlist": [
-        {
-            "symbol": "D05",
-            "price": 41.35
-        },
-        {
-            "symbol": "O39",
-            "price": 16.72
-        }
-    ]
+    "companyName": "DBS"
+}
+
+# API B
+{
+    "name": "DBS"
+}
+
+# API C
+{
+    "company": "DBS"
 }
 ```
 
-Determine the Python expressions needed to retrieve:
+Design a normalized Python dictionary that always uses the same key names for your application.
 
-* The first company's symbol
-* The first company's price
-* The second company's symbol
-* The second company's price
-
-Draw the hierarchy of dictionaries and lists before writing your answers.
+Explain why this approach makes your Panel dashboard easier to maintain.
 
 ---
 
 # Coming Up Next
 
-In **Lesson 3.5 — Parsing Real API Responses**, we'll move beyond simple examples and begin working with actual financial API responses. You'll learn how to inspect unknown JSON structures, identify useful fields, safely extract stock information using dictionary methods, handle missing values, and transform raw API data into clean Python objects that our SGX Stock Monitor can display. This lesson bridges the gap between understanding JSON and building a robust, production-quality market data service.
+In **Lesson 3.6 — Error Handling and Building Reliable Network Applications**, we'll explore what happens when things go wrong. You'll learn how to handle connection failures, invalid JSON, missing fields, API rate limits, HTTP error responses, and unexpected exceptions. We'll introduce defensive programming techniques that ensure our SGX Stock Monitor remains stable and user-friendly even when external services fail. This is a critical step toward building a production-quality application rather than a simple demonstration.
