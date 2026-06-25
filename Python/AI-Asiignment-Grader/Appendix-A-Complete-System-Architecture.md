@@ -658,7 +658,3 @@ Together, these components create a system that is:
 Most importantly:
 
 > Markly demonstrates a fundamental AI engineering principle: successful AI applications are systems of cooperating components, not isolated model calls.
-
----
-
-**Next Appendix:** **Appendix B — Final Project Directory Structure & Module Responsibilities**. This will document every file in the repository and explain exactly why it exists.
