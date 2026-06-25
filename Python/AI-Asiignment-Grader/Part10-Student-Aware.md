@@ -1,405 +1,550 @@
-# Part 10 — Making Markly “Student-Aware” (Memory + Progress Tracking)
+# Part 10 — Making Markly Student-Aware (Memory, Progress Tracking & Educational Intelligence)
 
-Right now, Markly is already powerful:
+At this point, Markly has evolved far beyond a simple grading application.
 
-* It reads assignments
-* Detects the subject
-* Applies the correct teacher persona
-* Grades using AI
-* Generates PDF reports
-* Handles images and documents
+It can:
 
-But there’s still one critical limitation:
+* Process PDFs, DOCX files, and images
+* Understand handwritten assignments
+* Detect subjects automatically
+* Apply subject-specific teacher personas
+* Generate grading feedback
+* Produce professional PDF reports
 
-> **It treats every submission as if the student is starting from zero.**
+But there is still one major difference between Markly and a real teacher.
 
-Real teachers don’t work this way.
-
-They build an understanding over time:
-
-* “This student keeps making sign errors in algebra”
-* “Their essay structure is improving, but vocabulary is still weak”
-* “Their Python indentation is inconsistent”
-* “They are improving compared to last submission”
-
-Right now, Markly forgets everything after each run.
-
-In this chapter, we fix that.
-
-We introduce **persistent student memory + progress tracking**.
+A real teacher remembers.
 
 ---
 
-# The New Capability: Persistent Student Profiles
+# The Missing Ingredient: Educational Memory
 
-We introduce a simple but powerful concept:
+Imagine two students submitting the same assignment.
+
+Student A:
 
 ```text
-Student Profile
-│
-├── Assignments Submitted
-├── Past Feedback
-├── Common Mistakes
-└── Progress Trend
+Previous grade: 4/10
+Current grade: 8/10
 ```
 
-This shifts Markly from:
+Student B:
 
-> a stateless grading tool
+```text
+Previous grade: 9/10
+Current grade: 8/10
+```
 
-to:
+A traditional grading system sees:
 
-> a longitudinal learning assistant
+```text
+8/10
+8/10
+```
+
+A teacher sees:
+
+```text
+Student A improved dramatically.
+
+Student B regressed.
+```
+
+The score is identical.
+
+The educational meaning is completely different.
 
 ---
 
-# Step 1 — Storage Strategy (Keep It Simple)
+# Why Stateless Grading Is Not Enough
 
-We will NOT use a database yet.
+Today, Markly treats every submission independently.
 
-Instead, we use:
+```text
+Submission
+    ↓
+Grade
+    ↓
+Forget
+```
 
-> **JSON files per system (students.json)**
+There is no continuity.
 
-Why this approach works:
+No context.
 
-* Zero setup
-* Easy debugging
-* Works in Hugging Face Spaces
-* Human-readable
-* Enough for MVP-level persistence
+No memory.
+
+This creates several limitations.
+
+Markly cannot determine:
+
+* Whether the student is improving
+* Whether mistakes are recurring
+* Whether interventions are working
+* Whether learning objectives are being achieved
+
+Real education is longitudinal.
+
+Assessment is not about a single assignment.
+
+It is about progression across time.
 
 ---
 
-# Step 2 — Create `storage.py`
+# Introducing Student Profiles
 
-Create a new file:
+We introduce a new concept:
 
-```python
+```text
+Student
+    │
+    ├── Assignment History
+    ├── Grade History
+    ├── Common Mistakes
+    ├── Strength Areas
+    ├── Weakness Areas
+    └── Learning Trends
+```
+
+This transforms Markly from:
+
+```text
+AI Grader
+```
+
+into:
+
+```text
+AI Learning Assistant
+```
+
+---
+
+# Designing the Memory Layer
+
+We create a dedicated module:
+
+```text
 storage.py
 ```
 
----
+Updated architecture:
 
-## Core Imports
+```text
+markly/
 
-```python
-import os
-import json
-from datetime import datetime
+app.py
+engine.py
+utils.py
+personas.py
+rubrics.py
+report.py
+storage.py
 ```
 
+Responsibilities:
+
+| Module      | Responsibility      |
+| ----------- | ------------------- |
+| app.py      | UI                  |
+| engine.py   | AI orchestration    |
+| personas.py | Teacher behavior    |
+| rubrics.py  | Assessment criteria |
+| report.py   | PDF generation      |
+| storage.py  | Student memory      |
+
 ---
 
-## Data Format
+# What Should We Store?
 
-Each student is stored like this:
+A common beginner mistake is storing entire AI outputs forever.
+
+Instead, store structured educational signals.
+
+Bad:
+
+```json
+{
+  "feedback": "Very long AI response..."
+}
+```
+
+Better:
+
+```json
+{
+  "grade": "8/10",
+  "subject": "Mathematics",
+  "strengths": [
+    "Algebraic manipulation"
+  ],
+  "weaknesses": [
+    "Sign errors"
+  ]
+}
+```
+
+This makes future analysis much easier.
+
+---
+
+# Student Record Structure
+
+A student profile might look like:
 
 ```json
 {
   "John Tan": {
     "history": [
       {
+        "timestamp": "2026-06-24T10:00:00",
         "subject": "Mathematics",
         "grade": "8/10",
-        "feedback": "...",
-        "timestamp": "2026-06-24T10:00:00"
+        "strengths": [
+          "Equation solving"
+        ],
+        "weaknesses": [
+          "Negative numbers"
+        ]
       }
     ]
   }
 }
 ```
 
+Notice that we are storing educational metadata, not just raw text.
+
 ---
 
-## Load & Save Functions
+# Building the Storage Layer
+
+Create:
 
 ```python
+# storage.py
+
+import os
+import json
+
 DB_FILE = "students.json"
+```
 
+---
 
+## Load Database
+
+```python
 def load_db():
+
     if not os.path.exists(DB_FILE):
         return {}
 
-    with open(DB_FILE, "r") as f:
+    with open(DB_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+```
 
+---
 
+## Save Database
+
+```python
 def save_db(db):
-    with open(DB_FILE, "w") as f:
-        json.dump(db, f, indent=2)
+
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(
+            db,
+            f,
+            indent=2,
+            ensure_ascii=False
+        )
 ```
 
 ---
 
-## Add Student Record
+# Recording Student Activity
+
+Every completed grading cycle generates a record.
 
 ```python
-def add_record(student, subject, grade, feedback):
-
-    db = load_db()
-
-    if student not in db:
-        db[student] = {"history": []}
-
-    db[student]["history"].append({
-        "subject": subject,
-        "grade": grade,
-        "feedback": feedback,
-        "timestamp": datetime.now().isoformat()
-    })
-
-    save_db(db)
+def add_record(
+    student,
+    subject,
+    grade,
+    feedback
+):
 ```
 
-Now Markly can remember.
+The record becomes part of the student's learning history.
 
 ---
 
-# Step 3 — Extract Grades from AI Output
+# Creating Student Identity
 
-We need structured data from unstructured text.
+Markly needs a way to identify the learner.
 
-In `engine.py`:
-
-```python
-import re
-
-
-def extract_grade(text):
-    match = re.search(r"(\d+)\s*/\s*(\d+)", text)
-    return match.group(0) if match else "N/A"
-```
-
-This allows:
-
-* "8/10"
-* "85 / 100"
-* similar formats
-
----
-
-# Step 4 — Student Identity (Minimal Version)
-
-In `app.py`, add:
+Add a new field:
 
 ```python
 student_name = pn.widgets.TextInput(
-    name="Student Name",
-    placeholder="Enter student name"
+    name="Student Name"
 )
 ```
 
-Then include it in UI controls:
+The workflow becomes:
 
-```python
-controls.insert(0, student_name)
+```text
+Student Name
+      ↓
+Upload Assignment
+      ↓
+Grade
 ```
+
+This allows history to be associated with a specific learner.
 
 ---
 
-# Step 5 — Retrieve Student History
+# Retrieving Student History
 
-We now expose memory back into the system.
+Before grading, Markly loads prior context.
 
 ```python
-from storage import load_db
-
-
-def get_student_history(name):
-
-    db = load_db()
-
-    if name not in db:
-        return "No previous records."
-
-    history = db[name]["history"]
-
-    output = "## Previous Performance\n\n"
-
-    for h in history[-5:]:
-        output += f"""
-- Subject: {h['subject']}
-- Grade: {h['grade']}
-- Date: {h['timestamp'][:10]}
----
-"""
-
-    return output
+history = get_student_history(
+    student_name.value
+)
 ```
 
-We only show the **last 5 records** to avoid prompt overload.
+Example:
+
+```text
+Mathematics — 6/10
+Mathematics — 7/10
+Mathematics — 8/10
+```
+
+The system now has context.
 
 ---
 
-# Step 6 — Display History in UI
+# Making the AI History-Aware
+
+This is the most important upgrade.
+
+Previously:
 
 ```python
-history_pane = pn.pane.Markdown("")
-```
-
-Update after grading:
-
-```python
-history_pane.object = get_student_history(student_name.value)
-```
-
-Add to layout:
-
-```python
-results.append(history_pane)
-```
-
----
-
-# Step 7 — Make the AI Student-Aware (Critical Upgrade)
-
-Now we inject memory into the model.
-
-In `engine.py`:
-
-```python
-def grade_assignment(assignment, subject, history=""):
-
-    prompt = f"""
-You are a teacher grading a student's work.
-
-## Student History
-{history}
-
-## Current Assignment
-{assignment}
-
-Provide:
-- strengths
-- weaknesses
-- improvement over time (if applicable)
-- final grade
-"""
-```
-
----
-
-# Step 8 — Pass History Into the Model
-
-In `app.py`:
-
-```python
-from storage import add_record
-from engine import extract_grade
-```
-
----
-
-## Before calling AI:
-
-```python
-history = get_student_history(student_name.value)
-
-result = grade_assignment(
+grade_assignment(
     assignment,
-    predicted_subject,
+    subject
+)
+```
+
+Now:
+
+```python
+grade_assignment(
+    assignment,
+    subject,
     history
 )
 ```
 
----
+The prompt becomes:
 
-## After AI returns result:
+```text
+Previous Performance:
 
-```python
-grade = extract_grade(result)
+- Algebra: recurring sign errors
+- Fractions: improved significantly
 
-add_record(
-    student=student_name.value,
-    subject=predicted_subject,
-    grade=grade,
-    feedback=result
-)
+Current Assignment:
+...
 ```
 
+The model can now reason about growth.
+
 ---
 
-# Step 9 — System Architecture (Now Stateful)
+# Detecting Learning Trends
+
+Once history exists, trend analysis becomes possible.
+
+Example:
+
+```python
+grades = [4, 5, 6, 8]
+```
+
+Trend:
+
+```text
+Improving
+```
+
+Or:
+
+```python
+grades = [9, 8, 8, 7]
+```
+
+Trend:
+
+```text
+Declining
+```
+
+Markly can now identify:
+
+* Consistent improvement
+* Plateauing performance
+* Regression
+* Volatile learning patterns
+
+---
+
+# Recurring Mistake Detection
+
+One powerful capability emerges naturally.
+
+Suppose three submissions contain:
+
+```text
+Sign errors
+Sign errors
+Sign errors
+```
+
+Markly can infer:
+
+```text
+Persistent weakness:
+Negative number operations
+```
+
+This mirrors how teachers identify long-term learning gaps.
+
+---
+
+# Progress Summaries
+
+Markly can generate summaries such as:
+
+```text
+Student Progress Summary
+
+Subject:
+Mathematics
+
+Trend:
+Improving
+
+Recurring Weakness:
+Negative numbers
+
+Strongest Area:
+Algebra
+
+Recommendation:
+Additional practice with signed arithmetic.
+```
+
+This is far more valuable than isolated assignment feedback.
+
+---
+
+# Updated Architecture
 
 ```text
 Upload Assignment
         │
         ▼
-Extract Content
-        │
-        ▼
 Detect Subject
         │
         ▼
-Fetch Student History ───────┐
-        │                    │
-        ▼                    │
-Grade Assignment             │
-        │                    │
-        ▼                    │
-AI (Current + History) ◄─────┘
+Retrieve Student History
         │
         ▼
-Generate Feedback
+AI Grading
+(Current + Historical Context)
         │
         ▼
-Store Updated Record
+Feedback
         │
         ▼
-PDF Report
+Update Student Profile
+        │
+        ▼
+Generate Report
 ```
 
 ---
 
-# What We Just Built
+# The Educational Intelligence Layer
 
-Markly now has **memory across time**.
+This chapter introduces a fundamental architectural shift.
 
-It can:
+Before:
 
-* Track student progress
-* Detect recurring mistakes
-* Compare performance across submissions
-* Provide longitudinal feedback
-* Personalize grading contextually
+```text
+Assignment
+    ↓
+Grade
+```
+
+After:
+
+```text
+Assignment
+    ↓
+Student Context
+    ↓
+Grade
+    ↓
+Learning Insight
+```
+
+Markly is no longer simply evaluating work.
+
+It is beginning to understand the learner.
 
 ---
 
-# Why This Is a Major Upgrade
+# What We Have Built
 
-### Before (Stateless System)
-
-* Each assignment is isolated
-* No continuity
-* No learning trajectory
-
-### Now (Stateful System)
+Markly now supports:
 
 * Persistent student profiles
-* History-aware feedback
-* Progress tracking
-* Early form of “educational intelligence”
+* Historical assignment tracking
+* Learning trend analysis
+* Recurring mistake detection
+* Context-aware grading
+* Progress-aware feedback
+
+This is the first step toward educational intelligence.
+
+The system no longer asks:
+
+> "How good is this assignment?"
+
+It can now ask:
+
+> "How is this student developing over time?"
 
 ---
 
-# What This Enables Next
+# What's Next
 
-This is where Markly starts behaving like a real pedagogical system.
+Memory introduces a new challenge.
 
-But there is still a missing layer:
+Once Markly remembers students, teachers will begin relying on its evaluations more heavily.
 
-> The system currently **trusts the AI completely**
+That means consistency becomes critical.
 
-There is:
+Questions naturally emerge:
 
-* No rubric enforcement
-* No scoring validation
-* No consistency checks across students
+* Did the AI apply the rubric correctly?
+* Is grading consistent across students?
+* Are scores justified by evidence?
+* Would the same assignment receive the same score tomorrow?
 
-In the next stage, we will build a:
-
-> **Grading Validator Layer**
-
-This will enforce structure, reliability, and consistency—turning Markly from a helpful assistant into a **trustworthy assessment system**.
+In the next chapter, we will introduce a **Rubric-Driven Validation Layer**, ensuring that every grade produced by Markly is explainable, auditable, and aligned with defined assessment criteria.
