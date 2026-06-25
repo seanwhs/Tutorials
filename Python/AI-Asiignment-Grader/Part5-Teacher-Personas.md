@@ -1,518 +1,584 @@
-# Part 5 — Teaching the AI How to Grade: Building Teacher Personas
+# Part 5 — Teaching Markly How to Think Like a Teacher
 
-At this point, Markly is already capable of grading student assignments using a Large Language Model.
+## From Generic AI Responses to Educational Judgment
 
-You can upload a file, select a subject, and receive structured feedback.
+At this point, Markly can:
 
-But after trying it across different types of work, something becomes obvious very quickly.
+* Upload assignments
+* Read PDFs, Word documents, and images
+* Send content to AI models through OpenRouter
+* Receive intelligent responses
 
-Whether you upload:
+This is already impressive.
 
-* a mathematics worksheet
-* a history essay
-* a Python programming assignment
-* or a science report
+However, if you test the system with different assignment types, a problem quickly appears.
 
-the feedback often feels surprisingly *generic*.
+Consider these submissions:
 
-You might see responses like:
+* A mathematics worksheet
+* An English essay
+* A science report
+* A Python programming assignment
 
-> “Good work overall.”
+Even though they are completely different subjects, the feedback often sounds surprisingly similar.
 
-or
+You might receive comments such as:
 
-> “Some improvements are needed in clarity.”
+> Good work overall.
 
-These statements are not incorrect — but they are not how real teachers evaluate student work.
+or:
 
-A mathematics teacher focuses on reasoning steps.
-An English teacher focuses on expression and structure.
-A programming instructor focuses on correctness and design.
+> Consider improving clarity and providing more detail.
 
-Each subject has a completely different evaluation mindset.
+These responses are not wrong.
 
----
+But they are not how real teachers grade.
 
-# The Core Idea: The Model Doesn’t “Know” How to Teach
+A mathematics teacher evaluates reasoning.
 
-A common misconception is that the model automatically adapts its teaching style based on the subject.
+An English teacher evaluates communication.
 
-In reality, it doesn’t.
+A science teacher evaluates understanding.
 
-The model only follows instructions.
+A programming instructor evaluates correctness and software quality.
 
-This means:
-
-> If you don’t explicitly tell the model how to behave, it defaults to a generic assistant.
-
-The good news is that this is also what makes LLMs powerful.
-
-We don’t need to retrain anything.
-
-We only need to change instructions.
+The AI needs to learn these differences.
 
 ---
 
-# What is a Persona?
+# The Most Important Lesson About AI
 
-A **persona** is a structured set of instructions that defines how the AI should behave.
+Many beginners assume:
 
-Instead of saying:
+> The model already knows how to grade every subject.
 
-> Grade this assignment.
+This is only partially true.
 
-we say:
+The model has knowledge.
 
-> You are an experienced secondary school mathematics teacher. Evaluate each step carefully, identify conceptual errors, and provide structured feedback.
+What it does not have is educational intent.
 
-These two prompts produce radically different outputs.
+An LLM does not automatically decide:
+
+* what matters
+* what should be rewarded
+* what should be penalized
+* how feedback should be structured
+
+Those decisions come from instructions.
+
+In other words:
+
+> The model supplies knowledge. The prompt supplies judgment.
+
+This is one of the most important ideas in AI application development.
 
 ---
 
-### Without Persona
+# Understanding Personas
+
+A persona is a set of instructions that tells the model:
+
+* who it is
+* what role it should play
+* what criteria matter
+* how to communicate
+
+Without a persona:
 
 ```text
-AI → Generic Assistant
+Assignment
+      ↓
+Generic Assistant
+      ↓
+Generic Feedback
 ```
 
-### With Persona
+With a persona:
 
 ```text
-AI → Domain-Specific Teacher (Math / English / Programming / Science)
+Assignment
+      ↓
+Teacher Persona
+      ↓
+Subject-Specific Evaluation
 ```
 
-The model itself hasn’t changed.
+The model remains the same.
 
-Only the *instruction layer* has changed.
+Only the instructions change.
 
-This technique is known as **prompt engineering**, and it is one of the most important foundations of practical AI application design.
+Yet the quality difference can be dramatic.
 
 ---
 
-# Why We Move Personas Into Their Own File
+# Why Personas Belong in Their Own Module
 
-In early versions of Markly, the grading instructions were embedded directly inside `engine.py`.
+A common beginner mistake is placing prompts directly inside application code.
+
+For example:
 
 ```python
 prompt = f"""
-Please grade this assignment...
+You are a teacher.
+Grade this assignment.
 """
 ```
 
-This works for a single subject.
+This works initially.
 
-But it quickly becomes unmanageable when you scale to multiple disciplines.
+But as the application grows, the prompt becomes larger and larger.
 
-Imagine supporting:
+Soon it contains:
 
-* 10 subjects
-* multiple grade levels
-* different marking rubrics
+* grading instructions
+* rubrics
+* output formatting
+* scoring rules
+* subject-specific behavior
 
-Your engine would become a mess of mixed responsibilities.
+Eventually `engine.py` becomes impossible to maintain.
 
-So we isolate all teaching behavior into a dedicated module:
+Instead, we separate responsibilities.
 
 ```text
-personas.py
-```
-
----
-
-### Final Project Structure
-
-```
 markly/
-│
+
 ├── app.py
 ├── engine.py
 ├── utils.py
 ├── personas.py
+├── rubrics.py
 ```
 
-Each file now has a clear responsibility:
+Each file now has a clear purpose.
 
-| File        | Responsibility                         |
-| ----------- | -------------------------------------- |
-| app.py      | UI (Panel interface)                   |
-| engine.py   | AI orchestration (async + multi-model) |
-| utils.py    | File extraction (PDF, DOCX, images)    |
-| personas.py | Subject-specific teaching behavior     |
+| File        | Responsibility    |
+| ----------- | ----------------- |
+| app.py      | User Interface    |
+| engine.py   | AI Communication  |
+| utils.py    | File Processing   |
+| personas.py | Teaching Behavior |
+| rubrics.py  | Scoring Criteria  |
 
-This is not just organization — it is **architecture design for AI systems**.
+This is an example of Separation of Concerns.
 
 ---
 
 # Designing Teacher Personas
 
-A persona is not just a description.
+A good persona is not a paragraph of marketing text.
 
-It is a **behavior contract** for the model.
+It is a behavioral specification.
 
-It defines:
+A persona should define:
 
-* what to evaluate
-* what to ignore
-* how to structure feedback
-* what “good grading” means for that subject
+* evaluation priorities
+* feedback style
+* educational goals
+* output structure
+
+Let's build several personas.
 
 ---
 
-## Mathematics Persona
+# Mathematics Persona
+
+Create `personas.py`.
 
 ```python
 MATHEMATICS_PERSONA = """
-You are an experienced secondary school mathematics teacher.
+You are an experienced mathematics teacher.
 
-Evaluate student work by carefully examining:
+Evaluate:
 
-- each calculation step
-- mathematical accuracy
+- calculation accuracy
+- mathematical reasoning
 - conceptual understanding
-- logical reasoning
+- logical progression of steps
 
 Identify:
 
 - arithmetic mistakes
+- incorrect formulas
+- missing working
 - conceptual misunderstandings
-- missing steps
 
-Provide structured feedback:
-
-## Strengths
-## Mistakes
-## Suggestions
-## Final Grade
+Provide constructive educational feedback.
 """
 ```
 
-A key detail here is that we explicitly force **step-by-step reasoning evaluation**, which is critical for math grading.
+Notice something important.
+
+We are not asking:
+
+> Is the answer correct?
+
+We are asking:
+
+> How did the student arrive at the answer?
+
+This mirrors real mathematics assessment.
 
 ---
 
-## English Persona
+# English Persona
 
 ```python
 ENGLISH_PERSONA = """
-You are an experienced English language teacher.
+You are an experienced English teacher.
 
-Evaluate the student's writing based on:
+Evaluate:
 
 - grammar
 - spelling
-- punctuation
 - sentence structure
-- vocabulary usage
-- clarity of expression
-- argument structure
+- vocabulary
+- clarity
+- argument development
 
-Do not only list mistakes.
-
-Provide constructive, educational feedback.
-
-Structure your response as:
-
-## Strengths
-## Areas for Improvement
-## Suggestions
-## Final Grade
+Provide educational feedback that helps
+the student become a better writer.
 """
 ```
 
-This shifts the model from “error detection” to **communication coaching**.
+English grading is fundamentally different.
+
+A mathematically correct answer is either correct or incorrect.
+
+Writing exists on a spectrum.
+
+The persona must reflect this.
 
 ---
 
-## Programming Persona
-
-```python
-PROGRAMMING_PERSONA = """
-You are an experienced software engineering instructor.
-
-Evaluate the code based on:
-
-- correctness
-- readability
-- naming conventions
-- modularity
-- code duplication
-- algorithm efficiency
-- maintainability
-
-If bugs exist:
-explain the cause clearly.
-
-Suggest improvements following software engineering best practices.
-
-Do not rewrite the entire solution unless necessary.
-
-Structure your response:
-
-## Strengths
-## Bugs
-## Code Quality
-## Suggestions
-## Final Grade
-"""
-```
-
-This persona turns the model into a **code reviewer**, not a solution generator.
-
----
-
-## Science Persona
+# Science Persona
 
 ```python
 SCIENCE_PERSONA = """
 You are an experienced science teacher.
 
-Evaluate based on:
+Evaluate:
 
 - scientific accuracy
 - conceptual understanding
-- clarity of explanation
-- use of scientific terminology
-- logical reasoning
+- terminology usage
+- reasoning quality
 
-Identify misconceptions clearly and correct them.
+Identify misconceptions clearly.
 
-Encourage curiosity while maintaining scientific rigor.
-
-Structure your response:
-
-## Strengths
-## Misconceptions
-## Suggestions
-## Final Grade
+Correct misunderstandings while encouraging curiosity.
 """
 ```
 
-This encourages conceptual understanding rather than memorization.
+Science assessment focuses heavily on conceptual correctness.
+
+Students often use correct terminology while misunderstanding the underlying concept.
+
+The persona should detect that.
 
 ---
 
-# Organizing Personas for Easy Expansion
+# Programming Persona
 
-Instead of importing each persona individually, we group them into a dictionary:
+```python
+PROGRAMMING_PERSONA = """
+You are an experienced software engineering instructor.
+
+Evaluate:
+
+- correctness
+- readability
+- naming conventions
+- modularity
+- maintainability
+- efficiency
+
+Identify bugs and explain them clearly.
+
+Suggest improvements using software engineering best practices.
+"""
+```
+
+Notice that programming evaluation is closer to code review than traditional marking.
+
+---
+
+# Organizing Personas
+
+Instead of importing many variables individually, create a lookup table.
 
 ```python
 PERSONAS = {
     "Mathematics": MATHEMATICS_PERSONA,
     "English": ENGLISH_PERSONA,
     "Science": SCIENCE_PERSONA,
-    "Programming": PROGRAMMING_PERSONA
+    "Programming": PROGRAMMING_PERSONA,
 }
 ```
 
-Now retrieval becomes trivial:
+Now retrieving a persona is simple:
 
 ```python
-PERSONAS["Programming"]
+persona = PERSONAS["Programming"]
 ```
 
-This design allows us to scale Markly effortlessly.
+This design scales very well.
 
-To add a new subject:
+Adding a new subject becomes:
 
-1. define persona
-2. register in dictionary
-3. update dropdown
+1. Create persona
+2. Register persona
+3. Done
 
-No changes to core engine logic required.
+No engine changes required.
 
 ---
 
-# Updating the AI Engine (Real Architecture)
+# Why Personas Alone Are Not Enough
 
-Your actual `engine.py` does something more powerful than a simple API call.
+Early AI grading systems often stop here.
 
-Instead of querying one model, it:
+They provide:
 
-> Runs multiple models concurrently and returns the first successful response.
+* assignment
+* persona
+* grading request
 
-This is an important production-grade design pattern.
+Example:
 
-### Key Idea:
+```text
+You are a mathematics teacher.
 
-> “We don’t wait for the best model — we take the fastest correct one.”
+Grade this assignment:
+
+[student work]
+```
+
+This is better than generic AI.
+
+But it still has a major weakness.
+
+Different teachers may produce different scores.
+
+Why?
+
+Because we have not defined a grading standard.
+
+We have defined behavior.
+
+We have not defined measurement.
 
 ---
 
-The engine:
+# Introducing Rubrics
 
-* launches multiple async tasks
-* queries different models in parallel
-* returns the first successful result
-* cancels remaining tasks automatically
+A rubric defines:
 
-This improves:
+* what is being scored
+* how many points each area is worth
+* what good performance looks like
 
-* latency
-* reliability
-* fault tolerance
+Real schools use rubrics because they improve consistency.
+
+We should do the same.
+
+Create:
+
+```text
+rubrics.py
+```
+
+Example:
+
+```python
+RUBRICS = {
+    "Mathematics": """
+    1. Calculation Accuracy (5 points)
+    2. Correct Methodology (3 points)
+    3. Final Answer Correctness (2 points)
+    """,
+
+    "English": """
+    1. Grammar & Syntax (4 points)
+    2. Clarity & Flow (3 points)
+    3. Argument Strength (3 points)
+    """,
+
+    "Science": """
+    1. Scientific Accuracy (4 points)
+    2. Conceptual Understanding (3 points)
+    3. Explanation Quality (3 points)
+    """,
+
+    "Programming": """
+    1. Correctness (4 points)
+    2. Code Quality (3 points)
+    3. Maintainability (3 points)
+    """
+}
+```
+
+Now grading becomes more objective.
 
 ---
 
-# Integrating Personas into the Pipeline
+# Combining Persona + Rubric
 
-Once personas exist, the engine only needs one change:
+The real power comes from combining both.
 
-Instead of:
+Persona:
 
-```python
-prompt = f"Grade this assignment..."
+```text
+How should I think?
 ```
 
-we build subject-aware prompts in `app.py`.
+Rubric:
+
+```text
+How should I score?
+```
+
+Together:
+
+```text
+Assignment
+      ↓
+Persona
+      ↓
+Rubric
+      ↓
+AI Model
+      ↓
+Structured Evaluation
+```
+
+This is significantly more reliable than personas alone.
 
 ---
 
-# Updated App Flow (Current Design)
+# Building the Grading Prompt
 
-Your `app.py` now defines the full grading pipeline:
-
-### 1. Upload file
-
-```python
-upload = pn.widgets.FileInput(...)
-```
-
-### 2. Select subject
-
-```python
-subject = pn.widgets.Select(...)
-```
-
-### 3. Extract text
-
-```python
-text = extract_text_from_file(...)
-```
-
-### 4. Build subject-aware prompt
+Inside the engine:
 
 ```python
 prompt = f"""
-You are an experienced {subject.value} teacher.
+{persona}
 
-Grade the following student assignment.
+Use the following rubric:
+
+{rubric}
+
+Grade this assignment:
+
+{assignment_text}
 
 Provide:
-- strengths
-- weaknesses
-- suggestions
-- final grade
 
-Assignment:
-{text}
+## Strengths
+## Weaknesses
+## Suggestions
+## Rubric Breakdown
+## Final Grade
 """
 ```
 
-### 5. Run AI engine asynchronously
+This prompt contains:
 
-```python
-result = run_async(get_ai_response_concurrently(prompt))
-```
+* subject expertise
+* grading standards
+* output structure
 
-### 6. Display feedback in UI
-
-```python
-feedback.object = result
-```
+Everything the model needs.
 
 ---
 
-# Why Personas Dramatically Improve Output
+# Architecture Evolution
 
-Let’s compare behavior:
-
-### Without personas
-
-* generic feedback
-* inconsistent tone
-* mixed evaluation criteria
-
-### With personas
-
-* subject-specific reasoning
-* consistent grading style
-* structured educational feedback
-* realistic teacher behavior
-
----
-
-# The Key Insight
-
-The most important idea in this chapter is:
-
-> The model is not the teacher. The prompt defines the teacher.
-
-Or more precisely:
-
-> AI behavior is an emergent property of instruction design.
-
----
-
-# Architecture After Personas
+Originally Markly looked like this:
 
 ```text
-Teacher
-  │
-  ▼
-Upload Assignment (Panel UI)
-  │
-  ▼
-Select Subject
-  │
-  ▼
-Extract Text (utils.py)
-  │
-  ▼
-Build Prompt (persona-influenced behavior)
-  │
-  ▼
-Async Multi-Model Engine (engine.py)
-  │
-  ▼
-AI Response
-  │
-  ▼
-Display Feedback (Panel UI)
+Assignment
+      ↓
+AI
+      ↓
+Feedback
 ```
 
+Now it becomes:
+
+```text
+Assignment
+      ↓
+Teacher Persona
+      ↓
+Rubric
+      ↓
+AI Model
+      ↓
+Structured Evaluation
+```
+
+This is much closer to how real educators work.
+
+Teachers do not simply "give feedback."
+
+They apply standards.
+
+Rubrics encode those standards.
+
 ---
 
-# What You’ve Achieved So Far
+# The Big Idea
 
-At this stage, Markly is no longer a simple grading script.
+The most important concept from this chapter is:
 
-It is now:
+> Good AI grading is not created by choosing a better model.
 
-* multi-subject aware
-* persona-driven
-* async distributed across multiple models
-* modular and extensible
-* UI-driven via Panel
+It is created by designing better evaluation systems.
 
-This is already a **real AI application architecture**, not a demo script.
+The model supplies intelligence.
+
+Personas supply expertise.
+
+Rubrics supply consistency.
+
+Together they create educational judgment.
 
 ---
 
-# Next Step: Beyond Text — Multimodal Grading
+# What We've Built
 
-So far, Markly only understands:
+Markly is now capable of:
 
-* PDFs
-* Word documents
-* extracted text
+* Subject-specific evaluation
+* Teacher-style feedback
+* Consistent scoring criteria
+* Rubric-driven assessment
+* Extensible educational behavior
 
-But real classroom submissions are often:
+This moves the application from:
+
+> AI chatbot
+
+toward:
+
+> AI grading platform
+
+---
+
+# What's Next?
+
+So far Markly primarily works with extracted text.
+
+But real classrooms contain:
 
 * handwritten worksheets
+* scanned assignments
 * diagrams
-* photos of work
-* scanned pages
+* photographs of work
+* annotated papers
 
-In the next chapter, we’ll upgrade Markly into a **multimodal grading system** that can interpret images directly using vision-capable models.
+In the next chapter, we will upgrade Markly into a multimodal system capable of understanding images directly using vision-capable AI models.
 
----
+This is where Markly begins to move beyond OCR and into true visual assessment.
