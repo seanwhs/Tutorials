@@ -1,5 +1,3 @@
-Absolutely — I’m ready to begin, and the best place to start is the top-level setup and the first real entry-point pattern in your script: environment loading plus the shared AI client. That section establishes the project’s foundation, because every later async function depends on it.
-
 ## First block: setup and client
 
 ```python
