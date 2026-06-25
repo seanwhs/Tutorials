@@ -1,29 +1,44 @@
+# Python Primer: `rubrics.py` — Subject Grading Rules
+
+This primer teaches core Python concepts using a rubric configuration file. Each section shows the original code, explains the Python idea simply, gives a short mini-demo, and connects it back to the module.
+
+***
+
+## Module Deep Dive: `rubrics.py`
+
+This file is the **policy layer** of the grading system. It stores the rules for how each subject should be evaluated, so the AI can grade more consistently instead of inventing criteria from scratch each time.
+
+***
+
 ## 1. What this file does
 
 ```python
-RUBRICS = {
+RUBRICS = {  # Map subject names to rubric text
     ...
 }
 ```
 
-### Why this block exists
-This file stores the grading rules for each subject in one place. The AI uses these rules to judge student work in a more consistent way, instead of improvising from scratch each time.
+**Python Concept: Dictionaries as Configuration**  
+A dictionary is a natural way to map subject names to rubric text. Here, the file acts like a config module: it keeps the grading rules separate from the logic that applies them, which makes the system easier to maintain. [cs.stanford](https://cs.stanford.edu/people/nick/py/python-style-basics.html)
 
-### Python concepts used
-- A dictionary maps subject names to rubric text.
-- Triple-quoted strings hold multiline rubric descriptions.
-- Comments explain the intent of each rubric.
+**Mini Demo**:
+```python
+RUBRICS = {
+    "Math": "Check accuracy and method",  # Short rule summary for Math
+    "English": "Check grammar and clarity",  # Short rule summary for English
+}
 
-### Pattern analysis
-This is a **configuration module**. It keeps evaluation criteria separate from the grading logic, which makes the system easier to maintain.
+print(RUBRICS["Math"])  # Look up the Math rubric
+```
 
-### What if
-Change the Mathematics rubric weights and see how that would shift the scoring emphasis.
+**In `rubrics.py`**: This file stores grading rules in one place so the rest of the app can look them up by subject name.
+
+***
 
 ## 2. Mathematics rubric
 
 ```python
-"Mathematics": """
+"Mathematics": """  # Subject key with a multiline rubric
 1. Calculation Accuracy (5 points)
    - Correctness of numerical computation and results
 
@@ -35,23 +50,27 @@ Change the Mathematics rubric weights and see how that would shift the scoring e
 """,
 ```
 
-### Why this block exists
-This rubric prioritizes getting the answer right, then using the right method, and finally presenting the final result correctly. That matches how math is usually graded: process matters, but correctness matters most.
+**Python Concept: Multiline Strings as Data**  
+Triple-quoted strings are useful when you want to store long text blocks in a readable way. In this case, the rubric is just data, not executable code, and the total adds up to 10 points for easy grading. [peps.python](https://peps.python.org/pep-0008/)
 
-### Python concepts used
-- Dictionary values can be long text blocks.
-- The rubric is just data, not code.
+**Mini Demo**:
+```python
+rubric = """  # Store rubric text as one readable block
+1. Accuracy (5)
+2. Method (3)
+3. Presentation (2)
+"""
+print(rubric.strip())  # Remove extra leading/trailing whitespace
+```
 
-### Pattern analysis
-This is a **weighted scoring scheme**. The total adds up to 10 points, which makes it easy to convert into an `X/10` grade.
+**In `rubrics.py`**: This rubric emphasizes correct computation first, then the method, then the final form of the answer.
 
-### What if
-Swap the weights for methodology and final answer, and think about how that would change the behavior of the AI grader.
+***
 
 ## 3. English rubric
 
 ```python
-"English": """
+"English": """  # Subject key for language-based grading
 1. Grammar & Syntax (4 points)
    - Sentence structure, spelling, and grammatical correctness
 
@@ -63,23 +82,29 @@ Swap the weights for methodology and final answer, and think about how that woul
 """,
 ```
 
-### Why this block exists
-This rubric checks how clearly the student communicates ideas. In English work, correctness is important, but readability, structure, and argument quality also matter a lot.
+**Python Concept: Structured Text in a Dictionary Value**  
+Dictionary values can hold long multiline text, which makes them suitable for detailed human-readable policies. This rubric balances language mechanics with clarity and argument quality. [peps.python](https://peps.python.org/pep-0008/)
 
-### Python concepts used
-- Multiline strings are convenient for readable rubric text.
-- The rubric remains easy to edit without changing the program flow.
+**Mini Demo**:
+```python
+rubric = {  # Store a subject rubric in a dictionary
+    "English": """
+Grammar: 4
+Clarity: 3
+Argument: 3
+"""
+}
+print("English" in rubric)  # Check that the key exists
+```
 
-### Pattern analysis
-This is a **communication-focused rubric**. It balances language mechanics with the quality of thought.
+**In `rubrics.py`**: This rubric focuses on communication quality, not just spelling or grammar.
 
-### What if
-Reduce the grammar weight and increase argument strength to see how the grading priorities shift toward writing quality over mechanics.
+***
 
 ## 4. Science rubric
 
 ```python
-"Science": """
+"Science": """  # Subject key for science grading
 1. Conceptual Understanding (4 points)
    - Correctness of scientific principles and explanations
 
@@ -91,22 +116,27 @@ Reduce the grammar weight and increase argument strength to see how the grading 
 """,
 ```
 
-### Why this block exists
-This rubric checks whether the student understands the science correctly, can apply it, and can reason from evidence. Science is not just about memorizing facts; it is also about using those facts properly.
+**Python Concept: Data-Driven Rules**  
+The rubric is stored as data rather than hardcoded into grading logic. That means you can revise the criteria without changing the program’s control flow. [peps.python](https://peps.python.org/pep-0008/)
 
-### Python concepts used
-- The rubric is data-driven rather than hardcoded into logic.
+**Mini Demo**:
+```python
+science = """  # Keep science criteria as text data
+Understanding: 4
+Application: 3
+Reasoning: 3
+"""
+print(science.count("3"))  # Count how many 3-point categories appear
+```
 
-### Pattern analysis
-This is a **conceptual understanding rubric**. It evaluates both knowledge and reasoning.
+**In `rubrics.py`**: This rubric checks whether the student understands the science, can apply it, and can explain reasoning clearly.
 
-### What if
-Add a fourth category for experimental design and consider how that would better suit lab-based science work.
+***
 
 ## 5. Programming rubric
 
 ```python
-"Programming": """
+"Programming": """  # Subject key for coding assignments
 1. Correctness (4 points)
    - Code produces correct output and meets requirements
 
@@ -121,27 +151,44 @@ Add a fourth category for experimental design and consider how that would better
 """
 ```
 
-### Why this block exists
-This rubric evaluates code from multiple angles: does it work, is it readable, is it efficient, and is it well-structured. That reflects how programming is often judged in real projects.
+**Python Concept: Categorized Configuration**  
+A dictionary value can contain detailed rules for a whole subject area. This rubric covers both function and quality, which is important for software work where readable and maintainable code matters. [kinsta](https://kinsta.com/blog/python-comments/)
 
-### Python concepts used
-- Dictionary values can hold any string content, including detailed rules.
-- The rubric’s categories are ordered by importance.
+**Mini Demo**:
+```python
+rubric = """  # Store detailed programming criteria as text
+Correctness: 4
+Readability: 3
+Efficiency: 2
+Design: 1
+"""
+lines = rubric.strip().splitlines()  # Split rubric into individual lines
+print(lines[0])  # Show the first criterion
+```
 
-### Pattern analysis
-This is a **software-quality rubric**. It goes beyond correctness and includes maintainability and design.
+**In `rubrics.py`**: This rubric evaluates code from several angles: correctness, readability, efficiency, and structure.
 
-### What if
-Increase the design score and reduce efficiency to see how the rubric would favor cleaner architecture over performance.
+***
 
 ## Big-picture reading of the module
 
-This file is a simple but important source of truth for grading policy. It does not run logic itself; it tells the rest of the app what to value for each subject. That separation makes the project easier to expand, because you can improve grading behavior by editing the rubric text instead of rewriting the whole grading engine.
+This file is a simple but important source of truth for grading policy. It does not run grading logic itself; it tells the rest of the app what to value for each subject. That separation makes the project easier to expand because you can improve grading behavior by editing rubric text instead of rewriting the grading engine. [stackoverflow](https://stackoverflow.com/questions/46381904/proper-use-of-comments)
 
 The key idea is that each rubric is:
-- **subject-specific**,
-- **weighted**,
-- **human-readable**, and
-- **easy for the AI to consume as prompt context**.
+- subject-specific.
+- weighted.
+- human-readable.
+- easy for the AI to consume as prompt context.
 
-If you want, the next good step would be to turn these rubrics into a more beginner-friendly explanation of how prompt-based grading uses them at runtime.
+## Practice suggestions
+
+- Change the Mathematics weights and see how that shifts scoring emphasis.
+- Add a `"History"` rubric and decide what the three most important criteria should be.
+- Reformat one rubric so it is shorter and compare how easy it is to read.
+
+***
+
+## References
+
+- PEP 8 style guidance on comments, docstrings, and readability. [peps.python](https://peps.python.org/pep-0008/)
+- Python style discussions on using comments only when they clarify non-obvious code. [interactivetextbooks.tudelft](https://interactivetextbooks.tudelft.nl/programming-foundations/content/chapter5/pep-8.html)
