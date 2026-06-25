@@ -1,8 +1,4 @@
-Certainly — here is a cleaner rewrite in the same style, with inline comments added directly to the code blocks.
-
-***
-
-✅ **Direct rewrite following your example style**
+# ✅ **Direct rewrite following your example style**
 
 # Python Primer: `markup_pdf.py` — PDF Report Builder
 
