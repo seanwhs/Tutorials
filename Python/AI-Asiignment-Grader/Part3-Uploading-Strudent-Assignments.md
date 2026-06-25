@@ -1,387 +1,749 @@
-# Part 3 — Uploading and Reading Student Assignments
+# Part 3 — Uploading and Understanding Student Assignments
 
-At this point, our user interface is complete—but still passive.
+## Building Markly's Content Extraction Layer
 
-Teachers can upload assignments and click **Grade Assignment**, but nothing meaningful happens yet.
+In Part 2, we built the Markly Teacher Dashboard.
 
-Uploads are accepted, but never interpreted.
+Teachers can now:
 
-In this chapter, we fix that.
+✓ Upload assignments
 
-We will turn raw file uploads into **readable text that our AI can understand**.
+✓ Enter student information
 
-By the end of this section, Markly will be able to:
+✓ Select grading options
 
-* Understand how Panel handles file uploads
-* Extract text from PDF documents
-* Extract text from Microsoft Word files
-* Read images using OCR (Optical Character Recognition)
-* Build a unified file-processing pipeline
-* Display extracted assignment content inside the app
+✓ Start the grading process
 
-This is the foundation of every AI grading system: **document understanding before intelligence**.
+However, there is still a major problem.
 
----
+The system cannot actually understand the uploaded files.
 
-# Understanding File Uploads in Panel
-
-Let’s revisit how the `FileInput` widget works.
-
-When a teacher uploads a file, Panel stores it in memory with three important properties:
-
-| Property    | Meaning            |
-| ----------- | ------------------ |
-| `value`     | Raw file bytes     |
-| `filename`  | Original file name |
-| `mime_type` | Detected file type |
-
-For example, uploading:
-
-```
-essay.docx
-```
-
-gives us:
-
-```python
-upload.filename
-```
+Imagine a teacher uploads:
 
 ```text
 essay.docx
 ```
 
-and:
+or
+
+```text
+math_homework.pdf
+```
+
+or even:
+
+```text
+worksheet.jpg
+```
+
+At the moment, Markly only sees:
+
+```text
+Raw Binary Data
+```
+
+Computers do not automatically understand documents.
+
+Before we can grade an assignment, we must first answer a fundamental question:
+
+> How do we transform a file into information that an AI can understand?
+
+This chapter introduces the **Content Extraction Layer**, one of the most important components in the entire Markly architecture.
+
+By the end of this chapter, Markly will be able to:
+
+* Accept uploaded files
+* Understand how uploads are represented internally
+* Extract text from PDFs
+* Extract text from DOCX documents
+* Process image-based assignments
+* Build a unified extraction pipeline
+* Display extracted content inside the application
+
+Most importantly, we will build the foundation that every future AI feature depends upon.
+
+---
+
+# Why Content Extraction Comes Before AI
+
+Many beginners imagine AI systems working like this:
+
+```text
+Upload Assignment
+        │
+        ▼
+      AI
+        │
+        ▼
+    Feedback
+```
+
+In reality, production systems almost never work this way.
+
+Instead:
+
+```text
+Upload Assignment
+        │
+        ▼
+Content Extraction
+        │
+        ▼
+Subject Detection
+        │
+        ▼
+Rubric Selection
+        │
+        ▼
+Teacher Persona
+        │
+        ▼
+AI Evaluation
+```
+
+The AI cannot grade a document it cannot read.
+
+Content extraction is therefore the first stage of intelligence.
+
+---
+
+# Understanding File Uploads In Panel
+
+Let's revisit the upload widget.
+
+In Part 2 we created:
+
+```python
+upload = pn.widgets.FileInput(
+    accept=".pdf,.docx,.png,.jpg,.jpeg"
+)
+```
+
+When a teacher uploads a file, Panel stores several pieces of information.
+
+---
+
+## upload.value
+
+Contains the file contents.
+
+Example:
 
 ```python
 upload.value
 ```
 
-```text
-(b'...binary file data...')
-```
-
-That byte data is what we must process.
-
----
-
-# Why Everything Becomes Bytes
-
-This design surprises many beginners.
-
-Panel does **not save files to disk**.
-
-Instead, everything is stored in memory as bytes.
-
-Think of it like this:
+Output:
 
 ```text
-User Upload
-     ↓
-Browser
-     ↓
-Memory (bytes)
-     ↓
-Python application
+b'...binary data...'
 ```
 
-This approach is useful because:
-
-* No temporary files needed
-* Faster processing
-* Easier cloud deployment
-* Safer file handling
-
-So instead of working with file paths, we work directly with **binary data streams**.
+These are raw bytes.
 
 ---
 
-# Designing a Clean File Processing System
+## upload.filename
 
-Before writing code, let’s structure our responsibilities properly.
+Contains the original filename.
 
-We follow a key principle:
+Example:
 
-> Each module should do one thing well.
+```python
+upload.filename
+```
 
-| File          | Responsibility                 |
-| ------------- | ------------------------------ |
-| `app.py`      | UI and user interaction        |
-| `utils.py`    | File parsing and extraction    |
-| `engine.py`   | AI / LLM communication (later) |
-| `personas.py` | Teacher feedback styles        |
+Output:
 
-This separation keeps Markly scalable as it grows.
+```text
+essay.docx
+```
 
 ---
 
-# Our File Processing Pipeline
+## upload.mime_type
 
-Before diving into code, here’s what we are building:
+Contains the detected content type.
+
+Example:
+
+```python
+upload.mime_type
+```
+
+Output:
+
+```text
+application/vnd.openxmlformats-officedocument.wordprocessingml.document
+```
+
+---
+
+# Why Files Become Bytes
+
+This surprises many new developers.
+
+When a user uploads a file, Panel does not automatically save it to disk.
+
+Instead:
+
+```text
+Teacher Upload
+        │
+        ▼
+ Browser Memory
+        │
+        ▼
+ Python Application
+```
+
+The file is represented entirely as bytes.
+
+For example:
+
+```python
+upload.value
+```
+
+might contain:
+
+```python
+b'\x89PNG\r\n\x1a\n...'
+```
+
+for an image.
+
+Or:
+
+```python
+b'%PDF-1.7...'
+```
+
+for a PDF.
+
+---
+
+# Why This Is Actually Useful
+
+Working with bytes gives us several advantages:
+
+### Faster Processing
+
+No temporary files are required.
+
+### Better Security
+
+Files don't need to be written to disk.
+
+### Cloud Friendly
+
+Perfect for:
+
+* Hugging Face Spaces
+* Docker Containers
+* Cloud Deployments
+
+### Easier Integration
+
+Most modern AI systems already work with:
+
+```text
+Bytes
+Streams
+Buffers
+```
+
+rather than local file paths.
+
+---
+
+# Designing The Content Extraction Layer
+
+Before writing code, let's think like software engineers.
+
+We already decided in Part 1 that each module should have a single responsibility.
+
+Our extraction logic belongs in:
+
+```text
+utils.py
+```
+
+Why?
+
+Because:
+
+```text
+app.py
+```
+
+should focus on:
+
+* widgets
+* layouts
+* user interaction
+
+not document processing.
+
+---
+
+# Our Extraction Pipeline
+
+The pipeline we are building looks like this:
 
 ```text
 Uploaded File
-     ↓
+      │
+      ▼
 Detect File Type
-     ↓
-Route to Extractor
-     ↓
-Convert to Text
-     ↓
-Return Clean String
+      │
+      ▼
+Select Extractor
+      │
+      ▼
+Extract Content
+      │
+      ▼
+Return Unified Text
 ```
 
-We will support three input types:
+The key idea is:
 
-* PDF → text extraction
-* DOCX → paragraph extraction
-* Images → OCR (text recognition)
+No matter what file type the teacher uploads, the rest of Markly should receive:
+
+```python
+str
+```
+
+A single clean text string.
 
 ---
 
-# Installing Required Tools (Important)
+# Creating utils.py
 
-To handle images, we use:
+Open:
 
-* `pytesseract` (OCR engine wrapper)
-* `Pillow` (image processing)
-
-Make sure you have installed:
-
-```bash
-pip install pytesseract pillow
+```text
+utils.py
 ```
 
-You also need **Tesseract OCR engine** installed on your system.
+This module will eventually contain:
 
-Without it, image extraction will not work.
+* PDF extraction
+* DOCX extraction
+* OCR helpers
+* Image processing
+* Assignment utilities
+
+For now, we'll focus on extraction.
 
 ---
 
-# Building the PDF Extractor
+# Reading PDF Assignments
 
-Let’s start with PDFs.
+Many educational resources are distributed as PDFs.
 
-We use **PyMuPDF (`fitz`)**, which is fast and reliable.
+Examples:
+
+```text
+Worksheets
+Homework
+Lab Reports
+Research Essays
+```
+
+To process PDFs, we use:
+
+```python
+import fitz
+```
+
+This library comes from:
+
+```text
+PyMuPDF
+```
+
+which we installed earlier.
+
+---
+
+# Building extract_pdf()
+
+Add:
 
 ```python
 import fitz
 
 def extract_pdf(file_bytes):
-    document = fitz.open(stream=file_bytes, filetype="pdf")
+    """
+    Extract text from a PDF.
+    """
 
-    return "\n".join(
-        page.get_text() for page in document
+    document = fitz.open(
+        stream=file_bytes,
+        filetype="pdf"
     )
-```
 
-### What’s happening here?
+    text = []
 
-* We open the PDF directly from memory (`stream=file_bytes`)
-* We loop through every page
-* We extract text from each page
-* We join everything into one clean string
+    for page in document:
+        text.append(page.get_text())
 
-Result:
-
-```text
-Page 1 text
-Page 2 text
-Page 3 text
-```
-
-Becomes:
-
-```text
-Full assignment content in one string
+    return "\n".join(text)
 ```
 
 ---
 
-# Building the DOCX Extractor
+# Understanding The Function
 
-Now let’s handle Microsoft Word files.
+## Open The PDF
 
-We use `python-docx`.
+```python
+fitz.open(
+    stream=file_bytes,
+    filetype="pdf"
+)
+```
+
+Notice:
+
+```python
+stream=file_bytes
+```
+
+We're opening directly from memory.
+
+No temporary files needed.
+
+---
+
+## Loop Through Pages
+
+```python
+for page in document:
+```
+
+A PDF may contain:
+
+* one page
+* ten pages
+* one hundred pages
+
+We must process all of them.
+
+---
+
+## Extract Text
+
+```python
+page.get_text()
+```
+
+returns the text found on the page.
+
+---
+
+## Merge Everything Together
+
+```python
+"\n".join(text)
+```
+
+converts:
+
+```python
+[
+  "Page One",
+  "Page Two",
+  "Page Three"
+]
+```
+
+into:
+
+```text
+Page One
+
+Page Two
+
+Page Three
+```
+
+---
+
+# Reading DOCX Assignments
+
+Many teachers prefer Microsoft Word.
+
+Examples:
+
+```text
+Essays
+Reflection Papers
+Research Reports
+```
+
+To process DOCX files we use:
+
+```python
+python-docx
+```
+
+---
+
+# Building extract_docx()
+
+Add:
 
 ```python
 from docx import Document
 import io
-```
 
-DOCX files require a file-like object, so we convert bytes using `BytesIO`.
-
-```python
 def extract_docx(file_bytes):
-    document = Document(io.BytesIO(file_bytes))
+    """
+    Extract text from DOCX files.
+    """
 
-    return "\n".join(
-        paragraph.text for paragraph in document.paragraphs
+    document = Document(
+        io.BytesIO(file_bytes)
     )
+
+    paragraphs = []
+
+    for paragraph in document.paragraphs:
+        paragraphs.append(paragraph.text)
+
+    return "\n".join(paragraphs)
 ```
-
-### Key idea
-
-Word documents are structured as paragraphs, so we simply iterate through them.
 
 ---
 
-# Understanding BytesIO (Critical Concept)
+# Understanding BytesIO
 
-This line is important:
+This is one of the most important concepts for beginners.
+
+We only have:
 
 ```python
-io.BytesIO(file_bytes)
+file_bytes
 ```
 
-It creates an **in-memory file wrapper**.
+But:
 
-Why is this needed?
-
-Because `python-docx` expects something like:
-
-```
-file.docx (on disk)
+```python
+Document(...)
 ```
 
-But we only have:
+expects something that behaves like a file.
 
-```
-raw bytes in memory
-```
+`BytesIO` creates an in-memory file.
 
-So `BytesIO` acts like a bridge:
+Think of it as:
 
 ```text
-Bytes → File-like object → python-docx
+Raw Bytes
+     │
+     ▼
+BytesIO Wrapper
+     │
+     ▼
+File-Like Object
 ```
+
+No actual file is created.
+
+Everything remains in memory.
 
 ---
 
-# Extracting Text from Images (OCR)
+# Images: OCR Versus Vision AI
 
-Now we reach the most interesting part.
+Historically, systems used OCR:
 
-Images do not contain text directly.
+```text
+Image
+   │
+   ▼
+Tesseract OCR
+   │
+   ▼
+Extracted Text
+```
 
-So we use **OCR (Optical Character Recognition)**.
+OCR works well for:
 
-We use:
+* printed worksheets
+* typed documents
 
-* `Pillow` → loads images
-* `pytesseract` → extracts text
+but struggles with:
+
+* messy handwriting
+* diagrams
+* mathematics notation
+* arrows
+* drawings
+
+Modern versions of Markly increasingly rely on Vision LLMs instead.
+
+---
+
+# Why Vision Models Are Better
+
+Consider this image:
+
+```text
+✓ Correct
+
+2x + 3 = 9
+
+Student writes:
+
+x = 4
+```
+
+OCR may only see:
+
+```text
+2x+3=9
+x=4
+```
+
+A Vision LLM can understand:
+
+* the question
+* the answer
+* the layout
+* annotations
+* handwritten marks
+
+This becomes important later when we build AI-powered grading.
+
+For now, we'll still implement OCR as a baseline extractor.
+
+---
+
+# Building extract_image()
+
+Add:
 
 ```python
 import pytesseract
 from PIL import Image
 import io
-```
 
-Now the extractor:
-
-```python
 def extract_image(file_bytes):
-    image = Image.open(io.BytesIO(file_bytes))
+    """
+    Extract text from images using OCR.
+    """
+
+    image = Image.open(
+        io.BytesIO(file_bytes)
+    )
+
     return pytesseract.image_to_string(image)
 ```
 
 ---
 
-## How OCR Works (Simple Explanation)
+# Building A Unified Extraction Function
 
-```text
-Image of handwriting or printed text
-              ↓
-        Tesseract OCR
-              ↓
-       Recognized text output
-```
+Instead of forcing the rest of Markly to understand:
 
-So an image like:
+* PDFs
+* DOCX
+* Images
 
-```
-Math assignment written on paper
-```
+we create one function.
 
-Becomes:
+This is a common software engineering pattern called a **Facade**.
 
-```text
-Student's handwritten answer converted into text
-```
-
-This is extremely powerful for real-world grading systems.
+A Facade hides complexity behind a simple interface.
 
 ---
 
-# Unified File Extraction Function
+# Building extract_text_from_file()
 
-Now we combine everything into one entry point.
-
-This is the function the rest of Markly will use.
+Add:
 
 ```python
-def extract_text_from_file(file_bytes, filename):
+def extract_text_from_file(
+    file_bytes,
+    filename
+):
+    """
+    Unified extraction entry point.
+    """
 
-    ext = filename.lower().split('.')[-1]
+    extension = (
+        filename.lower()
+        .split(".")[-1]
+    )
 
-    if ext == "pdf":
+    if extension == "pdf":
         return extract_pdf(file_bytes)
 
-    elif ext == "docx":
+    if extension == "docx":
         return extract_docx(file_bytes)
 
-    elif ext in ("png", "jpg", "jpeg"):
+    if extension in (
+        "png",
+        "jpg",
+        "jpeg"
+    ):
         return extract_image(file_bytes)
 
-    else:
-        raise ValueError(f"Unsupported file type: {filename}")
+    raise ValueError(
+        f"Unsupported file type: {filename}"
+    )
 ```
 
 ---
 
-# Why This Design Is Powerful
+# Why This Function Matters
 
-Instead of scattering logic across the app, we now have:
-
-### One function to rule them all:
+The rest of Markly can now simply call:
 
 ```python
-extract_text_from_file()
+text = extract_text_from_file(
+    file_bytes,
+    filename
+)
 ```
 
-This gives us:
+without caring about file types.
 
-* Clean abstraction
-* Easy testing
-* Easy extension (e.g., TXT, HTML later)
-* Simple AI integration
+This dramatically simplifies future development.
 
 ---
 
-# Connecting to the UI
+# Connecting The Extraction Layer To The UI
 
-Now let’s plug this into `app.py`.
+Open:
 
-First import the function:
+```text
+app.py
+```
+
+Import:
 
 ```python
-from utils import extract_text_from_file
+from utils import (
+    extract_text_from_file
+)
 ```
 
 ---
 
-# Creating the Preview Function
+# Creating A Preview Handler
 
-When a teacher clicks **Grade Assignment**, we:
-
-1. Check if a file exists
-2. Extract text
-3. Display it in the UI
+Add:
 
 ```python
 def preview_assignment(event):
 
     if upload.value is None:
+
         feedback.object = """
 ## Feedback
 
@@ -389,99 +751,127 @@ Please upload an assignment first.
 """
         return
 
-    text = extract_text_from_file(
-        upload.value,
-        upload.filename
+    extracted_text = (
+        extract_text_from_file(
+            upload.value,
+            upload.filename
+        )
     )
 
     feedback.object = f"""
 ## Assignment Preview
 
-{text}
+{extracted_text}
 """
 ```
 
 ---
 
-# Connecting the Button
+# Connecting The Button
+
+Add:
 
 ```python
-grade_button.on_click(preview_assignment)
+grade_button.on_click(
+    preview_assignment
+)
 ```
 
-Now the UI becomes interactive.
+Now the interface becomes interactive.
 
 ---
 
-# Testing the System
+# Testing The System
 
-Run the app:
+Run:
 
 ```bash
 panel serve app.py --autoreload
 ```
 
-Then:
+Upload:
 
-1. Upload a PDF
-2. Upload a Word document
-3. Upload an image
-4. Click **Grade Assignment**
+* a PDF
+* a DOCX document
+* a PNG image
 
-You should now see:
+Then click:
 
-* Extracted PDF text
-* Paragraphs from DOCX
-* OCR results from images
+```text
+Grade Assignment
+```
+
+You should now see the extracted content displayed inside the feedback area.
 
 ---
 
-# System Workflow (Current State)
+# Where We Are In The Architecture
+
+Our system now looks like:
 
 ```text
 Teacher
-   ↓
-Upload File
-   ↓
-Panel stores bytes
-   ↓
-File type detected
-   ↓
-Extractor selected
-   ↓
-Text extracted (PDF / DOCX / OCR)
-   ↓
-Displayed in UI
+   │
+   ▼
+Upload Assignment
+   │
+   ▼
+Content Extraction Layer
+   │
+   ▼
+Assignment Preview
 ```
 
----
+This may seem simple, but it represents a major milestone.
 
-# Why This Is a Major Milestone
+Markly can now understand documents.
 
-At first, Markly could only **accept files**.
+Everything that follows:
 
-Now it can:
+* subject detection
+* rubric selection
+* grading
+* annotation generation
+* student memory
 
-* Read documents
-* Interpret multiple formats
-* Extract meaningful content
-* Prepare data for AI analysis
-
-This is the critical bridge between:
-
-> “File upload system” → “AI-powered grading system”
+depends on the extraction layer we built in this chapter.
 
 ---
 
-# What’s Next
+# What We've Accomplished
 
-In the next chapter, we’ll connect Markly to an LLM using **OpenRouter**.
+We now have:
 
-You will learn how to:
+✓ PDF extraction
 
-* Send extracted text to a model
-* Design grading prompts
-* Receive structured feedback
-* Render AI responses in the UI
+✓ DOCX extraction
 
-This is where Markly stops being a document reader—and becomes a **real grading assistant**.
+✓ OCR support
+
+✓ Unified extraction interface
+
+✓ Separation of concerns
+
+✓ Working assignment preview pipeline
+
+Most importantly, we've built the first true intelligence-enabling layer of Markly.
+
+The system is no longer just accepting files.
+
+It is beginning to understand them.
+
+---
+
+# Next Part
+
+In **Part 4 — Connecting Markly to AI**, we'll introduce OpenRouter and Vision LLMs.
+
+You'll learn:
+
+* how LLM APIs work
+* how Markly communicates with AI models
+* how to send assignments for evaluation
+* how to receive structured grading feedback
+* why prompts are the most important component of AI-powered educational software
+
+For the first time, Markly will move beyond document understanding and begin performing actual educational analysis.
