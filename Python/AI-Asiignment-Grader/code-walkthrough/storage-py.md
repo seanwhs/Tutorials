@@ -1,12 +1,10 @@
-# ✅ **Direct rewrite following the example style**
+# ✅ **Python Primer: `storage.py` — JSON Flat-File Database**
 
-# Python Primer: `persistence.py` — JSON Flat-File Database
-
-This primer teaches core Python concepts using real code from a student record persistence module. Each section shows the original code, explains the Python idea simply, provides a short runnable mini-demo, and ties it back to the module.
+This primer teaches core Python concepts using real code from a student record storage module. Each section shows the original code, explains the Python idea simply, provides a short runnable mini-demo, and ties it back to the module.
 
 ***
 
-## Module Deep Dive: `persistence.py`
+## Module Deep Dive: `storage.py`
 
 This file is the **data layer**: it stores and retrieves student grading history using a simple JSON flat-file, keeping the project lightweight without requiring a database server.
 
@@ -38,7 +36,7 @@ json_str = json.dumps(data)
 print(json.loads(json_str))  # {'key': 'value'}
 ```
 
-**In `persistence.py`**: These imports and the constant set up the foundation for all file-based storage operations. Changing `DB_FILE` renames the database for the entire module.
+**In `storage.py`**: These imports and the constant set up the foundation for all file-based storage operations. Changing `DB_FILE` renames the database for the entire module.
 
 ***
 
@@ -79,7 +77,7 @@ print(isinstance(data, dict))  # True
 print(isinstance([], dict))    # False
 ```
 
-**In `persistence.py`**: This is a **defensive load function**. It expects file corruption or missing data and falls back gracefully to an empty dictionary instead of crashing the application.
+**In `storage.py`**: This is a **defensive load function**. It expects file corruption or missing data and falls back gracefully to an empty dictionary instead of crashing the application.
 
 ***
 
@@ -115,7 +113,7 @@ print(buf2.getvalue())
 # }
 ```
 
-**In `persistence.py`**: This is a **write-through persistence** step. Whenever student data changes, it gets saved back to disk immediately, ensuring the JSON file always reflects the current in-memory state.
+**In `storage.py`**: This is a **write-through storage** step. Whenever student data changes, it gets saved back to disk immediately, ensuring the JSON file always reflects the current in-memory state.
 
 ***
 
@@ -150,7 +148,7 @@ db[student]["history"].append({"grade": "A"})
 print(db)  # {'Alice': {'history': [{'grade': 'A'}]}}
 ```
 
-**In `persistence.py`**: This is a **record-append pattern**. Each new grading result becomes part of a student's historical log, organized under their name in the top-level dictionary.
+**In `storage.py`**: This is a **record-append pattern**. Each new grading result becomes part of a student's historical log, organized under their name in the top-level dictionary.
 
 ***
 
@@ -182,13 +180,13 @@ print(get_history("Alice"))   # [{'grade': 'A'}]
 print(get_history("Bob"))     # No previous records.
 ```
 
-**In `persistence.py`**: This is a **lookup helper** with a graceful no-data path. It encapsulates the database access and provides a user-friendly response when no history exists.
+**In `storage.py`**: This is a **lookup helper** with a graceful no-data path. It encapsulates the database access and provides a user-friendly response when no history exists.
 
 ***
 
 ## Big-picture reading of the module
 
-This module is the **persistence layer** of the system. It stores grading history in a plain JSON file instead of a real database, which keeps the project lightweight and easy to understand—an excellent choice for learning, even if production systems would eventually need something more robust.
+This module is the **storage layer** of the system. It stores grading history in a plain JSON file instead of a real database, which keeps the project lightweight and easy to understand—an excellent choice for learning, even if production systems would eventually need something more robust.
 
 The main ideas are:
 - **File-based storage** for simplicity and zero setup.
