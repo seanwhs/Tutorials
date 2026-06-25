@@ -1,388 +1,491 @@
 # Part II — Widgets: Building Interactive User Interfaces
 
-# Lesson 2.6 — Reading User Input with `value`
+# Lesson 2.7 — Displaying Results with Panes
 
 > **Learning Objectives**
 >
 > By the end of this lesson, you will be able to:
 >
-> * Understand the purpose of the `value` property.
-> * Learn how widgets store user input.
-> * Read data entered by the user.
-> * Connect multiple widgets together.
-> * Build your first useful callback.
-> * Understand how data flows through a Panel application.
-> * Build the first working feature of our SGX Stock Monitor.
+> * Understand what a Pane is in Panel.
+> * Learn the difference between widgets and panes.
+> * Display text dynamically inside a Panel application.
+> * Update a pane from a callback.
+> * Understand how applications display output.
+> * Build the first version of an interactive SGX Stock Monitor that both accepts input and displays results.
 
 ---
 
 # Introduction
 
-In the previous lesson, we learned how to make a Button respond to clicks.
-
-Our callback looked like this.
+In the previous lesson, our callback finally became useful.
 
 ```python
 def search_stock(event):
-    print("Searching...")
+
+    symbol = search.value
+
+    print(f"Searching SGX for {symbol}")
 ```
 
-When the user clicked
+When the user clicked **Search**, the program printed:
 
 ```text
+Searching SGX for DBS
+```
+
+Success!
+
+Or was it?
+
+---
+
+# The Problem
+
+Where was the message displayed?
+
+Not inside our application.
+
+Instead,
+
+it appeared in the terminal.
+
+```text
+Terminal
+
+Searching SGX for DBS
+```
+
+Most users never even see the terminal.
+
+Imagine using Google.
+
+After searching,
+
+would you expect the results to appear inside the command prompt?
+
+Of course not.
+
+You expect the webpage itself to update.
+
+Our application should behave the same way.
+
+---
+
+# Applications Need Output Areas
+
+Every application has two sides.
+
+Input
+
+and
+
+Output.
+
+```text
+User
+
+↓
+
+Input
+
+↓
+
+Application
+
+↓
+
+Output
+
+↓
+
+User
+```
+
+So far,
+
+our application only accepts input.
+
+Now we need somewhere to display the results.
+
+---
+
+# Enter Panes
+
+Panel provides a family of objects called **Panes**.
+
+Think of a Pane as an output component.
+
+Unlike widgets,
+
+panes generally **display information**.
+
+They do not collect user input.
+
+---
+
+# Widgets vs Panes
+
+This distinction is extremely important.
+
+| Widgets             | Panes               |
+| ------------------- | ------------------- |
+| Collect information | Display information |
+| User interacts      | User reads          |
+| Have input values   | Show output         |
+| Example: TextInput  | Example: Markdown   |
+
+---
+
+Imagine a conversation.
+
+```text
+Widgets
+
+↓
+
+User Speaks
+
+----------------------
+
+Panes
+
+↓
+
+Application Speaks
+```
+
+Widgets are the application's ears.
+
+Panes are the application's voice.
+
+---
+
+# The Most Common Pane
+
+The pane you'll use most often is
+
+```python
+pn.pane.Markdown()
+```
+
+This displays Markdown text.
+
+Example:
+
+```python
+import panel as pn
+
+pn.extension()
+
+message = pn.pane.Markdown(
+    "# Welcome!"
+)
+
+message.servable()
+```
+
+Produces
+
+```text
+Welcome!
+```
+
+---
+
+# What Is Markdown?
+
+Markdown is a lightweight formatting language.
+
+Instead of writing HTML,
+
+we write simple text.
+
+For example,
+
+```markdown
+# Heading
+```
+
+becomes
+
+# Heading
+
+---
+
+```markdown
+**Bold**
+```
+
+becomes
+
+**Bold**
+
+---
+
+```markdown
+*Italic*
+```
+
+becomes
+
+*Italic*
+
+---
+
+```markdown
+- Item 1
+- Item 2
+```
+
+becomes
+
+* Item 1
+* Item 2
+
+Markdown is much easier to read than HTML.
+
+Panel uses it extensively.
+
+---
+
+# Creating a Result Pane
+
+Let's create one.
+
+```python
+results = pn.pane.Markdown(
+    "No search performed."
+)
+```
+
+Initially,
+
+our application displays
+
+```text
+No search performed.
+```
+
+This gives users immediate feedback.
+
+---
+
+# Building Our Interface
+
+Let's add it beneath the Search button.
+
+```python
+import panel as pn
+
+pn.extension()
+
+search = pn.widgets.TextInput(
+    name="Stock Symbol"
+)
+
+button = pn.widgets.Button(
+    name="Search",
+    button_type="primary"
+)
+
+results = pn.pane.Markdown(
+    "No search performed."
+)
+
+dashboard = pn.Column(
+    search,
+    button,
+    results
+)
+
+dashboard.servable()
+```
+
+The application now looks like this.
+
+```text
+--------------------------------
+
+Stock Symbol
+
+________________
+
 [ Search ]
+
+No search performed.
+
+--------------------------------
 ```
 
-the callback executed.
+Notice that the results area is already part of the layout.
 
-But there was one problem.
+It simply hasn't changed yet.
 
-The callback had no idea **which stock** the user wanted.
+---
 
-Whether the user typed:
+# Updating the Pane
+
+Like widgets,
+
+panes have properties.
+
+One of the most important is
+
+```python
+object
+```
+
+This property stores the content displayed by the pane.
+
+Initially,
+
+```python
+results.object
+```
+
+contains
 
 ```text
-DBS
+No search performed.
 ```
 
-or
+---
+
+# Changing the Content
+
+Suppose we write
+
+```python
+results.object = "Searching..."
+```
+
+The application immediately changes.
+
+Instead of
 
 ```text
-UOB
+No search performed.
 ```
 
-or
-
-```text
-Singtel
-```
-
-our program always printed exactly the same message.
+users now see
 
 ```text
 Searching...
 ```
 
-Clearly,
+No refresh button.
 
-this isn't very useful.
+No page reload.
 
-Today we'll learn how our callback can retrieve the information entered by the user.
-
----
-
-# Remember the TextInput Widget
-
-Earlier we created this widget.
-
-```python
-search = pn.widgets.TextInput(
-    name="Stock Symbol",
-    placeholder="Example: DBS"
-)
-```
-
-It appears as
-
-```text
-Stock Symbol
-
-Example: DBS
-```
-
-Earlier we learned something important.
-
-Every widget stores information inside its properties.
-
-One of those properties is
-
-```python
-value
-```
-
-Today,
-
-we'll finally start using it.
+Panel updates the interface automatically.
 
 ---
 
-# What Is `value`?
+# Using the Callback
 
-Recall that every widget has a state.
-
-For a `TextInput`, one of the most important properties is
+Now let's connect everything together.
 
 ```python
-value
+def search_stock(event):
+
+    symbol = search.value
+
+    results.object = f"Searching SGX for **{symbol}**"
 ```
 
-This property stores whatever the user has typed.
-
-Initially,
-
-the widget contains nothing.
-
-```text
-Stock Symbol
-
-________________
-```
-
-Internally,
-
-its state looks like this.
-
-```text
-value
-
-↓
-
-""
-```
-
-An empty string.
-
----
-
-# After the User Types
-
-Suppose the user enters
-
-```text
-DBS
-```
-
-The screen changes.
-
-```text
-Stock Symbol
-
-DBS
-```
-
-More importantly,
-
-the widget changes internally.
-
-```text
-value
-
-↓
-
-"DBS"
-```
-
-The widget now remembers what the user typed.
-
----
-
-# Reading the Value
-
-Retrieving the text is very simple.
-
-```python
-search.value
-```
-
-If the user typed
-
-```text
-DBS
-```
-
-then
-
-```python
-print(search.value)
-```
-
-produces
-
-```text
-DBS
-```
-
-If they typed
-
-```text
-Singtel
-```
-
-then
-
-```python
-print(search.value)
-```
-
-produces
-
-```text
-Singtel
-```
-
-The callback always sees the latest value.
-
----
-
-# How Does This Work?
-
-Think of the widget as a storage box.
-
-Initially
-
-```text
-TextInput
-
-↓
-
-value
-
-↓
-
-(empty)
-```
-
-User types
-
-```text
-DBS
-```
-
-The storage box changes.
-
-```text
-TextInput
-
-↓
-
-value
-
-↓
-
-DBS
-```
-
-Your program simply opens the box and reads the contents.
-
----
-
-# Updating Our Callback
+Notice what changed.
 
 Instead of
 
 ```python
-def search_stock(event):
-    print("Searching...")
+print(...)
 ```
 
-we can write
+we now write
 
 ```python
-def search_stock(event):
-    symbol = search.value
-
-    print(symbol)
+results.object = ...
 ```
 
-Now,
-
-clicking the button prints whatever the user typed.
+The output appears inside the application itself.
 
 ---
 
-# Understanding the Variable
+# Running the Application
 
-Notice this line.
-
-```python
-symbol = search.value
-```
-
-Let's examine it.
-
-First,
-
-Panel retrieves
-
-```python
-search.value
-```
-
-Suppose it contains
+Suppose the user types
 
 ```text
 DBS
 ```
 
-Python then performs the assignment.
-
-```python
-symbol = "DBS"
-```
-
-Now,
-
-both
-
-```python
-search.value
-```
-
-and
-
-```python
-symbol
-```
-
-contain
+Then clicks
 
 ```text
-DBS
+Search
 ```
+
+The callback executes.
+
+```python
+results.object = "Searching SGX for **DBS**"
+```
+
+The interface updates immediately.
+
+```text
+Searching SGX for DBS
+```
+
+Much better.
 
 ---
 
-# Why Store It in a Variable?
+# Following the Data
 
-You might wonder why we don't simply write
+Let's trace the complete journey.
 
-```python
-print(search.value)
+```text
+Keyboard
+
+↓
+
+TextInput
+
+↓
+
+value
+
+↓
+
+Callback
+
+↓
+
+Markdown Pane
+
+↓
+
+Screen
 ```
 
-We certainly can.
+For the first time,
 
-However,
+our application has a complete cycle.
 
-using a variable makes our code easier to understand.
+Input
 
-```python
-symbol = search.value
-```
+↓
 
-Later,
+Processing
 
-we can write
+↓
 
-```python
-download_stock(symbol)
-
-display_chart(symbol)
-
-show_company_info(symbol)
-```
-
-instead of repeatedly typing
-
-```python
-search.value
-```
+Output
 
 ---
 
-# Our First Useful Program
-
-Let's put everything together.
+# The Complete Program
 
 ```python
 import panel as pn
@@ -399,456 +502,249 @@ button = pn.widgets.Button(
     button_type="primary"
 )
 
-def search_stock(event):
-
-    symbol = search.value
-
-    print("Searching for:", symbol)
-
-button.on_click(search_stock)
-
-dashboard = pn.Column(
-    search,
-    button
+results = pn.pane.Markdown(
+    "No search performed."
 )
 
-dashboard.servable()
-```
-
----
-
-# What Happens Now?
-
-Suppose the user types
-
-```text
-DBS
-```
-
-Then clicks
-
-```text
-Search
-```
-
-The following sequence occurs.
-
-```text
-User Types
-
-↓
-
-Widget Updates value
-
-↓
-
-User Clicks Button
-
-↓
-
-Callback Executes
-
-↓
-
-Read search.value
-
-↓
-
-Print Stock Symbol
-```
-
----
-
-# Visualizing the Data Flow
-
-Let's follow the information.
-
-```text
-Keyboard
-
-↓
-
-TextInput Widget
-
-↓
-
-value Property
-
-↓
-
-Callback
-
-↓
-
-Python Variable
-
-↓
-
-Application Logic
-```
-
-This pattern appears throughout every Panel application.
-
----
-
-# Trying Different Inputs
-
-Suppose the user types
-
-```text
-UOB
-```
-
-The callback prints
-
-```text
-Searching for: UOB
-```
-
----
-
-User types
-
-```text
-OCBC
-```
-
-The callback prints
-
-```text
-Searching for: OCBC
-```
-
----
-
-User types
-
-```text
-S58
-```
-
-The callback prints
-
-```text
-Searching for: S58
-```
-
-The code never changes.
-
-Only the widget's value changes.
-
----
-
-# What If Nothing Was Entered?
-
-Suppose the user immediately clicks Search.
-
-The textbox still contains
-
-```text
-```
-
-(an empty string)
-
-The callback prints
-
-```text
-Searching for:
-```
-
-This isn't ideal.
-
-Eventually,
-
-we'll validate the input before searching.
-
----
-
-# Understanding Empty Strings
-
-An empty textbox doesn't contain
-
-```python
-None
-```
-
-Instead,
-
-it contains
-
-```python
-""
-```
-
-An empty string.
-
-This is important.
-
-Many beginners assume the widget contains
-
-```python
-None
-```
-
-It doesn't.
-
----
-
-# Checking for Empty Input
-
-Python makes this easy.
-
-```python
-def search_stock(event):
-
-    symbol = search.value
-
-    if symbol == "":
-        print("Please enter a stock symbol.")
-        return
-
-    print("Searching for:", symbol)
-```
-
-Now,
-
-the application behaves more intelligently.
-
----
-
-# Understanding `return`
-
-Notice this line.
-
-```python
-return
-```
-
-It immediately stops the function.
-
-Think of it as an emergency exit.
-
-```text
-Check Input
-
-↓
-
-Invalid?
-
-↓
-
-YES
-
-↓
-
-Leave Function
-```
-
-Nothing below the `return`
-
-executes.
-
----
-
-# Making the Check Shorter
-
-Python has a convenient shortcut.
-
-Instead of
-
-```python
-if symbol == "":
-```
-
-we can write
-
-```python
-if not symbol:
-```
-
-Why?
-
-Because an empty string evaluates to
-
-```text
-False
-```
-
-This is common Python style.
-
-We'll use it throughout this tutorial.
-
----
-
-# Improving the Callback
-
-A more professional version looks like this.
-
-```python
 def search_stock(event):
 
     symbol = search.value
 
     if not symbol:
-        print("Please enter a stock symbol.")
+        results.object = "⚠️ Please enter a stock symbol."
         return
 
-    print(f"Searching SGX for {symbol}")
+    results.object = f"Searching SGX for **{symbol}**..."
+
+button.on_click(search_stock)
+
+dashboard = pn.Column(
+    "# SGX Stock Monitor",
+    search,
+    button,
+    results
+)
+
+dashboard.servable()
 ```
 
-Notice another new feature.
+This is our first genuinely interactive Panel application.
 
 ---
 
-# Introducing f-Strings
+# Understanding `results.object`
 
-This line
+This syntax may seem unfamiliar.
 
-```python
-print(f"Searching SGX for {symbol}")
-```
+Remember,
 
-uses an **f-string**.
+every object has properties.
 
-The
+Earlier,
 
-```python
-f
-```
-
-before the quotation marks tells Python
-
-to insert variables into the string.
-
-Suppose
-
-```python
-symbol = "DBS"
-```
-
-The result becomes
-
-```text
-Searching SGX for DBS
-```
-
-This is much easier to read than older formatting techniques.
-
----
-
-# Why Read the Widget Inside the Callback?
-
-Some beginners ask:
-
-> "Why don't we read `search.value` when the application starts?"
-
-Consider this sequence.
-
-Application starts.
-
-```text
-Text Box
-
-↓
-
-(empty)
-```
-
-At startup,
-
-the user hasn't typed anything yet.
-
-Reading
+we learned
 
 ```python
 search.value
 ```
 
-at that moment would return
+For Markdown panes,
 
-```text
-""
-```
-
-We wait until the user clicks Search because that's when we expect the input to be complete.
-
----
-
-# Separation of Responsibilities
-
-Notice how nicely the application is organized.
-
-The TextInput is responsible for
-
-* collecting user input
-
-The Button is responsible for
-
-* generating click events
-
-The Callback is responsible for
-
-* reading the widget
-* validating the input
-* deciding what to do next
-
-Each component has one responsibility.
-
----
-
-# Looking Ahead
-
-Today,
-
-our callback only prints the stock symbol.
-
-Soon,
-
-it will do much more.
-
-```text
-Read Symbol
-
-↓
-
-Validate Symbol
-
-↓
-
-Download Market Data
-
-↓
-
-Update Price Table
-
-↓
-
-Update Chart
-
-↓
-
-Display Company Information
-
-↓
-
-Refresh Dashboard
-```
-
-Everything begins with
+the displayed content is stored in
 
 ```python
-search.value
+results.object
 ```
+
+Think of it like this.
+
+```text
+Markdown Pane
+
+↓
+
+object
+
+↓
+
+Displayed Text
+```
+
+Whenever we change
+
+```python
+results.object
+```
+
+the display changes.
+
+---
+
+# Why Doesn't Panel Need Refresh?
+
+Traditional websites often reload the page.
+
+Panel works differently.
+
+When a property changes,
+
+Panel automatically updates the browser.
+
+Conceptually,
+
+this happens.
+
+```text
+Callback
+
+↓
+
+results.object changes
+
+↓
+
+Panel detects change
+
+↓
+
+Browser updates automatically
+```
+
+This is called **reactive updating**.
+
+We'll study reactive programming in detail later.
+
+---
+
+# Displaying Rich Markdown
+
+Because we're using Markdown,
+
+we can display more than plain text.
+
+Example:
+
+```python
+results.object = """
+# Search Complete
+
+**Company:** DBS
+
+- Exchange: SGX
+- Status: Success
+"""
+```
+
+Produces something like
+
+```text
+Search Complete
+
+Company: DBS
+
+• Exchange: SGX
+• Status: Success
+```
+
+This makes our dashboard much more professional.
+
+---
+
+# Preparing for Real Data
+
+Eventually,
+
+our callback will display information like this.
+
+```markdown
+# DBS Group Holdings
+
+**Current Price:** SGD 41.25
+
+**Day Change:** +0.45%
+
+**Volume:** 3,200,000
+
+**Market:** SGX
+```
+
+Notice that we're already building the output area needed for future lessons.
+
+---
+
+# Multiple Panes
+
+Applications often contain many panes.
+
+```text
+Title
+
+↓
+
+Status Pane
+
+↓
+
+Price Pane
+
+↓
+
+Chart Pane
+
+↓
+
+News Pane
+```
+
+Each pane displays different information.
+
+As our SGX Stock Monitor grows,
+
+we'll use multiple panes to organize the dashboard.
+
+---
+
+# Widgets and Panes Working Together
+
+Our application now contains both.
+
+```text
+TextInput
+
+↓
+
+Collect User Input
+
+------------------------
+
+Button
+
+↓
+
+Generate Event
+
+------------------------
+
+Markdown Pane
+
+↓
+
+Display Results
+```
+
+Each component has a different responsibility.
+
+Together,
+
+they form a complete user interface.
 
 ---
 
 # Teacher's Notes
 
-> One of the most important ideas in Panel is that widgets are the application's source of truth.
+> One of the most common beginner mistakes is continuing to use `print()` after building a Panel application. `print()` is useful while debugging, but users cannot normally see terminal output.
 >
-> Rather than trying to read text directly from the screen, your code always interacts with the widget objects. The widget stores the current state, and your callbacks simply read that state whenever they need it.
->
-> This design makes applications predictable, testable, and much easier to maintain.
+> Instead, interactive applications should update panes, indicators, charts, tables, or other visible components. In professional Panel applications, nearly every callback modifies one or more panes so that users immediately see the results of their actions.
 
 ---
 
@@ -856,53 +752,71 @@ search.value
 
 ### ❌ Mistake 1
 
-Trying to read the widget before the user has entered anything.
+Continuing to use
+
+```python
+print()
+```
+
+instead of updating the interface.
 
 Remember,
 
-the widget initially contains an empty string.
+users interact with the web page,
+
+not the terminal.
 
 ---
 
 ### ❌ Mistake 2
 
-Assuming an empty `TextInput` returns `None`.
-
-It returns
+Confusing
 
 ```python
-""
+results
 ```
 
-(an empty string).
+with
+
+```python
+results.object
+```
+
+The pane is an object.
+
+The displayed content is stored in its `object` property.
 
 ---
 
 ### ❌ Mistake 3
 
-Forgetting to validate user input.
+Trying to update the pane before creating it.
 
-Always check that required fields contain valid information before performing an action.
+Always create the pane before the callback uses it.
 
 ---
 
 ### ❌ Mistake 4
 
-Reading the wrong object.
+Creating a new pane every time.
 
 Incorrect:
 
 ```python
-symbol = search
+results = pn.pane.Markdown(...)
 ```
 
-Correct:
+inside the callback.
+
+Instead,
+
+create one pane and simply update
 
 ```python
-symbol = search.value
+results.object
 ```
 
-The widget object and its value are different things.
+This is more efficient and keeps your layout stable.
 
 ---
 
@@ -910,69 +824,61 @@ The widget object and its value are different things.
 
 In this lesson, you learned:
 
-* The `value` property stores the user's input.
-* `search.value` always contains the latest text entered into the widget.
-* Callbacks can read widget properties to determine what the user entered.
-* Empty `TextInput` widgets contain an empty string (`""`).
-* Input should be validated before performing actions.
-* f-strings provide a clean way to include variables in output.
-* Interactive applications typically read widget values inside callbacks rather than during application startup.
+* Panes display information, while widgets collect information.
+* `pn.pane.Markdown()` is the most commonly used output pane.
+* A Markdown pane stores its displayed content in the `object` property.
+* Updating `results.object` automatically refreshes the browser.
+* Callbacks should usually update visible components instead of printing to the terminal.
+* Our SGX Stock Monitor now has a complete interaction cycle: input, processing, and output.
 
-For the first time, our SGX Stock Monitor is responding to **real user input**. We've connected a `TextInput` and a `Button` together, creating our first complete interaction.
+This marks a major milestone. We now have a real interactive web application that accepts user input and displays results directly on the page.
 
 ---
 
 # Exercises
 
-## Exercise 1 — Display User Input
+## Exercise 1 — Welcome Message
 
-Modify the callback so that it prints:
+Create a Markdown pane displaying:
 
 ```text
-You searched for: DBS
+Welcome to the SGX Stock Monitor
 ```
 
-where **DBS** is whatever the user entered.
-
-Test the application using several different stock symbols.
+Add it above your search box.
 
 ---
 
-## Exercise 2 — Validate Empty Input
+## Exercise 2 — Dynamic Search Results
 
-Update your callback so that:
-
-* If the user enters nothing, display:
+Modify the callback so that clicking **Search** displays:
 
 ```text
-Please enter a stock symbol.
+Searching SGX for OCBC...
 ```
 
-* Otherwise, display:
+or whatever symbol the user enters.
 
-```text
-Searching SGX for <symbol>
-```
-
-Test both cases.
+Display the message inside the Markdown pane instead of using `print()`.
 
 ---
 
-## Exercise 3 — Trace the Data Flow
+## Exercise 3 — Rich Formatting
 
-Without looking back at the lesson, draw a diagram showing how the text **DBS** travels through the application after the user clicks **Search**.
+Update the results pane to display:
 
-Include:
+```markdown
+# Search Submitted
 
-* Keyboard
-* TextInput
-* `value`
-* Callback
-* Variable
-* Output
+**Stock:** DBS
+
+Status: Waiting for market data...
+```
+
+Experiment with headings, bold text, and bullet lists.
 
 ---
 
-# Coming Up Next
+## Coming Up Next
 
-In **Lesson 2.7 — Displaying Results with Markdown Panes**, we'll move beyond printing to the terminal. Instead of displaying messages in the console, we'll update the application's user interface itself. You'll learn how to modify a `Markdown` pane dynamically so that search results appear directly inside the SGX Stock Monitor dashboard. This is a major milestone: for the first time, your application will both **accept input** and **update its interface** in response, creating a true interactive web application.
+In **Lesson 2.8 — Layouts with `Row`, `Column`, and `Spacer`**, we'll move beyond simple vertical interfaces. You'll learn how Panel arranges components on the screen, how to build professional dashboard layouts, and how to organize our SGX Stock Monitor into clearly separated sections for search controls, stock information, charts, watchlists, and market summaries. This is where our application will begin to look like a real financial dashboard rather than a simple form.
