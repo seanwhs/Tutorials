@@ -1,12 +1,17 @@
-**✅ Rewritten & Polished Version**
+# ✅ **Python Primer: `utils.py` — File Ingestion and Processing**
 
----
+This primer teaches core Python concepts using real code from a document ingestion module. Each section shows the original code, explains the Python idea simply, provides a short runnable mini-demo, and ties it back to the module.
 
-## Module Deep Dive: `utils.py` — File Ingestion and Processing
+***
 
-This module serves as the **ingestion layer** of the Markly project. It normalizes student submissions — regardless of whether they are PDFs, Word documents, or photos — into clean text and (when needed) base64-encoded images that the rest of the system can reliably use.
+## Module Deep Dive: `utils.py`
 
-### 1. Imports
+This file is the **ingestion layer**: it normalizes student submissions — PDFs, Word documents, or photos — into clean text and base64-encoded images that the rest of the system can reliably use.
+
+***
+
+## 1. Imports
+
 ```python
 import fitz
 import io
@@ -16,23 +21,29 @@ from PIL import Image
 from docx import Document
 ```
 
-**Why this block exists**  
-These imports provide specialized tools for handling different document formats. `fitz` (PyMuPDF) excels at fast PDF text extraction, `python-docx` reads structured Word files, PIL + pytesseract enable OCR on images, and `base64` prepares image data for multimodal AI APIs.
+**Python Concept: Selective Imports from External Libraries**  
+You can import entire modules (`import io`) or specific names from them (`from PIL import Image`). Each library here solves one format: `fitz` (PyMuPDF) for PDFs, `python-docx` for Word files, PIL + `pytesseract` for OCR on images, and `base64` for encoding binary data as text.
 
-**Python concepts used**  
-- Selective imports from external libraries  
-- Format-specific tooling instead of a one-size-fits-all approach  
-- Working with binary data (`bytes`) and converting it for different consumers  
+**Mini Demo**:
+```python
+import io
 
-**Pattern analysis**  
-This is a **format-specific extraction setup**. Each file type gets its own optimized handler.
+# BytesIO creates an in-memory file-like object
+buf = io.BytesIO(b"hello")
+print(buf.read())  # b'hello'
 
-**What if**  
-Removing `pytesseract` would immediately break support for image-based assignments, clearly revealing where OCR is essential in the pipeline.
+# base64 encodes bytes to ASCII-safe strings
+import base64
+encoded = base64.b64encode(b"hello")
+print(encoded.decode("utf-8"))  # aGVsbG8=
+```
 
----
+**In `utils.py`**: These imports assemble the toolkit for format-specific extraction. Removing any one would break support for that file type.
 
-### 2. PDF Extraction
+***
+
+## 2. PDF Extraction
+
 ```python
 def extract_pdf(file_bytes):
     """Extracts text page by page from a PDF."""
@@ -40,23 +51,30 @@ def extract_pdf(file_bytes):
     return "\n".join([page.get_text() for page in document])
 ```
 
-**Why this block exists**  
-It converts raw PDF bytes (held in memory) into a single readable text string by extracting content from every page.
+**Python Concept: Opening Files from Byte Streams + List Comprehensions**  
+`fitz.open(stream=...)` reads PDF data directly from memory without needing a physical file. The list comprehension `[page.get_text() for page in document]` iterates over every page, extracts text, and collects results. `"\n".join(...)` aggregates them with page separators.
 
-**Python concepts used**  
-- Opening a file from a byte stream (`stream=`)  
-- List comprehension + generator-style iteration over document pages  
-- Joining results with explicit separators  
+**Mini Demo**:
+```python
+import io
 
-**Pattern analysis**  
-**Page-by-page reduction** pattern — process individually, then aggregate.
+# Simulating page-by-page join
+pages = ["Page 1 content", "Page 2 content"]
+result = "\n".join(pages)
+print(result)
+# Page 1 content
+# Page 2 content
 
-**What if**  
-Changing `"\n".join(...)` to `"".join(...)` removes page boundaries, which can hurt readability and subject detection in longer documents.
+# Changing separator affects readability
+print("".join(pages))  # Page 1 contentPage 2 content
+```
 
----
+**In `utils.py`**: This is a **page-by-page reduction** pattern — process individually, then aggregate. Changing `"\n"` to `""` would remove page boundaries and hurt readability.
 
-### 3. DOCX Extraction
+***
+
+## 3. DOCX Extraction
+
 ```python
 def extract_docx(file_bytes):
     """Extracts paragraphs from a DOCX file."""
@@ -64,23 +82,30 @@ def extract_docx(file_bytes):
     return "\n".join([paragraph.text for paragraph in document.paragraphs])
 ```
 
-**Why this block exists**  
-It respects the semantic structure of Word documents by traversing paragraphs rather than treating the file as raw text.
+**Python Concept: In-Memory File Objects + Structured Traversal**  
+`io.BytesIO(file_bytes)` wraps raw bytes into a file-like object that `Document()` can read. The `.paragraphs` attribute follows Word's semantic structure, extracting text paragraph by paragraph rather than as raw bytes.
 
-**Python concepts used**  
-- `io.BytesIO` for in-memory file-like objects  
-- Library-specific document model (`document.paragraphs`)  
-- List comprehensions for clean data collection  
+**Mini Demo**:
+```python
+import io
 
-**Pattern analysis**  
-**Structured document traversal** — follows the natural hierarchy of the file format.
+# BytesIO makes bytes behave like a file
+data = b"line1\nline2"
+stream = io.BytesIO(data)
+print(stream.read())  # b'line1\nline2'
 
-**What if**  
-Adding a filter like `if paragraph.text.strip()` would skip empty paragraphs and produce cleaner input for the AI.
+# List comprehension collects items cleanly
+words = ["hello", "world"]
+upper = [w.upper() for w in words]
+print(upper)  # ['HELLO', 'WORLD']
+```
 
----
+**In `utils.py`**: This is a **structured document traversal** pattern. It respects Word's paragraph hierarchy. Adding `if paragraph.text.strip()` would skip empty lines and produce cleaner input.
 
-### 4. Image OCR Extraction
+***
+
+## 4. Image OCR Extraction
+
 ```python
 def extract_image(file_bytes):
     """Extracts text from images via Tesseract OCR."""
@@ -88,22 +113,32 @@ def extract_image(file_bytes):
     return pytesseract.image_to_string(image)
 ```
 
-**Why this block exists**  
-Many student submissions arrive as photos. This function makes handwritten or printed image-based assignments machine-readable.
+**Python Concept: Binary-to-Image Conversion + Delegation**  
+`Image.open()` accepts a file-like object, so `BytesIO` bridges raw bytes and PIL. The function delegates complex OCR work to Tesseract, treating it as a black box that returns plain text.
 
-**Python concepts used**  
-- Converting bytes back into an image object  
-- Delegating complex OCR work to Tesseract  
+**Mini Demo**:
+```python
+from PIL import Image
+import io
 
-**Pattern analysis**  
-**OCR fallback path** — converts visual content into text so downstream modules don’t need special handling.
+# Create a tiny 1x1 pixel image in memory
+img = Image.new("RGB", (1, 1), color="red")
+buf = io.BytesIO()
+img.save(buf, format="PNG")
+buf.seek(0)
 
-**What if**  
-Testing with blurry vs. clear images quickly demonstrates how OCR quality directly affects grading accuracy.
+# Reload from bytes
+reloaded = Image.open(buf)
+print(reloaded.size)  # (1, 1)
+print(reloaded.mode)  # RGB
+```
 
----
+**In `utils.py`**: This is an **OCR fallback path**. It converts visual content to text so downstream modules don't need special image handling. OCR quality directly affects grading accuracy.
 
-### 5. File Type Dispatcher
+***
+
+## 5. File Type Dispatcher
+
 ```python
 def extract_text_from_file(file_bytes, filename):
     """Orchestrates text extraction based on file extension."""
@@ -118,110 +153,97 @@ def extract_text_from_file(file_bytes, filename):
         raise ValueError(f"Unsupported file type: {filename}")
 ```
 
-**Why this block exists**  
-It acts as the central router, directing each upload to the correct extraction handler.
+**Python Concept: String Parsing + Control Flow Dispatch**  
+`filename.lower().split('.')[-1]` normalizes and extracts the extension. The `if/elif/else` chain routes to the correct handler. `raise ValueError(...)` stops execution with a descriptive message when no handler matches.
 
-**Python concepts used**  
-- String normalization and extension parsing  
-- Simple but effective control flow (`if/elif`)  
-- Explicit error handling for unsupported formats  
+**Mini Demo**:
+```python
+# Extension extraction
+filename = "Essay.PDF"
+ext = filename.lower().split('.')[-1]
+print(ext)  # pdf
 
-**Pattern analysis**  
-**Dispatcher / router pattern** — keeps the rest of the codebase format-agnostic.
+# Membership testing with tuples
+print("jpg" in ("png", "jpg", "jpeg"))  # True
+print("gif" in ("png", "jpg", "jpeg"))  # False
 
-**What if**  
-Adding a `.txt` case (e.g., `return file_bytes.decode("utf-8")`) would be straightforward and extend support easily.
+# Raising errors
+try:
+    raise ValueError("Bad input")
+except ValueError as e:
+    print(e)  # Bad input
+```
 
----
+**In `utils.py`**: This is a **dispatcher / router pattern**. It keeps the rest of the codebase format-agnostic. Adding a `.txt` case (`return file_bytes.decode("utf-8")`) would be straightforward.
 
-### 6. Base64 Image Encoding
+***
+
+## 6. Base64 Image Encoding
+
 ```python
 def image_to_base64(file_bytes):
     """Encodes image bytes to base64 for AI API consumption."""
     return base64.b64encode(file_bytes).decode("utf-8")
 ```
 
-**Why this block exists**  
-Multimodal AI models (like GPT-4o or Claude-3.5) often expect images as text-embedded data rather than raw binary.
+**Python Concept: Binary-to-Text Encoding + Bytes/String Conversion**  
+`base64.b64encode()` converts binary data to ASCII-safe bytes. `.decode("utf-8")` turns those bytes into a Python string. This two-step process is necessary because JSON and HTTP APIs expect text, not raw binary.
 
-**Python concepts used**  
-- Binary-to-text encoding (`base64`)  
-- Bytes ↔ string conversion  
-
-**Pattern analysis**  
-**Transport preparation step** — bridges binary media with text-based APIs.
-
-**What if**  
-Forgetting `.decode("utf-8")` would leave you with `bytes` instead of a string, causing JSON serialization or API errors.
-
----
-
-### Big-Picture Reading of `utils.py`
-`utils.py` is the **normalization gateway** of Markly. Its primary job is to hide format complexity from the rest of the application so that `engine.py`, `markup.py`, and `report.py` can work with clean, consistent inputs.
-
-Core design principles demonstrated:
-- Specialized handlers per format
-- Clean dispatcher pattern
-- OCR support for real-world student submissions
-- Base64 encoding for visual AI reasoning
-
----
-
-## How Extracted Outputs Feed into `engine.py`
-
-**The extracted text and base64 image are the foundational inputs for the entire AI grading pipeline.**
-
-### High-Level Flow
-1. **User Upload** (`app.py`) → `extract_text_from_file()` + `image_to_base64()` (`utils.py`)
-2. **Normalized data** → `engine.py` (subject detection + grading)
-3. **AI results** (feedback, grade, markup instructions) → `markup.py` → `report.py` → `storage.py`
-
-### Detailed Walkthrough
-
-#### Step 1: Ingestion & Normalization
-`extract_text_from_file()` produces `extracted_text`.  
-Optionally, `image_to_base64()` produces `img_b64` for visual assignments.
-
-This step ensures `engine.py` receives uniform data regardless of original format.
-
-#### Step 2: `engine.py` – Subject Detection & Grading
+**Mini Demo**:
 ```python
-# Expected structure in engine.py
-def grade_assignment(student, subject, filename, file_bytes):
-    text = extract_text_from_file(file_bytes, filename)
-    img_b64 = image_to_base64(file_bytes) if is_image(filename) else None
+import base64
 
-    # Subject detection (if needed)
-    detected_subject = detect_subject(text, img_b64)
+raw = b"\x00\x01\x02"  # Binary data
+encoded_bytes = base64.b64encode(raw)
+print(type(encoded_bytes))  # <class 'bytes'>
+print(encoded_bytes)        # b'AAEC'
 
-    # Load appropriate persona and rubric
-    persona = load_persona(detected_subject)
-    rubric = load_rubric(detected_subject)
+# Without decode, you have bytes — problematic for JSON
+text = encoded_bytes.decode("utf-8")
+print(type(text))  # <class 'str'>
+print(text)        # AAEC
 
-    # Build rich prompt for AI
-    prompt = build_grading_prompt(text, img_b64, student, detected_subject, rubric, persona)
-
-    # Model racing + parsing
-    feedback, grade, markup_json = call_ai_models(prompt)
-    final_grade = extract_grade(feedback) or grade   # utils.py helper
-
-    return feedback, final_grade, markup_json
+# JSON serialization requires strings
+import json
+print(json.dumps({"img": text}))   # {"img": "AAEC"}
+# print(json.dumps({"img": encoded_bytes}))  # TypeError!
 ```
 
-**Critical Dependencies**:
-- **Subject Detection**: Relies heavily on good `extracted_text` (keywords, problem types, instructions).
-- **Grading Quality**: The full text + image (when available) is fed to the LLM so it can reference specific parts.
-- **Markup Generation**: AI returns structured `markup_json` that `markup.py` later renders as handwritten-style annotations.
+**In `utils.py`**: This is a **transport preparation step**. Forgetting `.decode("utf-8")` would return `bytes`, causing JSON serialization or API errors downstream.
 
-#### Step 3: Downstream Modules
-- `markup.py`: Uses original image + `markup_json` to draw realistic teacher annotations (ticks, crosses, correction boxes, margin notes, etc.).
-- `report.py`: Combines annotated image and structured feedback into a polished two-page PDF.
-- `storage.py`: Saves student history for longitudinal tracking.
+***
 
-### Why This Architecture Matters
-- **Decoupling** — Format logic stays isolated in `utils.py`.
-- **Robustness** — OCR + base64 support handles messy real-world submissions.
-- **Extensibility** — Adding new file types only touches the dispatcher.
-- **Quality Chain** — Clean extraction directly improves subject detection, grading accuracy, and visual feedback quality.
+## Big-picture reading of the module
 
-This well-designed ingestion layer is what allows Markly to feel like a true teacher assistant rather than just another automated grader.
+This module is the **normalization gateway** of the system. It hides format complexity from the rest of the application so that grading, markup, and reporting modules can work with clean, consistent inputs.
+
+The main ideas are:
+- **Specialized handlers per format** — each file type gets optimized extraction.
+- **Dispatcher pattern** — one entry point routes to the correct handler.
+- **OCR fallback** — image submissions become machine-readable text.
+- **Base64 encoding** — bridges binary media with text-based AI APIs.
+
+This well-designed ingestion layer is what allows the system to handle real-world student submissions regardless of original format.
+
+***
+
+## Practice suggestions
+
+- Remove `pytesseract` and observe how image-based assignments fail, revealing where OCR is essential.
+- Add a `.txt` case to the dispatcher using `file_bytes.decode("utf-8")`.
+- Change `"\n".join(...)` to `"".join(...)` in `extract_pdf()` and compare readability.
+- Test `image_to_base64()` without `.decode("utf-8")` and watch JSON serialization fail.
+- Create a small script that dispatches different file types and prints their extracted text lengths.
+
+***
+
+## References
+
+- PyMuPDF (`fitz`) documentation for PDF text extraction.
+- `python-docx` documentation for Word document structure.
+- Pillow (PIL) documentation for image handling.
+- Pytesseract documentation for OCR configuration.
+
+***
+
+One important style note: if you are polishing this for teaching material, docstrings are usually better than many inline comments because they explain intent without cluttering the code.
