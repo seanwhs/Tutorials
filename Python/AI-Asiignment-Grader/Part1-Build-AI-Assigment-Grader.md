@@ -1,172 +1,583 @@
-# Markly: Build an AI-Powered Context-Aware Grading Assistant with Python
+# Part 1 — Setting Up Markly
 
-## Introduction
-
-Grading assignments is one of the most time-consuming responsibilities for educators. Whether it's marking programming exercises, mathematics worksheets, English essays, or science reports, teachers spend countless hours reading submissions, identifying mistakes, assigning marks, and writing meaningful feedback.
-
-Large Language Models (LLMs) provide an opportunity to assist with this process. Rather than replacing teachers, they can act as intelligent assistants that review student work, identify strengths and weaknesses, and generate detailed feedback that teachers can review before assigning a final grade.
-
-In this tutorial, we'll build **Markly**, an AI-powered grading assistant capable of reading student assignments, understanding different subjects, and producing teacher-style feedback.
-
-Unlike a generic chatbot, Markly adapts its behaviour depending on the subject being assessed. A mathematics teacher evaluates step-by-step calculations, while an English teacher focuses on grammar, structure, and argument quality. Throughout this tutorial, you'll learn how to teach an AI to think like different kinds of educators using carefully designed prompts.
-
-By the end of this tutorial, you'll have built a complete application that can:
-
-* Upload student assignments
-* Read PDF documents
-* Read Microsoft Word documents
-* Understand scanned assignments and handwritten work using AI vision models
-* Grade assignments using different teacher personas
-* Generate constructive feedback
-* Produce professional PDF grading reports
-* Deploy the application online using Hugging Face Spaces
-
-More importantly, you'll learn how to build a real-world AI application that combines document processing, prompt engineering, multimodal AI, and a modern Python web interface.
-
-This tutorial assumes that you are comfortable with basic Python programming, but no prior AI experience is required.
+## Building an AI-Powered Context-Aware Grading Assistant
 
 ---
 
-# What You'll Build
+# Introduction
 
-Our finished application will provide teachers with a simple workflow.
+Before we start writing code, we need to understand what we're building.
 
-1. Upload a student's assignment.
-2. Choose the subject.
-3. Click **Grade Assignment**.
-4. Review the AI-generated feedback.
-5. Export the grading report as a PDF.
+Many beginners make the mistake of jumping straight into programming.
 
-Although the user interface is simple, several components work together behind the scenes.
+Professional software engineers do the opposite.
 
-```
-                 Student Assignment
-                        │
-                        ▼
-                 Upload to Markly
-                        │
-                        ▼
-            Detect Assignment File Type
-                        │
-      ┌─────────────────┼──────────────────┐
-      ▼                 ▼                  ▼
-    PDF              DOCX               Image
-      │                 │                  │
-      └─────────────────┼──────────────────┘
-                        ▼
-                Extract Assignment
-                        │
-                        ▼
-             Apply Teacher Persona
-                        │
-                        ▼
-               Large Language Model
-                        │
-                        ▼
-          Teacher Feedback + Grade
-                        │
-         ┌──────────────┴─────────────┐
-         ▼                            ▼
-     Display Feedback          Export PDF
-```
+They first understand:
 
-Instead of building everything at once, we'll construct this pipeline one piece at a time.
+* What problem the system solves
+* What components are needed
+* How those components communicate
+* Where each responsibility belongs
+
+Markly may look like a simple grading application from the outside, but internally it consists of several independent systems working together.
+
+By the end of this tutorial, you'll build a complete AI-powered grading platform capable of:
+
+* Reading assignments
+* Understanding documents
+* Detecting subjects automatically
+* Applying grading rubrics
+* Generating teacher-style feedback
+* Producing annotated assignments
+* Tracking student progress
+* Generating PDF reports
 
 ---
 
-# How This Tutorial Is Organized
+# What Happens When A Teacher Uploads An Assignment?
 
-The tutorial is divided into small milestones.
+Imagine a teacher uploads:
 
-Each milestone introduces one new feature while building on the previous one.
+```text
+math_homework.pdf
+```
 
-| Part    | What You'll Build        |
-| ------- | ------------------------ |
-| Part 1  | Project setup            |
-| Part 2  | User interface           |
-| Part 3  | Uploading assignments    |
-| Part 4  | Reading PDF files        |
-| Part 5  | Reading DOCX files       |
-| Part 6  | Reading images           |
-| Part 7  | Connecting to OpenRouter |
-| Part 8  | Teacher personas         |
-| Part 9  | AI grading               |
-| Part 10 | PDF report generation    |
-| Part 11 | Deployment               |
+and clicks:
 
-At the end of every section, your application should still run successfully.
+```text
+Grade Assignment
+```
 
-This incremental approach makes debugging much easier because you always know which new feature caused a problem if something stops working.
+Many things happen behind the scenes.
 
 ---
 
-# Part 1 — Setting Up the Project
+## Step 1 — Upload
 
-Before we can build Markly, we need to prepare our development environment.
+The file enters the system.
 
-## Step 1.1 Create the Project Folder
-
-Create a new directory called **markly**.
-
+```text
+Teacher
+   │
+   ▼
+Upload Assignment
 ```
+
+---
+
+## Step 2 — Content Extraction
+
+Markly must determine:
+
+```text
+What kind of file is this?
+```
+
+Possible formats:
+
+* PDF
+* DOCX
+* JPG
+* PNG
+
+Each format requires a different extraction strategy.
+
+```text
+PDF  → PyMuPDF
+DOCX → python-docx
+Image → OCR / Vision AI
+```
+
+---
+
+## Step 3 — Subject Detection
+
+Once text has been extracted:
+
+```text
+Solve the equation 2x + 5 = 11
+```
+
+Markly asks:
+
+```text
+What subject is this?
+```
+
+The AI classifies the content.
+
+Possible results:
+
+* Mathematics
+* English
+* Science
+* Programming
+
+---
+
+## Step 4 — Rubric Selection
+
+Every subject uses different grading criteria.
+
+Mathematics rubric:
+
+```text
+Calculation Accuracy
+Method
+Final Answer
+```
+
+English rubric:
+
+```text
+Grammar
+Structure
+Argument Quality
+```
+
+Programming rubric:
+
+```text
+Correctness
+Code Quality
+Testing
+```
+
+Markly automatically selects the appropriate rubric.
+
+---
+
+## Step 5 — Teacher Persona
+
+This is one of the most important ideas in the entire system.
+
+A mathematics teacher thinks differently from an English teacher.
+
+Therefore we create:
+
+```text
+Teacher Personas
+```
+
+Examples:
+
+### Mathematics Teacher
+
+Focuses on:
+
+* calculations
+* formulas
+* working steps
+
+---
+
+### English Teacher
+
+Focuses on:
+
+* grammar
+* sentence structure
+* argument quality
+
+---
+
+### Programming Instructor
+
+Focuses on:
+
+* correctness
+* readability
+* maintainability
+
+---
+
+The AI adopts the correct persona before grading.
+
+---
+
+## Step 6 — AI Evaluation
+
+The assignment is sent to the AI.
+
+The AI receives:
+
+```text
+Student Submission
++
+Subject
++
+Rubric
++
+Teacher Persona
+```
+
+The model then generates:
+
+* score
+* feedback
+* corrections
+* recommendations
+
+---
+
+## Step 7 — Visual Marking
+
+For image-based assignments, Markly goes beyond plain text feedback.
+
+It creates teacher-style annotations.
+
+Examples:
+
+```text
+✓ Correct
+✗ Incorrect
+Excellent work!
+Show working.
+Check calculation.
+```
+
+These annotations are drawn directly onto the assignment image.
+
+---
+
+## Step 8 — Student Memory
+
+Real teachers remember students.
+
+Markly does too.
+
+Before grading, the system can retrieve:
+
+```text
+Previous Assignments
+Previous Grades
+Recurring Mistakes
+```
+
+This allows feedback such as:
+
+> "You have improved significantly in algebra since your previous submission."
+
+---
+
+## Step 9 — Report Generation
+
+Finally, the system generates:
+
+### Marked Assignment
+
+```text
+Annotated Worksheet
+```
+
+and
+
+### Teacher Report
+
+```text
+Grade
+Strengths
+Weaknesses
+Recommendations
+```
+
+Both are exported into PDF format.
+
+---
+
+# The Complete Markly Architecture
+
+At a high level, Markly looks like this:
+
+```text
+                    Assignment
+                         │
+                         ▼
+                  File Upload
+                         │
+                         ▼
+                Content Extraction
+                         │
+                         ▼
+                Subject Detection
+                         │
+                         ▼
+                 Rubric Selection
+                         │
+                         ▼
+                 Teacher Persona
+                         │
+                         ▼
+                  AI Evaluation
+                         │
+                         ▼
+                Annotation Engine
+                         │
+                         ▼
+                 Student Memory
+                         │
+                         ▼
+                 Report Builder
+                         │
+                         ▼
+                     Teacher
+```
+
+---
+
+# Understanding The Project Structure
+
+Now that we understand the architecture, let's create the project.
+
+Our final project structure will look like this:
+
+```text
 markly/
+
+├── app.py
+├── engine.py
+├── utils.py
+├── personas.py
+├── rubrics.py
+├── markup.py
+├── report.py
+├── storage.py
+├── install_fonts.py
+│
+├── students.json
+├── .env
+├── requirements.txt
+│
+├── fonts/
+│   ├── Caveat-Regular.ttf
+│   └── PatrickHand-Regular.ttf
+│
+└── assets/
 ```
-
-Open this directory using your favourite code editor.
-
-We recommend Visual Studio Code because it provides excellent Python support, integrated terminals, and Git integration.
 
 ---
 
-## Step 1.2 Create a Virtual Environment
+# What Does Each File Do?
 
-Python projects often depend on different library versions.
+Beginners often ask:
 
-To prevent conflicts between projects, we'll create a virtual environment.
+> Why do we need so many files?
 
-On Windows:
+Because each file should have a single responsibility.
+
+---
+
+## app.py
+
+The user interface.
+
+Responsible for:
+
+* buttons
+* forms
+* uploads
+* displaying results
+
+Think of this as:
+
+```text
+The Front Desk
+```
+
+---
+
+## engine.py
+
+The AI brain.
+
+Responsible for:
+
+* OpenRouter calls
+* subject detection
+* grading requests
+* feedback generation
+
+Think of this as:
+
+```text
+The Teacher
+```
+
+---
+
+## utils.py
+
+Handles document processing.
+
+Responsible for:
+
+* PDF extraction
+* DOCX extraction
+* OCR
+* image conversion
+
+Think of this as:
+
+```text
+The Reader
+```
+
+---
+
+## personas.py
+
+Stores teacher personalities.
+
+Examples:
+
+```text
+Math Teacher
+English Teacher
+Science Teacher
+Programming Instructor
+```
+
+Think of this as:
+
+```text
+Teaching Styles
+```
+
+---
+
+## rubrics.py
+
+Stores grading criteria.
+
+Examples:
+
+```text
+Accuracy
+Grammar
+Code Quality
+```
+
+Think of this as:
+
+```text
+Marking Guidelines
+```
+
+---
+
+## markup.py
+
+Creates handwritten-style annotations.
+
+Responsible for:
+
+```text
+Ticks
+Crosses
+Comments
+Scores
+Highlights
+```
+
+Think of this as:
+
+```text
+The Red Pen
+```
+
+---
+
+## report.py
+
+Generates PDF reports.
+
+Responsible for:
+
+```text
+Marked Assignment PDFs
+Teacher Reports
+```
+
+Think of this as:
+
+```text
+The Report Writer
+```
+
+---
+
+## storage.py
+
+Stores student history.
+
+Responsible for:
+
+```text
+Previous Grades
+Previous Feedback
+Progress Tracking
+```
+
+Think of this as:
+
+```text
+The Filing Cabinet
+```
+
+---
+
+# Creating The Project Folder
+
+Now create:
+
+```bash
+mkdir markly
+cd markly
+```
+
+---
+
+# Creating A Virtual Environment
+
+Windows:
 
 ```bash
 python -m venv venv
 ```
 
-On macOS or Linux:
+Mac/Linux:
 
 ```bash
 python3 -m venv venv
 ```
 
-This creates a new folder named **venv** containing an isolated Python installation.
+Activate it:
 
----
-
-## Step 1.3 Activate the Environment
-
-Windows
+### Windows
 
 ```bash
 venv\Scripts\activate
 ```
 
-macOS/Linux
+### macOS/Linux
 
 ```bash
 source venv/bin/activate
 ```
 
-If successful, your terminal prompt should change:
+You should now see:
 
-```
+```text
 (venv)
 ```
 
-This indicates that any libraries you install will be isolated to this project.
+in your terminal.
 
 ---
 
-## Step 1.4 Install the Required Libraries
+# Installing Dependencies
 
-We'll install all the libraries needed throughout the tutorial.
+Install the core libraries:
 
 ```bash
 pip install panel
@@ -175,123 +586,54 @@ pip install python-dotenv
 pip install pymupdf
 pip install python-docx
 pip install pillow
-pip install reportlab
 pip install pytesseract
+pip install reportlab
 ```
-
-Alternatively, install everything at once:
-
-```bash
-pip install \
-panel \
-openai \
-python-dotenv \
-pymupdf \
-python-docx \
-pillow \
-pytesseract \
-reportlab
-```
-
-Once installation finishes, verify everything works:
-
-```bash
-pip list
-```
-
-You should see all installed packages listed.
 
 ---
 
-## Step 1.5 Create the Project Structure
+# Creating The Initial Files
 
-Inside your project folder, create the following files:
+Create:
 
-```
+```text
 markly/
 
 ├── app.py
 ├── engine.py
-├── personas.py
 ├── utils.py
+├── personas.py
+├── rubrics.py
+├── markup.py
+├── report.py
+├── storage.py
 ├── .env
-├── requirements.txt
-└── assets/
+└── requirements.txt
 ```
 
-### app.py
+Don't worry if these files are empty for now.
 
-This file contains the application's user interface.
-
----
-
-### engine.py
-
-Handles communication with the language model.
-
----
-
-### personas.py
-
-Stores teacher-style grading prompts (Math, English, Science, etc.).
-
----
-
-### utils.py
-
-Handles file processing:
-
-* PDF reading
-* DOCX reading
-* Image OCR
-* Text extraction
-
----
-
-### assets/
-
-Stores images, icons, and sample files.
-
----
-
-# Step 1.6 Save Your API Key
-
-Create a `.env` file:
-
-```text
-OPENROUTER_API_KEY=your_api_key_here
-```
-
-Never hardcode API keys in Python files.
-
----
-
-# Step 1.7 Create requirements.txt
-
-Generate dependency list:
-
-```bash
-pip freeze > requirements.txt
-```
-
-To reinstall later:
-
-```bash
-pip install -r requirements.txt
-```
+Throughout the tutorial we will implement them one at a time.
 
 ---
 
 # What We've Accomplished
 
-Although we haven't written application logic yet, we've already:
+Even though we haven't written any application logic yet, we've already done something important:
 
-* Created a clean project structure
-* Set up a virtual environment
-* Installed all required dependencies (including OCR support via `pytesseract`)
-* Secured API keys properly
-* Prepared reproducible deployment setup
+We designed the architecture before writing code.
+
+You now understand:
+
+* what Markly does
+* how grading flows through the system
+* why each module exists
+* where future code will live
+
+This architectural understanding will make the rest of the tutorial significantly easier because every new feature will fit into a structure you already understand.
 
 ---
 
-In the next part, we'll build the **Panel-based user interface**, where users can upload assignments, select subjects, and trigger the grading pipeline.
+# Next Part
+
+In **Part 2 — Building The User Interface**, we'll create the first working version of Markly using Panel and build the teacher dashboard where assignments can be uploaded, subjects selected, and grading initiated.
