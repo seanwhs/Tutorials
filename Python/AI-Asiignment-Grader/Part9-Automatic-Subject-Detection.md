@@ -1,423 +1,427 @@
 # Part 9 — Automatic Subject Detection (AI Classification Layer)
 
-Up to this point, Markly requires the teacher to manually select a subject before grading:
+Up to this point, Markly has become a capable grading assistant.
 
-* Mathematics
-* English
-* Science
-* Programming
+It can:
 
-This works, but it introduces unnecessary friction in real classroom workflows.
+* Read PDFs
+* Read Microsoft Word documents
+* Analyze scanned worksheets
+* Grade handwritten assignments
+* Generate teacher-style feedback
+* Produce professional PDF reports
 
-Teachers don’t want to think about classification. They just want to upload a file and get meaningful feedback.
+However, there is still a small workflow problem.
 
-More importantly, manual selection introduces a subtle but critical risk:
+The teacher must tell Markly what subject the assignment belongs to.
 
-* A math worksheet might be graded as English
-* A programming assignment might be graded as Science
-* A handwritten response might be misinterpreted entirely
-
-Even if the grading system is strong, **the wrong subject means the wrong grading lens**.
-
-In this chapter, we remove that responsibility from the teacher.
-
-We introduce a new capability:
-
-> **AI as a classifier before AI as a grader**
-
----
-
-# The New Architecture
-
-We are inserting a new step into the pipeline: subject classification.
+For example:
 
 ```text
 Upload Assignment
-        │
-        ▼
-Extract Content (Text / Image)
-        │
-        ▼
-🧠 Subject Detection (NEW)
-        │
-        ▼
-Select Persona Automatically
-        │
-        ▼
+        ↓
+Select Subject
+        ↓
 Grade Assignment
-        │
-        ▼
-Generate Report
 ```
 
-Instead of asking the teacher:
+This works, but it introduces unnecessary friction.
 
-> “Which subject is this?”
+Teachers should not have to classify assignments manually.
 
-We now ask the model:
-
-> “What subject does this appear to be?”
+A modern AI system should be able to infer context automatically.
 
 ---
 
-# Why This Works
+# The Problem with Manual Subject Selection
 
-LLMs are surprisingly strong at semantic classification, even without explicit rules.
+Manual classification creates several issues.
 
-They infer subject type from patterns in the content:
+### Extra Work
 
-### Mathematics
+Teachers already know what subject the assignment belongs to.
 
-* Equations and symbols
-* Step-by-step derivations
-* Structured problem solving
-
-### English
-
-* Paragraphs and essays
-* Grammar structures
-* Narrative or argumentative writing
-
-### Programming
-
-* Keywords like `def`, `for`, `class`
-* Syntax and indentation
-* Logical code structure
-
-### Science
-
-* Experimental descriptions
-* Technical terminology
-* Diagrams or structured explanations
-
-In effect, we are using the model as a **semantic classifier**, not just a generator.
+Being asked to select it again is redundant.
 
 ---
 
-# Step 1 — Create a Subject Classification Prompt
+### Human Error
 
-Open `engine.py` and add a dedicated prompt for classification.
+The wrong subject may be selected accidentally.
 
-```python
-SUBJECT_DETECTION_PROMPT = """
-You are an academic subject classifier.
-
-Your task is to determine the subject of a student assignment.
-
-Choose ONLY one of the following:
-- Mathematics
-- English
-- Science
-- Programming
-
-Rules:
-- Output ONLY the subject name
-- Do not explain
-- Do not add punctuation
-- Do not include any extra text
-
-Assignment:
-"""
-```
-
----
-
-## Why Strict Output Matters
-
-Without constraints, the model might respond like:
+For example:
 
 ```text
-This appears to be a Mathematics assignment because it contains equations...
+Math worksheet
+        ↓
+Selected as English
+        ↓
+Incorrect grading persona
 ```
 
-That breaks automation.
+The grading engine may still generate feedback, but it will be using the wrong evaluation framework.
 
-We need a clean, machine-readable output:
+---
+
+### Poor User Experience
+
+Every additional decision increases cognitive load.
+
+A better workflow is:
+
+```text
+Upload Assignment
+        ↓
+Markly identifies subject
+        ↓
+Grade Assignment
+```
+
+The teacher simply uploads the work.
+
+Markly handles the rest.
+
+---
+
+# AI as a Classifier
+
+Most people think LLMs only generate text.
+
+In reality, they are also excellent classifiers.
+
+Before Markly grades an assignment, it first asks:
+
+> "What subject does this work belong to?"
+
+Possible outputs:
+
+```text
+Mathematics
+English
+Science
+Programming
+```
+
+This classification becomes the foundation for the rest of the grading pipeline.
+
+---
+
+# The New Workflow
+
+Subject detection now becomes a dedicated stage.
+
+```text
+Assignment
+      ↓
+Content Extraction
+      ↓
+Subject Detection
+      ↓
+Persona Selection
+      ↓
+Rubric Selection
+      ↓
+Grading
+      ↓
+Report Generation
+```
+
+This allows Markly to adapt automatically.
+
+---
+
+# Detecting Subjects from Text
+
+When the uploaded file contains readable text:
+
+* PDF
+* DOCX
+* OCR output
+
+Markly extracts the content and sends a classification request.
+
+Conceptually:
+
+```python
+subject = predict_subject(text)
+```
+
+Example:
+
+```text
+Solve for x:
+
+2x + 5 = 15
+```
+
+Output:
 
 ```text
 Mathematics
 ```
 
-This is what allows downstream components to function reliably.
-
 ---
 
-# Step 2 — Implement Subject Detection
+# Detecting Subjects from Images
 
-Now implement the classification function.
+Modern assignments are not always text documents.
 
-```python
-def detect_subject(content):
+Teachers often upload:
 
-    prompt = SUBJECT_DETECTION_PROMPT + content
+* Handwritten worksheets
+* Photos from mobile phones
+* Scanned papers
+* Whiteboard exercises
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b:free",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0
-    )
+For these submissions, Markly uses a vision-capable model.
 
-    return response.choices[0].message.content.strip()
-```
-
----
-
-## Why `temperature = 0`
-
-We are no longer generating creative text.
-
-We are performing classification.
-
-Setting:
+Instead of extracting text first, the model analyzes the image directly.
 
 ```python
-temperature = 0
-```
-
-ensures:
-
-* deterministic output
-* consistent classification
-* reduced randomness between identical inputs
-
-This is essential for production-grade pipelines.
-
----
-
-# Step 3 — Integrate Into the Grading Pipeline
-
-Previously, Markly relied on manual subject selection:
-
-```python
-result = grade_assignment(content, subject.value)
-```
-
-We now replace this with automatic detection.
-
----
-
-## Update App Logic
-
-```python
-from engine import grade_assignment, detect_subject
-```
-
----
-
-## Step 3.1 Extract Content First
-
-```python
-content = extract_text_from_file(upload.value, upload.filename)
-```
-
----
-
-## Step 3.2 Detect Subject Automatically
-
-```python
-status.object = "Detecting subject..."
-status.alert_type = "primary"
-
-predicted_subject = detect_subject(content)
-
-status.object = f"Detected subject: {predicted_subject}"
-```
-
----
-
-## Step 3.3 Pass Into Grading Engine
-
-```python
-result = grade_assignment(
-    content,
-    predicted_subject
+subject = predict_subject_from_image(
+    image_base64
 )
 ```
 
-At this point, the teacher is no longer involved in classification.
-
----
-
-# Step 4 — Handling Image-Based Assignments
-
-For images, we follow a simplified fallback approach:
-
-```python
-if filename.endswith((".png", ".jpg", ".jpeg")):
-
-    image = image_to_base64(upload.value)
-
-    # Placeholder content for classification
-    content = "[IMAGE_ASSIGNMENT]"
-
-    predicted_subject = detect_subject(content)
-
-    result = grade_image(image, predicted_subject)
-```
-
-Later, this can be upgraded to full vision-based classification, but this keeps the system simple for now.
-
----
-
-# Step 5 — The Architectural Shift
-
-We are now using the LLM in two distinct roles:
-
-### 1. Classifier (Pre-processing Layer)
+This enables classification from:
 
 ```text
-Input: assignment
-Output: subject
+Handwriting
+Diagrams
+Charts
+Tables
+Mathematical notation
+Code screenshots
 ```
 
-### 2. Teacher (Grading Layer)
+without requiring OCR first.
+
+---
+
+# Why Vision-Based Classification Matters
+
+Consider a handwritten mathematics worksheet.
+
+OCR may produce:
 
 ```text
-Input: assignment + persona
-Output: feedback
+2x+5=15
+2x=15+5
+x=10
 ```
 
-This is a key architectural pattern:
+The OCR text exists.
 
-> **Multi-stage LLM pipeline design**
+But the layout, annotations, and visual structure may contain additional clues.
 
-Instead of one large prompt doing everything, we decompose intelligence into stages.
+Vision models can leverage:
+
+* equations
+* diagrams
+* formatting
+* handwritten notation
+
+to improve classification accuracy.
 
 ---
 
-# Step 6 — Improving Classification Accuracy
+# Reusing the Existing AI Engine
 
-We can refine the prompt further for better accuracy:
+One of the strengths of Markly's architecture is that subject detection does not require a separate infrastructure.
 
-```python
-SUBJECT_DETECTION_PROMPT = """
-You are an expert academic curriculum classifier.
-
-Determine the most likely subject of this assignment.
-
-Subjects:
-- Mathematics (numbers, equations, formulas)
-- English (essays, paragraphs, writing)
-- Science (experiments, theory, diagrams)
-- Programming (code, syntax, algorithms)
-
-Return ONLY one word:
-Mathematics, English, Science, or Programming.
-
-Assignment:
-"""
-```
-
-This improves decision boundaries and reduces ambiguity between subjects.
-
----
-
-# Step 7 — Optional Debugging Enhancement
-
-For development purposes, you may log confidence:
-
-```python
-print("Detected subject:", predicted_subject)
-```
-
-You can also extend later to:
+The same concurrent orchestration engine is reused.
 
 ```text
-Subject: Mathematics
-Confidence: 0.92
+Subject Detection
+        ↓
+Multi-Model Engine
+        ↓
+Fastest Successful Response
 ```
 
-But for now, we keep production output simple.
+This means classification benefits from:
+
+* model redundancy
+* timeout protection
+* automatic failover
+* task cancellation
+
+just like grading itself.
 
 ---
 
-# What We Just Built
+# Classification Prompt Design
 
-Markly has evolved significantly:
+The classifier prompt is intentionally strict.
 
-### Before
-
-* Teacher manually selects subject
-* System is static and rule-driven
-
-### Now
-
-* AI automatically detects subject
-* System adapts based on input
-* Persona is assigned dynamically
-* Grading becomes context-aware
-
----
-
-# Updated System Architecture
+Instead of allowing free-form responses:
 
 ```text
-                    Teacher
-                       │
-                       ▼
-              Upload Assignment
-                       │
-                       ▼
-        Extract Text / Image Content
-                       │
-                       ▼
-        🧠 Subject Classification (LLM)
-                       │
-                       ▼
-        Select Persona Automatically
-                       │
-                       ▼
-              Grade Assignment
-                       │
-                       ▼
-            Generate PDF Report
+This appears to be a mathematics assignment because...
+```
+
+we constrain the model:
+
+```text
+Return ONLY one subject:
+
+Mathematics
+English
+Science
+Programming
+```
+
+This ensures predictable downstream automation.
+
+---
+
+# Why Subject Detection Happens First
+
+Subject detection drives nearly every intelligent component in Markly.
+
+Once the subject is known:
+
+```text
+Subject
+    ↓
+Teacher Persona
+    ↓
+Rubric
+    ↓
+Evaluation Strategy
+```
+
+For example:
+
+### Mathematics
+
+```text
+Focus on:
+- calculations
+- reasoning steps
+- methodology
+```
+
+### English
+
+```text
+Focus on:
+- grammar
+- structure
+- argument quality
+```
+
+### Programming
+
+```text
+Focus on:
+- correctness
+- maintainability
+- code quality
+```
+
+### Science
+
+```text
+Focus on:
+- scientific accuracy
+- conceptual understanding
+```
+
+Without correct classification, the rest of the pipeline becomes less reliable.
+
+---
+
+# The Updated Architecture
+
+Markly now performs two separate AI tasks.
+
+### Stage 1 — Classification
+
+```text
+Assignment
+      ↓
+Determine Subject
+```
+
+### Stage 2 — Grading
+
+```text
+Assignment
+      ↓
+Teacher Persona
+      ↓
+Rubric
+      ↓
+Feedback
+```
+
+This is an example of a **multi-stage AI workflow**.
+
+Instead of one giant prompt doing everything, intelligence is decomposed into smaller, focused tasks.
+
+---
+
+# Full System Flow
+
+```text
+Teacher
+    ↓
+Upload Assignment
+    ↓
+PDF / DOCX / Image Processing
+    ↓
+AI Subject Detection
+    ↓
+Automatic Persona Selection
+    ↓
+Automatic Rubric Selection
+    ↓
+Concurrent Multi-Model Grading
+    ↓
+Feedback Generation
+    ↓
+Teacher Annotations
+    ↓
+PDF Report Generation
+    ↓
+Downloadable Results
 ```
 
 ---
 
-# Why This Is a Big Step
+# What We Have Achieved
 
-Markly is no longer a fixed workflow system.
+Markly is no longer a static grading tool.
 
-It is now an **adaptive AI system**.
+It now:
 
-Instead of asking the user:
+* Understands text documents
+* Understands images
+* Detects subjects automatically
+* Selects grading personas dynamically
+* Chooses appropriate rubrics
+* Produces context-aware feedback
 
-> “What is this?”
+The teacher no longer needs to tell the system what the assignment is.
 
-We now ask:
+Markly infers it automatically.
 
-> “What does this look like?”
-
-That shift—from explicit instruction to inference—is what defines modern AI-native applications.
+That shift—from explicit configuration to intelligent inference—is one of the defining characteristics of AI-native applications.
 
 ---
 
-# What’s Next
+# What's Next
 
-So far, Markly can:
+At this point, Markly can analyze and grade individual submissions extremely well.
 
-* Process text and images
-* Detect subject automatically
-* Apply persona-based grading
-* Generate structured feedback reports
+However, every submission is still treated in isolation.
 
-But there is still a major limitation:
+The system has no memory of:
 
-> The system has no memory.
+* previous assignments
+* recurring mistakes
+* learning progress
+* improvement trends
 
-Each submission is treated independently.
-
-It does not know:
-
-* whether a student improved
-* repeated mistakes
-* long-term learning patterns
-* historical performance
-
-In the next chapter, we will evolve Markly into a **student-aware system**, capable of tracking learning over time and generating longitudinal feedback like a real teacher.
+In the next chapter, we will introduce **Student Memory and Progress Tracking**, transforming Markly from a grading assistant into a system that can monitor learning development over time—much closer to how real teachers evaluate students across an entire semester.
