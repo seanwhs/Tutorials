@@ -1,0 +1,238 @@
+## Python for JavaScript Developers — Part 4: Async, Concurrency, and the Event Loop
+
+By now, you’ve mapped Python’s data structures, functions, modules, and classes to familiar JavaScript concepts. The next “big bridge” topic for JS developers is how Python handles **async work and concurrency**—the Python side of what you already know as `async/await`, promises, and the event loop.
+
+In JS, you’re used to:
+
+- Non-blocking I/O via the event loop  
+- `async` functions returning promises  
+- `await` to pause within an async function  
+- Libraries like `axios`, `fetch`, or database drivers that are promise-based  
+
+Python has very similar ideas, but they live in a slightly different ecosystem and syntax.
+
+***
+
+### Async Functions ↔ async/await
+
+Modern Python has `async def` and `await`, which feel almost identical to JavaScript’s `async`/`await` story.
+
+#### Python
+
+```python
+import asyncio
+
+async def fetch_data():
+    print("Fetching...")
+    await asyncio.sleep(1)  # simulate async I/O
+    return {"status": "ok"}
+
+async def main():
+    result = await fetch_data()
+    print(result)
+
+asyncio.run(main())
+```
+
+#### JavaScript
+
+```javascript
+async function fetchData() {
+  console.log("Fetching...");
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return { status: "ok" };
+}
+
+async function main() {
+  const result = await fetchData();
+  console.log(result);
+}
+
+main();
+```
+
+Mental mapping:
+
+- `async def` ≈ `async function`  
+- `await` behaves the same: pauses within the async function until the awaited operation completes  
+- `asyncio.run(main())` ≈ “start the event loop and run `main`”  
+
+For JS devs, the main difference is that Python’s async world is opt-in: you choose `asyncio` or another async framework, rather than everything being naturally event-loop based like Node.
+
+***
+
+### Coroutines vs Promises
+
+Under the hood, Python doesn’t use promises; it uses **coroutines**—objects representing async computations.
+
+In practice, though, the ergonomics are similar:
+
+- In JS, `async function` creates a function that returns a `Promise`.  
+- In Python, `async def` creates a coroutine function, and calling it returns a coroutine object that the event loop drives.  
+
+You rarely manipulate coroutine objects directly; you just `await` them, similar to how you mostly `await` promises instead of manually calling `.then()`.
+
+For your readers, you can frame coroutines as “Python’s equivalent of promises, driven by the event loop.”
+
+***
+
+### Running Tasks Concurrently
+
+Both ecosystems allow you to run multiple async operations at once and wait for them together.
+
+#### Python: `asyncio.gather` ↔ `Promise.all`
+
+```python
+import asyncio
+
+async def fetch_user(id):
+    await asyncio.sleep(1)
+    return {"id": id, "name": f"User {id}"}
+
+async def main():
+    users = await asyncio.gather(
+        fetch_user(1),
+        fetch_user(2),
+        fetch_user(3),
+    )
+    print(users)
+
+asyncio.run(main())
+```
+
+#### JavaScript: `Promise.all`
+
+```javascript
+async function fetchUser(id) {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return { id, name: `User ${id}` };
+}
+
+async function main() {
+  const users = await Promise.all([
+    fetchUser(1),
+    fetchUser(2),
+    fetchUser(3),
+  ]);
+  console.log(users);
+}
+
+main();
+```
+
+Mapping:
+
+- `asyncio.gather(...)` ≈ `Promise.all([...])`  
+- Both run tasks concurrently (within the constraints of an event loop)  
+- Great for I/O-bound work like HTTP requests, database calls, and file I/O  
+
+Calling this parallel explicitly is a huge confidence booster for JS devs: “your mental model of `Promise.all` directly transfers.”
+
+***
+
+### Event Loop Mental Model
+
+Node’s event loop is core to how JS handles async. Python’s `asyncio` provides a similar event loop abstraction.
+
+High-level picture:
+
+- Both have a loop that manages scheduled tasks and I/O events.  
+- In JS, it’s baked into the runtime.  
+- In Python, you usually work with `asyncio.run`, `asyncio.create_task`, and `await` inside `async def` functions.  
+
+Simple example with tasks:
+
+```python
+import asyncio
+
+async def worker(name, delay):
+    await asyncio.sleep(delay)
+    print(f"{name} done")
+
+async def main():
+    task1 = asyncio.create_task(worker("A", 1))
+    task2 = asyncio.create_task(worker("B", 2))
+
+    await task1
+    await task2
+
+asyncio.run(main())
+```
+
+This is similar to creating multiple async jobs in JS that run concurrently and then awaiting each.
+
+You can position this as: “Python gives you the event loop as a library (`asyncio`), not as the default runtime behavior.”
+
+***
+
+### Async I/O in Real Code (HTTP Example)
+
+JS devs are used to `fetch` or `axios`. Python has async HTTP clients that plug into `asyncio`.
+
+Common example: `aiohttp`.
+
+#### Python
+
+```python
+import asyncio
+import aiohttp
+
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.json()
+
+async def main():
+    data = await fetch_json("https://api.example.com/data")
+    print(data)
+
+asyncio.run(main())
+```
+
+#### JavaScript
+
+```javascript
+async function fetchJson(url) {
+  const resp = await fetch(url);
+  return resp.json();
+}
+
+async function main() {
+  const data = await fetchJson("https://api.example.com/data");
+  console.log(data);
+}
+
+main();
+```
+
+Key parallels:
+
+- Async HTTP clients expose `await`-able operations  
+- Error handling uses `try/except` in Python vs `try/catch` in JS  
+- Patterns like “fetch many URLs in parallel” are essentially the same, just using `asyncio.gather` vs `Promise.all`.
+
+This is a great place in the tutorial to show JS devs how they’d write a small async script in Python that feels almost 1:1 with their Node code.
+
+***
+
+### Concurrency vs Parallelism (Quick Intuition)
+
+Node developers already know the difference between “many I/O operations at once” and “true multi-core parallelism.” The same distinction exists in Python.
+
+- Async (`asyncio`) is about **concurrent I/O**: lots of waiting tasks sharing one thread/event loop.  
+- Threads/processes (`threading`, `multiprocessing`) are about **parallel work** across CPU cores.  
+
+For most web and API work, JS-style async I/O maps cleanly to Python’s `asyncio` world. When you need CPU-heavy work (e.g., image processing, ML inference loops), you’d look into processes or specialized tooling—similar to offloading in Node to worker threads or external services.
+
+You don’t have to go deep here in Part 4; just naming the distinction and tying it back to the JS mental model helps avoid confusion.
+
+***
+
+### What have we achieved?
+
+By the end of Part 4, you should:
+
+- Recognize `async def` / `await` as Python’s version of `async`/`await`  
+- Map `asyncio.gather` to `Promise.all`  
+- Understand the role of Python’s event loop and how it differs from Node’s “always-on” loop  
+- Be able to write small async Python scripts for I/O tasks that feel familiar coming from JS  
