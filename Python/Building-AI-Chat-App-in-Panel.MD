@@ -63,6 +63,8 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
+#### 2. Architecture Stack
+
 ```mermaid
 flowchart TB
     subgraph Stack["Production AI Chat Architecture"]
@@ -104,10 +106,9 @@ flowchart TB
     Session -.-> PanelUI
 ```
 
-#### 2. Request Lifecycle (Bottom Diagram)
+#### 2. Request Lifecycle 
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 flowchart TD
     subgraph Lifecycle["🔄 Request Lifecycle & Cancellation Flow"]
         direction TB
