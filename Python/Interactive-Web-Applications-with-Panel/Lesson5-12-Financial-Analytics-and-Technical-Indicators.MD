@@ -1,1152 +1,1116 @@
 # Part V — Working with Live SGX Market Data
 
-# Lesson 5.11 — Real-Time Updates and Live Market Monitoring: Periodic Callbacks, Auto Refresh, and Streaming Data
+# Lesson 5.12 — Financial Analytics and Technical Indicators: Moving Averages, Volatility, Returns, and Market Metrics
 
 > **Learning Objectives**
 >
 > By the end of this lesson, you will be able to:
 >
-> * Understand what real-time applications are.
-> * Learn how Panel supports periodic execution.
-> * Understand polling versus streaming architectures.
-> * Implement automatic dashboard refreshes.
-> * Build live market watchlists.
-> * Create market timers and countdowns.
-> * Understand application synchronization.
-> * Learn how to manage refresh intervals.
-> * Build live-updating financial dashboards.
-> * Think like a real-time systems engineer.
+> * Understand what financial analytics is.
+> * Learn why raw prices alone are insufficient.
+> * Calculate stock returns.
+> * Compute percentage changes.
+> * Implement moving averages.
+> * Understand rolling windows.
+> * Calculate volatility.
+> * Measure stock performance.
+> * Compare multiple SGX stocks.
+> * Visualize financial indicators using Panel.
+> * Think like a financial analyst rather than simply a dashboard developer.
 
 ---
 
 # Introduction
 
-Our SGX Stock Monitor currently works like this:
+Our SGX dashboard currently shows:
 
 ```text
-User
+DBS (D05)
 
-↓
+Price:
 
-Enter Symbol
-
-↓
-
-Press Search
-
-↓
-
-Retrieve Data
-
-↓
-
-Display Result
+$41.35
 ```
 
-This is called:
+This tells us something.
 
-> **Manual Refresh**
+But not much.
 
-The problem?
+Suppose someone asks:
 
-Financial markets don't wait for users.
+> Is DBS performing well?
+
+Can we answer?
+
+No.
+
+Why?
+
+Because:
+
+> A price without context is meaningless.
+
+---
+
+# The Problem With Raw Prices
+
+Suppose we observe:
+
+| Stock | Price |
+| ----- | ----- |
+| DBS   | 41.35 |
+| OCBC  | 15.40 |
+| UOB   | 30.15 |
+
+Which stock is performing better?
+
+We cannot know.
+
+Price alone does not measure performance.
+
+---
+
+# Real Financial Questions
+
+Investors ask questions such as:
+
+* Is the stock trending upward?
+* Is the stock volatile?
+* Is today's move unusual?
+* Is the stock outperforming competitors?
+* Is momentum increasing?
+* Is the trend weakening?
+
+These questions require:
+
+> Financial analytics.
+
+---
+
+# What Is Financial Analytics?
+
+Financial analytics means:
+
+> Transforming raw market data into useful information.
+
+---
+
+# Visualizing Financial Analytics
+
+```text
+Raw Prices
+
+↓
+
+Calculations
+
+↓
+
+Indicators
+
+↓
+
+Insights
+
+↓
+
+Decisions
+```
+
+---
+
+# Categories of Financial Analytics
+
+Most financial indicators fall into several categories:
+
+| Category             | Purpose             |
+| -------------------- | ------------------- |
+| Returns              | Measure performance |
+| Trend                | Measure direction   |
+| Volatility           | Measure risk        |
+| Momentum             | Measure speed       |
+| Relative Performance | Compare assets      |
+| Technical Indicators | Predict behavior    |
+
+---
+
+# Our First Metric: Returns
 
 Suppose DBS moves:
 
 ```text
+Yesterday:
+
+40.00
+
+Today:
+
 41.35
-
-↓
-
-41.50
-
-↓
-
-41.65
-
-↓
-
-41.80
 ```
 
-while the user is reading the screen.
-
-Our dashboard becomes stale.
-
-Real financial dashboards continuously update.
-
----
-
-# What Is a Real-Time Application?
-
-A real-time application continuously receives and processes new information.
-
-Examples include:
-
-* stock terminals
-* aircraft tracking systems
-* hospital monitors
-* security systems
-* industrial control systems
-* weather monitoring systems
-
----
-
-# Manual vs Automatic Refresh
-
-## Manual
+The return equals:
 
 ```text
-User
+Profit
 
-↓
+÷
 
-Refresh Button
-
-↓
-
-Update
+Original Investment
 ```
 
 ---
 
-## Automatic
+# Absolute Return
+
+Formula:
 
 ```text
-Timer
-
-↓
-
-Refresh
-
-↓
-
-Update
-
-↓
-
-Wait
-
-↓
-
-Refresh
-```
-
----
-
-# Real-Life Example
-
-Imagine driving a car.
-
-Would you prefer:
-
-```text
-Speedometer
-
-↓
-
-Update Every 10 Minutes
-```
-
-or:
-
-```text
-Speedometer
-
-↓
-
-Update Continuously
-```
-
-Financial dashboards work the same way.
-
----
-
-# How Do Real-Time Dashboards Work?
-
-There are two major approaches:
-
-## Polling
-
-```text
-Dashboard
-
-↓
-
-Request Data
-
-↓
-
-Wait
-
-↓
-
-Request Data
-
-↓
-
-Wait
-
-↓
-
-Request Data
-```
-
----
-
-## Streaming
-
-```text
-Server
-
-↓
-
-Push Data
-
-↓
-
-Dashboard
-
-↓
-
-Push Data
-
-↓
-
-Dashboard
-```
-
----
-
-# Which Approach Will We Use?
-
-For our educational SGX dashboard:
-
-```text
-Polling
-
-✓
-```
-
-because:
-
-* simpler
-* easier to understand
-* widely supported
-* works with most APIs
-
----
-
-# Understanding Polling
-
-Polling means:
-
-> Asking for new data repeatedly.
-
-Example:
-
-```text
-Every 10 Seconds
-
-↓
-
-Get Latest Stock Price
-```
-
----
-
-# Visualizing Polling
-
-```text
-0 sec
-
-↓
-
-Request
-
-↓
-
-10 sec
-
-↓
-
-Request
-
-↓
-
-20 sec
-
-↓
-
-Request
-```
-
----
-
-# Why Not Poll Every Millisecond?
-
-Suppose we poll:
-
-```text
-1000 Times Per Second
-```
-
-Problems include:
-
-* API quota exhaustion
-* server overload
-* wasted bandwidth
-* poor performance
-
----
-
-# Choosing Refresh Intervals
-
-Typical intervals:
-
-| Application         | Refresh   |
-| ------------------- | --------- |
-| Trading Terminal    | 100 ms    |
-| Market Dashboard    | 5–30 sec  |
-| Analytics Dashboard | 1–5 min   |
-| Reporting Dashboard | 10–60 min |
-
----
-
-# Our SGX Dashboard Strategy
-
-We'll choose:
-
-```text
-10 Seconds
-```
-
-because it balances:
-
-* responsiveness
-* API quotas
-* performance
-
----
-
-# Introducing Periodic Callbacks
-
-Panel provides:
-
-```python
-pn.state.add_periodic_callback()
-```
-
-This is one of the most important features for building real-time applications.
-
----
-
-# What Is a Periodic Callback?
-
-A periodic callback means:
-
-```text
-Execute Function
-
-↓
-
-Wait
-
-↓
-
-Execute Function
-
-↓
-
-Wait
-
-↓
-
-Execute Function
-```
-
-automatically.
-
----
-
-# Basic Example
-
-```python
-def update():
-
-    print("Updating...")
-
-
-callback = pn.state.add_periodic_callback(
-
-    update,
-
-    period=5000
-)
-```
-
----
-
-# Understanding `period`
-
-The value:
-
-```python
-period=5000
-```
-
-means:
-
-```text
-5000 milliseconds
+Return
 
 =
 
-5 seconds
-```
+Current Price
 
----
+−
 
-# Visualizing Periodic Execution
-
-```text
-Time
-
-0 sec
-
-↓
-
-Run
-
-5 sec
-
-↓
-
-Run
-
-10 sec
-
-↓
-
-Run
-
-15 sec
-
-↓
-
-Run
-```
-
----
-
-# Why This Is Powerful
-
-Without periodic callbacks:
-
-```text
-User
-
-↓
-
-Click Refresh
-```
-
-With periodic callbacks:
-
-```text
-System
-
-↓
-
-Refresh Automatically
-```
-
----
-
-# Building Our First Live Stock Monitor
-
-Suppose we already have:
-
-```python
-market_service
-```
-
-and:
-
-```python
-price_indicator
-```
-
----
-
-# Creating Update Logic
-
-```python
-def update_stock():
-
-    stock = market_service.get_stock(
-        "D05"
-    )
-
-    price_indicator.value = (
-        stock["price"]
-    )
-```
-
----
-
-# Adding Automatic Updates
-
-```python
-callback = (
-    pn.state
-      .add_periodic_callback(
-
-        update_stock,
-
-        period=10000
-    )
-)
-```
-
-Now our dashboard refreshes every ten seconds.
-
----
-
-# Visualizing the Workflow
-
-```text
-Timer
-
-↓
-
-update_stock()
-
-↓
-
-MarketDataService
-
-↓
-
-Provider
-
-↓
-
-API
-
-↓
-
-Price Indicator
-```
-
----
-
-# What Happens Internally?
-
-Panel creates:
-
-```text
-Background Scheduler
-
-↓
-
-Execute Callback
-
-↓
-
-Update Components
-
-↓
-
-Wait
-
-↓
-
-Repeat
-```
-
-This occurs automatically.
-
----
-
-# Understanding State Synchronization
-
-Suppose we display:
-
-* current price
-* volume
-* percentage change
-
-All values must update together.
-
----
-
-# Bad Approach
-
-```text
-Price
-
-↓
-
-Update
-
-↓
-
-5 Seconds Later
-
-↓
-
-Volume Update
-```
-
-The dashboard becomes inconsistent.
-
----
-
-# Good Approach
-
-```text
-Retrieve Data
-
-↓
-
-Update Everything
-
-↓
-
-Render Dashboard
+Previous Price
 ```
 
 ---
 
 # Example
 
-```python
-def update_stock():
+```text
+41.35
 
-    stock = market_service.get_stock(
-        "D05"
-    )
+−
 
-    price.value = stock["price"]
+40.00
 
-    volume.value = stock["volume"]
+=
 
-    change.value = stock["change"]
+1.35
 ```
 
-Everything updates simultaneously.
-
----
-
-# Building Live Watchlists
-
-Suppose users monitor:
+DBS gained:
 
 ```text
-D05
-
-U11
-
-O39
+$1.35
 ```
 
-Our workflow becomes:
+---
+
+# Why Absolute Return Is Not Enough
+
+Compare:
+
+| Stock       | Gain  |
+| ----------- | ----- |
+| DBS         | +1.35 |
+| Penny Stock | +1.35 |
+
+The gains are identical.
+
+But their importance differs.
+
+---
+
+# Percentage Return
+
+Financial markets prefer:
+
+> Percentage returns.
+
+Formula:
 
 ```text
-Watchlist
+(Current − Previous)
 
-↓
+÷
 
-Loop
+Previous
 
-↓
+×
 
-Retrieve Prices
-
-↓
-
-Update Table
+100
 ```
 
 ---
 
-# Example Watchlist
-
-```python
-watchlist = [
-
-    "D05",
-
-    "U11",
-
-    "O39"
-]
-```
-
----
-
-# Updating Multiple Stocks
-
-```python
-rows = []
-
-for symbol in watchlist:
-
-    stock = (
-        market_service
-        .get_stock(symbol)
-    )
-
-    rows.append(stock)
-```
-
----
-
-# Updating Tables
-
-```python
-table.value = rows
-```
-
-Panel automatically redraws the table.
-
----
-
-# Building Market Clocks
-
-Financial dashboards often display:
+# Example
 
 ```text
-Current Time
+(41.35 − 40)
 
-Market Status
+÷
 
-Countdown To Close
+40
+
+×
+
+100
 ```
 
----
-
-# Why Market Clocks Matter
-
-Users need to know:
+Result:
 
 ```text
-Market Open?
-
-Market Closed?
-
-Opening Soon?
-
-Closing Soon?
+3.375%
 ```
 
 ---
 
-# Example Market Status
+# Implementing Percentage Returns
 
-```text
-Singapore Exchange
+```python
+def calculate_return(
+    previous,
+    current
+):
 
-OPEN
-
-02:14:35 Remaining
+    return (
+        current - previous
+    ) / previous * 100
 ```
 
 ---
 
-# Getting Current Time
-
-Python provides:
+# Testing the Function
 
 ```python
-from datetime import datetime
-```
-
-Example:
-
-```python
-now = datetime.now()
-```
-
----
-
-# Updating Time Displays
-
-```python
-clock.object = (
-    now.strftime(
-        "%H:%M:%S"
-    )
+calculate_return(
+    40,
+    41.35
 )
 ```
 
 Produces:
 
 ```text
-14:35:12
+3.375
 ```
 
 ---
 
-# Combining Market Data and Time
+# Why Create Functions?
 
-Our callback becomes:
+Bad:
 
 ```python
-def update_dashboard():
+result = (
+    current - previous
+) / previous * 100
+```
 
-    update_stock()
+repeated everywhere.
 
-    update_watchlist()
+Good:
 
-    update_clock()
+```python
+calculate_return()
+```
+
+Functions provide:
+
+* reusability
+* readability
+* maintainability
+
+---
+
+# Understanding Historical Data
+
+Financial analytics requires:
+
+```text
+Many Prices
+
+Not
+
+One Price
+```
+
+Example:
+
+| Date      | Price |
+| --------- | ----- |
+| Monday    | 40    |
+| Tuesday   | 41    |
+| Wednesday | 42    |
+| Thursday  | 41    |
+| Friday    | 43    |
+
+---
+
+# Loading Historical Data
+
+Suppose our provider returns:
+
+```python
+history = (
+    market_service
+    .get_history("D05")
+)
+```
+
+Result:
+
+```python
+[
+    40,
+    41,
+    42,
+    41,
+    43
+]
 ```
 
 ---
 
-# Visualizing Dashboard Synchronization
+# Introducing Pandas
 
-```text
-Periodic Callback
+Financial analysis is largely built around:
 
-↓
-
-Stock Update
-
-↓
-
-Watchlist Update
-
-↓
-
-Clock Update
-
-↓
-
-Dashboard Refresh
+```python
+import pandas as pd
 ```
 
 ---
 
-# Understanding Refresh Costs
+# What Is Pandas?
 
-Every refresh requires:
+Pandas provides:
 
-```text
-API Requests
+> Structured data manipulation.
 
-↓
-
-CPU
-
-↓
-
-Memory
-
-↓
-
-Network
-```
-
-Refreshing too frequently creates problems.
-
----
-
-# Example Calculation
-
-Suppose:
+Think of it as:
 
 ```text
-10 Stocks
+Excel
 
-↓
++
 
-10 Seconds
-```
+SQL
 
-This produces:
++
 
-```text
-6 Requests/Minute
-
-↓
-
-360 Requests/Hour
-
-↓
-
-8640 Requests/Day
-```
-
-API quotas suddenly become important.
-
----
-
-# Optimizing Refreshes
-
-Strategies include:
-
-* caching
-* batching
-* selective updates
-* staggered refreshes
-
----
-
-# Selective Updates
-
-Instead of:
-
-```text
-Refresh Everything
-```
-
-we may do:
-
-```text
-Prices
-
-↓
-
-Every 10 Seconds
-
-Charts
-
-↓
-
-Every Minute
-
-News
-
-↓
-
-Every Hour
+Python
 ```
 
 ---
 
-# Starting and Stopping Updates
-
-Panel callbacks can be controlled.
+# Creating a DataFrame
 
 Example:
 
 ```python
-callback.start()
-```
+import pandas as pd
 
-and:
+df = pd.DataFrame({
 
-```python
-callback.stop()
-```
+    "price":
 
----
-
-# Why Stop Updates?
-
-Suppose:
-
-```text
-Market Closed
-```
-
-There is no reason to:
-
-```text
-Continue Polling
+    [40,41,42,41,43]
+})
 ```
 
 ---
 
-# Building Pause Buttons
+# Visual Result
 
-Example:
+```text
+   price
+
+0     40
+1     41
+2     42
+3     41
+4     43
+```
+
+---
+
+# Why DataFrames Matter
+
+Nearly every financial calculation operates on:
+
+```text
+Rows
+
++
+
+Columns
+```
+
+---
+
+# Introducing Moving Averages
+
+A moving average answers:
+
+> What is the average price over recent periods?
+
+---
+
+# Example
+
+Suppose prices are:
+
+```text
+40
+
+41
+
+42
+```
+
+Average:
+
+```text
+41
+```
+
+---
+
+# What Makes It "Moving"?
+
+Suppose we move forward:
+
+```text
+41
+
+42
+
+43
+```
+
+New average:
+
+```text
+42
+```
+
+The calculation window moves.
+
+---
+
+# Visualizing Moving Windows
+
+```text
+40 41 42 41 43
+
+^^^^
+
+↓
+
+   ^^^^
+
+↓
+
+      ^^^^
+```
+
+---
+
+# Why Moving Averages Matter
+
+They smooth:
+
+* noise
+* fluctuations
+* short-term randomness
+
+allowing us to see:
+
+> Trends.
+
+---
+
+# Creating Moving Averages
+
+Pandas provides:
 
 ```python
-pause = pn.widgets.Button(
-    name="Pause"
+df["ma3"] = (
+
+    df["price"]
+
+    .rolling(3)
+
+    .mean()
 )
 ```
 
 ---
 
-# Pause Logic
+# Understanding `.rolling()`
+
+This creates:
+
+```text
+A Moving Window
+```
+
+Example:
 
 ```python
-def pause_updates(event):
+rolling(3)
+```
 
-    callback.stop()
+means:
+
+```text
+Look At
+
+Three Observations
 ```
 
 ---
 
-# Resume Logic
+# Understanding `.mean()`
 
-```python
-def resume_updates(event):
+`.mean()` computes:
 
-    callback.start()
+```text
+Average Value
 ```
 
 ---
 
-# Error Handling During Updates
+# Result
 
-Suppose:
+| Price | MA3   |
+| ----- | ----- |
+| 40    | NaN   |
+| 41    | NaN   |
+| 42    | 41    |
+| 41    | 41.33 |
+| 43    | 42    |
+
+---
+
+# Why Are There Missing Values?
+
+The first rows lack enough data.
+
+Example:
 
 ```text
-Network Failure
+40
+
+?
+
+Need 3 Values
 ```
 
-occurs during polling.
-
-Bad:
+This produces:
 
 ```text
-Dashboard Crash
+NaN
 ```
 
-Good:
+meaning:
 
-```text
-Status:
+> Not A Number.
 
-Connection Lost
+---
 
-Retrying...
-```
+# Short-Term vs Long-Term Averages
+
+Financial analysts often compare:
+
+| Indicator | Period  |
+| --------- | ------- |
+| Short     | 5 days  |
+| Medium    | 20 days |
+| Long      | 50 days |
 
 ---
 
 # Example
 
 ```python
-try:
+df["ma5"] = (
+    df["price"]
+    .rolling(5)
+    .mean()
+)
 
-    update_stock()
-
-except Exception:
-
-    status.object = (
-        "Retrying..."
-    )
+df["ma20"] = (
+    df["price"]
+    .rolling(20)
+    .mean()
+)
 ```
 
 ---
 
-# Building Resilient Real-Time Systems
+# Why Compare Moving Averages?
 
-Professional systems assume:
+Suppose:
 
 ```text
-Refreshes Will Fail
+MA5
+
+>
+
+MA20
 ```
 
-Therefore they:
-
-* retry
-* cache
-* degrade gracefully
-* continue operating
-
----
-
-# Understanding Streaming
-
-Large financial systems often use:
+This often suggests:
 
 ```text
-Exchange
-
-↓
-
-WebSocket
-
-↓
-
-Streaming Data
-
-↓
-
-Dashboard
+Uptrend
 ```
 
-rather than polling.
-
 ---
 
-# Why We Are Not Using Streaming Yet
-
-Streaming introduces:
-
-* sockets
-* subscriptions
-* connection management
-* reconnection logic
-* buffering
-* synchronization
-
-Polling is easier for beginners.
-
----
-
-# Our Complete Real-Time Architecture
+# Visualizing Trend Detection
 
 ```text
+Price
+
+      /
+     /
+----/
+```
+
+versus:
+
+```text
+Price
+
+\
+ \
+  \____
+```
+
+---
+
+# Understanding Volatility
+
+Volatility measures:
+
+> How much prices move.
+
+---
+
+# Example
+
+Stock A:
+
+```text
+40
+40
+40
+40
+40
+```
+
+Stock B:
+
+```text
+20
+60
+15
+70
+10
+```
+
+---
+
+# Which Is More Risky?
+
+Obviously:
+
+```text
+Stock B
+```
+
+because prices fluctuate more.
+
+---
+
+# Measuring Volatility
+
+Volatility is usually measured using:
+
+```text
+Standard Deviation
+```
+
+---
+
+# What Is Standard Deviation?
+
+It measures:
+
+> Distance from the average.
+
+---
+
+# Visual Example
+
+```text
+Average
+
+↓
+
+50
+
+45 48 50 52 55
+```
+
+Small spread:
+
+```text
+Low Volatility
+```
+
+versus:
+
+```text
+10 40 50 80 95
+```
+
+Large spread:
+
+```text
+High Volatility
+```
+
+---
+
+# Calculating Volatility
+
+Pandas provides:
+
+```python
+volatility = (
+
+    df["price"]
+
+    .std()
+)
+```
+
+---
+
+# Rolling Volatility
+
+Markets change.
+
+Therefore:
+
+```python
+df["volatility"] = (
+
+    df["price"]
+
+    .rolling(20)
+
+    .std()
+)
+```
+
+---
+
+# Why Rolling Volatility?
+
+This measures:
+
+```text
+Current Risk
+
+Not
+
+Historical Risk
+```
+
+---
+
+# Measuring Performance
+
+Suppose DBS moves:
+
+```text
+40
+
+↓
+
+44
+```
+
+while UOB moves:
+
+```text
+30
+
+↓
+
+31
+```
+
+Which performed better?
+
+---
+
+# Percentage Comparison
+
+```text
+DBS
+
+=
+
+10%
+
+UOB
+
+=
+
+3.3%
+```
+
+DBS outperformed.
+
+---
+
+# Creating Comparative Returns
+
+```python
+dbs_return = calculate_return(
+    40,
+    44
+)
+
+uob_return = calculate_return(
+    30,
+    31
+)
+```
+
+---
+
+# Building Relative Performance Tables
+
+| Stock | Return |
+| ----- | ------ |
+| DBS   | 10.0%  |
+| UOB   | 3.3%   |
+| OCBC  | 5.2%   |
+
+---
+
+# Visualizing Performance
+
+Charts make comparisons easier.
+
+```text
+DBS   ██████████
+
+OCBC  █████
+
+UOB   ███
+```
+
+---
+
+# Understanding Technical Indicators
+
+Technical indicators are:
+
+> Mathematical transformations of prices.
+
+Examples:
+
+| Indicator       | Purpose        |
+| --------------- | -------------- |
+| SMA             | Trend          |
+| EMA             | Trend          |
+| RSI             | Momentum       |
+| MACD            | Trend strength |
+| Bollinger Bands | Volatility     |
+
+---
+
+# Why Technical Indicators Exist
+
+Humans struggle to identify patterns manually.
+
+Indicators automate pattern detection.
+
+---
+
+# Displaying Analytics in Panel
+
+Suppose we calculate:
+
+```python
+price
+
+ma20
+
+volatility
+
+returns
+```
+
+We can create:
+
+```python
+metrics = pn.Row(
+
+    price_card,
+
+    return_card,
+
+    volatility_card
+)
+```
+
+---
+
+# Creating Analytics Tables
+
+```python
+analytics = pd.DataFrame({
+
+    "Metric": [
+
+        "Price",
+
+        "Return",
+
+        "Volatility"
+    ],
+
+    "Value": [
+
+        price,
+
+        returns,
+
+        volatility
+    ]
+})
+```
+
+---
+
+# Displaying Results
+
+```python
+table = pn.widgets.Tabulator(
+    analytics
+)
+```
+
+---
+
+# Creating Moving Average Charts
+
+Suppose:
+
+```python
+df
+```
+
+contains:
+
+```text
+Price
+
+MA20
+
+MA50
+```
+
+Our chart becomes:
+
+```text
+Price
+
+MA20
+
+MA50
+```
+
+displayed simultaneously.
+
+---
+
+# Visualizing Trend Analysis
+
+```text
+Price     ──────
+
+MA20      -----
+
+MA50      _____
+```
+
+This reveals market structure immediately.
+
+---
+
+# Our Financial Analytics Architecture
+
+```text
+Historical Data
+
+↓
+
+Pandas
+
+↓
+
+Analytics
+
+↓
+
+Indicators
+
+↓
+
 Panel Dashboard
-
-↓
-
-Periodic Callback
-
-↓
-
-MarketDataService
-
-↓
-
-Provider
-
-↓
-
-Financial API
-
-↓
-
-Normalized Data
-
-↓
-
-Dashboard Update
 ```
 
 ---
 
-# Thinking Like a Real-Time Systems Engineer
+# Thinking Like a Financial Analyst
 
-Beginners think:
+Beginners ask:
 
-> "How do I update the dashboard?"
+> "What is the stock price?"
 
-Professionals think:
+Analysts ask:
 
-> "How often should the dashboard update, and what happens when updates fail?"
+> "What does the stock price mean?"
 
-This distinction matters enormously.
+That question creates:
 
-Real-time systems engineering is largely:
+* returns
+* volatility
+* trends
+* momentum
+* technical indicators
 
-> Managing change over time.
+Financial analytics transforms:
+
+```text
+Data
+
+↓
+
+Meaning
+```
 
 ---
 
 # Teacher's Notes
 
-> One of the most important concepts introduced in this lesson is that time itself becomes part of your application architecture. Traditional programs execute once and terminate. Real-time applications execute continuously, requiring developers to reason about synchronization, refresh intervals, state consistency, and failure recovery.
+> One of the most important lessons in financial analytics is that raw market prices contain very little useful information. Almost all professional financial analysis involves transforming prices into derived metrics that reveal trends, risk, momentum, and relative performance.
 >
-> Another important lesson is that "real-time" is relative. Most business applications do not require microsecond updates. Choosing an appropriate refresh interval is an engineering tradeoff involving cost, performance, reliability, and user experience.
+> Another important lesson is that Pandas functions such as `.rolling()`, `.mean()`, and `.std()` are not merely programming tools. They represent decades of statistical and financial modeling practice embedded within software libraries.
 
 ---
 
@@ -1154,31 +1118,31 @@ Real-time systems engineering is largely:
 
 ## ❌ Mistake 1
 
-Refreshing too frequently.
+Comparing stock prices directly.
 
 ---
 
 ## ❌ Mistake 2
 
-Ignoring API quotas.
+Using absolute returns instead of percentages.
 
 ---
 
 ## ❌ Mistake 3
 
-Updating dashboard components independently.
+Ignoring volatility.
 
 ---
 
 ## ❌ Mistake 4
 
-Not handling refresh failures.
+Calculating averages without rolling windows.
 
 ---
 
 ## ❌ Mistake 5
 
-Continuing updates after markets close.
+Assuming trends can be identified visually without indicators.
 
 ---
 
@@ -1186,77 +1150,78 @@ Continuing updates after markets close.
 
 In this lesson, you learned:
 
-* Real-time applications continuously update information.
-* Polling repeatedly requests new data.
-* Panel supports automatic updates through periodic callbacks.
-* Refresh intervals involve engineering tradeoffs.
-* Dashboard components should update synchronously.
-* Watchlists require repeated retrieval and rendering.
-* Market clocks improve usability.
-* Real-time systems require failure handling.
-* Professional dashboards optimize update frequency carefully.
+* Raw prices provide limited information.
+* Returns measure performance.
+* Percentage returns enable comparisons.
+* Moving averages identify trends.
+* Rolling windows create dynamic indicators.
+* Volatility measures risk.
+* Relative performance compares assets.
+* Technical indicators transform prices into insights.
+* Financial analytics converts market data into decision-making information.
 
-Our SGX dashboard is now capable of real-time monitoring. The next step is building advanced financial analytics features, including moving averages, volatility indicators, performance metrics, and technical analysis visualizations.
+Our SGX dashboard can now perform financial analysis. The next step is implementing professional technical indicators such as RSI, EMA, MACD, and Bollinger Bands to build a true financial analytics platform.
 
 ---
 
 # Exercises
 
-## Exercise 1 — Calculate API Usage
+## Exercise 1 — Calculate Returns
 
-Suppose:
+Calculate the percentage returns for:
 
-* 20 stocks
-* refresh every 15 seconds
-
-Calculate:
-
-* requests per minute
-* requests per hour
-* requests per day
+| Previous | Current |
+| -------- | ------- |
+| 40       | 44      |
+| 15       | 18      |
+| 30       | 27      |
 
 ---
 
-## Exercise 2 — Polling vs Streaming
+## Exercise 2 — Moving Average
 
-Create a comparison table for:
-
-* complexity
-* cost
-* latency
-* implementation difficulty
-* reliability
-
----
-
-## Exercise 3 — Dashboard Synchronization
-
-Explain why this approach is problematic:
+Calculate the 3-day moving average manually:
 
 ```text
-Price Update
-
-↓
-
-10 Seconds Later
-
-↓
-
-Volume Update
-
-↓
-
-5 Seconds Later
-
-↓
-
-Chart Update
+20
+22
+24
+26
+28
 ```
 
-Describe a better architecture.
+---
+
+## Exercise 3 — Volatility
+
+Determine which stock is more volatile:
+
+```text
+Stock A
+
+40
+41
+42
+41
+40
+```
+
+or:
+
+```text
+Stock B
+
+20
+60
+15
+80
+10
+```
+
+Explain your reasoning.
 
 ---
 
 # Coming Up Next
 
-In **Lesson 5.12 — Financial Analytics and Technical Indicators: Moving Averages, Volatility, Returns, and Market Metrics**, we'll begin transforming our SGX Stock Monitor from a market viewer into a market analysis platform by implementing moving averages, percentage returns, volatility calculations, trend indicators, rolling windows, comparative performance analysis, and interactive financial visualizations using Panel and Python's data science ecosystem.
+In **Lesson 5.13 — Professional Technical Analysis: EMA, RSI, MACD, Bollinger Bands, and Momentum Indicators**, we'll implement the technical indicators used by traders and financial analysts worldwide, learn the mathematical intuition behind them, visualize them in Panel dashboards, and transform our SGX monitoring application into a professional-grade market analysis platform.
