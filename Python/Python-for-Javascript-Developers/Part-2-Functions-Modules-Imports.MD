@@ -222,9 +222,9 @@ That “comprehension” style is worth a dedicated section later, especially si
 
 ***
 
-### Where to go next
+### What we can achieve?
 
-By this point, a JS developer can:
+By this point, you can:
 
 - Work with Python’s core data structures  
 - Define and call functions with positional and keyword arguments  
