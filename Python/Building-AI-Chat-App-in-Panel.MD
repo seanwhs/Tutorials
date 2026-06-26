@@ -63,7 +63,8 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
-```flowchart TB
+```
+flowchart TB
     subgraph Stack["🏗️ Production AI Chat Architecture"]
         direction TB
 
