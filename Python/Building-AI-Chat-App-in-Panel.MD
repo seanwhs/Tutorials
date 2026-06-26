@@ -14,7 +14,7 @@ import openai
 
 pn.extension()
 
-# Persistent client for the entire session - created once to avoid 
+# Persistent client for the entire session - created once to avoid
 # re-authentication and connection overhead on every message.
 # This is a critical performance optimization.
 client = openai.AsyncOpenAI(api_key="YOUR_API_KEY")
@@ -33,16 +33,16 @@ LLMs are stateless, so you must send the entire conversation context with every 
 async def callback(contents, user, instance):
     # Start with a system message to define the assistant's behavior and personality
     messages = [{"role": "system", "content": "You are a helpful assistant."}]
-    
+   
     # Rebuild full conversation history from Panel's ChatInterface.
     # This bridges the UI state with the stateless nature of the LLM API.
     for msg in instance.objects:
         role = "assistant" if msg.user == "AI" else "user"
         messages.append({"role": role, "content": msg.object})
-    
+   
     # Add the new user message to the context
     messages.append({"role": "user", "content": contents})
-    
+   
     # Create streaming request with full context for coherent conversations
     stream = await client.chat.completions.create(
         model="gpt-4o",
@@ -65,19 +65,19 @@ async def callback(contents, user, instance):
     # Create an event object that acts as a cancellation signal
     # Shared between UI thread and the async generation task
     abort_event = asyncio.Event()
-    
+   
     # Attach the event to the chat instance so the UI (Stop button)
     # can signal interruption from outside the callback
-    instance.stop_event = abort_event  
-    
+    instance.stop_event = abort_event
+   
     stream = await client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": contents}],
         stream=True
     )
-    
+   
     message = ""
-    
+   
     # Process streaming chunks one by one
     async for chunk in stream:
         # Check for cancellation before processing each chunk
@@ -85,7 +85,7 @@ async def callback(contents, user, instance):
         if abort_event.is_set():
             yield message + "\n\n*(Generation aborted)*"
             break
-            
+           
         # Extract new content from the chunk
         content = chunk.choices[0].delta.content
         if content:
@@ -104,7 +104,7 @@ Never leave resources dangling. Wrap streaming logic in `try...finally` (and add
 async def callback(contents, user, instance):
     abort_event = asyncio.Event()
     instance.stop_event = abort_event
-    
+   
     try:
         # Hard timeout prevents a hanging LLM from exhausting connections
         # or blocking the event loop indefinitely
@@ -115,7 +115,7 @@ async def callback(contents, user, instance):
                 messages=[{"role": "user", "content": contents}],
                 stream=True
             )
-            
+           
             message = ""
             async for chunk in stream:
                 if abort_event.is_set():
@@ -125,16 +125,16 @@ async def callback(contents, user, instance):
                 if content:
                     message += content
                     yield message
-                
+               
     except asyncio.TimeoutError:
         yield "\n\n*(Request timed out. Please try again.)*"
     except Exception as e:
         # Gracefully handle network errors, API issues, timeouts, etc.
         yield f"\n\n*(Error: {str(e)})*"
-        
+       
     finally:
         # This always runs - critical for cleaning up state and resources
-        instance.stop_event = None   # Prevent stale references
+        instance.stop_event = None  # Prevent stale references
         print("Stream connection cleaned up.")
 ```
 
@@ -153,10 +153,10 @@ async def orchestrated_request(contents):
         # This reduces total latency to the slowest task instead of sum
         db_task = tg.create_task(fetch_database_context())
         api_task = tg.create_task(fetch_external_data())
-    
+   
     # All tasks are guaranteed to be complete (or cancelled) here
     context = f"{db_task.result()} {api_task.result()}"
-    
+   
     # Use combined context when calling the LLM
     return context
 ```
@@ -185,8 +185,8 @@ logger = logging.getLogger(__name__)
 
 except Exception as e:
     # Structured logging with rich context for production debugging
-    logger.error("LLM request failed", 
-                 exc_info=True, 
+    logger.error("LLM request failed",
+                 exc_info=True,
                  extra={
                      "conversation_length": len(instance.objects),
                      "model": "gpt-4o",
@@ -195,14 +195,167 @@ except Exception as e:
     yield f"\n\n*(An error occurred. Our team has been notified.)*"
 ```
 
+### Complete Production-Grade Implementation
+
+Here is a fully integrated, well-commented example that brings together all the concepts discussed above:
+
+```python
+import panel as pn
+import openai
+import asyncio
+import logging
+from openai import OpenAIError
+
+pn.extension()
+
+# ====================== CONFIGURATION & GLOBAL SETUP ======================
+# Persistent LLM client - created once at module level for performance.
+# Reusing the client avoids repeated authentication and connection overhead.
+client = openai.AsyncOpenAI(api_key="YOUR_API_KEY")
+
+# Structured logger for production observability
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# ====================== MAIN CALLBACK ======================
+async def callback(contents: str, user: str, instance: pn.chat.ChatInterface):
+    """
+    Production-grade callback that handles:
+    - Conversation history
+    - Streaming responses
+    - Cancellation
+    - Timeouts
+    - Error handling & logging
+    """
+    # --- Per-session state management ---
+    # Use instance.user_data to store session-specific data safely.
+    # This prevents state leakage across different users/sessions.
+    if 'user_context' not in instance.user_data:
+        instance.user_data['user_context'] = "Default user preferences loaded."
+
+    # --- Cancellation signal ---
+    # asyncio.Event allows the UI Stop button to interrupt generation
+    abort_event = asyncio.Event()
+    instance.stop_event = abort_event
+
+    try:
+        # --- Build full conversation history ---
+        # LLMs are stateless, so we must send the entire history every time
+        messages = [
+            {"role": "system", "content": "You are a helpful, concise assistant."}
+        ]
+       
+        # Reconstruct history from Panel's internal message objects
+        for msg in instance.objects:
+            role = "assistant" if getattr(msg, 'user', None) == "AI" else "user"
+            messages.append({"role": role, "content": msg.object})
+       
+        # Add the current user message
+        messages.append({"role": "user", "content": contents})
+
+        # Immediate feedback to user - improves perceived performance
+        yield "Thinking..."
+
+        # --- Orchestration: Fetch external context in parallel ---
+        # Use TaskGroup for structured concurrency (Python 3.11+)
+        context = ""
+        try:
+            async with asyncio.TaskGroup() as tg:
+                # Example parallel data fetching tasks
+                db_task = tg.create_task(fetch_database_context(user))
+                api_task = tg.create_task(fetch_external_api_context())
+            context = f"{db_task.result()} {api_task.result()}"
+        except Exception as ctx_err:
+            logger.warning("Context fetching failed", exc_info=True)
+            context = "No additional context available."
+
+        # Append context to system message or latest user message as needed
+        if context:
+            messages[0]["content"] += f" Additional context: {context}"
+
+        # --- Streaming LLM call with timeout and cancellation ---
+        async with asyncio.timeout(45):  # Hard timeout per request
+            stream = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                stream=True,
+                temperature=0.7,
+            )
+
+            message = ""
+            # Process each chunk from the streaming response
+            async for chunk in stream:
+                # Check for user cancellation before processing chunk
+                if abort_event.is_set():
+                    yield message + "\n\n*(Generation aborted by user)*"
+                    return  # Exit cleanly
+
+                content = chunk.choices[0].delta.content
+                if content:
+                    message += content
+                    # Yield allows real-time streaming to the UI
+                    yield message
+
+    except asyncio.TimeoutError:
+        logger.error("Request timed out", extra={"user": user})
+        yield "\n\n*(Request timed out. Please try again later.)*"
+       
+    except (OpenAIError, Exception) as e:
+        # Rich logging for production debugging
+        logger.error("LLM request failed",
+                     exc_info=True,
+                     extra={
+                         "conversation_length": len(instance.objects),
+                         "model": "gpt-4o",
+                         "user": user,
+                         "error_type": type(e).__name__
+                     })
+        yield f"\n\n*(An error occurred. Our team has been notified.)*"
+       
+    finally:
+        # Always clean up - critical for resource management
+        instance.stop_event = None
+        logger.info("Stream processing completed or cancelled")
+
+# ====================== HELPER FUNCTIONS ======================
+async def fetch_database_context(user: str) -> str:
+    """Simulate or implement async database lookup."""
+    await asyncio.sleep(0.3)  # Simulate I/O latency
+    return f"User {user} has premium access."
+
+async def fetch_external_api_context() -> str:
+    """Simulate or implement external API call."""
+    await asyncio.sleep(0.5)
+    return "Current system status: All services operational."
+
+# ====================== STOP BUTTON HANDLER ======================
+def on_stop(event):
+    """Handler for the ChatInterface Stop button."""
+    chat_interface = event.obj if hasattr(event, 'obj') else None
+    if chat_interface and hasattr(chat_interface, 'stop_event'):
+        chat_interface.stop_event.set()
+
+# ====================== APP SETUP ======================
+chat_interface = pn.chat.ChatInterface(
+    callback=callback,
+    callback_exception="verbose"  # Helpful during development
+)
+
+# Attach stop button handler
+chat_interface.stop_button.on_click(on_stop)
+
+# Make the app servable
+chat_interface.servable(title="Production AI Chat • Panel")
+```
+
 ### Architecture Takeaways
 
-- **Persistence**: Keep the LLM client global to the session, but keep all user-specific state in `instance.user_data`.
-- **State Management**: Rebuild full conversation history from `instance.objects` on every turn.
-- **Responsiveness**: Use `asyncio.Event` for cancellation, async generators for rich UI feedback, and immediate status messages.
-- **Stability**: Embrace `try...finally`, `asyncio.timeout`, structured concurrency with `TaskGroup`, and exponential backoff.
-- **Observability**: Use proper logging with rich context for debugging production issues.
-- **Testability**: Mock streams and use `pytest-asyncio` to validate cancellation, retries, and parallelism.
+- **Persistence**: LLM client is global; user-specific state lives in `instance.user_data`.
+- **State Management**: Full history rebuilt on every turn from `instance.objects`.
+- **Responsiveness**: Real-time streaming + `asyncio.Event` for instant cancellation.
+- **Stability**: Timeouts, `try...finally`, structured concurrency with `TaskGroup`.
+- **Observability**: Rich structured logging with context.
+- **User Experience**: Immediate feedback and graceful error messages.
 
 ### Summary
 
@@ -210,6 +363,6 @@ Building a production-grade AI chat app goes far beyond calling an LLM API. It r
 
 ### Conclusion
 
-The difference between a fragile demo and a reliable product lies in these architectural patterns. By treating your LLM requests as managed, observable, interruptible state-machine processes — rather than fire-and-forget calls — you create applications that users can trust even when networks are flaky or responses are slow.
+The difference between a fragile demo and a reliable product lies in these architectural patterns. By treating LLM requests as managed, observable, interruptible processes, you create trustworthy applications that handle the realities of distributed systems.
 
-Start simple with the basic streaming callback, then gradually add history management, cancellation, orchestration, timeouts, proper logging, and testing. Before long, you’ll have a chat interface that feels polished, professional, and ready for real users.
+Start with this foundation, extend it with RAG, authentication, or rate limiting, and you’ll have a truly professional AI chat experience.
