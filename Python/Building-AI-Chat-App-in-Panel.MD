@@ -63,7 +63,7 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
-#### 2. Architecture Stack
+#### 1. Architecture Stack
 
 ```mermaid
 flowchart TB
