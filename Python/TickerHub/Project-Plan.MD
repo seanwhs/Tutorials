@@ -1,6 +1,6 @@
 ### TickerHub: The Hybrid Cloud Architecture
 
-**TickerHub** is an enterprise-grade financial terminal designed to replicate the real-time, high-performance, and collaborative nature of professional platforms like Bloomberg. Built as a **distributed, event-driven ecosystem**, it decouples business logic from the user interface, treating data streams as first-class citizens. By leveraging a **Hybrid Cloud Development model**, you can build TickerHub on your laptop while offloading the memory-intensive infrastructure (Kafka, PostgreSQL, Redis) to serverless providers. This ensures your development environment remains snappy, professional, and identical to your final Hugging Face production deployment.
+**TickerHub** is an enterprise-grade financial terminal designed to replicate the real-time, high-performance, and collaborative nature of professional platforms like Bloomberg. Built as a **distributed, event-driven ecosystem**, it decouples business logic from the user interface, treating data streams as first-class citizens. By leveraging a **Hybrid Cloud Development model**, I can build TickerHub on my laptop while offloading the memory-intensive infrastructure (Kafka, PostgreSQL, Redis) to serverless providers. This ensures my development environment remains snappy, professional, and identical to my final Hugging Face production deployment.
 
 ---
 
