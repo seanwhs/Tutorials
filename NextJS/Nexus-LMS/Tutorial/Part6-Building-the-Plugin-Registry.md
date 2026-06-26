@@ -1,32 +1,37 @@
-# PART 5 — Event-Driven Workflow Engine
+# PART 6 — The Plug-in Registry (Sanity Worker System)
 
-# Tutorial 05: Inngest, Orchestration, and AI Worker Execution
+# Tutorial 06: Building the AI Worker Registry Layer
 
 ---
 
 # Introduction
 
-At this point, Nexus LMS has:
+Up to this point, Nexus LMS can:
 
-* a frontend that emits events
-* a database that stores truth
-* a worker registry (Sanity)
-* a multi-tenant schema
-* a clear separation of concerns
+* emit events
+* run workflows (Inngest)
+* execute AI workers
+* store results in Supabase
 
-Now we build the **system that makes everything move**.
+But one critical piece is still missing:
 
-> This is where LMS becomes a living system instead of a static application.
+> How does the system *know which AI tools exist and when to run them?*
 
-We introduce the orchestration layer:
+This is the role of the **Plug-in Registry**.
 
-* event ingestion
-* durable workflows
-* fan-out execution
-* worker coordination
-* retries and failure recovery
+Instead of hardcoding integrations like:
 
-Powered by Inngest
+```typescript
+if (assignment.submitted) runMarkly();
+```
+
+We introduce a dynamic system:
+
+```text
+Event → Registry → Workers → Execution
+```
+
+The registry is the **brain of extensibility**.
 
 ---
 
@@ -34,138 +39,160 @@ Powered by Inngest
 
 By the end of this tutorial, you will understand:
 
-* How LMS events become durable workflows
-* How Inngest executes AI workflows safely
-* How worker discovery integrates into execution
-* How fan-out and fan-in patterns work
-* How to handle failures and retries
-* How to persist AI execution results
-* How Nexus LMS becomes reactive instead of procedural
+* How the Sanity-based worker registry works
+* How AI workers are modeled as plug-ins
+* How event subscriptions are dynamically resolved
+* How input/output contracts enforce safety
+* How third-party AI tools integrate without LMS changes
+* How Nexus LMS becomes a plug-in marketplace system
 
 ---
 
-# 1. Why We Need an Orchestration Layer
+# 1. Why a Registry Exists
 
-Without orchestration:
+Without a registry:
 
-```text id="bad1"
-UI → DB → AI call → UI update
-```
+* integrations are hardcoded
+* AI tools are tightly coupled
+* system becomes unmaintainable
 
-Problems:
+With a registry:
 
-* no retry system
-* no visibility
-* no workflow control
-* no parallel execution
-* no failure recovery
-
-With orchestration:
-
-```text id="good1"
-Event → Workflow Engine → Workers → Results → Events
-```
-
-Now the system is:
-
-* durable
-* observable
-* extensible
-* replayable
+* AI tools become plug-ins
+* LMS becomes a runtime platform
+* features are installed, not coded
 
 ---
 
-# 2. Event Ingestion Model
+## Before (bad design)
 
-Everything starts with an event:
-
-```typescript id="e1"
-await inngest.send({
-  name: "assignment.submitted",
-  data: {
-    submissionId,
-    studentId,
-    assignmentId
-  }
-});
+```text
+LMS Core → Markly → Tutor AI → Analytics
 ```
 
-This is the **only entry point into the orchestration system**.
+Every new tool requires:
+
+* code change
+* redeploy
+* regression testing
 
 ---
 
-# 3. Core Workflow Structure
+## After (Nexus design)
 
-Every LMS event follows this pattern:
-
-```text id="flow1"
-Event Received
-      ↓
-Fetch Context (DB)
-      ↓
-Discover Workers (Registry)
-      ↓
-Execute Workers (Parallel/Sequential)
-      ↓
-Validate Outputs
-      ↓
-Persist Results
-      ↓
-Emit New Events (Optional)
+```text
+LMS Core → Registry → Workers (dynamic)
 ```
+
+No code change required.
 
 ---
 
-# 4. Basic Inngest Workflow
+# 2. Sanity as the Registry Layer
+
+We use Sanity not as CMS—but as:
+
+> A real-time, queryable plug-in registry.
+
+---
+
+# 3. Worker Schema Design
+
+Every AI tool is a **Worker Document**.
+
+---
+
+## Core Worker Schema
 
 ```typescript id="w1"
-export const assignmentSubmitted = inngest.createFunction(
-  { id: "assignment-submitted" },
-  { event: "assignment.submitted" },
-  async ({ event, step }) => {
-
-    const submission = await step.run("fetch-submission", async () => {
-      return await getSubmission(event.data.submissionId);
-    });
-
-    const workers = await step.run("discover-workers", async () => {
-      return await registry.findWorkers("assignment.submitted");
-    });
-
-    const results = await step.run("execute-workers", async () => {
-      return Promise.all(
-        workers.map(worker =>
-          invokeWorker(worker, {
-            submission
-          })
-        )
-      );
-    });
-
-    await step.run("persist-results", async () => {
-      return await saveWorkerResults(results);
-    });
-
-    return results;
-  }
-);
+export default {
+  name: "worker",
+  type: "document",
+  fields: [
+    {
+      name: "name",
+      type: "string"
+    },
+    {
+      name: "version",
+      type: "string"
+    },
+    {
+      name: "enabled",
+      type: "boolean"
+    },
+    {
+      name: "events",
+      type: "array",
+      of: [{ type: "string" }]
+    },
+    {
+      name: "endpoint",
+      type: "url"
+    },
+    {
+      name: "capabilities",
+      type: "array",
+      of: [{ type: "string" }]
+    },
+    {
+      name: "inputSchema",
+      type: "json"
+    },
+    {
+      name: "outputSchema",
+      type: "json"
+    },
+    {
+      name: "timeout",
+      type: "number"
+    }
+  ]
+};
 ```
 
 ---
 
-# 5. Worker Discovery Layer
+# 4. Worker Document Example (Markly)
 
-Workers are NOT hardcoded.
-
-They come from the registry:
-
-Stored in Sanity
+```json id="w2"
+{
+  "name": "Markly Grader",
+  "version": "1.0.0",
+  "enabled": true,
+  "events": [
+    "assignment.submitted"
+  ],
+  "endpoint": "https://markly.api/run",
+  "capabilities": [
+    "grading",
+    "rubric-evaluation"
+  ],
+  "inputSchema": {
+    "submissionId": "string",
+    "assignmentId": "string"
+  },
+  "outputSchema": {
+    "score": "number",
+    "feedback": "string"
+  },
+  "timeout": 30000
+}
+```
 
 ---
 
-## Example Query
+# 5. Event → Worker Mapping Model
 
-```typescript id="w2"
+The registry answers one question:
+
+> “Which workers should run for this event?”
+
+---
+
+## Query Logic
+
+```typescript id="w3"
 export async function findWorkers(eventName: string) {
   return sanity.fetch(`
     *[_type == "worker" &&
@@ -178,262 +205,288 @@ export async function findWorkers(eventName: string) {
 
 ---
 
-# 6. Worker Execution Model
+## Example Result
 
-Each worker is executed independently.
+For event:
 
-```text id="w3"
+```text
 assignment.submitted
-      |
-      +--> Markly (grading)
-      +--> Plagiarism detector
-      +--> Tutor AI
-      +--> Analytics engine
+```
+
+Registry returns:
+
+```text
+- Markly Grader
+- Plagiarism Checker
+- Tutor AI
+- Analytics Engine
 ```
 
 ---
 
-## Execution Function
+# 6. Capability-Based Extension (Important Upgrade)
+
+We don’t just match by event.
+
+We also support capabilities.
+
+---
+
+## Example Query
 
 ```typescript id="w4"
-export async function invokeWorker(worker, payload) {
-  const res = await fetch(worker.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+*[_type == "worker" &&
+  "assignment.submitted" in events &&
+  "grading" in capabilities
+]
+```
 
-  if (!res.ok) {
-    throw new Error(`Worker failed: ${worker.name}`);
-  }
+---
 
-  return res.json();
+## Why this matters
+
+Now we can:
+
+* replace grading engines without changing LMS
+* run multiple graders in parallel
+* compare AI models
+* support experimentation
+
+---
+
+# 7. Worker Execution Contract
+
+Every worker must obey a strict contract:
+
+```typescript id="w5"
+interface WorkerContract {
+  execute(input: any): Promise<{
+    success: boolean;
+    data: any;
+  }>;
 }
 ```
 
----
+But externally (HTTP API), it behaves like:
 
-# 7. Fan-Out Pattern (Core AI Concept)
-
-Fan-out means:
-
-> One event triggers many independent AI systems.
-
-```text id="fan1"
-                Event
-                  |
-     +------------+-------------+
-     |            |             |
-     V            V             V
-
-  Grader      Tutor AI     Analytics
-```
-
-Each worker:
-
-* runs independently
-* has no knowledge of others
-* can fail safely
-
----
-
-# 8. Fan-In Pattern (Aggregation Layer)
-
-After fan-out, results can be merged:
-
-```text id="fan2"
-Markly --------\
-Tutor AI ------- → Final Learning Report
-Analytics ------/
-```
-
-Example:
-
-```typescript id="fanin"
-const finalReport = await step.run("aggregate", async () => {
-  return {
-    grade: marklyResult.score,
-    feedback: tutorResult.feedback,
-    insights: analyticsResult.patterns
-  };
-});
+```text
+POST /run
 ```
 
 ---
 
-# 9. Failure Handling Strategy
+## Execution Payload
 
-AI systems fail frequently.
-
-We design for failure:
-
----
-
-## 9.1 Retry Policy
-
-```typescript id="r1"
-retry: {
-  attempts: 3,
-  backoff: "exponential"
-}
-```
-
----
-
-## 9.2 Partial Failure Tolerance
-
-If one worker fails:
-
-```text id="r2"
-Markly ✓
-Tutor AI ✗
-Analytics ✓
-```
-
-System still proceeds.
-
----
-
-## 9.3 Dead Letter Handling
-
-Failed workers go to:
-
-```text id="r3"
-worker_failures table
-```
-
----
-
-# 10. Result Persistence
-
-All outputs go into:
-
-```sql id="db1"
-worker_results
-```
-
-Example record:
-
-```json id="db2"
+```json id="w6"
 {
-  "worker_id": "markly",
-  "event_name": "assignment.submitted",
-  "input": { "submissionId": "123" },
-  "output": { "score": 87 },
-  "status": "success"
+  "event": "assignment.submitted",
+  "data": {
+    "submissionId": "123",
+    "assignmentId": "456"
+  }
 }
 ```
 
 ---
 
-# 11. Event Chaining (Advanced Behavior)
+# 8. Registry → Execution Flow
 
-Workers can emit new events:
-
-```text id="chain1"
-assignment.submitted
-        ↓
-grading.completed
-        ↓
-student.struggling
-        ↓
-tutor.intervention
+```text id="flow1"
+Event emitted
+     ↓
+Inngest triggers workflow
+     ↓
+Query Sanity registry
+     ↓
+Fetch enabled workers
+     ↓
+Call worker endpoints
+     ↓
+Store results in Supabase
 ```
 
-This creates:
+---
 
-> adaptive learning loops
+# 9. Third-Party Worker Integration
+
+This is where Nexus LMS becomes powerful.
+
+A third-party tool (like a Python AI grading system) can register itself:
 
 ---
 
-# 12. Observability Layer
+## Example External Worker
 
-We track everything:
+```json id="w7"
+{
+  "name": "External Python Grader",
+  "endpoint": "https://python-ai/run",
+  "events": ["assignment.submitted"],
+  "capabilities": ["grading"],
+  "enabled": true
+}
+```
 
-* event logs
-* worker execution logs
-* latency metrics
-* failure rates
-
-This is critical for AI systems.
-
----
-
-# 13. Why This Architecture Works
-
-## 13.1 Fully asynchronous
-
-No blocking AI calls in UI or API layer.
+No LMS code change required.
 
 ---
 
-## 13.2 Fully extensible
+## Even more interesting:
 
-New AI feature = new worker.
+A developer can deploy:
 
-No core changes.
+* Flask AI service
+* FastAPI grading engine
+* Node.js tutor bot
+* external LLM pipeline
 
----
-
-## 13.3 Fully resilient
-
-Failures do not break LMS flow.
-
----
-
-## 13.4 Fully observable
-
-Every AI decision is traceable.
+All plug into LMS instantly.
 
 ---
 
-## 13.5 Fully decoupled
+# 10. Versioning Strategy
 
-LMS does NOT know:
+Workers evolve independently.
 
-* which AI runs
-* how many workers exist
-* what models are used
+```text
+Markly v1 → Markly v2 → Markly v3
+```
 
 ---
 
-# 14. Key Architectural Principle
+## Schema supports:
 
-> The LMS does not execute intelligence.
+```json
+{
+  "version": "2.0.0"
+}
+```
+
+We can:
+
+* A/B test workers
+* roll back broken AI
+* compare models
+
+---
+
+# 11. Safety Layer (Critical for AI Systems)
+
+We enforce:
+
+---
+
+## 11.1 Schema validation
+
+Input must match:
+
+```json
+inputSchema
+```
+
+---
+
+## 11.2 Output validation
+
+Workers must conform to expected structure.
+
+---
+
+## 11.3 Timeout enforcement
+
+```text
+timeout: 30000ms
+```
+
+---
+
+## 11.4 Disabled workers are ignored
+
+```json
+enabled: false
+```
+
+---
+
+# 12. Why This Architecture Works
+
+## 12.1 LMS becomes extensible
+
+No code changes required for new features.
+
+---
+
+## 12.2 AI becomes modular
+
+Each AI system is replaceable.
+
+---
+
+## 12.3 Marketplace model emerges
+
+You can build:
+
+* LMS App Store
+* AI Worker Marketplace
+* Educational plugin ecosystem
+
+---
+
+## 12.4 Experimentation becomes easy
+
+Run multiple workers per event:
+
+* GPT grader
+* Claude grader
+* local model grader
+
+Compare outputs.
+
+---
+
+## 12.5 System becomes future-proof
+
+Because:
+
+> LMS logic is decoupled from intelligence logic.
+
+---
+
+# 13. Key Architectural Principle
+
+> The LMS does not know what AI exists.
 >
-> It orchestrates intelligence execution.
+> It only knows what events occurred.
 
 ---
 
 # Summary
 
-In this tutorial, we built the orchestration layer:
+In this tutorial, we built the plug-in registry system:
 
-* Inngest event workflows
-* worker discovery system
-* fan-out execution model
-* fan-in aggregation patterns
-* failure handling strategy
-* result persistence model
-* event chaining system
-* observability foundation
+* Sanity-based worker registry
+* event → worker mapping
+* capability-based discovery
+* worker execution contracts
+* third-party integration model
+* versioning strategy for AI tools
+* safety validation layer
+* foundation for AI marketplace architecture
 
-We now have a **fully reactive AI orchestration engine**.
+We now have a **fully dynamic AI plug-in ecosystem**.
 
 ---
 
 # Next Tutorial
 
-## Tutorial 06 — Building the Plug-in Registry (Sanity Worker System)
+## Tutorial 07 — Building the Worker SDK (External AI Integration Layer)
 
 We will now design:
 
-* worker schema in Sanity
-* versioning strategy for AI tools
-* capability-based discovery
-* input/output contract validation
-* enabling external AI tools (Markly, Python Panel, etc.)
-* dynamic plugin marketplace model
-* safe execution contracts for third-party workers
+* official Worker SDK for third-party developers
+* Python + Node worker templates
+* secure authentication between LMS and workers
+* signing requests (HMAC/JWT)
+* local worker testing environment
+* deploying AI tools like Markly into the ecosystem
+* turning Nexus LMS into a developer platform
