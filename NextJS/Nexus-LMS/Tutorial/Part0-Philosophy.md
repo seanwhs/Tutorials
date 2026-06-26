@@ -1,733 +1,479 @@
 # PART 0 — Philosophy and Architecture
 
-# Tutorial 00 — Why Traditional LMS Architecture Is Broken
+# Nexus LMS Tutorial Series
+
+## Tutorial 00 — Why Traditional LMS Architecture Breaks in the AI Era
 
 ---
 
-# Building Nexus LMS
+# Introduction
 
-## Tutorial 00: Why Traditional LMS Architecture Is Broken
+Nexus LMS is built on a simple but uncomfortable observation:
 
-> Before writing a single line of code, we need to answer a more important question:
->
-> **Why build a new LMS architecture at all?**
+> Most Learning Management Systems were not designed for AI.
 
-Most Learning Management Systems today suffer from the same architectural assumptions that were established nearly twenty years ago. Those assumptions were reasonable in a world where software was static, integrations were rare, and AI systems did not exist.
+They were designed for:
 
-The emergence of AI fundamentally changes how educational systems should be designed.
+* static content delivery
+* predictable workflows
+* tightly coupled backend logic
+* human-only evaluation loops
 
-This tutorial explains why traditional LMS architectures fail, why AI-native systems require a different approach, and introduces the architectural principles behind **Nexus LMS**.
+AI breaks all of these assumptions at once.
+
+So before we build anything, we need to understand why the old model collapses—and what replaces it.
 
 ---
 
 # Learning Objectives
 
-By the end of this chapter, you will understand:
+By the end of this part, you should understand:
 
-* Why traditional LMS architectures become unmaintainable
-* Why AI systems break conventional LMS assumptions
-* The difference between application-centric and event-centric systems
-* Why educational platforms should be orchestration engines
-* How plug-in ecosystems enable long-term extensibility
-* The architectural philosophy behind Nexus LMS
+* Why conventional LMS architectures do not scale in AI-native systems
+* Why feature-driven design becomes unmaintainable
+* Why AI forces event-driven thinking
+* Why LMS systems must become orchestration platforms
+* Why “plug-in workers” are the correct abstraction for AI tools
 
 ---
 
-# Chapter 1 — The Traditional LMS Model
+# 1. The Traditional LMS Mental Model
 
-Most LMS platforms follow a similar architecture.
+Most LMS platforms follow a simple structure:
 
-Examples include:
+Examples:
 
 * Moodle
 * Canvas
 * Blackboard Learn
-* Sakai
 
-Their architecture usually looks like this:
+Their mental model looks like this:
 
-```text
-                +----------------+
-                |      User      |
-                +----------------+
-                         |
-                         V
-                +----------------+
-                |      LMS       |
-                +----------------+
-                  |      |      |
-                  |      |      |
-                  V      V      V
-
-              Courses Assignments Grades
+```text id="lms1"
+User → LMS → Database → Response
 ```
 
-The LMS itself owns:
+And inside the LMS:
 
-* authentication
-* courses
-* assessments
-* grading
-* analytics
-* reporting
-* messaging
-* content
-* workflows
+* course logic
+* assignment logic
+* grading logic
+* analytics logic
+* notification logic
+* integrations
 
-Everything lives inside one system.
+Everything is inside one system boundary.
 
-This architecture worked because educational workflows were relatively static.
+This works when:
+
+* workflows are stable
+* features are predictable
+* integrations are limited
+
+But none of these conditions hold anymore.
 
 ---
 
-# Chapter 2 — The Monolith Problem
+# 2. The Real Problem: Feature Accumulation
 
-Suppose a school wants to add:
+As LMS platforms grow, they evolve into this:
+
+```text id="lms2"
+                LMS Core
+                   |
+   +---------------+----------------+
+   |               |                |
+Assignments     Grading        Analytics
+   |               |                |
+   +---------------+----------------+
+                   |
+              Notifications
+```
+
+Then AI arrives:
 
 * AI grading
-* plagiarism detection
 * AI tutoring
-* learning analytics
-* adaptive learning
-* recommendation engines
-* attendance prediction
-* personalized learning paths
+* AI quiz generation
+* AI feedback
+* AI recommendations
+* AI analytics
+* AI content generation
 
-The traditional solution becomes:
+Now the system becomes:
 
-```text
-                     LMS
-
-                       |
-       +---------------+--------------+
-       |               |              |
-       V               V              V
-
-   Grading AI     Tutor AI     Analytics AI
+```text id="lms3"
+                 LMS Core
+                      |
+     +--------+--------+--------+--------+
+     |        |        |        |        |
+   AI Grd   AI Tut  AI Quiz  AI Feed  AI Rec
 ```
 
-Eventually:
-
-```text
-                     LMS
-
-                       |
-       +-------+-------+-------+-------+
-       |       |       |       |       |
-       V       V       V       V       V
-
-    AI1     AI2     AI3     AI4     AI5
-```
-
-Problems emerge immediately:
-
-### Tight Coupling
-
-```typescript
-if (marklyEnabled) {
-    await markly.grade();
-}
-
-if (tutorEnabled) {
-    await tutor.generate();
-}
-
-if (analyticsEnabled) {
-    await analytics.track();
-}
-```
-
-The LMS now contains knowledge of every external system.
+At this point, problems begin:
 
 ---
 
-### Vendor Lock-in
+## 2.1 Tight Coupling
 
-The application becomes dependent on:
+The LMS starts embedding external logic:
 
-```text
-LMS
- ├── OpenAI
- ├── Claude
- ├── Gemini
- ├── Markly
- ├── Analytics
- └── Internal AI
+```typescript id="bad1"
+if (enableMarkly) {
+  await markly.gradeSubmission();
+}
+
+if (enableQuizAI) {
+  await quizAI.generate();
+}
 ```
 
-Replacing any service becomes expensive.
+The LMS now *knows too much*.
 
 ---
 
-### Feature Explosion
+## 2.2 Deployment Coupling
 
-Every new feature requires:
+Any change requires redeploying everything:
 
+* grading change → full LMS deploy
+* quiz change → full LMS deploy
+* analytics change → full LMS deploy
+
+This creates operational fragility.
+
+---
+
+## 2.3 Feature Explosion
+
+Every AI feature adds:
+
+* API integration
+* UI updates
 * database changes
-* backend changes
-* frontend changes
-* deployment changes
-* testing changes
-* documentation changes
+* backend logic
+* orchestration logic
+* edge-case handling
 
-The LMS becomes progressively harder to maintain.
+The LMS becomes a “feature landfill.”
 
 ---
 
-### Deployment Coupling
+## 2.4 Hardcoded Intelligence
 
-Suppose you improve your grading system.
+Once AI logic is embedded:
 
-You now must deploy:
+* switching models becomes expensive
+* replacing vendors becomes painful
+* experimentation slows down
+* innovation is blocked
 
-```text
-Entire LMS
-```
-
-instead of:
-
-```text
-Grading component only
-```
-
-This creates operational risk.
+The system becomes rigid exactly when it should become flexible.
 
 ---
 
-# Chapter 3 — AI Breaks Traditional Assumptions
+# 3. The AI Shift: From Functions to Workflows
 
-Traditional LMS systems assume:
+Traditional LMS thinking:
 
-```text
-User performs action
-        |
-        V
-System performs work
-        |
-        V
-Return result
+```text id="flow1"
+User Action → Function Call → Response
 ```
 
-AI systems don't behave this way.
+AI-native reality:
 
-AI systems are:
-
-* asynchronous
-* probabilistic
-* expensive
-* stateful
-* long-running
-* failure-prone
+```text id="flow2"
+Event → Multiple AI Systems → Async Results → Aggregation
+```
 
 Example:
 
-```text
+```text id="flow3"
 Student submits assignment
-```
-
-Traditional LMS:
-
-```text
-submit()
-    |
-grade()
-    |
-return
-```
-
-AI-native LMS:
-
-```text
-submit()
-
-     |
-     +----> grading
-     |
-     +----> plagiarism
-     |
-     +----> analytics
-     |
-     +----> tutoring
-     |
-     +----> recommendations
+        |
+        +--> grading AI
+        +--> plagiarism AI
+        +--> tutor AI
+        +--> analytics AI
+        +--> feedback AI
 ```
 
 This is no longer a function call.
 
-It is a workflow.
+It is a **distributed workflow system**.
 
 ---
 
-# Chapter 4 — Educational Systems Are Event Systems
+# 4. Educational Systems Are Event Systems
 
-The fundamental insight behind Nexus LMS is:
-
-> Educational systems are not CRUD systems.
+At their core, LMS platforms are not CRUD applications.
 
 They are event systems.
 
-Examples:
+Core events:
 
-```text
+```text id="events1"
 student.enrolled
-
 course.started
-
 lesson.completed
-
 assignment.created
-
 assignment.submitted
-
 assignment.graded
-
 student.struggling
-
-certificate.awarded
+certificate.generated
 ```
 
-These events describe what happened.
-
-The system should react to events.
-
----
-
-## Example
-
-Traditional:
-
-```typescript
-await gradeSubmission();
-await detectPlagiarism();
-await updateAnalytics();
-await notifyTeacher();
-```
-
-Event-driven:
-
-```typescript
-emit("assignment.submitted");
-```
-
-Then:
-
-```text
-assignment.submitted
-          |
-          +----> grading
-          |
-          +----> plagiarism
-          |
-          +----> analytics
-          |
-          +----> notifications
-```
-
-The LMS no longer controls everything.
-
-The LMS orchestrates.
-
----
-
-# Chapter 5 — LMS as an Orchestration Platform
-
-Nexus LMS adopts a different philosophy.
-
-The LMS itself should only be responsible for:
-
-```text
-Identity
-Users
-Courses
-Assignments
-Events
-Permissions
-Workflow Coordination
-```
-
-Everything else becomes a plug-in.
-
-Example:
-
-```text
-                    Nexus LMS
-
-                         |
-                         V
-
-                  Event Bus
-
-                         |
-      +------------------+------------------+
-      |                  |                  |
-      V                  V                  V
-
-   Markly           Tutor AI         Analytics
-```
-
-The LMS becomes an operating system.
-
-AI tools become applications.
-
----
-
-# Chapter 6 — The Plug-in Registry Pattern
-
-The critical architectural innovation in Nexus LMS is:
-
-> The LMS never hard-codes AI services.
-
-Instead:
-
-```text
-Event Occurs
-      |
-      V
-Query Registry
-      |
-      V
-Discover Active Workers
-      |
-      V
-Execute Workers
-```
-
-Example:
+Once you accept this, everything changes.
 
 Instead of:
 
-```typescript
-await markly.grade();
+```typescript id="bad2"
+gradeAssignment()
+updateAnalytics()
+notifyStudent()
 ```
 
-We do:
+You move to:
 
-```typescript
-const workers =
-    await registry.find(
-        "assignment.submitted"
-    );
-
-for (const worker of workers) {
-    await execute(worker);
-}
-```
-
-The LMS doesn't know:
-
-* Markly exists
-* Tutor AI exists
-* Analytics exists
-* Future AI systems exist
-
-The LMS only knows:
-
-```text
-There are workers.
-Workers subscribe to events.
-Workers obey contracts.
-```
-
----
-
-# Chapter 7 — Why Sanity Makes a Great Plug-in Registry
-
-Most developers think of a CMS as:
-
-```text
-Blog posts
-Pages
-Images
-```
-
-But a CMS is really:
-
-> A structured metadata registry.
-
-Sanity provides:
-
-* schema definitions
-* versioning
-* querying
-* editorial workflows
-* validation
-* permissions
-* APIs
-
-This makes it an ideal plug-in registry.
-
-Example:
-
-```json
-{
-  "name": "Markly",
-  "enabled": true,
-  "events": [
-    "assignment.submitted"
-  ],
-  "endpoint": "https://markly/api",
-  "version": "1.0.0"
-}
-```
-
-Adding a new AI service becomes:
-
-```text
-Create document in Sanity
-```
-
-instead of:
-
-```text
-Modify LMS source code
-Rebuild LMS
-Redeploy LMS
-Retest LMS
-```
-
----
-
-# Chapter 8 — The Nexus LMS Architecture
-
-The complete architecture looks like this:
-
-```text
-                           +----------+
-                           |  Clerk   |
-                           +----------+
-                                |
-                                V
-
-+----------------------------------------------------+
-|                    Next.js LMS                     |
-+----------------------------------------------------+
-        |               |                |
-        |               |                |
-        V               V                V
-
-    Courses       Assignments       Users
-
-                        |
-                        V
-
-               +----------------+
-               |    Inngest     |
-               |   Event Bus    |
-               +----------------+
-                        |
-                        |
-                        V
-
-               +----------------+
-               |     Sanity     |
-               | Worker Registry|
-               +----------------+
-                        |
-       +----------------+----------------+
-       |                |                |
-       V                V                V
-
-    Markly         Tutor AI        Analytics
-```
-
----
-
-# Chapter 9 — Core Architectural Principles
-
-Nexus LMS follows nine principles.
-
----
-
-## Principle 1
-
-### Events over function calls
-
-Bad:
-
-```typescript
-await grade();
-```
-
-Good:
-
-```typescript
+```typescript id="good2"
 emit("assignment.submitted");
 ```
 
----
-
-## Principle 2
-
-### Discovery over configuration
-
-Bad:
-
-```typescript
-marklyEndpoint = "...";
-```
-
-Good:
-
-```typescript
-registry.findWorkers();
-```
+Everything else becomes reactive.
 
 ---
 
-## Principle 3
+# 5. The Key Insight: LMS as an Orchestration Layer
 
-### Contracts over implementations
+Nexus LMS is not an application.
 
-Bad:
+It is an orchestration system.
 
-```typescript
-class MarklyService
+It should only manage:
+
+* users
+* courses
+* assignments
+* events
+* permissions
+* workflow coordination
+
+Everything else becomes external.
+
+```text id="arch1"
+              Nexus LMS Core
+                     |
+              Event Stream
+                     |
+     +---------------+----------------+
+     |               |                |
+     V               V                V
+
+  AI Workers     Analytics       Tutors
 ```
 
-Good:
+The LMS does NOT:
 
-```typescript
-interface WorkerContract
+* grade assignments
+* generate quizzes
+* create summaries
+* run AI models
+
+It only:
+
+* emits events
+* discovers workers
+* coordinates execution
+
+---
+
+# 6. The Plug-in Worker Model
+
+Instead of hardcoding integrations:
+
+```typescript id="bad3"
+await markly.grade();
+await tutor.generate();
+```
+
+We shift to:
+
+```typescript id="good3"
+const workers = await registry.find("assignment.submitted");
+
+for (const worker of workers) {
+  await worker.execute(eventPayload);
+}
+```
+
+Now the LMS only understands:
+
+* workers exist
+* workers subscribe to events
+* workers return outputs
+
+It does NOT know:
+
+* which AI model is used
+* which vendor is used
+* how grading works internally
+
+---
+
+# 7. Why a Registry (Sanity) Is Critical
+
+We need a dynamic registry:
+
+* not code-based
+* not config files
+* not environment variables
+
+We need a **queryable system of record**
+
+This is where Sanity fits.
+
+Instead of:
+
+```text id="oldreg"
+Code → Integration → Deployment
+```
+
+We get:
+
+```text id="newreg"
+Sanity Registry → Worker Discovery → Runtime Execution
+```
+
+A worker becomes:
+
+```json id="worker1"
+{
+  "name": "Quiz Generator",
+  "events": ["lesson.completed"],
+  "endpoint": "https://worker/api",
+  "enabled": true
+}
+```
+
+Adding a new capability becomes:
+
+> Insert a document, not modify the system.
+
+---
+
+# 8. The Nexus LMS Architecture
+
+Final conceptual model:
+
+```text id="finalarch"
+                     Clerk
+                       |
+                       V
+
+        +-----------------------------+
+        |        Next.js LMS         |
+        +-----------------------------+
+             |              |
+             |              |
+             V              V
+
+        Courses        Assignments
+
+               |
+               V
+
+          Inngest Event Bus
+               |
+               V
+
+        Worker Registry (Sanity)
+               |
+     +---------+---------+---------+
+     |         |         |         |
+     V         V         V         V
+
+  Grading   Quizzes   Tutors   Analytics
 ```
 
 ---
 
-## Principle 4
+# 9. Core Design Principles
 
-### Composition over coupling
+Nexus LMS is built on a strict set of principles:
 
-Bad:
+---
 
-```text
-LMS owns AI
-```
+## 9.1 Events over function calls
 
-Good:
-
-```text
-LMS orchestrates AI
+```text id="p1"
+BAD: grade()
+GOOD: assignment.submitted
 ```
 
 ---
 
-## Principle 5
+## 9.2 Discovery over hardcoding
 
-### Workflow over request/response
-
-Bad:
-
-```text
-request
-response
-```
-
-Good:
-
-```text
-event
-workflow
-result
+```text id="p2"
+BAD: import Markly
+GOOD: registry.findWorkers()
 ```
 
 ---
 
-## Principle 6
+## 9.3 Contracts over implementations
 
-### Extensibility over completeness
-
-Bad:
-
-```text
-Build everything
-```
-
-Good:
-
-```text
-Enable everything
-```
+Workers must conform to a schema, not internal logic.
 
 ---
 
-## Principle 7
+## 9.4 Orchestration over ownership
 
-### Async over sync
+The LMS does not own intelligence.
 
-Bad:
-
-```typescript
-await ai();
-```
-
-Good:
-
-```typescript
-emit();
-```
+It coordinates it.
 
 ---
 
-## Principle 8
+## 9.5 Extensibility over completeness
 
-### Platform over application
+The system is not “feature complete.”
 
-Bad:
-
-```text
-Learning Application
-```
-
-Good:
-
-```text
-Learning Operating System
-```
+It is **extension ready**.
 
 ---
 
-## Principle 9
+## 9.6 AI as infrastructure
 
-### AI as infrastructure
+AI is not a feature.
 
-Bad:
-
-```text
-AI feature
-```
-
-Good:
-
-```text
-AI worker
-```
+It is a pluggable execution layer.
 
 ---
 
 # Summary
 
-In this chapter, we learned:
+In this part, we established the foundation of Nexus LMS:
 
-* why traditional LMS architectures fail
-* why AI systems require event-driven architectures
-* why educational systems are workflow systems
-* why the LMS should act as an orchestrator
-* why plug-in registries enable long-term extensibility
-* why Sanity can function as a worker registry
-* the architectural philosophy behind Nexus LMS
+* Traditional LMS systems collapse under AI complexity
+* Feature-based architecture does not scale
+* AI requires event-driven design
+* LMS must become an orchestration system
+* Workers replace hardcoded integrations
+* Sanity acts as a dynamic plugin registry
+* Everything becomes reactive, not procedural
 
 ---
 
-# Next Tutorial
+# Next Step
 
-## Tutorial 01 — Nexus LMS System Architecture
+## Tutorial 01 — System Architecture Design
 
-In the next chapter, we will design the complete production architecture of Nexus LMS, including:
+We will now translate this philosophy into:
 
-* bounded contexts
+* system architecture diagrams
 * service boundaries
-* event taxonomy
+* event pipeline design
 * worker lifecycle
-* plug-in contracts
-* orchestration flows
-* deployment topology
-* production infrastructure design.
+* data flow between Next.js, Supabase, Inngest, and Sanity
+* production-ready architecture blueprint
