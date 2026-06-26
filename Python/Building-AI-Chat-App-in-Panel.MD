@@ -64,8 +64,6 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
 ```
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
-
 flowchart TB
     subgraph Stack["🏗️ Production AI Chat Architecture"]
         direction TB
@@ -106,20 +104,11 @@ flowchart TB
     Session -.-> L2
     Session -.-> PanelUI
 
-    style User fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
-    style PanelUI fill:#45b7d1,stroke:#333,stroke-width:2px,color:#fff
-    style L5 fill:#feca57,stroke:#333,stroke-width:2px,color:#333
-    style L4 fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    style L3 fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    style L2 fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    style L1 fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    style LLM fill:#a8e6cf,stroke:#333,stroke-width:2px,color:#333
-    style External fill:#dda0dd,stroke:#333,stroke-width:2px,color:#333
-    style Global fill:#ff8b94,stroke:#333,stroke-width:2px,color:#fff
-    style Session fill:#c7ceea,stroke:#333,stroke-width:2px,color:#333
-    style Resilience fill:#fff5f5,stroke:#ff6b6b,stroke-width:1px,stroke-dasharray: 5 5
-    style State fill:#f8f9fa,stroke:#666,stroke-width:1px,stroke-dasharray: 5 5
-    style Stack fill:#fafafa,stroke:#333,stroke-width:2px
+    %% Default styling remains for clarity
+    style User fill:#4ecdc4,stroke:#333,stroke-width:2px
+    style PanelUI fill:#45b7d1,stroke:#333,stroke-width:2px
+    style L5 fill:#feca57,stroke:#333,stroke-width:2px
+    style LLM fill:#a8e6cf,stroke:#333,stroke-width:2px
 ```
 
 The diagram above shows the two critical views of our system: the **stack architecture** (top) and the **request lifecycle** (bottom). The architecture separates global state (shared LLM client) from per-session state (user data, stop events, conversation history). The lifecycle diagram shows how every request flows through decision points for cancellation and error handling—no matter what happens, cleanup always runs.
