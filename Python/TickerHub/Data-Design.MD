@@ -1,5 +1,3 @@
-# DATA-DESIGN-DATA-MODEL.md
-
 # TickerHub Data Design & Data Model
 
 ## Enterprise Financial Intelligence Platform
