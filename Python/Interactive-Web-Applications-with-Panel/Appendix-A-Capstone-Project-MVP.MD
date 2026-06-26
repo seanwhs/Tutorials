@@ -1,4 +1,4 @@
-# Capstone Project Solution
+# Appendix A - Capstone Project MVP
 
 # Building a Production-Grade SGX Professional Trading Terminal with Panel
 
