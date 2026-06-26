@@ -1,970 +1,995 @@
 # Building TickerHub
 
-## Part 6: Building the Event Bus
+## Part 7: The Repository Pattern — Separating Business Logic from Infrastructure
 
-> If state is the nervous system of TickerHub, then the event bus is the circulatory system.
+> One of the fastest ways to destroy a large software system is to allow business logic to know too much about infrastructure.
 
-Most developers learn programming using this model:
-
-```python
-function_a()
-
-function_b()
-
-function_c()
-```
-
-This is called:
-
-```text
-Direct Invocation
-```
-
-One piece of code explicitly calls another piece of code.
-
-This works beautifully until your application becomes large.
-
-Professional financial systems do not work this way.
-
-Instead, they work like this:
-
-```text
-Something Happened
-        ↓
-     Event
-        ↓
-    Event Bus
-        ↓
-Many Consumers
-```
-
-This architectural pattern powers:
-
-* trading systems,
-* market data systems,
-* banking platforms,
-* payment networks,
-* real-time analytics systems.
-
-And now, TickerHub.
-
----
-
-# Why Function Calls Fail
-
-Suppose DBS price changes.
-
-A beginner writes:
+Many developers write code like this:
 
 ```python
-def update_price(symbol, price):
+def get_portfolio(user):
 
-    chart.update(
-        symbol,
-        price
+    conn = psycopg.connect(...)
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM positions"
     )
 
-    watchlist.update(
-        symbol,
-        price
-    )
-
-    portfolio.update(
-        symbol,
-        price
-    )
-
-    risk.update(
-        symbol,
-        price
-    )
-
-    alerts.update(
-        symbol,
-        price
-    )
+    return cursor.fetchall()
 ```
 
-Initially:
+This works.
+
+Until:
+
+* you add caching,
+* you add retries,
+* you add connection pooling,
+* you add auditing,
+* you add replicas,
+* you add cloud migration,
+* you add failover.
+
+Now your business logic is trapped inside your infrastructure.
+
+Professional systems avoid this.
+
+---
+
+# The Core Principle
+
+The domain layer should never know:
+
+* PostgreSQL
+* Redis
+* Kafka
+* HTTP APIs
+* Cloud providers
+* File systems
+
+The domain should only know:
 
 ```text
-Works
+I need data.
 ```
 
-Six months later:
+This idea is called:
+
+# Dependency Inversion
+
+Instead of:
+
+```text
+Business
+     ↓
+Database
+```
+
+we build:
+
+```text
+Business
+     ↓
+Repository
+     ↓
+Database
+```
+
+---
+
+# What Is a Repository?
+
+A repository is:
+
+> An abstraction that makes external data sources appear as in-memory collections.
+
+Instead of:
 
 ```python
-def update_price(symbol, price):
-
-    chart.update()
-
-    watchlist.update()
-
-    portfolio.update()
-
-    risk.update()
-
-    alerts.update()
-
-    news.update()
-
-    analytics.update()
-
-    websocket.update()
-
-    cache.update()
-
-    persistence.update()
-
-    audit.update()
+price = postgres.execute(
+    "SELECT ..."
+)
 ```
 
-Eventually:
+we write:
 
-```text
-One function owns the universe.
+```python
+price = repository.get_price(
+    "D05"
+)
 ```
 
-This architecture collapses.
+The service no longer cares:
+
+* where the data came from,
+* how it was cached,
+* how it was retrieved,
+* how long it took.
 
 ---
 
-# Event-Driven Thinking
+# TickerHub Repository Architecture
 
-Instead, professionals think differently.
-
-The system does not ask:
-
-> Who should I notify?
-
-It asks:
-
-> What happened?
-
-Example:
+Our architecture becomes:
 
 ```text
-DBS price changed.
-```
-
-This becomes:
-
-```text
-PriceUpdated
-```
-
-Now:
-
-```text
-Market Service
-
-publishes
-
-PriceUpdated
-```
-
-The service doesn't care who receives it.
-
----
-
-# The Event Architecture
-
-```text
-               PriceUpdated
-                      |
-                      V
-
-                Event Bus
-
-      ┌────────┬────────┬────────┐
-      │        │        │        │
-      ▼        ▼        ▼        ▼
-
-   Chart   Portfolio  Risk   Alerts
-```
-
-This gives us:
-
-* loose coupling,
-* scalability,
-* testability,
-* maintainability.
-
----
-
-# What Is an Event?
-
-An event is:
-
-> A fact describing something that already happened.
-
-Good events:
-
-```text
-PriceUpdated
-
-TradeExecuted
-
-PortfolioChanged
-
-RiskCalculated
-
-OrderPlaced
-```
-
-Bad events:
-
-```text
-UpdatePrice()
-
-RefreshChart()
-
-CalculateRisk()
-```
-
-Notice the difference.
-
-Good:
-
-```text
-Past tense.
-```
-
-Bad:
-
-```text
-Commands.
+Services
+     |
+     V
+Repositories
+     |
+     V
+Infrastructure
+     |
+     V
+Cloud Services
 ```
 
 ---
 
-# Commands vs Events
-
-Commands:
-
-```text
-Do something.
-```
-
-Events:
-
-```text
-Something happened.
-```
-
-Example:
-
-```text
-BUY 100 DBS
-```
-
-This is a command.
-
-After execution:
-
-```text
-TradeExecuted
-```
-
-This is an event.
-
-Professional systems separate these concepts.
-
----
-
-# Creating the Events Package
+# Repository Structure
 
 Create:
 
 ```text
-events/
+repositories/
 
     __init__.py
 
-    base.py
+    market_repository.py
 
-    market_events.py
+    portfolio_repository.py
 
-    portfolio_events.py
+    risk_repository.py
 
-    risk_events.py
+    order_repository.py
 
-    order_events.py
+    cache_repository.py
 ```
 
 ---
 
-# Building the Event Bus
+# Repository Responsibilities
+
+| Repository          | Responsibility              |
+| ------------------- | --------------------------- |
+| MarketRepository    | quotes, prices, order books |
+| PortfolioRepository | positions, portfolios       |
+| RiskRepository      | risk analytics              |
+| OrderRepository     | orders, trades              |
+| CacheRepository     | Redis access                |
+
+---
+
+# Market Repository
 
 Create:
 
-## events/base.py
+## repositories/market_repository.py
 
 ```python
-from collections import defaultdict
+from infrastructure.redis import cache
 
 
-class EventBus:
+class MarketRepository:
 
-    def __init__(self):
-
-        self.handlers = defaultdict(
-            list
-        )
-```
-
----
-
-# Subscribing
-
-Add:
-
-```python
-def subscribe(
-    self,
-    event_type,
-    handler
-):
-
-    self.handlers[
-        event_type
-    ].append(
-        handler
-    )
-```
-
----
-
-# Publishing
-
-Add:
-
-```python
-def publish(
-    self,
-    event
-):
-
-    handlers = self.handlers[
-        type(event)
-    ]
-
-    for handler in handlers:
-
-        handler(event)
-```
-
----
-
-# The Simplest Event Bus
-
-Our entire event system currently fits into:
-
-```python
-subscribe()
-
-publish()
-```
-
-Yet this tiny abstraction powers some of the world's largest systems.
-
----
-
-# Building Our First Event
-
-Create:
-
-## events/market_events.py
-
-```python
-from dataclasses import dataclass
-
-
-@dataclass
-class PriceUpdated:
-
-    symbol: str
-
-    price: float
-```
-
----
-
-Example:
-
-```python
-event = PriceUpdated(
-
-    symbol="D05",
-
-    price=43.15
-)
-```
-
----
-
-# Creating Subscribers
-
-Suppose we have:
-
-```python
-def chart_handler(event):
-
-    print(
-        "chart updated"
-    )
-```
-
----
-
-And:
-
-```python
-def portfolio_handler(event):
-
-    print(
-        "portfolio updated"
-    )
-```
-
----
-
-Register them:
-
-```python
-bus = EventBus()
-
-bus.subscribe(
-    PriceUpdated,
-    chart_handler
-)
-
-bus.subscribe(
-    PriceUpdated,
-    portfolio_handler
-)
-```
-
----
-
-Publish:
-
-```python
-bus.publish(
-
-    PriceUpdated(
-        "D05",
-        43.15
-    )
-)
-```
-
-Result:
-
-```text
-chart updated
-
-portfolio updated
-```
-
----
-
-# Notice Something Important
-
-The market service never knew about:
-
-* charts,
-* portfolios,
-* risk,
-* alerts.
-
-It only knew:
-
-```text
-PriceUpdated
-```
-
-This is called:
-
-# Decoupling
-
----
-
-# Building Additional Events
-
-Create:
-
-## events/order_events.py
-
-```python
-from dataclasses import dataclass
-
-
-@dataclass
-class OrderPlaced:
-
-    order_id: str
-
-    symbol: str
-
-    quantity: int
-```
-
----
-
-```python
-@dataclass
-class OrderCancelled:
-
-    order_id: str
-```
-
----
-
-```python
-@dataclass
-class TradeExecuted:
-
-    trade_id: str
-
-    symbol: str
-
-    quantity: int
-
-    price: float
-```
-
----
-
-# Portfolio Events
-
-Create:
-
-## events/portfolio_events.py
-
-```python
-from dataclasses import dataclass
-
-
-@dataclass
-class PortfolioChanged:
-
-    user: str
-```
-
----
-
-```python
-@dataclass
-class PositionUpdated:
-
-    symbol: str
-
-    quantity: int
-```
-
----
-
-# Risk Events
-
-Create:
-
-## events/risk_events.py
-
-```python
-from dataclasses import dataclass
-
-
-@dataclass
-class RiskCalculated:
-
-    portfolio: str
-
-    var: float
-
-    cvar: float
-```
-
----
-
-# Event Flow Example
-
-Suppose a trade occurs.
-
-```text
-Trade Executed
-```
-
-The system flow becomes:
-
-```text
-TradeExecuted
-        |
-        V
-PortfolioService
-        |
-        V
-PortfolioChanged
-        |
-        V
-RiskService
-        |
-        V
-RiskCalculated
-        |
-        V
-Dashboard
-```
-
-Notice:
-
-No service directly calls another service.
-
----
-
-# Event Cascades
-
-Professional systems often produce chains of events.
-
-Example:
-
-```text
-PriceUpdated
-       ↓
-PortfolioChanged
-       ↓
-RiskCalculated
-       ↓
-AlertTriggered
-       ↓
-NotificationSent
-```
-
-This is called an:
-
-# Event Cascade
-
----
-
-# Synchronous vs Asynchronous Events
-
-Our current bus is:
-
-```text
-Synchronous
-```
-
-Meaning:
-
-```python
-publish()
-
-wait
-
-handler()
-
-wait
-
-handler()
-
-wait
-
-handler()
-```
-
-This works initially.
-
-Eventually we'll build:
-
-```text
-Kafka
-```
-
-which becomes:
-
-```text
-Asynchronous
-```
-
-```text
-Producer
-      |
-      V
-    Kafka
-      |
-      V
-Consumers
-```
-
----
-
-# Upgrading to Async Events
-
-Future version:
-
-```python
-import asyncio
-
-
-class EventBus:
-
-    async def publish(
+    async def get_price(
         self,
-        event
+        symbol: str
     ):
 
-        tasks = []
-
-        for handler in self.handlers[
-            type(event)
-        ]:
-
-            tasks.append(
-                handler(event)
-            )
-
-        await asyncio.gather(
-            *tasks
-        )
+        ...
 ```
-
-Now events execute concurrently.
 
 ---
 
-# Event Persistence
+# Why Async?
 
-Professional systems often store events.
+Remember:
+
+```text
+Laptop
+     |
+Internet
+     |
+Cloud Redis
+```
+
+Every operation is remote.
+
+Therefore:
+
+```python
+await repository.get_price()
+```
+
+instead of:
+
+```python
+repository.get_price()
+```
+
+---
+
+# Step 1 — Check Cache
+
+```python
+async def get_price(
+    self,
+    symbol
+):
+
+    cached = await cache.get(
+        symbol
+    )
+
+    if cached:
+
+        return float(
+            cached
+        )
+```
+
+---
+
+# Step 2 — Fallback to Database
+
+```python
+price = await self.fetch_db(
+    symbol
+)
+```
+
+---
+
+# Step 3 — Update Cache
+
+```python
+await cache.set(
+
+    symbol,
+
+    price,
+
+    ex=60
+)
+```
+
+---
+
+# Final Method
+
+```python
+async def get_price(
+    self,
+    symbol
+):
+
+    cached = await cache.get(
+        symbol
+    )
+
+    if cached:
+
+        return float(
+            cached
+        )
+
+    price = await self.fetch_db(
+        symbol
+    )
+
+    await cache.set(
+
+        symbol,
+
+        price,
+
+        ex=60
+    )
+
+    return price
+```
+
+---
+
+# What Did We Gain?
+
+The caller simply writes:
+
+```python
+price = await repo.get_price(
+    "D05"
+)
+```
+
+They don't know:
+
+* Redis exists,
+* PostgreSQL exists,
+* caching exists.
+
+This is architectural isolation.
+
+---
+
+# Portfolio Repository
+
+Create:
+
+## repositories/portfolio_repository.py
+
+```python
+from domain.portfolio import (
+    Portfolio
+)
+
+
+class PortfolioRepository:
+
+    async def load(
+        self,
+        user: str
+    ) -> Portfolio:
+
+        ...
+
+    async def save(
+        self,
+        portfolio: Portfolio
+    ):
+
+        ...
+```
+
+---
+
+# Example Load
+
+```python
+portfolio = await repo.load(
+    "alice"
+)
+```
+
+No SQL appears in the service layer.
+
+Ever.
+
+---
+
+# Example Save
+
+```python
+await repo.save(
+    portfolio
+)
+```
+
+Again:
+
+No SQL.
+
+No ORM.
+
+No infrastructure leakage.
+
+---
+
+# Why Hide SQL?
+
+Suppose today we use:
+
+```text
+PostgreSQL
+```
+
+Tomorrow:
+
+```text
+Snowflake
+```
+
+Or:
+
+```text
+BigQuery
+```
+
+Or:
+
+```text
+DuckDB
+```
+
+The service code remains unchanged.
+
+Only the repository changes.
+
+---
+
+# Risk Repository
+
+Create:
+
+## repositories/risk_repository.py
+
+```python
+from domain.risk import Risk
+
+
+class RiskRepository:
+
+    async def save(
+        self,
+        risk: Risk
+    ):
+
+        ...
+
+    async def load(
+        self,
+        portfolio_id: str
+    ) -> Risk:
+
+        ...
+```
+
+---
+
+# Order Repository
+
+Create:
+
+## repositories/order_repository.py
+
+```python
+from domain.order import Order
+from domain.trade import Trade
+
+
+class OrderRepository:
+
+    async def save_order(
+        self,
+        order: Order
+    ):
+
+        ...
+
+    async def save_trade(
+        self,
+        trade: Trade
+    ):
+
+        ...
+
+    async def load_order(
+        self,
+        order_id: str
+    ):
+
+        ...
+```
+
+---
+
+# The Repository Pattern in Practice
+
+Without repositories:
+
+```text
+MarketService
+      |
+      +---- Redis
+      |
+      +---- PostgreSQL
+      |
+      +---- Kafka
+      |
+      +---- REST APIs
+```
+
+With repositories:
+
+```text
+MarketService
+      |
+      V
+MarketRepository
+      |
+      +---- Redis
+      |
+      +---- PostgreSQL
+      |
+      +---- Kafka
+```
+
+Complexity moves downward.
+
+---
+
+# Building a Base Repository
+
+Eventually we'll create:
+
+## repositories/base.py
+
+```python
+class Repository:
+
+    async def retry(
+        self,
+        fn,
+        retries=3
+    ):
+
+        for _ in range(
+            retries
+        ):
+
+            try:
+
+                return await fn()
+
+            except Exception:
+
+                continue
+
+        raise Exception(
+            "failed"
+        )
+```
+
+---
+
+# Why Retries Matter
+
+Cloud infrastructure fails.
 
 Example:
 
 ```text
-12:00:00
-PriceUpdated
+Redis timeout
+```
 
-12:00:01
-TradeExecuted
+Should not become:
 
-12:00:03
-PortfolioChanged
+```text
+Application crash
+```
 
-12:00:04
-RiskCalculated
+Instead:
+
+```text
+Redis timeout
+       ↓
+Retry
+       ↓
+Success
+```
+
+---
+
+# Connection Pooling
+
+Never do this:
+
+```python
+async def load():
+
+    connection = connect()
+
+    ...
+```
+
+Professional systems create pools.
+
+Example:
+
+```python
+engine = create_async_engine(
+
+    url,
+
+    pool_size=20,
+
+    max_overflow=50,
+
+    pool_pre_ping=True
+)
 ```
 
 Benefits:
 
-* auditing,
-* replay,
-* debugging,
-* analytics,
-* compliance.
+* lower latency,
+* fewer connections,
+* higher throughput.
+
+---
+
+# Repository Caching
+
+Professional systems almost always implement:
+
+```text
+Cache Aside
+```
+
+Pattern:
+
+```text
+Request
+    |
+    V
+Redis
+    |
+miss?
+    |
+    V
+Database
+    |
+    V
+Redis
+    |
+    V
+Response
+```
+
+This is exactly what we'll use.
+
+---
+
+# Read Repository vs Write Repository
+
+As systems grow, repositories often split.
+
+Example:
+
+```text
+PortfolioReadRepository
+
+PortfolioWriteRepository
+```
 
 This concept is called:
 
-# Event Sourcing
+# CQRS
+
+(Command Query Responsibility Segregation)
 
 ---
 
-# Event Replay
+# Example
 
-Suppose production crashes.
-
-If events are stored:
-
-```text
-Event #1
-Event #2
-Event #3
-Event #4
-```
-
-we can rebuild state:
-
-```text
-Initial State
-       +
-Events
-       =
-Current State
-```
-
-This is one of the reasons financial institutions love event-driven systems.
-
----
-
-# Event Naming Rules
-
-Professional systems follow strict naming.
-
-Good:
-
-```text
-PriceUpdated
-
-TradeExecuted
-
-RiskCalculated
-
-OrderCancelled
-
-PortfolioChanged
-```
-
-Bad:
-
-```text
-UpdatePrice
-
-RefreshRisk
-
-DoCalculation
-
-HandlePortfolio
-```
-
-Rule:
-
-> Events describe facts, not intentions.
-
----
-
-# Where Does Kafka Fit?
-
-Our in-memory event bus becomes:
-
-```text
-Market Service
-       |
-       V
-Local Event Bus
-       |
-       V
-Panel State
-```
-
-Later:
-
-```text
-Market Service
-       |
-       V
-Kafka
-       |
-       V
-Workers
-       |
-       V
-Risk Service
-       |
-       V
-Panel
-```
-
-Kafka becomes a distributed event bus.
-
----
-
-# TickerHub Event Architecture
-
-We now have:
-
-```text
-                 Event Bus
-
-        ┌────────┬─────────┬─────────┐
-        │        │         │         │
-
-        ▼        ▼         ▼         ▼
-
-    Market   Portfolio   Risk    Alert
-    Service   Service   Service  Service
-        │        │         │         │
-        └────────┼─────────┼─────────┘
-                 │
-                 ▼
-
-              State
-
-                 │
-
-                 ▼
-
-              Panel
-```
-
-This is beginning to resemble a professional financial system.
-
----
-
-# Why Financial Systems Love Events
-
-Because markets themselves are events.
-
-```text
-Trade
-Quote
-Order
-News
-Earnings
-Dividend
-Economic Release
-Interest Rate Decision
-```
-
-A financial terminal is fundamentally:
-
-```text
-An Event Processing Machine
-```
-
----
-
-# Architecture Lesson #6
-
-Beginners build:
+Reads:
 
 ```python
-service_a.call(
-    service_b
+portfolio = await read_repo.load(
+    user
 )
 ```
 
-Professionals build:
+Writes:
 
-```text
-service_a
-
-publishes
-
-Event
+```python
+await write_repo.save(
+    portfolio
+)
 ```
 
-and allow the system to decide who cares.
+Benefits:
 
-That single architectural decision determines whether your application scales from:
+* independent scaling,
+* independent optimization,
+* independent caching.
 
-```text
-100 lines
-```
+---
 
-to:
+# Repository Interfaces
 
-```text
-10 million lines.
+Professional systems often define interfaces.
+
+Example:
+
+```python
+from abc import ABC
+from abc import abstractmethod
+
+
+class PortfolioRepository(
+    ABC
+):
+
+    @abstractmethod
+    async def load(
+        self,
+        user
+    ):
+        pass
+
+    @abstractmethod
+    async def save(
+        self,
+        portfolio
+    ):
+        pass
 ```
 
 ---
 
-# In Part 7
+# Implementations
 
-We will build the **Repository Layer**, where you'll discover why professional systems never allow services to talk directly to:
+```text
+PortfolioRepository
+          |
+          |
+          +------ PostgreSQLPortfolioRepository
 
-* PostgreSQL,
-* Redis,
-* Kafka,
-* APIs,
+          +------ RedisPortfolioRepository
 
-and instead communicate through one of the most important patterns in enterprise software:
+          +------ MockPortfolioRepository
+```
 
-# The Repository Pattern.
+---
+
+# Why Mock Repositories Matter
+
+Testing becomes easy.
+
+Example:
+
+```python
+repo = MockPortfolioRepository()
+
+portfolio = await repo.load(
+    "alice"
+)
+```
+
+No database.
+
+No Redis.
+
+No network.
+
+This is why enterprise systems love repositories.
+
+---
+
+# Graceful Degradation
+
+Professional systems expect failure.
+
+Bad:
+
+```python
+price = await redis.get(
+    symbol
+)
+```
+
+Good:
+
+```python
+try:
+
+    price = await redis.get(
+        symbol
+    )
+
+except Exception:
+
+    price = await database.fetch(
+        symbol
+    )
+```
+
+Better:
+
+```text
+Redis
+    ↓
+PostgreSQL
+    ↓
+Local Cache
+    ↓
+Default Value
+```
+
+---
+
+# The Repository Layer Architecture
+
+Our system now looks like:
+
+```text
+                Services
+                     |
+                     |
+          ┌──────────┼──────────┐
+          │          │          │
+
+          ▼          ▼          ▼
+
+      Market     Portfolio    Risk
+     Repository Repository Repository
+
+          │          │          │
+
+          └──────────┼──────────┘
+                     |
+                     ▼
+
+              Infrastructure
+
+                     |
+                     ▼
+
+        Redis + PostgreSQL + Kafka
+```
+
+Notice:
+
+Services never talk to infrastructure directly.
+
+---
+
+# Why Bloomberg-Style Systems Use Repositories
+
+Because infrastructure changes.
+
+Business rules rarely do.
+
+Example:
+
+Today:
+
+```text
+Redis
+```
+
+Tomorrow:
+
+```text
+Valkey
+```
+
+No business changes.
+
+Today:
+
+```text
+PostgreSQL
+```
+
+Tomorrow:
+
+```text
+CockroachDB
+```
+
+No business changes.
+
+Today:
+
+```text
+Kafka
+```
+
+Tomorrow:
+
+```text
+Redpanda
+```
+
+No business changes.
+
+The repository layer protects the business from technological churn.
+
+---
+
+# Architecture Lesson #7
+
+Beginners write:
+
+```python
+service
+    .execute_sql()
+```
+
+Professionals write:
+
+```python
+service
+    .repository
+    .load()
+```
+
+The database is an implementation detail.
+
+The business is not.
+
+---
+
+# Current Architecture
+
+After Part 7, our architecture has become:
+
+```text
+Panel UI
+      |
+      V
+State
+      |
+      V
+Services
+      |
+      V
+Event Bus
+      |
+      V
+Repositories
+      |
+      V
+Infrastructure
+      |
+      V
+Redis
+Kafka
+PostgreSQL
+```
+
+At this point, we have built:
+
+✅ Domain model
+
+✅ State engine
+
+✅ Event bus
+
+✅ Repository layer
+
+But we still don't have a working application.
+
+That's because we have been building:
+
+```text
+The Engine
+```
+
+before building:
+
+```text
+The Dashboard
+```
+
+which is exactly how professional systems are constructed.
+
+---
+
+# In Part 8
+
+We will build the first real service in TickerHub:
+
+# MarketService
+
+where you'll discover that a professional market feed handler is actually:
+
+```text
+State Machine
+        +
+Event Producer
+        +
+Cache Manager
+        +
+Synchronization Engine
+```
+
+all hidden behind a deceptively simple class called:
+
+```python
+MarketService
+```
