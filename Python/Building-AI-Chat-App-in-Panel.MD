@@ -63,27 +63,26 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
-```
+```mermaid
 flowchart TB
-    subgraph Stack[Production AI Chat Architecture]
+    subgraph Stack["Production AI Chat Architecture"]
         direction TB
-
         User[User]
         PanelUI[Panel ChatInterface]
 
-        subgraph Resilience[Resilience Layers]
+        subgraph Resilience["Resilience Layers"]
             direction TB
-            L5[Layer 5: Orchestration and TaskGroup]
-            L4[Layer 4: Timeouts and Error Handling]
-            L3[Layer 3: Cancellation]
-            L2[Layer 2: Conversation History]
-            L1[Layer 1: Persistent LLM Client]
+            L5["Layer 5: Orchestration and TaskGroup"]
+            L4["Layer 4: Timeouts and Error Handling"]
+            L3["Layer 3: Cancellation"]
+            L2["Layer 2: Conversation History"]
+            L1["Layer 1: Persistent LLM Client"]
         end
 
         LLM[LLM API]
         External[External Services]
 
-        subgraph State[State Management]
+        subgraph State["State Management"]
             direction TB
             Global[Global State]
             Session[Per-Session State]
@@ -103,8 +102,6 @@ flowchart TB
     Session -.-> L3
     Session -.-> L2
     Session -.-> PanelUI
-```
-
 ```
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 
