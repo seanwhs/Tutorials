@@ -63,8 +63,6 @@ By leveraging these abstractions, you shift focus from web plumbing to what actu
 
 Here's how to build a chat backend that won't collapse under real-world conditions.
 
-#### 1. Architecture Stack
-
 ```mermaid
 flowchart TB
     subgraph Stack["Production AI Chat Architecture"]
@@ -105,8 +103,6 @@ flowchart TB
     Session -.-> L2
     Session -.-> PanelUI
 ```
-
-#### 2. Request Lifecycle 
 
 ```mermaid
 flowchart TD
