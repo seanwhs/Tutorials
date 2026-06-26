@@ -65,6 +65,7 @@ Here's how to build a chat backend that won't collapse under real-world conditio
 
 ![Production AI Chat Architecture & Request Lifecycle](sandbox:///mnt/agents/output/panel_chat_architecture_diagrams.png)
 
+
 The diagram above shows the two critical views of our system: the **stack architecture** (top) and the **request lifecycle** (bottom). The architecture separates global state (shared LLM client) from per-session state (user data, stop events, conversation history). The lifecycle diagram shows how every request flows through decision points for cancellation and error handling—no matter what happens, cleanup always runs.
 
 ---
