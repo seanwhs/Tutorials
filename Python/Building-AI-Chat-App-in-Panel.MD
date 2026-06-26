@@ -103,12 +103,15 @@ flowchart TB
     Session -.-> L2
     Session -.-> PanelUI
 ```
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 
+#### 2. Request Lifecycle (Bottom Diagram)
+
+```markdown
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 flowchart TD
     subgraph Lifecycle["🔄 Request Lifecycle & Cancellation Flow"]
         direction TB
-
         Start["👤 User sends message"]
         Build["📝 Build context<br/>(history + system prompt)"]
         Fetch["⚡ Fetch external data<br/>(TaskGroup parallel)"]
@@ -118,7 +121,6 @@ flowchart TD
         YieldUI["📤 Yield to UI"]
         TimeoutCheck{"⏱️ timeout<br/>or error?"}
         Complete["✅ Complete / Error / Timeout"]
-
         AbortPath["❌ Yield abort message<br/>→ finally cleanup"]
         ErrorPath["❌ Yield error message<br/>→ finally cleanup"]
         Finally["🧹 finally: cleanup stop_event + log completion"]
@@ -129,15 +131,11 @@ flowchart TD
     Fetch --> StreamStart
     StreamStart --> Stream
     Stream --> AbortCheck
-
     AbortCheck -->|YES| AbortPath
     AbortCheck -->|NO| YieldUI
-
     YieldUI --> TimeoutCheck
-
     TimeoutCheck -->|YES| ErrorPath
     TimeoutCheck -->|NO| Complete
-
     Complete --> Finally
     AbortPath --> Finally
     ErrorPath --> Finally
