@@ -292,17 +292,12 @@ This example reinforces:
 
 ***
 
-### Where this positions the reader
+### What we have achieved?
 
-By the end of Part 3, a JS developer should be comfortable with:
+By the end of Part 3, you should be comfortable with:
 
 - Defining Python classes that feel like JS classes  
 - Using data classes as structured, lightweight models  
 - Handling errors using `try/except` and raising them with `raise`  
 - Combining data structures, classes, and error handling in small, realistic components  
 
-From here, natural follow‑ups for later parts include:
-
-- Async and concurrency (`async def`, `await`, `asyncio`) vs JS promises  
-- File I/O and working with external resources  
-- Packaging and virtual environments (mapping to npm, node modules, and toolchains)
