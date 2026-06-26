@@ -65,28 +65,28 @@ Here's how to build a chat backend that won't collapse under real-world conditio
 
 ```
 flowchart TB
-    subgraph Stack["🏗️ Production AI Chat Architecture"]
+    subgraph Stack[Production AI Chat Architecture]
         direction TB
 
-        User["👤 User<br/>Browser / Client"]
-        PanelUI["🖥️ Panel ChatInterface<br/>ChatFeed • ChatMessage • Stop Button"]
+        User[User]
+        PanelUI[Panel ChatInterface]
 
-        subgraph Resilience["🛡️ Resilience Layers"]
+        subgraph Resilience[Resilience Layers]
             direction TB
-            L5["⚡ Layer 5: Orchestration & TaskGroup"]
-            L4["🔒 Layer 4: Timeouts & Error Handling"]
-            L3["🛑 Layer 3: Cancellation (asyncio.Event)"]
-            L2["📜 Layer 2: Conversation History"]
-            L1["🔌 Layer 1: Persistent LLM Client"]
+            L5[Layer 5: Orchestration & TaskGroup]
+            L4[Layer 4: Timeouts & Error Handling]
+            L3[Layer 3: Cancellation]
+            L2[Layer 2: Conversation History]
+            L1[Layer 1: Persistent LLM Client]
         end
 
-        LLM["🤖 LLM API<br/>OpenAI / Anthropic / Local"]
-        External["🌐 External Services<br/>Database • APIs • RAG Pipeline"]
+        LLM[LLM API]
+        External[External Services]
 
-        subgraph State["📦 State Management"]
+        subgraph State[State Management]
             direction TB
-            Global["🔴 Global State<br/>LLM Client (single instance)"]
-            Session["🔵 Per-Session State<br/>user_data • stop_event • history"]
+            Global[Global State]
+            Session[Per-Session State]
         end
     end
 
@@ -103,11 +103,6 @@ flowchart TB
     Session -.-> L3
     Session -.-> L2
     Session -.-> PanelUI
-
-    style User fill:#4ecdc4,stroke:#333,stroke-width:2px
-    style PanelUI fill:#45b7d1,stroke:#333,stroke-width:2px
-    style L5 fill:#feca57,stroke:#333,stroke-width:2px
-    style LLM fill:#a8e6cf,stroke:#333,stroke-width:2px
 ```
 
 The diagram above shows the two critical views of our system: the **stack architecture** (top) and the **request lifecycle** (bottom). The architecture separates global state (shared LLM client) from per-session state (user data, stop events, conversation history). The lifecycle diagram shows how every request flows through decision points for cancellation and error handling—no matter what happens, cleanup always runs.
