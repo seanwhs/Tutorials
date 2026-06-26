@@ -106,7 +106,6 @@ flowchart TB
 
 #### 2. Request Lifecycle (Bottom Diagram)
 
-```markdown
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 flowchart TD
