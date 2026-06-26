@@ -1,8 +1,8 @@
-# Appendix A - Capstone Project MVP
+# Appendix A - MVP Project MVP
 
 # Building a Production-Grade SGX Professional Trading Terminal with Panel
 
-> **Capstone Goal**
+> **MVP Goal**
 >
 > Build a Bloomberg-style professional trading workstation using:
 >
@@ -1014,7 +1014,7 @@ cluster/
 
 # Final Enterprise Lessons
 
-The capstone demonstrates that professional Panel applications are not:
+The MVP demonstrates that professional Panel applications are not:
 
 ```text
 Widgets
