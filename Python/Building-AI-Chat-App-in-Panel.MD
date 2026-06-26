@@ -105,7 +105,61 @@ flowchart TB
     Session -.-> PanelUI
 ```
 
-The diagram above shows the two critical views of our system: the **stack architecture** (top) and the **request lifecycle** (bottom). The architecture separates global state (shared LLM client) from per-session state (user data, stop events, conversation history). The lifecycle diagram shows how every request flows through decision points for cancellation and error handling—no matter what happens, cleanup always runs.
+```
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4ecdc4', 'primaryTextColor': '#fff', 'primaryBorderColor': '#333', 'lineColor': '#333', 'secondaryColor': '#45b7d1', 'tertiaryColor': '#ff6b6b', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+flowchart TD
+    subgraph Lifecycle["🔄 Request Lifecycle & Cancellation Flow"]
+        direction TB
+
+        Start["👤 User sends message"]
+        Build["📝 Build context<br/>(history + system prompt)"]
+        Fetch["⚡ Fetch external data<br/>(TaskGroup parallel)"]
+        StreamStart["🤖 Start LLM stream<br/>(asyncio.timeout)"]
+        Stream["📡 Stream chunks"]
+        AbortCheck{"🛑 abort<br/>event?"}
+        YieldUI["📤 Yield to UI"]
+        TimeoutCheck{"⏱️ timeout<br/>or error?"}
+        Complete["✅ Complete / Error / Timeout"]
+
+        AbortPath["❌ Yield abort message<br/>→ finally cleanup"]
+        ErrorPath["❌ Yield error message<br/>→ finally cleanup"]
+        Finally["🧹 finally: cleanup stop_event + log completion"]
+    end
+
+    Start --> Build
+    Build --> Fetch
+    Fetch --> StreamStart
+    StreamStart --> Stream
+    Stream --> AbortCheck
+
+    AbortCheck -->|YES| AbortPath
+    AbortCheck -->|NO| YieldUI
+
+    YieldUI --> TimeoutCheck
+
+    TimeoutCheck -->|YES| ErrorPath
+    TimeoutCheck -->|NO| Complete
+
+    Complete --> Finally
+    AbortPath --> Finally
+    ErrorPath --> Finally
+
+    style Start fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
+    style Build fill:#45b7d1,stroke:#333,stroke-width:2px,color:#fff
+    style Fetch fill:#feca57,stroke:#333,stroke-width:2px,color:#333
+    style StreamStart fill:#a8e6cf,stroke:#333,stroke-width:2px,color:#333
+    style Stream fill:#dda0dd,stroke:#333,stroke-width:2px,color:#333
+    style AbortCheck fill:#ffd93d,stroke:#333,stroke-width:2px,color:#333
+    style YieldUI fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
+    style TimeoutCheck fill:#ffd93d,stroke:#333,stroke-width:2px,color:#333
+    style Complete fill:#ff8b94,stroke:#333,stroke-width:2px,color:#fff
+    style AbortPath fill:#e74c3c,stroke:#333,stroke-width:2px,color:#fff
+    style ErrorPath fill:#e74c3c,stroke:#333,stroke-width:2px,color:#fff
+    style Finally fill:#2c3e50,stroke:#333,stroke-width:2px,color:#fff
+    style Lifecycle fill:#fafafa,stroke:#333,stroke-width:2px
+```
+The diagrams above show the two critical views of our system: the **stack architecture** (top) and the **request lifecycle** (bottom). The architecture separates global state (shared LLM client) from per-session state (user data, stop events, conversation history). The lifecycle diagram shows how every request flows through decision points for cancellation and error handling—no matter what happens, cleanup always runs.
 
 ---
 
