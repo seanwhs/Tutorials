@@ -73,8 +73,8 @@ flowchart TB
 
         subgraph Resilience[Resilience Layers]
             direction TB
-            L5[Layer 5: Orchestration & TaskGroup]
-            L4[Layer 4: Timeouts & Error Handling]
+            L5[Layer 5: Orchestration and TaskGroup]
+            L4[Layer 4: Timeouts and Error Handling]
             L3[Layer 3: Cancellation]
             L2[Layer 2: Conversation History]
             L1[Layer 1: Persistent LLM Client]
