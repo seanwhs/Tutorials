@@ -1,13 +1,3 @@
-Yes, absolutely — Sanity is an excellent choice for your blog! It's a headless CMS that gives you a structured content studio where you can write articles, manage categories, and handle media without touching code. It separates content from presentation, so you can redesign your site later without losing any blog posts. 
-
-Let me rebuild the entire tutorial with:
-- **Sanity CMS** for your blog (structured content, rich text, categories, publish dates)
-- **AI Projects Showcase** section with project cards, tech stacks, and live demos
-- **Blog section** with article listings, categories, and individual post pages
-- **Enhanced design** that reflects your enterprise architect → indie developer pivot
-
----
-
 # 🚀 Complete Guide: Build an AI-Focused Portfolio + Blog with React, Tailwind CSS, Sanity CMS & Vercel
 
 ## Table of Contents
