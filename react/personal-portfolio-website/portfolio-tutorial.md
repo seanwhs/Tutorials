@@ -1,4 +1,4 @@
-# Tutorial: Building Your Personal Portfolio Website (Revised)
+# Tutorial: Building Your Personal Portfolio Website
 
 *A complete beginner's guide to building a modern, performant portfolio with Next.js, TypeScript, Tailwind CSS, and Sanity CMS — aligned with the project's Software Requirements Document (SRD) and Architecture Document.*
 
