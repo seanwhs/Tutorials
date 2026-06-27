@@ -1,16 +1,4 @@
- Yes, I need to revise the portfolio tutorial to match the Next.js 16 architecture you've provided. The key changes from Next.js 14 to Next.js 16 include:
-
-- **`'use cache'` directive** instead of implicit ISR
-- **`cacheTag` / `revalidateTag`** for explicit cache invalidation
-- **`proxy.ts`** replacing `middleware.ts`
-- **Explicit caching model** — nothing cached by default, you opt-in
-- **No more `export const revalidate`** on pages
-
-Let me revise the portfolio tutorial to reflect these Next.js 16 patterns.
-
----
-
-# Tutorial: Building Your Personal Portfolio Website (Next.js 16)
+# Tutorial: Building Your Personal Portfolio Website 
 
 *A complete beginner's guide to building a modern portfolio with Next.js 16, TypeScript, Tailwind CSS, Sanity CMS, and explicit caching — aligned with the project's SRD and Architecture Document.*
 
@@ -20,8 +8,8 @@ Let me revise the portfolio tutorial to reflect these Next.js 16 patterns.
 
 This tutorial is part of a multi-document system:
 - **This tutorial** — hands-on building instructions
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd.md)** — what the system must do
-- **[Architecture Document (Next.js 16)](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt)** — how the system is structured
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do
+- **[Architecture Document](architecture-portfolio.md)** — how the system is structured
 
 > 💡 **Key difference from older tutorials**: Next.js 16 uses **explicit caching**. Nothing is cached unless you add `'use cache'`. This gives you precise control but requires intentional opt-in.
 
