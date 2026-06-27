@@ -1,7 +1,3 @@
-Here is a complete **Software Requirements Document (SRD)** for your personal portfolio website. I've tailored it to the context of your existing tutorials (portfolio built on Vercel, Sanity CMS integration, blog functionality) and followed standard SRD structure conventions.
-
----
-
 # Software Requirements Document (SRD)
 
 ## Personal Portfolio Website
