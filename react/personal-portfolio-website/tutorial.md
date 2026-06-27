@@ -1,207 +1,416 @@
-# 🚀 Complete Guide: Build an AI-Focused Portfolio + Blog with React, Tailwind CSS, Sanity CMS & Vercel
+ I'll rewrite the tutorial for absolute beginners and fix your dependency issues. Let me first check the latest best practices for 2026 to ensure accuracy.
 
-## Table of Contents
-- [Part 1: Project Setup (Vite + React + Tailwind v4)](#part-1-project-setup)
-- [Part 2: Tailwind Fundamentals for Beginners](#part-2-tailwind-fundamentals)
-- [Part 3: Building Reusable UI Components](#part-3-building-reusable-ui-components)
-- [Part 4: Core Portfolio Sections](#part-4-core-portfolio-sections)
-- [Part 5: AI Projects Showcase](#part-5-ai-projects-showcase)
-- [Part 6: Blog with Sanity CMS](#part-6-blog-with-sanity-cms)
-- [Part 7: Smooth Scrolling & Interactivity](#part-7-smooth-scrolling--interactivity)
-- [Part 8: Publishing to GitHub](#part-8-publishing-to-github)
-- [Part 9: Deploying to Vercel](#part-9-deploying-to-vercel)
+**Dependency Analysis:**
+
+| Package | Status | Action | Reason |
+|---------|--------|--------|--------|
+| `react-scroll` | ❌ Remove | `npm uninstall react-scroll` | Conflicts with `react-router-dom`. Use hash links + CSS smooth scroll instead |
+| `react-router-dom` | ✅ Keep | — | Needed for blog post pages |
+| `@tailwindcss/vite` | ✅ Keep | — | Tailwind v4 Vite plugin |
+| `tailwindcss` | ✅ Keep | — | Tailwind v4 |
+| `react` / `react-dom` | ✅ Keep | — | Core framework |
+| `@portabletext/react` | ❌ Missing | `npm install @portabletext/react` | Render Sanity rich text |
+| `@sanity/client` | ❌ Missing | `npm install @sanity/client` | Fetch blog data |
+| `@sanity/image-url` | ❌ Missing | `npm install @sanity/image-url` | Sanity image optimization |
+
+**Commands to run:**
+```bash
+# Remove conflicting package
+npm uninstall react-scroll
+
+# Add missing Sanity packages
+npm install @sanity/client @sanity/image-url @portabletext/react
+```
 
 ---
 
-## Part 1: Project Setup
+# 🚀 The Absolute Beginner's Guide: Build Your Portfolio Website with React, Tailwind CSS, Sanity CMS & Vercel
 
-### Prerequisites
-1. **Node.js** — [nodejs.org](https://nodejs.org) (LTS version)
-2. **Visual Studio Code** — [code.visualstudio.com](https://code.visualstudio.com)
-3. **VS Code Extensions:**
-   - Tailwind CSS IntelliSense
-   - ES7+ React snippets
+*No coding experience required. We'll build everything step by step.*
 
-### Step 1: Create Project with Vite
+---
+
+## Table of Contents
+- [Part 0: What We're Building](#part-0-what-were-building)
+- [Part 1: Understanding the Basics](#part-1-understanding-the-basics)
+- [Part 2: Installing Your Tools](#part-2-installing-your-tools)
+- [Part 3: Creating Your First Website](#part-3-creating-your-first-website)
+- [Part 4: Understanding React Components](#part-4-understanding-react-components)
+- [Part 5: Styling with Tailwind CSS](#part-5-styling-with-tailwind-css)
+- [Part 6: Building Your Portfolio Sections](#part-6-building-your-portfolio-sections)
+- [Part 7: Adding a Blog with Sanity CMS](#part-7-adding-a-blog-with-sanity-cms)
+- [Part 8: Making It Interactive](#part-8-making-it-interactive)
+- [Part 9: Publishing to the Internet](#part-9-publishing-to-the-internet)
+
+---
+
+## Part 0: What We're Building
+
+By the end of this tutorial, you will have a **live website** that looks like this:
+
+```
+┌─────────────────────────────────────┐
+│  Sean Wong        About Projects Blog│
+│                                     │
+│  Hi, I'm Sean Wong                  │
+│  I build AI-native platforms        │
+│  [View My Work]  [Read My Blog]     │
+│                                     │
+│  ──── About Me ────                 │
+│  [Your story here...]               │
+│                                     │
+│  ──── My Projects ────              │
+│  ┌─────────┐  ┌─────────┐          │
+│  │ Project │  │ Project │          │
+│  │  Card   │  │  Card   │          │
+│  └─────────┘  └─────────┘          │
+│                                     │
+│  ──── Latest Blog Posts ────        │
+│  ┌─────────┐  ┌─────────┐          │
+│  │ Article │  │ Article │          │
+│  │  Card   │  │  Card   │          │
+│  └─────────┘  └─────────┘          │
+│                                     │
+│  ──── Get In Touch ────            │
+│  [Email Me]  [LinkedIn]            │
+│                                     │
+│  © 2026 Sean Wong                   │
+└─────────────────────────────────────┘
+```
+
+**Your website will:**
+- Work on phones, tablets, and computers
+- Have a blog you can update without writing code
+- Load fast and look professional
+- Be hosted on the internet for free
+
+---
+
+## Part 1: Understanding the Basics
+
+### What is a Website?
+A website is a collection of files that a browser (Chrome, Safari, Firefox) reads and displays. The main types of files are:
+
+| File Type | What It Does | Example |
+|-----------|-------------|---------|
+| **HTML** | Structure and content | Headings, paragraphs, images |
+| **CSS** | Styling and colors | Colors, fonts, spacing, layout |
+| **JavaScript** | Interactivity | Buttons, animations, data fetching |
+
+### What is React?
+React is a tool created by Facebook that helps developers build websites more easily. Think of it like this:
+
+> **Without React:** You write HTML, CSS, and JavaScript separately. When something changes, you manually update everything.
+>
+> **With React:** You build small pieces called **components** (like LEGO bricks) and snap them together. When data changes, React automatically updates only the parts that need changing.
+
+**Example of a React component:**
+```jsx
+function Greeting() {
+  return <h1>Hello, I'm Sean!</h1>;
+}
+```
+
+This looks like HTML mixed with JavaScript. That's called **JSX** — it's a special syntax that makes React easier to write.
+
+### What is Tailwind CSS?
+Tailwind is a CSS framework that gives you pre-made classes. Instead of writing:
+```css
+.button {
+  background-color: blue;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+```
+
+You write:
+```html
+<button class="bg-blue-600 px-5 py-2.5 rounded-lg">
+  Click Me
+</button>
+```
+
+Each class does one thing. You combine them like building blocks.
+
+### What is Sanity CMS?
+**CMS** stands for Content Management System. It's a tool for creating and managing content (like blog posts) without writing code.
+
+**"Headless"** means the CMS only handles the content. It doesn't care how your website looks. Your website asks the CMS for content, and the CMS sends it back as data.
+
+**Why this matters:** You can write blog posts in Sanity's editor, and your website automatically shows them. No code changes needed.
+
+```
+You write in Sanity → Sanity stores it → Your website fetches it → Visitors see it
+```
+
+### What is Vercel?
+Vercel is a service that takes your website files and puts them on the internet. It connects to your code (on GitHub) and automatically updates your live website whenever you make changes.
+
+---
+
+## Part 2: Installing Your Tools
+
+You need three free tools on your computer.
+
+### Tool 1: Node.js
+Node.js lets your computer run JavaScript code outside of a browser. We need it to build our website.
+
+**To install:**
+1. Go to [nodejs.org](https://nodejs.org)
+2. Click the big **LTS** button (LTS means "Long Term Support" — it's the stable version)
+3. Download and run the installer
+4. Keep clicking "Next" until it's done
+
+**To verify it's working:**
+Open your terminal (see below) and type:
+```bash
+node --version
+```
+You should see something like `v20.15.0`. If you do, Node.js is installed!
+
+### Tool 2: Visual Studio Code (VS Code)
+This is where you'll write your code. It's like Microsoft Word, but for code.
+
+**To install:**
+1. Go to [code.visualstudio.com](https://code.visualstudio.com)
+2. Download for your computer (Windows, Mac, or Linux)
+3. Install it
+
+**Recommended extensions (add-ons):**
+Once VS Code is open:
+1. Click the Extensions icon on the left (looks like four squares)
+2. Search for and install:
+   - **Tailwind CSS IntelliSense** — suggests Tailwind classes as you type
+   - **ES7+ React/Redux/React-Native snippets** — helps write React faster
+
+### Tool 3: A Terminal
+A terminal is a text-based way to talk to your computer. You'll use it to run commands.
+
+**How to open:**
+- **Windows:** Press `Windows key + R`, type `cmd`, press Enter
+- **Mac:** Press `Cmd + Space`, type `Terminal`, press Enter
+- **Linux:** Press `Ctrl + Alt + T`
+
+**What you'll see:** A black window with text like `C:\Users\YourName>` or `YourName@computer ~ %`
+
+**Important:** Every time this tutorial says "run a command," type it in the terminal and press Enter.
+
+---
+
+## Part 3: Creating Your First Website
+
+### Step 1: Create the Project
+In your terminal, run this command:
 ```bash
 npm create vite@latest sean-portfolio -- --template react
-cd sean-portfolio
-npm install
 ```
 
-### Step 2: Install Tailwind CSS v4
+**What this does:** Creates a new folder called `sean-portfolio` with all the files needed for a React website.
+
+**What you'll see:** A few questions. Just press Enter to accept the defaults.
+
+### Step 2: Enter Your Project Folder
 ```bash
-npm install tailwindcss @tailwindcss/vite
+cd sean-portfolio
 ```
 
-### Step 3: Configure Vite
-`vite.config.js`:
+`cd` means "change directory" — you're now inside your project folder.
+
+### Step 3: Install Dependencies
+Run these commands one by one:
+```bash
+npm install
+npm install tailwindcss @tailwindcss/vite
+npm install react-router-dom
+npm install @sanity/client @sanity/image-url @portabletext/react
+```
+
+**What each does:**
+- `npm install` — Installs the basic React files
+- `npm install tailwindcss @tailwindcss/vite` — Installs Tailwind CSS
+- `npm install react-router-dom` — Installs page navigation
+- `npm install @sanity/client @sanity/image-url @portabletext/react` — Installs tools to connect to your blog system
+
+### Step 4: Configure Tailwind CSS
+Open your project in VS Code:
+1. In VS Code, click **File** → **Open Folder**
+2. Find and select the `sean-portfolio` folder
+3. Click **Open**
+
+In VS Code, find the file `vite.config.js` and replace everything with:
 ```js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
 })
 ```
 
-### Step 4: Import Tailwind
-`src/index.css`:
+**What this does:** Tells Vite (our build tool) to use the Tailwind CSS plugin.
+
+Now find `src/index.css` and replace everything with:
 ```css
 @import "tailwindcss";
 ```
 
-### Step 5: Start Dev Server
+**What this does:** Imports all of Tailwind's styles into your website.
+
+### Step 5: Start Your Website
+In your terminal (make sure you're still in the `sean-portfolio` folder), run:
 ```bash
 npm run dev
 ```
-Open `http://localhost:5173`
+
+**What you'll see:** Text saying something like `Local: http://localhost:5173/`
+
+Open your browser and go to `http://localhost:5173`
+
+**You should see:** A page that says "count is 0" with a button. This is the default Vite + React starter page.
+
+**To stop the server:** Press `Ctrl + C` in the terminal.
 
 ---
 
-## Part 2: Tailwind Fundamentals for Beginners
+## Part 4: Understanding React Components
 
-Tailwind is a **utility-first** CSS framework. Instead of writing CSS files, you add classes directly to your HTML/JSX.
+### What is a Component?
+A component is a reusable piece of your website. Think of it like a custom LEGO brick.
 
-**Example:**
-```jsx
-// Instead of this CSS:
-// .button { background: blue; padding: 10px 20px; border-radius: 8px; }
+**Example:** A button that you use 10 times across your website. Instead of writing the same code 10 times, you write it once as a component and reuse it.
 
-// You write this:
-<button className="bg-blue-600 px-5 py-2.5 rounded-lg text-white font-medium">
-  Click Me
-</button>
-```
-
-**Why it works:** Tailwind scans your files at build time and only includes the CSS you actually use. Your bundle stays tiny. 
-
-### Key Concepts
-
-| Concept | Explanation | Example |
-|---------|-------------|---------|
-| **Utility Class** | A single-purpose class | `text-center`, `bg-red-500` |
-| **Responsive Prefix** | Applies at a screen width | `md:flex` (flex at 768px+) |
-| **Hover State** | Applies on mouse hover | `hover:bg-blue-700` |
-| **Dark Mode** | Applies in dark mode | `dark:bg-slate-900` |
-| **Arbitrary Values** | Custom values in brackets | `w-[100px]`, `text-[#1a1a2e]` |
-
-**Responsive breakpoints (mobile-first):**
-- `sm:` — 640px+
-- `md:` — 768px+
-- `lg:` — 1024px+
-- `xl:` — 1280px+
-
----
-## Part 3: Scaffold
-
-**File Structure**
-
+### Your First Component
+In VS Code, look at the `src` folder. You'll see:
 ```
 src/
-├── components/
-│   ├── ui/
-│   │   ├── Button.jsx
-│   │   ├── Card.jsx
-│   │   ├── Section.jsx
-│   │   └── Badge.jsx
-│   └── sections/
-│       ├── Navbar.jsx
-│       ├── Hero.jsx
-│       ├── About.jsx
-│       └── Projects.jsx
-├── lib/
-│   └── sanity.js
-└── App.jsx
+├── App.jsx       ← Main component
+├── main.jsx      ← Entry point
+└── index.css     ← Styles
 ```
 
-**App.jsx**
-`src/App.jsx`:
-```
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/sections/Navbar';
-import Hero from './components/sections/Hero';
-import About from './components/sections/About';
-import Projects from './components/sections/Projects';
-import Footer from './components/sections/Footer';
+**Let's clean up and start fresh.**
 
-function HomePage() {
-  return (
-    <>
-      <Hero />
-      <About />
-      <Projects />
-      {/* Add <Blog /> here once implemented */}
-    </>
-  );
-}
-
+Open `src/App.jsx` and replace everything with:
+```jsx
 function App() {
   return (
-    <BrowserRouter>
-      <div className="antialiased text-slate-900 bg-white">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          {/* <Route path="/blog/:slug" element={<BlogPost />} /> */}
-        </Routes>
-        <Footer />
-      </div>
-    </BrowserRouter>
+    <div className="min-h-screen bg-slate-50">
+      <h1 className="text-3xl font-bold text-slate-900 p-8">
+        Hello, I'm Sean Wong
+      </h1>
+    </div>
   );
 }
 
 export default App;
 ```
+
+**Save the file** (`Ctrl+S` or `Cmd+S`). Your browser updates automatically!
+
+**Let's understand those Tailwind classes:**
+| Class | What It Means |
+|-------|---------------|
+| `min-h-screen` | Minimum height = full screen height |
+| `bg-slate-50` | Background color = very light gray |
+| `text-3xl` | Text size = extra large (30px) |
+| `font-bold` | Font weight = bold |
+| `text-slate-900` | Text color = very dark gray |
+| `p-8` | Padding = 32px on all sides |
+
+### Creating a Folder Structure
+Let's organize our components. In VS Code:
+
+1. Right-click the `src` folder → **New Folder** → type `components` → press Enter
+2. Right-click `components` → **New Folder** → type `ui` → press Enter
+3. Right-click `components` → **New Folder** → type `sections` → press Enter
+
+Your structure should look like:
+```
+src/
+├── components/
+│   ├── ui/           ← Small reusable pieces
+│   └── sections/     ← Big page sections
+├── App.jsx
+├── main.jsx
+└── index.css
+```
+
 ---
 
-## Part 4: Building Reusable UI Components
+## Part 5: Styling with Tailwind CSS
 
-Create the folder structure:
-```
-src/components/
-├── ui/           # Primitive components
-└── sections/     # Page sections
-```
+Before we build sections, let's create our building blocks.
 
-### Button Component
-`src/components/ui/Button.jsx`:
+### Building Block 1: Button
+Create a new file: `src/components/ui/Button.jsx`
+
 ```jsx
-function Button({ children, variant = 'primary', href, onClick }) {
-  const base = "inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200";
+function Button({ children, variant = 'primary', href }) {
+  // Base styles for all buttons
+  const baseClasses = "inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200";
   
+  // Different styles for different button types
   const variants = {
-    primary: "bg-slate-900 text-white hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5",
+    primary: "bg-slate-900 text-white hover:bg-slate-800 hover:shadow-lg",
     secondary: "bg-white text-slate-900 border-2 border-slate-200 hover:border-slate-900",
-    outline: "bg-transparent text-slate-900 border-2 border-slate-900 hover:bg-slate-900 hover:text-white",
-    ghost: "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+    outline: "bg-transparent text-white border-2 border-white hover:bg-white hover:text-slate-900"
   };
 
-  const classes = `${base} ${variants[variant]}`;
+  // Combine base + variant
+  const classes = `${baseClasses} ${variants[variant]}`;
 
-  if (href) return <a href={href} className={classes}>{children}</a>;
-  return <button onClick={onClick} className={classes}>{children}</button>;
+  // If href is provided, make it a link. Otherwise, make it a button.
+  if (href) {
+    return <a href={href} className={classes}>{children}</a>;
+  }
+
+  return <button className={classes}>{children}</button>;
 }
 
 export default Button;
 ```
 
-### Section Wrapper
-`src/components/ui/Section.jsx`:
+**How to use it:**
+```jsx
+<Button>Primary Button</Button>
+<Button variant="secondary">Secondary Button</Button>
+<Button href="https://google.com">Link Button</Button>
+```
+
+### Building Block 2: Section Wrapper
+Create: `src/components/ui/Section.jsx`
+
 ```jsx
 function Section({ children, id, className = "" }) {
   return (
-    <section id={id} className={`py-20 px-4 ${className}`}>
-      <div className="max-w-6xl mx-auto">{children}</div>
+    <section id={id} className={`py-20 px-4 sm:px-6 lg:px-8 ${className}`}>
+      <div className="max-w-6xl mx-auto">
+        {children}
+      </div>
     </section>
   );
 }
+
 export default Section;
 ```
 
-### Badge Component
-`src/components/ui/Badge.jsx`:
+**What those classes do:**
+| Class | Meaning |
+|-------|---------|
+| `py-20` | Padding top and bottom = 80px |
+| `px-4` | Padding left and right = 16px |
+| `sm:px-6` | At small screens (640px+), padding = 24px |
+| `lg:px-8` | At large screens (1024px+), padding = 32px |
+| `max-w-6xl` | Maximum width = 1152px |
+| `mx-auto` | Center horizontally |
+
+### Building Block 3: Badge
+Create: `src/components/ui/Badge.jsx`
+
 ```jsx
 function Badge({ children, color = "slate" }) {
   const colors = {
@@ -222,12 +431,13 @@ function Badge({ children, color = "slate" }) {
 export default Badge;
 ```
 
-### Card Component
-`src/components/ui/Card.jsx`:
+### Building Block 4: Card
+Create: `src/components/ui/Card.jsx`
+
 ```jsx
-function Card({ children, className = "", hover = true }) {
+function Card({ children, className = "" }) {
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 p-6 ${hover ? 'hover:shadow-xl hover:-translate-y-1 transition-all duration-300' : ''} ${className}`}>
+    <div className={`bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${className}`}>
       {children}
     </div>
   );
@@ -238,14 +448,18 @@ export default Card;
 
 ---
 
-## Part 5: Core Portfolio Sections
+## Part 6: Building Your Portfolio Sections
 
-### Navbar
-`src/components/sections/Navbar.jsx`:
+Now let's build the big pieces of your website. Each section is a component.
+
+### Section 1: Navigation Bar
+Create: `src/components/sections/Navbar.jsx`
+
 ```jsx
 import { useState } from 'react';
 
 function Navbar() {
+  // useState is a React feature that remembers if menu is open or closed
   const [isOpen, setIsOpen] = useState(false);
 
   const links = [
@@ -259,21 +473,24 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <a href="#home" className="text-xl font-bold text-slate-900 tracking-tight">
+          {/* Logo / Name */}
+          <a href="#home" className="text-xl font-bold text-slate-900">
             Sean Wong
           </a>
 
+          {/* Desktop Menu (hidden on mobile) */}
           <div className="hidden md:flex items-center space-x-8">
             {links.map((link) => (
-              <a key={link.name} href={link.href} className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
+              <a key={link.name} href={link.href} className="text-slate-600 hover:text-slate-900 font-medium">
                 {link.name}
               </a>
             ))}
-            <a href="#contact" className="bg-slate-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-slate-800 transition-colors">
+            <a href="#contact" className="bg-slate-900 text-white px-5 py-2 rounded-lg font-medium hover:bg-slate-800">
               Let's Talk
             </a>
           </div>
 
+          {/* Mobile Menu Button */}
           <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2 text-slate-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isOpen ? (
@@ -285,10 +502,11 @@ function Navbar() {
           </button>
         </div>
 
+        {/* Mobile Menu (shown when isOpen is true) */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-slate-100">
             {links.map((link) => (
-              <a key={link.name} href={link.href} onClick={() => setIsOpen(false)} className="block py-3 text-slate-600 hover:text-slate-900 font-medium">
+              <a key={link.name} href={link.href} onClick={() => setIsOpen(false)} className="block py-3 text-slate-600 font-medium">
                 {link.name}
               </a>
             ))}
@@ -302,35 +520,49 @@ function Navbar() {
 export default Navbar;
 ```
 
-### Hero Section
-`src/components/sections/Hero.jsx`:
+**Key concepts explained:**
+- `useState(false)` — Creates a memory cell that starts as `false` (menu closed)
+- `setIsOpen(!isOpen)` — Toggles between true and false
+- `{isOpen && (...)}` — Only shows the mobile menu if isOpen is true
+- `hidden md:flex` — Hidden on mobile, flex layout on medium screens and up
+
+### Section 2: Hero (Top of Page)
+Create: `src/components/sections/Hero.jsx`
+
 ```jsx
-import { Link } from 'react-scroll';
 import Button from '../ui/Button';
 
 function Hero() {
   return (
-    <section id="home" className="min-h-screen flex items-center pt-16 bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <section id="home" className="min-h-screen flex items-center pt-16 bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-3xl">
-          <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            Building <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-native</span> platforms.
+          <p className="text-slate-500 font-medium mb-4 tracking-wide uppercase text-sm">
+            Enterprise Architect → Independent Developer
+          </p>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
+            Building <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-native</span> digital platforms with architectural rigor
           </h1>
-          <div className="flex gap-4">
-            <Link to="projects" smooth={true} duration={500} offset={-70}>
-              <Button variant="primary">View AI Projects</Button>
-            </Link>
+          <p className="text-lg sm:text-xl text-slate-600 leading-relaxed mb-8">
+            Decades of enterprise architecture experience, now focused on full-stack development, 
+            cloud-native systems, and AI-augmented engineering.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button href="#projects" variant="primary">View AI Projects</Button>
+            <Button href="#blog" variant="secondary">Read the Blog</Button>
           </div>
         </div>
       </div>
     </section>
   );
 }
+
 export default Hero;
 ```
 
-### About Section
-`src/components/sections/About.jsx`:
+### Section 3: About
+Create: `src/components/sections/About.jsx`
+
 ```jsx
 import Section from '../ui/Section';
 import Badge from '../ui/Badge';
@@ -357,18 +589,16 @@ function About() {
           </h2>
           <div className="space-y-4 text-slate-600 leading-relaxed">
             <p>
-              After decades designing systems for global enterprises — from HP and Huawei to Accenture and QuestGlobal — 
-              I've pivoted to independent consulting and development. I bring the strategic thinking of an enterprise architect 
-              combined with the practical velocity of a full-stack developer.
+              After decades designing systems for global enterprises, I've pivoted to independent 
+              consulting and development. I bring strategic thinking combined with practical velocity.
             </p>
             <p>
-              I specialize in modern web platforms using React, Next.js, and cloud-native stacks, augmented with AI tools 
-              like VS Code Continue.dev and Opencode CLI. My "vibe coding" approach blends rapid iteration with strong 
-              architectural governance — because AI-generated code still needs human judgment.
+              I specialize in modern web platforms using React, Next.js, and cloud-native stacks, 
+              augmented with AI tools. My approach blends rapid iteration with strong architectural governance.
             </p>
             <p>
-              Based in Singapore, I'm passionate about facilitating world-class digital transformation and grooming 
-              the next generation of digital leaders through consulting and ACTA-certified technical training.
+              Based in Singapore, I'm passionate about digital transformation and grooming 
+              the next generation of digital leaders through consulting and ACTA-certified training.
             </p>
           </div>
         </div>
@@ -407,59 +637,9 @@ function About() {
 export default About;
 ```
 
-### Footer Section
-`src/components/sections/Footer.jsx`:
-```jsx
-function Footer() {
-  const currentYear = new Date().getFullYear();
+### Section 4: Projects
+Create: `src/components/sections/Projects.jsx`
 
-  return (
-    <footer className="bg-slate-50 border-t border-slate-200 py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          {/* Branding */}
-          <div>
-            <a href="#home" className="text-xl font-bold text-slate-900 tracking-tight">
-              Sean Wong
-            </a>
-            <p className="text-slate-500 text-sm mt-1">
-              Enterprise Architect & Independent Developer
-            </p>
-          </div>
-
-          {/* Copyright */}
-          <div className="text-slate-500 text-sm">
-            © {currentYear} Sean Wong. All rights reserved.
-          </div>
-
-          {/* Social / Links */}
-          <div className="flex space-x-6">
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-900 transition-colors">
-              GitHub
-            </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-900 transition-colors">
-              LinkedIn
-            </a>
-            <a href="mailto:your-email@example.com" className="text-slate-400 hover:text-slate-900 transition-colors">
-              Email
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-export default Footer;
-```
-
----
-
-## Part 6: AI Projects Showcase
-
-This is where you showcase your AI-integrated projects. Each project card includes the tech stack, AI features, and links to live demos or GitHub.
-
-`src/components/sections/Projects.jsx`:
 ```jsx
 import Section from '../ui/Section';
 import Card from '../ui/Card';
@@ -468,28 +648,92 @@ import Badge from '../ui/Badge';
 function Projects() {
   const projects = [
     {
-      title: 'AI-Powered Document Analyzer',
-      description: 'Intelligent PDF/image insight extraction.',
-      image: '📄',
+      title: 'AI Document Analyzer',
+      description: 'Intelligent PDF and image processing using LLM vision models. Extracts insights, summarizes content, and enables semantic search.',
       status: 'Live',
-      aiFeatures: ['LLM Vision', 'RAG'],
-      tech: ['Next.js', 'OpenAI'],
+      aiFeatures: ['LLM Vision', 'RAG Pipeline', 'Semantic Search'],
+      tech: ['Next.js', 'OpenAI API', 'Pinecone', 'PostgreSQL'],
+      demoUrl: '#',
+      githubUrl: '#'
+    },
+    {
+      title: 'Smart Workflow Builder',
+      description: 'No-code automation platform with AI-assisted configuration. Describe your workflow in plain English, get a working automation graph.',
+      status: 'In Development',
+      aiFeatures: ['NL to Workflow', 'Auto-Error Recovery'],
+      tech: ['React', 'n8n', 'LangChain', 'Appwrite'],
+      demoUrl: '#',
+      githubUrl: '#'
+    },
+    {
+      title: 'AI Code Review Assistant',
+      description: 'VS Code extension for intelligent code reviews, security scanning, and architectural pattern suggestions.',
+      status: 'Open Source',
+      aiFeatures: ['Security Scanning', 'Pattern Recognition'],
+      tech: ['TypeScript', 'Ollama', 'Continue.dev'],
+      demoUrl: '#',
+      githubUrl: '#'
+    },
+    {
+      title: 'Conversational Analytics',
+      description: 'Ask questions in plain English, get interactive dashboards. Natural language to SQL with auto-visualization.',
+      status: 'Live',
+      aiFeatures: ['NL-to-SQL', 'Auto-Visualization'],
+      tech: ['Next.js', 'Sanity', 'Neon DB', 'Clerk'],
       demoUrl: '#',
       githubUrl: '#'
     }
-    // ... add other projects
   ];
 
   return (
     <Section id="projects" className="bg-slate-50">
+      <div className="text-center mb-16">
+        <Badge color="purple">AI-Integrated Projects</Badge>
+        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-4 mb-4">
+          Projects I'm Building
+        </h2>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          Real-world applications combining modern web development with AI capabilities.
+        </p>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-8">
-        {projects.map((p) => (
-          <Card key={p.title}>
-            <h3 className="text-xl font-bold mb-3">{p.title}</h3>
-            <p className="text-slate-600 mb-4">{p.description}</p>
-            <div className="flex gap-3 pt-4 border-t">
-              <a href={p.demoUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 bg-slate-900 text-white rounded-lg text-sm font-medium">Live Demo</a>
-              <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 border rounded-lg text-sm font-medium">GitHub</a>
+        {projects.map((project) => (
+          <Card key={project.title}>
+            <div className="flex items-start justify-between mb-4">
+              <Badge color={project.status === 'Live' ? 'green' : project.status === 'Open Source' ? 'blue' : 'amber'}>
+                {project.status}
+              </Badge>
+            </div>
+            
+            <h3 className="text-xl font-bold text-slate-900 mb-3">{project.title}</h3>
+            <p className="text-slate-600 leading-relaxed mb-4">{project.description}</p>
+            
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">AI Features</p>
+              <div className="flex flex-wrap gap-2">
+                {project.aiFeatures.map((f) => (
+                  <span key={f} className="text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-md font-medium">{f}</span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Tech Stack</p>
+              <div className="flex flex-wrap gap-2">
+                {project.tech.map((t) => (
+                  <span key={t} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">{t}</span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-3 pt-4 border-t border-slate-100">
+              <a href={project.demoUrl} className="flex-1 text-center py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800">
+                Live Demo
+              </a>
+              <a href={project.githubUrl} className="flex-1 text-center py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:border-slate-900">
+                GitHub
+              </a>
             </div>
           </Card>
         ))}
@@ -497,37 +741,127 @@ function Projects() {
     </Section>
   );
 }
+
 export default Projects;
 ```
 
+### Section 5: Contact
+Create: `src/components/sections/Contact.jsx`
+
+```jsx
+import Section from '../ui/Section';
+import Button from '../ui/Button';
+
+function Contact() {
+  return (
+    <Section id="contact" className="bg-slate-900 text-white">
+      <div className="text-center max-w-2xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+          Let's Build Something Together
+        </h2>
+        <p className="text-lg text-slate-300 mb-8">
+          Whether you need a modern web platform, cloud architecture guidance, 
+          or technical training for your team.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <Button href="mailto:your@email.com" variant="primary">📧 Email Me</Button>
+          <Button href="https://linkedin.com/in/yourprofile" variant="outline">💼 LinkedIn</Button>
+        </div>
+        <p className="text-slate-400 text-sm">
+          Based in Singapore · Available for remote consulting worldwide
+        </p>
+      </div>
+    </Section>
+  );
+}
+
+export default Contact;
+```
+
+### Section 6: Footer
+Create: `src/components/sections/Footer.jsx`
+
+```jsx
+function Footer() {
+  return (
+    <footer className="bg-slate-950 text-slate-500 py-8 text-center text-sm">
+      <p>© {new Date().getFullYear()} Sean Wong. Built with React, Tailwind CSS & Vite.</p>
+    </footer>
+  );
+}
+
+export default Footer;
+```
+
+### Putting It All Together
+Update `src/App.jsx`:
+```jsx
+import Navbar from './components/sections/Navbar';
+import Hero from './components/sections/Hero';
+import About from './components/sections/About';
+import Projects from './components/sections/Projects';
+import Contact from './components/sections/Contact';
+import Footer from './components/sections/Footer';
+
+function App() {
+  return (
+    <div className="antialiased">
+      <Navbar />
+      <Hero />
+      <About />
+      <Projects />
+      <Contact />
+      <Footer />
+    </div>
+  );
+}
+
+export default App;
+```
+
+**Check your browser.** You should now see a complete portfolio website!
+
 ---
 
-## Part 7: Blog with Sanity CMS
+## Part 7: Adding a Blog with Sanity CMS
 
-Sanity is a headless CMS — you write content in a structured studio, and your React app fetches it via API. This means:
-- **No code changes** when publishing new articles
-- **Rich text editing** with images, code blocks, and embeds
-- **Structured content** — categories, tags, authors, publish dates
-- **Future-proof** — redesign your site without migrating content 
+Now for the exciting part — a blog you can update without touching code.
 
-### Step 1: Set Up Sanity Studio
+### What is Sanity?
+Sanity is a **headless CMS** (Content Management System). Think of it like WordPress, but without the website part. It only handles your content.
 
-Create a separate folder for your Sanity project (best practice: keep CMS and frontend separate):
+**The flow:**
+```
+You write in Sanity Studio → Sanity stores your post → Your website fetches it → Visitors read it
+```
 
+### Step 1: Create a Sanity Account
+1. Go to [sanity.io](https://sanity.io)
+2. Click **Get Started** and sign up with your Google or GitHub account
+3. Once logged in, you'll see your dashboard
+
+### Step 2: Create a New Sanity Project
+In your terminal, create a new folder for your CMS:
 ```bash
-# In your project root, create a new folder
+# Make sure you're OUTSIDE your sean-portfolio folder first
+cd ..
 mkdir sanity-blog
 cd sanity-blog
+```
+
+Now create a new Sanity project:
+```bash
 npm create sanity@latest -- --template clean --create-project "Sean Wong Blog" --dataset production
 ```
 
-Follow the prompts to create your Sanity project. This will:
-- Create a Sanity project in your Sanity.io account
-- Set up a local studio
-- Configure API keys
+**What happens:**
+- Sanity creates a project in your account
+- Sets up a local "Studio" (the editor interface)
+- Generates API keys
 
-### Step 2: Define Your Content Schema
-`sanity-blog/schemaTypes/post.ts`:
+### Step 3: Define What a Blog Post Looks Like
+In your `sanity-blog` folder, find `schemaTypes/post.ts` and replace it with:
+
 ```typescript
 export default {
   name: 'post',
@@ -542,7 +876,7 @@ export default {
     },
     {
       name: 'slug',
-      title: 'Slug',
+      title: 'Slug (URL-friendly name)',
       type: 'slug',
       options: {
         source: 'title',
@@ -552,29 +886,24 @@ export default {
     },
     {
       name: 'excerpt',
-      title: 'Excerpt',
+      title: 'Short Summary',
       type: 'text',
       rows: 3,
-      validation: (Rule) => Rule.required().max(300)
+      validation: (Rule) => Rule.required().max(300),
+      description: 'This appears on the blog listing page'
     },
     {
       name: 'content',
-      title: 'Content',
+      title: 'Article Content',
       type: 'array',
       of: [
-        { type: 'block' },           // Rich text paragraphs
+        { type: 'block' },           // Normal paragraphs
         { type: 'image' },            // Images
         { 
           type: 'code',               // Code blocks
           options: { withFilename: true }
         }
       ]
-    },
-    {
-      name: 'coverImage',
-      title: 'Cover Image',
-      type: 'image',
-      options: { hotspot: true }
     },
     {
       name: 'category',
@@ -599,60 +928,52 @@ export default {
     },
     {
       name: 'publishedAt',
-      title: 'Published At',
+      title: 'Publish Date',
       type: 'datetime',
       validation: (Rule) => Rule.required()
     },
     {
       name: 'featured',
-      title: 'Featured Post',
+      title: 'Featured Post?',
       type: 'boolean',
-      initialValue: false
+      initialValue: false,
+      description: 'Featured posts appear at the top of the blog section'
     }
-  ],
-  preview: {
-    select: {
-      title: 'title',
-      category: 'category',
-      publishedAt: 'publishedAt'
-    },
-    prepare({ title, category, publishedAt }) {
-      return {
-        title,
-        subtitle: `${category} • ${new Date(publishedAt).toLocaleDateString()}`
-      };
-    }
-  }
+  ]
 }
 ```
 
-### Step 3: Start Sanity Studio
+### Step 4: Start Sanity Studio
 ```bash
-cd sanity-blog
 npm run dev
 ```
-Open `http://localhost:3333` — this is your content management interface. Create a few sample posts to test with.
+Open `http://localhost:3333` — this is your content editor!
 
-### Step 4: Connect Sanity to Your React App
+**Create your first post:**
+1. Click **Create new document** → **Blog Post**
+2. Fill in the title, slug, excerpt, and content
+3. Select a category
+4. Set the publish date
+5. Click **Publish**
 
-In your **frontend** project (`sean-portfolio`), install the Sanity client:
+### Step 5: Connect Your Website to Sanity
+Go back to your `sean-portfolio` folder.
 
-```bash
-npm install @sanity/client @sanity/image-url
-```
+Create a new file: `src/lib/sanity.js`
 
-Create `src/lib/sanity.js`:
 ```javascript
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
 
+// This connects your website to Sanity
 const client = createClient({
-  projectId: 'YOUR_PROJECT_ID',      // From sanity.config.ts or Sanity dashboard
+  projectId: 'YOUR_PROJECT_ID',      // We'll find this in a moment
   dataset: 'production',
-  apiVersion: '2026-06-28',            // Use current date
-  useCdn: true,                        // true for production, false for fresh data
+  apiVersion: '2026-06-28',
+  useCdn: true,
 });
 
+// Helper function for images
 const builder = imageUrlBuilder(client);
 
 export function urlFor(source) {
@@ -662,11 +983,15 @@ export function urlFor(source) {
 export default client;
 ```
 
-**Find your Project ID:** In your Sanity dashboard (sanity.io/manage), select your project. The ID is in the project settings.
+**How to find your Project ID:**
+1. Go to [sanity.io/manage](https://sanity.io/manage)
+2. Click on your "Sean Wong Blog" project
+3. Look for **Project ID** — it's a short string like `abc123de`
+4. Copy it and replace `YOUR_PROJECT_ID` in the code above
 
-### Step 5: Create Blog Components
+### Step 6: Create the Blog Section
+Create: `src/components/sections/Blog.jsx`
 
-**Blog Listing Section** — `src/components/sections/Blog.jsx`:
 ```jsx
 import { useState, useEffect } from 'react';
 import Section from '../ui/Section';
@@ -675,8 +1000,10 @@ import Badge from '../ui/Badge';
 import client from '../../lib/sanity';
 
 function Blog() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // useState creates memory for our component
+  const [posts, setPosts] = useState([]);        // Stores blog posts
+  const [loading, setLoading] = useState(true);  // Tracks if we're loading
+  const [error, setError] = useState(null);      // Stores any errors
   const [activeCategory, setActiveCategory] = useState('all');
 
   const categories = [
@@ -687,36 +1014,56 @@ function Blog() {
     { id: 'architecture', label: 'Architecture' },
   ];
 
+  // useEffect runs code when the component first appears
   useEffect(() => {
+    // This is the query language Sanity uses (called GROQ)
     const query = `*[_type == "post"] | order(publishedAt desc) {
       _id,
       title,
       slug,
       excerpt,
       category,
-      tags,
       publishedAt,
       featured
     }`;
     
-    client.fetch(query).then((data) => {
-      setPosts(data);
-      setLoading(false);
-    });
-  }, []);
+    client.fetch(query)
+      .then((data) => {
+        setPosts(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Failed to load articles. Please try again later.');
+        setLoading(false);
+      });
+  }, []); // Empty array means "run once when page loads"
 
+  // Filter posts based on selected category
   const filteredPosts = activeCategory === 'all' 
     ? posts 
     : posts.filter(post => post.category === activeCategory);
 
   const featuredPost = posts.find(post => post.featured);
 
+  // Show loading spinner
   if (loading) {
     return (
       <Section id="blog" className="bg-white">
         <div className="text-center py-20">
           <div className="animate-spin w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-slate-500">Loading articles...</p>
+        </div>
+      </Section>
+    );
+  }
+
+  // Show error message
+  if (error) {
+    return (
+      <Section id="blog" className="bg-white">
+        <div className="text-center py-20 text-red-600">
+          {error}
         </div>
       </Section>
     );
@@ -734,7 +1081,7 @@ function Blog() {
         </p>
       </div>
 
-      {/* Category Filter */}
+      {/* Category Filter Buttons */}
       <div className="flex flex-wrap justify-center gap-2 mb-12">
         {categories.map((cat) => (
           <button
@@ -751,7 +1098,7 @@ function Blog() {
         ))}
       </div>
 
-      {/* Featured Post */}
+      {/* Featured Post (only shown on "All" tab) */}
       {featuredPost && activeCategory === 'all' && (
         <div className="mb-12">
           <Card className="md:flex gap-8 items-center">
@@ -765,10 +1112,7 @@ function Blog() {
               <h3 className="text-2xl font-bold text-slate-900 mt-3 mb-3">{featuredPost.title}</h3>
               <p className="text-slate-600 leading-relaxed mb-4">{featuredPost.excerpt}</p>
               <div className="flex items-center gap-4 text-sm text-slate-500">
-                <span>{new Date(featuredPost.publishedAt).toLocaleDateString('en-US', { 
-                  year: 'numeric', month: 'long', day: 'numeric' 
-                })}</span>
-                <span>•</span>
+                <span>{new Date(featuredPost.publishedAt).toLocaleDateString()}</span>
                 <Badge color="blue">{featuredPost.category}</Badge>
               </div>
             </div>
@@ -786,18 +1130,16 @@ function Blog() {
             <div className="flex items-center gap-2 mb-3">
               <Badge color="blue">{post.category}</Badge>
               <span className="text-xs text-slate-400">
-                {new Date(post.publishedAt).toLocaleDateString('en-US', { 
-                  month: 'short', day: 'numeric' 
-                })}
+                {new Date(post.publishedAt).toLocaleDateString()}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">{post.title}</h3>
-            <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3 flex-grow">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">{post.title}</h3>
+            <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-grow">
               {post.excerpt}
             </p>
             <a 
               href={`/blog/${post.slug.current}`}
-              className="text-blue-600 font-medium text-sm hover:text-blue-800 transition-colors inline-flex items-center gap-1"
+              className="text-blue-600 font-medium text-sm hover:text-blue-800"
             >
               Read Article →
             </a>
@@ -811,15 +1153,54 @@ function Blog() {
 export default Blog;
 ```
 
-### Step 6: Individual Blog Post Page (Optional Advanced)
+### Step 7: Add Blog to Your App
+Update `src/App.jsx`:
+```jsx
+import Navbar from './components/sections/Navbar';
+import Hero from './components/sections/Hero';
+import About from './components/sections/About';
+import Projects from './components/sections/Projects';
+import Blog from './components/sections/Blog';        // NEW
+import Contact from './components/sections/Contact';
+import Footer from './components/sections/Footer';
 
-For full blog post pages, you'll need a router. Install React Router:
+function App() {
+  return (
+    <div className="antialiased">
+      <Navbar />
+      <Hero />
+      <About />
+      <Projects />
+      <Blog />                                          // NEW
+      <Contact />
+      <Footer />
+    </div>
+  );
+}
 
-```bash
-npm install react-router-dom
+export default App;
 ```
 
-Update `src/App.jsx` to use routing:
+**Check your browser!** Your blog posts from Sanity should now appear.
+
+---
+
+## Part 8: Making It Interactive
+
+### Smooth Scrolling
+Add this to your `src/index.css`:
+```css
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+```
+
+This makes all anchor links (`#about`, `#projects`, etc.) scroll smoothly instead of jumping instantly.
+
+### Individual Blog Post Pages (Optional but Recommended)
+For full articles, we need separate pages. Update `src/App.jsx`:
 
 ```jsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -867,7 +1248,7 @@ Create `src/components/sections/BlogPost.jsx`:
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { PortableText } from '@portabletext/react';
-import client, { urlFor } from '../../lib/sanity';
+import client from '../../lib/sanity';
 
 function BlogPost() {
   const { slug } = useParams();
@@ -878,44 +1259,35 @@ function BlogPost() {
     const query = `*[_type == "post" && slug.current == $slug][0] {
       title,
       content,
-      coverImage,
       publishedAt,
-      category,
-      tags
+      category
     }`;
     
-    client.fetch(query, { slug }).then((data) => {
-      setPost(data);
-      setLoading(false);
-    });
+    client.fetch(query, { slug })
+      .then((data) => {
+        setPost(data);
+        setLoading(false);
+      });
   }, [slug]);
 
   if (loading) return <div className="pt-32 text-center">Loading...</div>;
   if (!post) return <div className="pt-32 text-center">Post not found</div>;
 
   return (
-    <article className="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-      <div className="mb-8">
-        <span className="text-sm font-medium text-blue-600 uppercase tracking-wider">{post.category}</span>
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-2 mb-4">{post.title}</h1>
-        <div className="flex items-center gap-4 text-slate-500 text-sm">
-          <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { 
-            year: 'numeric', month: 'long', day: 'numeric' 
-          })}</span>
-        </div>
-      </div>
-      
-      {post.coverImage && (
-        <img 
-          src={urlFor(post.coverImage).width(800).url()} 
-          alt={post.title}
-          className="w-full rounded-2xl mb-8"
-        />
-      )}
+    <article className="pt-24 pb-20 px-4 max-w-3xl mx-auto">
+      <span className="text-sm font-medium text-blue-600 uppercase">{post.category}</span>
+      <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-2 mb-4">{post.title}</h1>
+      <p className="text-slate-500 text-sm mb-8">
+        {new Date(post.publishedAt).toLocaleDateString()}
+      </p>
       
       <div className="prose prose-slate max-w-none">
         <PortableText value={post.content} />
       </div>
+      
+      <a href="/" className="inline-block mt-12 text-blue-600 hover:text-blue-800">
+        ← Back to all posts
+      </a>
     </article>
   );
 }
@@ -923,111 +1295,90 @@ function BlogPost() {
 export default BlogPost;
 ```
 
-Install Portable Text renderer:
-```bash
-npm install @portabletext/react
-```
-
 ---
 
-## Part 8: Smooth Scrolling & Interactivity
+## Part 9: Publishing to the Internet
 
-Install react-scroll for smooth navigation:
-```bash
-npm install react-scroll
-```
+### Step 1: Create a GitHub Account
+1. Go to [github.com](https://github.com)
+2. Sign up for a free account
 
-Update `Navbar.jsx` links to use smooth scroll. For the router version, use `<Link>` from react-router-dom for blog links and react-scroll for section links.
-
----
-
-## Part 9: Publishing to GitHub
-
-### Step 1: Create Repository
-1. Go to [github.com](https://github.com) → **New repository**
-2. Name: `sean-portfolio`
+### Step 2: Create a Repository
+1. Click the **+** icon → **New repository**
+2. Name it `sean-portfolio`
 3. Make it **Public**
 4. Click **Create repository**
 
-### Step 2: Push Your Code
+### Step 3: Upload Your Code
+In your terminal (inside `sean-portfolio`):
 ```bash
 git init
 git add .
-git commit -m "Initial portfolio with AI projects and Sanity blog"
+git commit -m "Initial portfolio website"
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/sean-portfolio.git
 git push -u origin main
 ```
 
-### Step 3: Push Sanity Studio (Separate Repo)
-```bash
-cd sanity-blog
-git init
-git add .
-git commit -m "Sanity CMS for blog"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/sean-blog-cms.git
-git push -u origin main
-```
+**What this does:**
+- `git init` — Starts tracking your files
+- `git add .` — Selects all files
+- `git commit` — Saves a snapshot
+- `git remote add origin` — Connects to GitHub
+- `git push` — Uploads everything
 
----
-
-## Part 10: Deploying to Vercel
-
-### Frontend Deployment
-1. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
-2. **Add New Project** → Import `sean-portfolio`
-3. **Framework Preset**: Vite
-4. **Build Command**: `npm run build`
-5. **Output Directory**: `dist`
+### Step 4: Deploy to Vercel
+1. Go to [vercel.com](https://vercel.com)
+2. Sign up with your GitHub account
+3. Click **Add New Project**
+4. Find `sean-portfolio` and click **Import**
+5. In settings:
+   - **Framework Preset:** Vite
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
 6. Add environment variables:
    - `VITE_SANITY_PROJECT_ID` = your Sanity project ID
    - `VITE_SANITY_DATASET` = production
 7. Click **Deploy**
 
-### Sanity Studio Deployment
-1. In your Sanity project folder:
+**Your website is now live!** Vercel gives you a URL like `sean-portfolio.vercel.app`
+
+### Step 5: Automatic Updates
+Whenever you update your code:
 ```bash
-npm install -g @sanity/cli
-sanity deploy
+git add .
+git commit -m "Updated something"
+git push
 ```
-This deploys your studio to `https://your-project.sanity.studio`
-
-### Automatic Updates
-Every `git push` to your frontend repo triggers a Vercel redeploy. Every new post in Sanity appears instantly on your site.
+Vercel automatically redeploys!
 
 ---
 
-## 🎉 Your AI-Focused Portfolio + Blog is Live!
+## 🎉 Congratulations!
 
-You now have:
-- ✅ Professional portfolio with React + Tailwind CSS + Vite
-- ✅ AI Projects showcase with tech stacks and live demos
-- ✅ Blog powered by Sanity CMS (write without coding)
-- ✅ Category filtering and featured posts
-- ✅ Individual blog post pages with rich text
-- ✅ Responsive design across all devices
-- ✅ Automatic deployment on Vercel
+You built a complete portfolio website with:
+- ✅ React components
+- ✅ Tailwind CSS styling
+- ✅ AI project showcase
+- ✅ Blog powered by Sanity CMS
+- ✅ Live on the internet
 
-### Next Steps
-1. **Add real project screenshots** — Replace emoji placeholders with actual images
-2. **Write your first 3 blog posts** — Use Sanity Studio to publish opinion pieces and tutorials
-3. **Add a newsletter signup** — Use ConvertKit or Buttondown
-4. **Add analytics** — Plausible or Fathom for privacy-friendly tracking
-5. **Add comments** — Giscus (GitHub Discussions) or Disqus
+### What to Do Next
+1. **Replace placeholder content** — Add your real projects, email, LinkedIn
+2. **Write 3 blog posts** — Use Sanity Studio
+3. **Add your photo** — Put it in the `public` folder
+4. **Buy a custom domain** — In Vercel settings
 
-### Sanity Content Tips
-- Use **code blocks** in Sanity for tutorial posts (syntax highlighting included)
-- Add **images** with captions for visual tutorials
-- Use **tags** for cross-referencing related topics
-- Set **featured** flag for posts you want to highlight
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `npm run dev` doesn't work | Make sure you're in the `sean-portfolio` folder |
+| Changes not showing | Save the file (Ctrl+S) |
+| Blog posts not loading | Check your Sanity Project ID |
+| Git push fails | Make sure you committed first (`git commit`) |
+| Vercel build fails | Check the build logs in Vercel dashboard |
 
 ---
 
-**Resources:**
-- [Sanity Documentation](https://www.sanity.io/docs)
-- [Tailwind CSS v4](https://tailwindcss.com/docs)
-- [React Router](https://reactrouter.com)
-- [Vercel Deployment](https://vercel.com/kb/guide/deploying-react-with-vercel) 
-
-Welcome to your independent developer journey, Sean! 🚀
+**Need help?** The communities for [React](https://react.dev), [Tailwind](https://tailwindcss.com), and [Sanity](https://www.sanity.io) are very beginner-friendly.
