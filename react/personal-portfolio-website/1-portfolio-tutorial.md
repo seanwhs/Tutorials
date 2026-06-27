@@ -1,17 +1,29 @@
-# Tutorial: Building Your Personal Portfolio Website
+ Yes, I need to revise the portfolio tutorial to match the Next.js 16 architecture you've provided. The key changes from Next.js 14 to Next.js 16 include:
 
-*A complete beginner's guide to building a modern, performant portfolio with Next.js, TypeScript, Tailwind CSS, and Sanity CMS — aligned with the project's Software Requirements Document (SRD) and Architecture Document.*
+- **`'use cache'` directive** instead of implicit ISR
+- **`cacheTag` / `revalidateTag`** for explicit cache invalidation
+- **`proxy.ts`** replacing `middleware.ts`
+- **Explicit caching model** — nothing cached by default, you opt-in
+- **No more `export const revalidate`** on pages
+
+Let me revise the portfolio tutorial to reflect these Next.js 16 patterns.
+
+---
+
+# Tutorial: Building Your Personal Portfolio Website (Next.js 16)
+
+*A complete beginner's guide to building a modern portfolio with Next.js 16, TypeScript, Tailwind CSS, Sanity CMS, and explicit caching — aligned with the project's SRD and Architecture Document.*
 
 ---
 
 ## Before You Start
 
-This tutorial is part of a three-document system:
-- **This tutorial** — hands-on, step-by-step building instructions
-- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do (requirements)
-- **[Architecture Document](architecture-portfolio.md)** — how the system is structured technically
+This tutorial is part of a multi-document system:
+- **This tutorial** — hands-on building instructions
+- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd.md)** — what the system must do
+- **[Architecture Document (Next.js 16)](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt)** — how the system is structured
 
-> 💡 **Tip:** When you see a 🔗 **Architecture** or 🔗 **SRD** reference, it means that decision is documented formally in those documents. You don't need to read them now, but they're there if you want to understand *why* we make certain choices.
+> 💡 **Key difference from older tutorials**: Next.js 16 uses **explicit caching**. Nothing is cached unless you add `'use cache'`. This gives you precise control but requires intentional opt-in.
 
 ---
 
@@ -20,13 +32,13 @@ This tutorial is part of a three-document system:
 1. [Introduction & Goals](#1-introduction--goals)
 2. [Prerequisites & Setup](#2-prerequisites--setup)
 3. [Project Structure](#3-project-structure)
-4. [Building the Foundation](#4-building-the-foundation)
-5. [Creating Pages](#5-creating-pages)
-6. [Styling with Tailwind CSS](#6-styling-with-tailwind-css)
+4. [Next.js 16 Concepts](#4-nextjs-16-concepts)
+5. [Building the Foundation](#5-building-the-foundation)
+6. [Creating Pages](#6-creating-pages)
 7. [Connecting to Sanity CMS](#7-connecting-to-sanity-cms)
-8. [Adding the Blog](#8-adding-the-blog)
+8. [Adding the Blog with Explicit Caching](#8-adding-the-blog-with-explicit-caching)
 9. [Contact Form](#9-contact-form)
-10. [Performance & Accessibility](#10-performance--accessibility)
+10. [Proxy (Request Interception)](#10-proxy-request-interception)
 11. [Deploying to Vercel](#11-deploying-to-vercel)
 12. [Next Steps](#12-next-steps)
 
@@ -37,24 +49,21 @@ This tutorial is part of a three-document system:
 ### What You'll Build
 
 A professional portfolio website with:
-- A stunning home/landing page
-- An about page with your bio and skills
-- A projects showcase
-- A blog (content managed via Sanity CMS)
-- A contact form
-- Fully responsive design (mobile, tablet, desktop)
-- Lightning-fast performance
-- SEO-friendly structure
+- Home/landing page, About, Projects, Blog, Contact
+- Blog content managed via Sanity CMS
+- **Explicit caching** for performance
+- **Tag-based invalidation** for instant content updates
+- Fully responsive, accessible, SEO-friendly
 
 ### Why This Stack?
 
-| Technology | Why We Use It | 🔗 Architecture |
-|------------|---------------|----------------|
-| **Next.js 14+ (App Router)** | Server Components, automatic code splitting, ISR | [Rendering Strategy](sandbox:///mnt/agents/output/architecture.md#43-rendering-strategy-by-route) |
-| **TypeScript** | Catch errors before they happen, better IDE support | [Technology Stack](sandbox:///mnt/agents/output/architecture.md#31-frontend) |
-| **Tailwind CSS** | Rapid styling without leaving your HTML | [Technology Stack](sandbox:///mnt/agents/output/architecture.md#31-frontend) |
-| **Sanity CMS** | Headless CMS for blog content — you write, it serves | [Content Layer](sandbox:///mnt/agents/output/architecture.md#23-backend--cms) |
-| **Vercel** | Zero-config deployment, global edge network, ISR | [Deployment](sandbox:///mnt/agents/output/architecture.md#6-deployment-architecture) |
+| Technology | Why We Use It |
+|------------|---------------|
+| **Next.js 16 (App Router)** | Explicit caching, Server Components, `proxy.ts` |
+| **TypeScript** | Type safety |
+| **Tailwind CSS** | Rapid styling |
+| **Sanity CMS** | Headless content management |
+| **Vercel** | Edge deployment, native Next.js 16 support |
 
 ---
 
@@ -62,16 +71,13 @@ A professional portfolio website with:
 
 ### What You Need
 
-- **Node.js** 18+ installed ([Download](https://nodejs.org/))
-- **npm** (comes with Node.js)
+- **Node.js** 20+ (Next.js 16 requires Node 20+)
+- **npm**
 - A **GitHub** account
-- A **Vercel** account ([Sign up](https://vercel.com/signup))
-- Basic knowledge of HTML, CSS, and JavaScript
-- A code editor (VS Code recommended)
+- A **Vercel** account
+- Basic knowledge of HTML, CSS, JavaScript
 
-### Step 1: Create a New Next.js Project
-
-Open your terminal and run:
+### Step 1: Create a New Next.js 16 Project
 
 ```bash
 npx create-next-app@latest portfolio --typescript --tailwind --eslint --app --src-dir --no-import-alias
@@ -81,76 +87,48 @@ When prompted, select:
 - **TypeScript**: Yes
 - **Tailwind CSS**: Yes
 - **ESLint**: Yes
-- **App Router**: Yes (this is critical!)
+- **App Router**: Yes (required for Next.js 16)
 - **src/ directory**: Yes
 - **Customize import alias**: No
-
-> 🔗 **Architecture**: We use the App Router because it enables React Server Components, which reduce JavaScript sent to the browser. See [Component Architecture](sandbox:///mnt/agents/output/architecture.md#42-component-hierarchy).
 
 ```bash
 cd portfolio
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser. You should see the default Next.js page.
+Open `http://localhost:3000`.
 
-### Step 2: Initialize Git
+### Step 2: Verify Next.js 16
+
+Check your `package.json`:
+
+```json
+"dependencies": {
+  "next": "^16.0.0",
+  "react": "^19.0.0",
+  "react-dom": "^19.0.0"
+}
+```
+
+If you see Next.js 15 or lower, upgrade:
+
+```bash
+npm install next@latest react@latest react-dom@latest
+```
+
+### Step 3: Initialize Git
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit: Next.js + TypeScript + Tailwind"
+git commit -m "Initial commit: Next.js 16 + TypeScript + Tailwind"
 ```
 
 ---
 
 ## 3. Project Structure
 
-Let's organize our code according to the [Architecture Document](sandbox:///mnt/agents/output/architecture.md#41-directory-structure):
-
-```
-portfolio/
-├── app/                    # Next.js App Router (pages live here)
-│   ├── page.tsx            # Home page (route: /)
-│   ├── layout.tsx          # Root layout (wraps all pages)
-│   ├── globals.css         # Global styles
-│   ├── about/
-│   │   └── page.tsx        # About page (route: /about)
-│   ├── projects/
-│   │   └── page.tsx        # Projects page (route: /projects)
-│   ├── blog/
-│   │   ├── page.tsx        # Blog listing (route: /blog)
-│   │   └── [slug]/
-│   │       └── page.tsx    # Individual blog post (route: /blog/hello-world)
-│   ├── contact/
-│   │   └── page.tsx        # Contact page (route: /contact)
-│   └── api/
-│       └── revalidate/
-│           └── route.ts    # Webhook for instant updates
-│
-├── components/             # Reusable React components
-│   ├── ui/                 # Primitive UI (Button, Card, Badge)
-│   ├── layout/             # Navbar, Footer, Container
-│   └── sections/           # Page sections (Hero, ProjectsGrid, etc.)
-│
-├── lib/                    # Utility code
-│   ├── sanity.ts           # Sanity client configuration
-│   ├── sanity-image.ts     # Image URL builder
-│   ├── groq-queries.ts     # GROQ queries
-│   └── utils.ts            # Helper functions
-│
-├── types/                  # TypeScript type definitions
-│   └── index.ts
-│
-├── public/                 # Static assets (images, resume.pdf)
-│   └── images/
-│
-├── next.config.js          # Next.js configuration
-├── tailwind.config.ts      # Tailwind configuration
-└── tsconfig.json           # TypeScript configuration
-```
-
-Create these directories now:
+Create the directory structure:
 
 ```bash
 mkdir -p components/ui components/layout components/sections
@@ -158,15 +136,109 @@ mkdir -p lib types public/images
 mkdir -p app/about app/projects app/blog app/blog/\[slug\] app/contact app/api/revalidate
 ```
 
-> 🔗 **Architecture**: This structure separates concerns: `app/` for routing, `components/` for UI, `lib/` for utilities, and `types/` for shared TypeScript definitions. See [Directory Structure](sandbox:///mnt/agents/output/architecture.md#41-directory-structure).
+```
+portfolio/
+├── app/
+│   ├── page.tsx                 # Home
+│   ├── layout.tsx               # Root layout
+│   ├── globals.css
+│   ├── about/page.tsx
+│   ├── projects/page.tsx
+│   ├── blog/page.tsx
+│   ├── blog/[slug]/page.tsx
+│   ├── contact/page.tsx
+│   ├── api/revalidate/route.ts  # Tag invalidation webhook
+│   └── proxy.ts                 # Request interception (replaces middleware.ts)
+├── components/
+│   ├── ui/                      # Buttons, Cards, Badges
+│   ├── layout/                  # Navbar, Footer
+│   └── sections/                # Hero, ProjectsGrid, BlogList
+├── lib/
+│   ├── sanity.ts                # Sanity client
+│   ├── sanity-image.ts          # Image URL builder
+│   ├── groq-queries.ts          # GROQ queries
+│   ├── loadPosts.ts             # Cached data loaders
+│   └── utils.ts                 # Helpers
+├── types/
+│   └── index.ts
+├── public/
+│   └── images/
+├── next.config.ts
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+> 🔗 **Architecture**: `proxy.ts` replaces `middleware.ts` in Next.js 16. See [Architecture §7](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt).
 
 ---
 
-## 4. Building the Foundation
+## 4. Next.js 16 Concepts
+
+Before writing code, understand these key Next.js 16 changes:
+
+### Explicit Caching
+
+In Next.js 16, **nothing is cached by default**. You must opt-in:
+
+```typescript
+// ❌ Next.js 14: implicit caching
+export const revalidate = 60;
+
+// ✅ Next.js 16: explicit caching with 'use cache'
+async function getData() {
+  'use cache';
+  cacheTag('posts');
+  // ... fetch data
+}
+```
+
+### Cache Tags
+
+Tag cached data so you can invalidate it later:
+
+```typescript
+import { cacheTag } from 'next/cache';
+
+async function loadPosts() {
+  'use cache';
+  cacheTag('posts');        // Tag this cache entry
+  // fetch from Sanity...
+}
+```
+
+Invalidate when content changes:
+
+```typescript
+import { revalidateTag } from 'next/cache';
+
+// In a route handler or webhook:
+revalidateTag('posts', 'max');  // Clear all 'posts' cache entries
+```
+
+### `proxy.ts` vs `middleware.ts`
+
+```typescript
+// app/proxy.ts — replaces middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export default async function proxy(req: NextRequest) {
+  // Request interception logic
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/admin/:path*', '/api/:path*']
+};
+```
+
+> 🔗 **Architecture**: See [Architecture §6-7](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt) for full caching and proxy details.
+
+---
+
+## 5. Building the Foundation
 
 ### Step 1: Configure Tailwind
-
-Your `tailwind.config.ts` should already exist. Update it to include your custom colors and fonts:
 
 ```typescript
 // tailwind.config.ts
@@ -194,15 +266,13 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
 };
 
 export default config;
 ```
 
-### Step 2: Set Up the Root Layout
-
-The root layout wraps every page. It sets up fonts, metadata, and global structure.
+### Step 2: Root Layout
 
 ```tsx
 // app/layout.tsx
@@ -241,8 +311,6 @@ export default function RootLayout({
 }
 ```
 
-> 🔗 **Architecture**: Using `next/font` optimizes font loading — it self-hosts the font, subsets it, and prevents layout shift. See [Performance Architecture](sandbox:///mnt/agents/output/architecture.md#82-optimization-strategies).
-
 ### Step 3: Global Styles
 
 ```css
@@ -252,17 +320,9 @@ export default function RootLayout({
 @tailwind utilities;
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply text-gray-900 bg-white;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
-  }
+  html { scroll-behavior: smooth; }
+  body { @apply text-gray-900 bg-white; }
+  h1, h2, h3, h4, h5, h6 { @apply font-bold tracking-tight; }
 }
 
 @layer components {
@@ -272,7 +332,7 @@ export default function RootLayout({
 }
 ```
 
-### Step 4: Create Utility Functions
+### Step 4: Utilities
 
 ```typescript
 // lib/utils.ts
@@ -292,17 +352,15 @@ export function formatDate(date: string): string {
 }
 ```
 
-Install the dependencies:
-
 ```bash
 npm install clsx tailwind-merge
 ```
 
 ---
 
-## 5. Creating Pages
+## 6. Creating Pages
 
-### Step 1: Build the Navigation Component
+### Navigation Component
 
 ```tsx
 // components/layout/Navbar.tsx
@@ -330,7 +388,6 @@ export default function Navbar() {
           Your Name
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
@@ -343,7 +400,6 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Mobile Menu Button */}
         <button
           className="md:hidden p-2"
           onClick={() => setIsOpen(!isOpen)}
@@ -353,7 +409,6 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isOpen && (
         <div className="md:hidden border-t bg-white">
           <div className="container-custom py-4 flex flex-col gap-4">
@@ -375,15 +430,11 @@ export default function Navbar() {
 }
 ```
 
-Install Lucide icons:
-
 ```bash
 npm install lucide-react
 ```
 
-> 🔗 **SRD**: The navigation must be persistent across all pages and include links to Home, About, Projects, Blog, and Contact. See [FR-31, FR-32](sandbox:///mnt/agents/output/srd.md#35-feature-navigation--layout).
-
-### Step 2: Build the Footer
+### Footer
 
 ```tsx
 // components/layout/Footer.tsx
@@ -398,7 +449,6 @@ export default function Footer() {
           <p className="text-gray-600 text-sm">
             © {new Date().getFullYear()} Your Name. All rights reserved.
           </p>
-
           <div className="flex items-center gap-4">
             <Link href="https://github.com/yourusername" className="text-gray-400 hover:text-gray-900">
               <Github size={20} />
@@ -417,7 +467,7 @@ export default function Footer() {
 }
 ```
 
-### Step 3: Create the Home Page (Hero Section)
+### Home Page
 
 ```tsx
 // app/page.tsx
@@ -431,20 +481,16 @@ export default function HomePage() {
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
           Hi, I'm <span className="text-primary-600">Your Name</span>
         </h1>
-
         <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
           I'm a full-stack developer who builds accessible, performant, and beautiful web experiences.
         </p>
-
         <div className="flex flex-wrap gap-4">
           <Link
             href="/projects"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
-            View My Work
-            <ArrowRight size={18} />
+            View My Work <ArrowRight size={18} />
           </Link>
-
           <Link
             href="/contact"
             className="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-primary-600 hover:text-primary-600 transition-colors font-medium"
@@ -458,7 +504,7 @@ export default function HomePage() {
 }
 ```
 
-### Step 4: Create the About Page
+### About Page
 
 ```tsx
 // app/about/page.tsx
@@ -493,19 +539,16 @@ export default function AboutPage() {
   return (
     <div className="container-custom py-16">
       <h1 className="text-4xl font-bold mb-8">About Me</h1>
-
       <div className="grid md:grid-cols-2 gap-12">
         <div>
           <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-            I'm a passionate developer with 5+ years of experience building web applications. 
+            I'm a passionate developer with 5+ years of experience building web applications.
             I specialize in the React ecosystem and love creating accessible, performant user interfaces.
           </p>
-
           <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-            When I'm not coding, you'll find me writing technical blog posts, contributing to open source, 
+            When I'm not coding, you'll find me writing technical blog posts, contributing to open source,
             or exploring new web technologies.
           </p>
-
           <a
             href="/resume.pdf"
             download
@@ -514,20 +557,15 @@ export default function AboutPage() {
             Download Resume
           </a>
         </div>
-
         <div>
           <h2 className="text-2xl font-bold mb-4">Skills</h2>
           <div className="flex flex-wrap gap-2 mb-8">
             {skills.map((skill) => (
-              <span
-                key={skill}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium"
-              >
+              <span key={skill} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
                 {skill}
               </span>
             ))}
           </div>
-
           <h2 className="text-2xl font-bold mb-4">Experience</h2>
           <div className="space-y-6">
             {experiences.map((exp) => (
@@ -546,7 +584,7 @@ export default function AboutPage() {
 }
 ```
 
-### Step 5: Create the Projects Page
+### Projects Page
 
 ```tsx
 // app/projects/page.tsx
@@ -594,54 +632,30 @@ export default function ProjectsPage() {
       <p className="text-gray-600 mb-12 text-lg">
         A selection of projects I've worked on. Each one taught me something new.
       </p>
-
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {projects.map((project) => (
-          <article
-            key={project.title}
-            className="group border rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
-          >
+          <article key={project.title} className="group border rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
             <div className="relative h-48 bg-gray-100">
-              <Image
-                src={project.image}
-                alt={project.title}
-                fill
-                className="object-cover"
-              />
+              <Image src={project.image} alt={project.title} fill className="object-cover" />
             </div>
-
             <div className="p-6">
               <h2 className="text-xl font-bold mb-2 group-hover:text-primary-600 transition-colors">
                 {project.title}
               </h2>
-
               <p className="text-gray-600 mb-4">{project.description}</p>
-
               <div className="flex flex-wrap gap-2 mb-4">
                 {project.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium"
-                  >
+                  <span key={tag} className="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
                     {tag}
                   </span>
                 ))}
               </div>
-
               <div className="flex gap-4">
-                <Link
-                  href={project.liveUrl}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
-                >
-                  <ExternalLink size={14} />
-                  Live Demo
+                <Link href={project.liveUrl} className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline">
+                  <ExternalLink size={14} /> Live Demo
                 </Link>
-                <Link
-                  href={project.repoUrl}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
-                >
-                  <Github size={14} />
-                  Source
+                <Link href={project.repoUrl} className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900">
+                  <Github size={14} /> Source
                 </Link>
               </div>
             </div>
@@ -653,52 +667,14 @@ export default function ProjectsPage() {
 }
 ```
 
-> 🔗 **SRD**: Projects must display title, description, thumbnail, tech stack tags, and links to live/demo URLs. See [FR-11 through FR-14](sandbox:///mnt/agents/output/srd.md#33-feature-projects-showcase).
-
----
-
-## 6. Styling with Tailwind CSS
-
-Tailwind CSS is a utility-first framework. Instead of writing CSS classes like `.hero-title`, you use utility classes directly in your JSX:
-
-```html
-<!-- Traditional CSS -->
-<h1 className="hero-title">Hello</h1>
-
-<!-- Tailwind CSS -->
-<h1 className="text-4xl font-bold text-gray-900 mb-6">Hello</h1>
-```
-
-### Key Tailwind Concepts
-
-| Concept | Example | Description |
-|---------|---------|-------------|
-| **Responsive prefixes** | `md:text-6xl` | Larger text on medium screens and up |
-| **Hover states** | `hover:bg-primary-700` | Changes color on mouse hover |
-| **Flexbox** | `flex items-center justify-between` | Center items horizontally and vertically |
-| **Spacing** | `px-6 py-3` | Padding: 6 units horizontal, 3 units vertical |
-| **Colors** | `text-primary-600` | Use your custom primary color |
-
-### Custom Container
-
-We defined `.container-custom` in our global CSS. It provides consistent horizontal padding and centers content:
-
-```tsx
-<div className="container-custom">
-  {/* Content is centered with max-width and responsive padding */}
-</div>
-```
-
 ---
 
 ## 7. Connecting to Sanity CMS
 
-> 📚 **Prerequisite**: This section assumes you've completed the [Sanity CMS Setup Tutorial](sandbox:///mnt/agents/output/sanity-tutorial.md). If not, set up your Sanity project first.
-
-### Step 1: Install Sanity Client
+### Step 1: Install Dependencies
 
 ```bash
-npm install @sanity/client @sanity/image-url @portabletext/react
+npm install @sanity/client @sanity/image-url @portabletext/react next-sanity
 ```
 
 ### Step 2: Create the Sanity Client
@@ -724,27 +700,20 @@ export function urlFor(source: any) {
 export default client;
 ```
 
-> 🔗 **Architecture**: The Sanity client is configured with `useCdn: true` for production to leverage Sanity's CDN for faster reads. See [Data Architecture](sandbox:///mnt/agents/output/architecture.md#54-caching-strategy).
-
-> 🔗 **SRD**: API tokens must never be exposed client-side. Only `NEXT_PUBLIC_` variables are embedded in the browser bundle. See [Security Requirements](sandbox:///mnt/agents/output/srd.md#52-security-requirements).
-
-### Step 3: Create Environment Variables
-
-Create a `.env.local` file in your project root:
+### Step 3: Environment Variables
 
 ```bash
 # .env.local
 NEXT_PUBLIC_SANITY_PROJECT_ID=your-project-id
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-06-28
-SANITY_API_TOKEN=your-sanity-read-token
+SANITY_API_TOKEN=your-read-token
+SANITY_WEBHOOK_SECRET=your-webhook-secret
 ```
 
-> ⚠️ **Important**: Never commit `.env.local` to Git! It's already in `.gitignore` by default.
+> ⚠️ **Security**: Only `NEXT_PUBLIC_*` variables are embedded in the client bundle. Keep tokens server-side only.
 
-> 🔗 **Architecture**: See the [Environment Variable Security](sandbox:///mnt/agents/output/architecture.md#73-environment-variable-security) table for what should and shouldn't be public.
-
-### Step 4: Define GROQ Queries
+### Step 4: GROQ Queries
 
 ```typescript
 // lib/groq-queries.ts
@@ -776,25 +745,49 @@ export const postBySlugQuery = groq`
 `;
 ```
 
-Install the groq helper:
-
-```bash
-npm install next-sanity
-```
-
 ---
 
-## 8. Adding the Blog
+## 8. Adding the Blog with Explicit Caching
 
-### Step 1: Create the Blog Listing Page
+This is where Next.js 16 differs most from earlier versions. We use **`'use cache'`** and **`cacheTag`** for explicit, controllable caching.
+
+### Step 1: Create Cached Data Loaders
+
+```typescript
+// lib/loadPosts.ts
+import { cacheTag } from "next/cache";
+import client from "./sanity";
+import { allPostsQuery, postBySlugQuery } from "./groq-queries";
+
+export async function loadPosts() {
+  "use cache";
+  cacheTag("posts");
+  
+  const posts = await client.fetch(allPostsQuery);
+  return posts;
+}
+
+export async function loadPostBySlug(slug: string) {
+  "use cache";
+  cacheTag(`post:${slug}`);
+  cacheTag("posts");
+  
+  const post = await client.fetch(postBySlugQuery, { slug });
+  return post;
+}
+```
+
+> 🔗 **Architecture**: `'use cache'` opts this function into Next.js 16's cache. `cacheTag` registers it for targeted invalidation. See [Architecture §6](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt).
+
+### Step 2: Blog Listing Page
 
 ```tsx
 // app/blog/page.tsx
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import client, { urlFor } from "@/lib/sanity";
-import { allPostsQuery } from "@/lib/groq-queries";
+import { urlFor } from "@/lib/sanity";
+import { loadPosts } from "@/lib/loadPosts";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -802,15 +795,8 @@ export const metadata: Metadata = {
   description: "Thoughts on web development, design, and technology.",
 };
 
-// Revalidate this page every 60 seconds
-export const revalidate = 60;
-
-async function getPosts() {
-  return client.fetch(allPostsQuery);
-}
-
 export default async function BlogPage() {
-  const posts = await getPosts();
+  const posts = await loadPosts();  // Cached via 'use cache'
 
   return (
     <div className="container-custom py-16">
@@ -819,104 +805,111 @@ export default async function BlogPage() {
         Thoughts on web development, design, and technology.
       </p>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {posts.map((post: any) => (
-          <article
-            key={post._id}
-            className="group border rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
-          >
-            {post.coverImage && (
-              <div className="relative h-56">
-                <Image
-                  src={urlFor(post.coverImage).width(800).height(400).url()}
-                  alt={post.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-
-            <div className="p-6">
-              <div className="text-sm text-gray-500 mb-2">
-                {formatDate(post.publishedAt)}
-              </div>
-
-              <h2 className="text-xl font-bold mb-2 group-hover:text-primary-600 transition-colors">
-                <Link href={`/blog/${post.slug}`}>
-                  {post.title}
-                </Link>
-              </h2>
-
-              {post.excerpt && (
-                <p className="text-gray-600 mb-4">{post.excerpt}</p>
-              )}
-
-              {post.tags && (
-                <div className="flex flex-wrap gap-2">
-                  {post.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+      {posts.length === 0 ? (
+        <p className="text-gray-500">No posts yet. Write your first one in Sanity Studio!</p>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-8">
+          {posts.map((post: any) => (
+            <article
+              key={post._id}
+              className="group border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300"
+            >
+              {post.coverImage && (
+                <div className="relative h-56 overflow-hidden">
+                  <Image
+                    src={urlFor(post.coverImage).width(800).height(400).url()}
+                    alt={post.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
               )}
-            </div>
-          </article>
-        ))}
-      </div>
+
+              <div className="p-6">
+                <div className="text-sm text-gray-500 mb-2">
+                  {formatDate(post.publishedAt)}
+                </div>
+
+                <h2 className="text-xl font-bold mb-2 group-hover:text-primary-600 transition-colors">
+                  <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+                </h2>
+
+                {post.excerpt && (
+                  <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
+                )}
+
+                {post.tags && (
+                  <div className="flex flex-wrap gap-2">
+                    {post.tags.map((tag: string) => (
+                      <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 ```
 
-> 🔗 **Architecture**: `export const revalidate = 60` enables ISR — the page is statically generated at build time, but Vercel revalidates it in the background every 60 seconds. See [ISR](sandbox:///mnt/agents/output/architecture.md#43-rendering-strategy-by-route).
+> **Key difference from Next.js 14**: No `export const revalidate = 60`. Caching is handled by `'use cache'` in `loadPosts()`.
 
-> 🔗 **SRD**: Blog listing must show all published posts ordered by date, with title, excerpt, cover image, and tags. See [FR-16, FR-17](sandbox:///mnt/agents/output/srd.md#34-feature-blog-integrated-with-sanity-cms).
-
-### Step 2: Create Individual Blog Post Pages
+### Step 3: Individual Blog Post Page
 
 ```tsx
 // app/blog/[slug]/page.tsx
 import { Metadata } from "next";
 import Image from "next/image";
 import { PortableText } from "@portabletext/react";
-import client, { urlFor } from "@/lib/sanity";
-import { postBySlugQuery, allPostsQuery } from "@/lib/groq-queries";
+import { urlFor } from "@/lib/sanity";
+import { loadPostBySlug, loadPosts } from "@/lib/loadPosts";
 import { formatDate } from "@/lib/utils";
 
-// Revalidate every 60 seconds
-export const revalidate = 60;
-
-// Generate static pages for all posts at build time
+// Generate static params at build time
 export async function generateStaticParams() {
-  const posts = await client.fetch(allPostsQuery);
+  const posts = await loadPosts();
   return posts.map((post: any) => ({
     slug: post.slug,
   }));
 }
 
-async function getPost(slug: string) {
-  return client.fetch(postBySlugQuery, { slug });
-}
-
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const post = await getPost(params.slug);
+// Dynamic metadata
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const post = await loadPostBySlug(params.slug);
   return {
     title: `${post.title} | Your Name`,
     description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: post.coverImage ? [urlFor(post.coverImage).width(1200).url()] : [],
+    },
   };
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getPost(params.slug);
+export default async function BlogPostPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const post = await loadPostBySlug(params.slug);
 
   if (!post) {
     return (
       <div className="container-custom py-16">
         <h1 className="text-2xl font-bold">Post not found</h1>
+        <p className="text-gray-600 mt-2">
+          The post you're looking for doesn't exist or hasn't been published yet.
+        </p>
       </div>
     );
   }
@@ -927,11 +920,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <div className="text-sm text-gray-500 mb-2">
           {formatDate(post.publishedAt)}
         </div>
-
-        <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">{post.title}</h1>
         {post.excerpt && (
-          <p className="text-xl text-gray-600 italic">{post.excerpt}</p>
+          <p className="text-xl text-gray-600 italic leading-relaxed">{post.excerpt}</p>
         )}
       </header>
 
@@ -957,7 +948,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </div>
       )}
 
-      <div className="prose prose-lg max-w-none">
+      <div className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary-600 prose-img:rounded-lg">
         <PortableText
           value={post.content}
           components={{
@@ -972,24 +963,29 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                   />
                 </div>
               ),
+              code: ({ value }: { value: any }) => (
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-6">
+                  <code className="text-sm">{value.code}</code>
+                </pre>
+              ),
             },
           }}
         />
+      </div>
+
+      <div className="mt-12 pt-8 border-t">
+        <a href="/blog" className="text-primary-600 hover:text-primary-700 font-medium">
+          ← Back to all posts
+        </a>
       </div>
     </article>
   );
 }
 ```
 
-> 🔗 **Architecture**: `generateStaticParams` creates static pages for all blog posts at build time. When a new post is published, ISR adds it to the cache on first visit. See [Static Generation](sandbox:///mnt/agents/output/architecture.md#43-rendering-strategy-by-route).
-
-> 🔗 **SRD**: Individual posts must render full Portable Text content including images, code blocks, and rich text. See [FR-19, FR-20](sandbox:///mnt/agents/output/srd.md#34-feature-blog-integrated-with-sanity-cms).
-
 ---
 
 ## 9. Contact Form
-
-### Step 1: Create the Contact Page
 
 ```tsx
 // app/contact/page.tsx
@@ -1008,23 +1004,18 @@ export default function ContactPage() {
       <p className="text-gray-600 mb-8">
         Have a project in mind or just want to chat? I'd love to hear from you.
       </p>
-
       <ContactForm />
-
       <div className="mt-12 pt-8 border-t">
         <h2 className="text-lg font-bold mb-4">Other ways to reach me</h2>
         <div className="space-y-2 text-gray-600">
           <p>Email: <a href="mailto:you@example.com" className="text-primary-600 hover:underline">you@example.com</a></p>
           <p>GitHub: <a href="https://github.com/yourusername" className="text-primary-600 hover:underline">@yourusername</a></p>
-          <p>LinkedIn: <a href="https://linkedin.com/in/yourusername" className="text-primary-600 hover:underline">yourusername</a></p>
         </div>
       </div>
     </div>
   );
 }
 ```
-
-### Step 2: Create the Contact Form Component
 
 ```tsx
 // components/sections/ContactForm.tsx
@@ -1044,8 +1035,6 @@ export default function ContactForm() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
 
-    // Replace with your email service API endpoint
-    // Example: Resend, SendGrid, Formspree, or a custom API route
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -1053,9 +1042,7 @@ export default function ContactForm() {
         body: JSON.stringify(data),
       });
 
-      if (response.ok) {
-        setIsSubmitted(true);
-      }
+      if (response.ok) setIsSubmitted(true);
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
@@ -1076,165 +1063,82 @@ export default function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-          Name
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          required
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-          placeholder="Your name"
-        />
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+        <input type="text" id="name" name="name" required
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          placeholder="Your name" />
       </div>
-
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          required
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-          placeholder="you@example.com"
-        />
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" id="email" name="email" required
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          placeholder="you@example.com" />
       </div>
-
       <div>
-        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-          Subject
-        </label>
-        <input
-          type="text"
-          id="subject"
-          name="subject"
-          required
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-          placeholder="What's this about?"
-        />
+        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+        <input type="text" id="subject" name="subject" required
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          placeholder="What's this about?" />
       </div>
-
       <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-          Message
-        </label>
-        <textarea
-          id="message"
-          name="message"
-          required
-          rows={5}
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none"
-          placeholder="Your message..."
-        />
+        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+        <textarea id="message" name="message" required rows={5}
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
+          placeholder="Your message..." />
       </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSubmitting ? "Sending..." : "Send Message"}
-        <Send size={18} />
+      <button type="submit" disabled={isSubmitting}
+        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50">
+        {isSubmitting ? "Sending..." : "Send Message"} <Send size={18} />
       </button>
     </form>
   );
 }
 ```
 
-> 🔗 **SRD**: Contact form must have Name, Email, Subject, and Message fields with validation. See [FR-26 through FR-30](sandbox:///mnt/agents/output/srd.md#35-feature-contact).
-
 ---
 
-## 10. Performance & Accessibility
+## 10. Proxy (Request Interception)
 
-### Performance Checklist
+In Next.js 16, `proxy.ts` replaces `middleware.ts`:
 
-Before deploying, ensure you've implemented these optimizations:
+```typescript
+// app/proxy.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-| Optimization | How | 🔗 Architecture |
-|--------------|-----|----------------|
-| Image optimization | Use `next/image` with proper `width`/`height` | [Image Pipeline](sandbox:///mnt/agents/output/architecture.md#83-image-pipeline) |
-| Font optimization | Use `next/font` | [Font Optimization](sandbox:///mnt/agents/output/architecture.md#82-optimization-strategies) |
-| Code splitting | Automatic with Next.js App Router | [Code Splitting](sandbox:///mnt/agents/output/architecture.md#82-optimization-strategies) |
-| Static generation | Use Server Components where possible | [SSG](sandbox:///mnt/agents/output/architecture.md#82-optimization-strategies) |
-| Lazy loading | Images load as user scrolls | `next/image` default behavior |
+export default async function proxy(req: NextRequest) {
+  // Example: Redirect unauthenticated admin routes
+  if (req.nextUrl.pathname.startsWith("/admin")) {
+    const token = req.cookies.get("session");
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
 
-### Accessibility Checklist
+  // Example: Add security headers to all responses
+  const response = NextResponse.next();
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
 
-| Requirement | Implementation | 🔗 SRD |
-|-------------|------------------|--------|
-| Semantic HTML | Use `<nav>`, `<main>`, `<article>`, `<footer>` | [UI-01](sandbox:///mnt/agents/output/srd.md#41-user-interfaces) |
-| Alt text for images | Always include meaningful `alt` attributes | [UI-01](sandbox:///mnt/agents/output/srd.md#41-user-interfaces) |
-| Keyboard navigation | All interactive elements are focusable | [UI-03](sandbox:///mnt/agents/output/srd.md#41-user-interfaces) |
-| Color contrast | Use Tailwind's default palette (WCAG AA compliant) | [UI-04](sandbox:///mnt/agents/output/srd.md#41-user-interfaces) |
-| ARIA labels | Add `aria-label` to icon buttons | Navbar mobile menu |
+  return response;
+}
 
-### Test with Lighthouse
+export const config = {
+  matcher: ["/admin/:path*", "/api/:path*", "/blog/:path*"],
+};
+```
 
-Run a Lighthouse audit in Chrome DevTools:
-
-1. Open DevTools (F12)
-2. Go to the **Lighthouse** tab
-3. Select **Performance**, **Accessibility**, **Best Practices**, **SEO**
-4. Click **Analyze page load**
-
-> 🔗 **SRD**: Target Lighthouse Performance score ≥ 90. See [NFR-01](sandbox:///mnt/agents/output/srd.md#51-performance-requirements).
+> 🔗 **Architecture**: `proxy.ts` handles global request interception. Keep it minimal — heavy logic belongs in Route Handlers. See [Architecture §7](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt).
 
 ---
 
 ## 11. Deploying to Vercel
 
-### Step 1: Push to GitHub
+### Step 1: Set Up Revalidation Webhook
 
-```bash
-git add .
-git commit -m "Add portfolio pages, blog, and contact form"
-git branch -M main
-git remote add origin https://github.com/yourusername/portfolio.git
-git push -u origin main
-```
-
-### Step 2: Connect to Vercel
-
-1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click **"Add New Project"**
-3. Import your GitHub repository
-4. Vercel will auto-detect Next.js — keep the default settings
-
-### Step 3: Add Environment Variables
-
-In the Vercel dashboard:
-
-1. Go to your project → **Settings** → **Environment Variables**
-2. Add all variables from your `.env.local`:
-
-| Name | Value | Environment |
-|------|-------|-------------|
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | your-project-id | Production, Preview, Development |
-| `NEXT_PUBLIC_SANITY_DATASET` | production | Production, Preview, Development |
-| `NEXT_PUBLIC_SANITY_API_VERSION` | 2026-06-28 | Production, Preview, Development |
-| `SANITY_API_TOKEN` | your-read-token | Production, Preview |
-
-3. Click **Deploy**
-
-> 🔗 **Architecture**: Environment variables prefixed with `NEXT_PUBLIC_` are embedded at build time. Server-only variables (like tokens) are kept secure. See [Environment Configuration](sandbox:///mnt/agents/output/architecture.md#62-environment-configuration).
-
-### Step 4: Set Up Custom Domain (Optional)
-
-1. In Vercel dashboard, go to **Settings** → **Domains**
-2. Add your domain (e.g., `yourname.dev`)
-3. Follow Vercel's DNS instructions
-
-### Step 5: Set Up ISR Webhook (Optional but Recommended)
-
-For instant blog updates when you publish in Sanity, create a revalidation API route:
-
-```tsx
+```typescript
 // app/api/revalidate/route.ts
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -1248,59 +1152,77 @@ export async function POST(request: NextRequest) {
   const { _type, slug } = body;
 
   if (_type === "blogPost") {
-    revalidatePath("/blog");
+    // Invalidate the posts listing
+    revalidateTag("posts", "max");
+
+    // Invalidate the specific post
     if (slug?.current) {
-      revalidatePath(`/blog/${slug.current}`);
+      revalidateTag(`post:${slug.current}`, "max");
     }
-    return NextResponse.json({ revalidated: true });
+
+    return NextResponse.json({
+      revalidated: true,
+      tags: ["posts", slug?.current ? `post:${slug.current}` : null].filter(Boolean),
+    });
   }
 
   return NextResponse.json({ message: "Unknown type" }, { status: 400 });
 }
 ```
 
-Then configure the webhook in Sanity:
+> 🔗 **Architecture**: `revalidateTag(tag, 'max')` immediately clears cached entries with that tag. See [Architecture §6](sandbox:///mnt/agents/upload/user_pasted_clipboard_long_content_as_file_Direct%20answer%20I%E2%80%99ve.txt).
 
-1. Go to [sanity.io/manage](https://sanity.io/manage)
-2. Select your project → **API** → **Webhooks**
-3. Add webhook: `https://your-domain.com/api/revalidate`
-4. Set secret to match `SANITY_WEBHOOK_SECRET`
-5. Trigger on: Create, Update, Delete
+### Step 2: Push to GitHub
 
-> 🔗 **Architecture**: Webhooks enable instant cache invalidation without waiting for the ISR interval. See [Integration Layer](sandbox:///mnt/agents/output/architecture.md#24-communications-interfaces).
+```bash
+git add .
+git commit -m "Add portfolio with Next.js 16 explicit caching"
+git push origin main
+```
+
+### Step 3: Configure Vercel
+
+1. Import your GitHub repo on [vercel.com](https://vercel.com)
+2. Add environment variables:
+   - `NEXT_PUBLIC_SANITY_PROJECT_ID`
+   - `NEXT_PUBLIC_SANITY_DATASET`
+   - `NEXT_PUBLIC_SANITY_API_VERSION`
+   - `SANITY_API_TOKEN`
+   - `SANITY_WEBHOOK_SECRET`
+
+3. Deploy!
+
+### Step 4: Configure Sanity Webhook
+
+1. Go to [sanity.io/manage](https://sanity.io/manage) → API → Webhooks
+2. URL: `https://your-domain.com/api/revalidate`
+3. Secret: Your `SANITY_WEBHOOK_SECRET`
+4. Trigger on: Create, Update, Delete
+5. Filter: `_type == "blogPost"`
 
 ---
 
 ## 12. Next Steps
 
-Congratulations! You've built a modern, performant portfolio website. Here's what you can explore next:
-
-| Next Step | Resource |
-|-----------|----------|
-| **Write blog posts** | [Blog Posts with Sanity Tutorial](sandbox:///mnt/agents/output/blog-tutorial.md) |
-| **Add search** | Fuse.js or Algolia client-side search |
-| **Add comments** | Giscus (GitHub Discussions) or Disqus |
-| **Add analytics** | Vercel Analytics or Plausible |
-| **Add RSS feed** | Dynamic API route generating XML |
-| **Add Open Graph images** | `@vercel/og` for dynamic social cards |
-| **Multi-language support** | Next.js i18n routing |
+| Feature | How To |
+|---------|--------|
+| **Add pagination** | GROQ slice: `[0...10]`, `[10...20]` |
+| **Add search** | Fuse.js or Algolia |
+| **Add comments** | Giscus |
+| **RSS feed** | Dynamic route at `/api/rss` |
+| **Sitemap** | Dynamic route at `/api/sitemap` |
 
 ---
 
-## Document Cross-References
+## Key Differences from Next.js 14
 
-| This Tutorial | References |
-|---------------|------------|
-| Why this stack? | [Architecture: Technology Stack](sandbox:///mnt/agents/output/architecture.md#3-technology-stack) |
-| Project structure | [Architecture: Directory Structure](sandbox:///mnt/agents/output/architecture.md#41-directory-structure) |
-| Rendering strategy | [Architecture: Rendering Strategy](sandbox:///mnt/agents/output/architecture.md#43-rendering-strategy-by-route) |
-| Security (env vars) | [SRD: Security Requirements](sandbox:///mnt/agents/output/srd.md#52-security-requirements), [Architecture: Security](sandbox:///mnt/agents/output/architecture.md#7-security-architecture) |
-| Performance targets | [SRD: Performance Requirements](sandbox:///mnt/agents/output/srd.md#51-performance-requirements), [Architecture: Performance](sandbox:///mnt/agents/output/architecture.md#8-performance-architecture) |
-| Blog integration | [SRD: Blog Features](sandbox:///mnt/agents/output/srd.md#34-feature-blog-integrated-with-sanity-cms) |
-| Deployment | [Architecture: Deployment](sandbox:///mnt/agents/output/architecture.md#6-deployment-architecture) |
-| Sanity setup | [Sanity CMS Tutorial](sandbox:///mnt/agents/output/sanity-tutorial.md) |
-| Blog posts tutorial | [Blog Posts with Sanity Tutorial](sandbox:///mnt/agents/output/blog-tutorial.md) |
+| Aspect | Next.js 14 | Next.js 16 |
+|--------|-----------|------------|
+| Caching | Implicit (`export const revalidate`) | Explicit (`'use cache'`) |
+| Invalidation | `revalidatePath` | `revalidateTag` / `updateTag` |
+| Middleware | `middleware.ts` | `proxy.ts` |
+| Control | Framework decides | Developer decides |
 
 ---
 
-*Happy building! 🚀 Your portfolio is now a solid foundation that can grow with your career.*
+*Happy building with Next.js 16! 🚀 Your portfolio now uses explicit, predictable caching that you control.*
