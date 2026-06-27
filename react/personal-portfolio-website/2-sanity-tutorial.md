@@ -6,12 +6,12 @@
 
 ## Before You Start
 
-This tutorial is part of a three-document system:
-- **[Portfolio Website Tutorial](sandbox:///mnt/agents/output/portfolio-tutorial-revised.md)** — how to build the frontend
+This tutorial is part of a multi-document system:
+- **[Portfolio Website Tutorial](1-portfolio-tutorial.md)** — how to build the frontend
 - **This tutorial** — how to set up the content management backend
-- **[Blog Posts with Sanity Tutorial](sandbox:///mnt/agents/output/blog-tutorial.md)** — how to write blog posts and bridge frontend + backend
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd.md)** — what the system must do
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture.md)** — how the system is structured
+- **[Blog Posts with Sanity Tutorial](3-blog-tutorial-revised.md)** — how to write blog posts and bridge frontend + backend
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do
+- **[Architecture Document](architecture-portfolio.md)** — how the system is structured
 
 > 💡 **Tip:** When you see a 🔗 **Architecture** or 🔗 **SRD** reference, that decision is formally documented there. You don't need to read them now, but they're available for deeper understanding.
 
