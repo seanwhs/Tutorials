@@ -1,17 +1,3 @@
-For a beginner-friendly curriculum, I would transform the material from a "reference manual" into a **long-form educational blog series** that follows this progression:
-
-> **WHY → WHAT → HOW → WHEN → WHAT CAN GO WRONG → EXERCISES**
-
-The tone should feel like:
-
-* *"I'm teaching a junior engineer from first principles"*
-* rather than
-* *"I'm documenting the asyncio API."*
-
-Here's how I would rewrite the beginning of the async section.
-
----
-
 # 🚀 Python Asyncio Explained Like a Systems Engineer:
 
 # Why Your Program Spends 99% of Its Time Doing Absolutely Nothing
