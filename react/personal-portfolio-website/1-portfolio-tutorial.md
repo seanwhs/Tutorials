@@ -8,8 +8,8 @@
 
 This tutorial is part of a three-document system:
 - **This tutorial** — hands-on, step-by-step building instructions
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd.md)** — what the system must do (requirements)
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture.md)** — how the system is structured technically
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do (requirements)
+- **[Architecture Document](architecture-portfolio.md)** — how the system is structured technically
 
 > 💡 **Tip:** When you see a 🔗 **Architecture** or 🔗 **SRD** reference, it means that decision is documented formally in those documents. You don't need to read them now, but they're there if you want to understand *why* we make certain choices.
 
