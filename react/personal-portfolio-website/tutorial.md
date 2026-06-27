@@ -94,7 +94,9 @@ Tailwind is a **utility-first** CSS framework. Instead of writing CSS files, you
 - `xl:` — 1280px+
 
 ---
-## Part 3: File Structure
+## Part 3: Scaffold
+
+**File Structure**
 
 ```
 src/
@@ -114,6 +116,44 @@ src/
 └── App.jsx
 ```
 
+**App.jsx**
+`src/App.jsx`:
+```
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Navbar from './components/sections/Navbar';
+import Hero from './components/sections/Hero';
+import About from './components/sections/About';
+import Projects from './components/sections/Projects';
+import Footer from './components/sections/Footer';
+
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <About />
+      <Projects />
+      {/* Add <Blog /> here once implemented */}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="antialiased text-slate-900 bg-white">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          {/* <Route path="/blog/:slug" element={<BlogPost />} /> */}
+        </Routes>
+        <Footer />
+      </div>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+```
 ---
 
 ## Part 4: Building Reusable UI Components
