@@ -94,8 +94,29 @@ Tailwind is a **utility-first** CSS framework. Instead of writing CSS files, you
 - `xl:` — 1280px+
 
 ---
+## Part 3: File Structure
 
-## Part 3: Building Reusable UI Components
+```
+src/
+├── components/
+│   ├── ui/
+│   │   ├── Button.jsx
+│   │   ├── Card.jsx
+│   │   ├── Section.jsx
+│   │   └── Badge.jsx
+│   └── sections/
+│       ├── Navbar.jsx
+│       ├── Hero.jsx
+│       ├── About.jsx
+│       └── Projects.jsx
+├── lib/
+│   └── sanity.js
+└── App.jsx
+```
+
+---
+
+## Part 4: Building Reusable UI Components
 
 Create the folder structure:
 ```
@@ -178,7 +199,7 @@ export default Card;
 
 ---
 
-## Part 4: Core Portfolio Sections
+## Part 5: Core Portfolio Sections
 
 ### Navbar
 `src/components/sections/Navbar.jsx`:
@@ -405,7 +426,7 @@ export default Footer;
 
 ---
 
-## Part 5: AI Projects Showcase
+## Part 6: AI Projects Showcase
 
 This is where you showcase your AI-integrated projects. Each project card includes the tech stack, AI features, and links to live demos or GitHub.
 
@@ -535,7 +556,7 @@ export default Projects;
 
 ---
 
-## Part 6: Blog with Sanity CMS
+## Part 7: Blog with Sanity CMS
 
 Sanity is a headless CMS — you write content in a structured studio, and your React app fetches it via API. This means:
 - **No code changes** when publishing new articles
@@ -963,7 +984,7 @@ npm install @portabletext/react
 
 ---
 
-## Part 7: Smooth Scrolling & Interactivity
+## Part 8: Smooth Scrolling & Interactivity
 
 Install react-scroll for smooth navigation:
 ```bash
@@ -974,7 +995,7 @@ Update `Navbar.jsx` links to use smooth scroll. For the router version, use `<Li
 
 ---
 
-## Part 8: Publishing to GitHub
+## Part 9: Publishing to GitHub
 
 ### Step 1: Create Repository
 1. Go to [github.com](https://github.com) → **New repository**
@@ -1005,7 +1026,7 @@ git push -u origin main
 
 ---
 
-## Part 9: Deploying to Vercel
+## Part 10: Deploying to Vercel
 
 ### Frontend Deployment
 1. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
