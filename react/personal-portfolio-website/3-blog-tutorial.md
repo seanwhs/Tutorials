@@ -7,13 +7,13 @@
 ## Before You Start
 
 This tutorial is the **bridge** between two prior tutorials:
-- **[Portfolio Website Tutorial](sandbox:///mnt/agents/output/portfolio-tutorial-nextjs16.md)** — built the Next.js 16 frontend (Vercel)
-- **[Sanity CMS Tutorial](sandbox:///mnt/agents/output/sanity-tutorial-nextjs16.md)** — set up the content backend
+- **[Portfolio Website Tutorial](1-portfolio-tutorial.md)** — built the Next.js 16 frontend (Vercel)
+- **[Sanity CMS Tutorial](2-sanity-tutorial.md)** — set up the content backend
 - **This tutorial** — connects the two: write content → see it on your site
 
 Formal reference documents:
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd-nextjs16.md)** — what the blog feature must do
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture-nextjs16.md)** — how data flows between Sanity and your portfolio
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the blog feature must do
+- **[Architecture Document](architecture-portfolio.md)** — how data flows between Sanity and your portfolio
 
 > 💡 **Key difference from older tutorials**: Next.js 16 uses **explicit caching** (`'use cache'`, `cacheTag`, `revalidateTag`) instead of ISR (`export const revalidate`). This tutorial shows the Next.js 16 patterns.
 
