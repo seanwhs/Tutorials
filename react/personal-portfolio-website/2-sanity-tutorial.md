@@ -1,4 +1,4 @@
-# Tutorial: Setting Up Sanity CMS for Your Portfolio (Next.js 16)
+# Tutorial: Setting Up Sanity CMS for Your Portfolio
 
 *A complete beginner's guide to configuring Sanity CMS as the headless content backend for your Next.js 16 portfolio website — aligned with the project's Software Requirements Document (SRD) and Architecture Document.*
 
