@@ -7,11 +7,11 @@
 ## Before You Start
 
 This tutorial is part of a multi-document system:
-- **[Portfolio Website Tutorial](sandbox:///mnt/agents/output/portfolio-tutorial-nextjs16.md)** — how to build the Next.js 16 frontend
+- **[Portfolio Website Tutorial](1-portfolio-tutorial.md)** — how to build the Next.js 16 frontend
 - **This tutorial** — how to set up the content management backend
 - **[Blog Posts with Sanity Tutorial](sandbox:///mnt/agents/output/blog-tutorial-nextjs16.md)** — how to write blog posts and bridge frontend + backend
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd-nextjs16.md)** — what the system must do
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture-nextjs16.md)** — how the system is structured
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do
+- **[Architecture Document](architecture-portfolio.md)** — how the system is structured
 
 > 💡 **Key context**: Next.js 16 uses **explicit caching** (`'use cache'`, `cacheTag`, `revalidateTag`). This tutorial sets up Sanity to work with that caching model.
 
