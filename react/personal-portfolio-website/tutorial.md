@@ -357,6 +357,52 @@ function About() {
 export default About;
 ```
 
+### Footer Section
+`src/components/sections/Footer.jsx`:
+```jsx
+function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="bg-slate-50 border-t border-slate-200 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          {/* Branding */}
+          <div>
+            <a href="#home" className="text-xl font-bold text-slate-900 tracking-tight">
+              Sean Wong
+            </a>
+            <p className="text-slate-500 text-sm mt-1">
+              Enterprise Architect & Independent Developer
+            </p>
+          </div>
+
+          {/* Copyright */}
+          <div className="text-slate-500 text-sm">
+            © {currentYear} Sean Wong. All rights reserved.
+          </div>
+
+          {/* Social / Links */}
+          <div className="flex space-x-6">
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-900 transition-colors">
+              GitHub
+            </a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-900 transition-colors">
+              LinkedIn
+            </a>
+            <a href="mailto:your-email@example.com" className="text-slate-400 hover:text-slate-900 transition-colors">
+              Email
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+export default Footer;
+```
+
 ---
 
 ## Part 5: AI Projects Showcase
