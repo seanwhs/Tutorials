@@ -7,13 +7,13 @@
 ## Before You Start
 
 This tutorial is the **bridge** between two prior tutorials:
-- **[Portfolio Website Tutorial](sandbox:///mnt/agents/output/portfolio-tutorial-revised.md)** — built the frontend (Next.js, Vercel)
-- **[Sanity CMS Tutorial](sandbox:///mnt/agents/output/sanity-tutorial-revised.md)** — set up the content backend
+- **[Portfolio Website Tutorial](1-portfolio-tutorial.md)** — built the frontend (Next.js, Vercel)
+- **[Sanity CMS Tutorial](2-sanity-tutorial.md)** — set up the content backend
 - **This tutorial** — connects the two: write content → see it on your site
 
 Formal reference documents:
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd.md)** — what the blog feature must do
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture.md)** — how data flows between Sanity and your portfolio
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the blog feature must do
+- **[Architecture Document](architecture-portfolio.md)** — how data flows between Sanity and your portfolio
 
 > 💡 **Tip:** 🔗 references point to formal documentation for deeper understanding.
 
