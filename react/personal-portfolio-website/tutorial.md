@@ -190,14 +190,13 @@ export default Button;
 ### Section Wrapper
 `src/components/ui/Section.jsx`:
 ```jsx
-function Section({ children, className = "", id }) {
+function Section({ children, id, className = "" }) {
   return (
-    <section id={id} className={`py-20 px-4 sm:px-6 lg:px-8 ${className}`}>
+    <section id={id} className={`py-20 px-4 ${className}`}>
       <div className="max-w-6xl mx-auto">{children}</div>
     </section>
   );
 }
-
 export default Section;
 ```
 
@@ -306,6 +305,7 @@ export default Navbar;
 ### Hero Section
 `src/components/sections/Hero.jsx`:
 ```jsx
+import { Link } from 'react-scroll';
 import Button from '../ui/Button';
 
 function Hero() {
@@ -313,30 +313,19 @@ function Hero() {
     <section id="home" className="min-h-screen flex items-center pt-16 bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            Enterprise Architect → Independent Developer
-          </div>
-          
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            Building <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-native</span> digital platforms with architectural rigor
+          <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
+            Building <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-native</span> platforms.
           </h1>
-          
-          <p className="text-lg sm:text-xl text-slate-600 leading-relaxed mb-8 max-w-2xl">
-            Decades of enterprise architecture experience, now focused on full-stack development, 
-            cloud-native systems, and AI-augmented engineering. I help teams ship faster without shipping fragile.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button href="#projects" variant="primary">View AI Projects</Button>
-            <Button href="#blog" variant="secondary">Read the Blog</Button>
+          <div className="flex gap-4">
+            <Link to="projects" smooth={true} duration={500} offset={-70}>
+              <Button variant="primary">View AI Projects</Button>
+            </Link>
           </div>
         </div>
       </div>
     </section>
   );
 }
-
 export default Hero;
 ```
 
@@ -480,109 +469,27 @@ function Projects() {
   const projects = [
     {
       title: 'AI-Powered Document Analyzer',
-      description: 'An intelligent document processing system that extracts insights from PDFs and images using LLM vision models. Features automated summarization, entity extraction, and semantic search.',
+      description: 'Intelligent PDF/image insight extraction.',
       image: '📄',
       status: 'Live',
-      aiFeatures: ['LLM Vision', 'RAG Pipeline', 'Semantic Search'],
-      tech: ['Next.js 14', 'OpenAI API', 'Pinecone', 'PostgreSQL', 'Tailwind CSS'],
+      aiFeatures: ['LLM Vision', 'RAG'],
+      tech: ['Next.js', 'OpenAI'],
       demoUrl: '#',
-      githubUrl: '#',
-      category: 'AI Application'
-    },
-    {
-      title: 'Smart Workflow Automation Platform',
-      description: 'A no-code workflow builder with AI-assisted node configuration. Users describe what they want in natural language, and the system generates the workflow graph automatically.',
-      image: '⚡',
-      status: 'In Development',
-      aiFeatures: ['Natural Language to Workflow', 'Auto-Error Recovery', 'Predictive Scheduling'],
-      tech: ['React', 'n8n', 'LangChain', 'Appwrite', 'TypeScript'],
-      demoUrl: '#',
-      githubUrl: '#',
-      category: 'Automation'
-    },
-    {
-      title: 'AI Code Review Assistant',
-      description: 'A VS Code extension that provides intelligent code reviews, security vulnerability detection, and architectural pattern suggestions using fine-tuned models.',
-      image: '🔍',
-      status: 'Open Source',
-      aiFeatures: ['Security Scanning', 'Pattern Recognition', 'Refactoring Suggestions'],
-      tech: ['TypeScript', 'VS Code API', 'Ollama', 'Continue.dev', 'Node.js'],
-      demoUrl: '#',
-      githubUrl: '#',
-      category: 'Developer Tool'
-    },
-    {
-      title: 'Conversational Analytics Dashboard',
-      description: 'Real-time analytics platform that processes natural language queries into SQL, generating interactive dashboards without writing a single line of code.',
-      image: '📊',
-      status: 'Live',
-      aiFeatures: ['NL-to-SQL', 'Auto-Visualization', 'Anomaly Detection'],
-      tech: ['Next.js', 'Sanity CMS', 'Neon DB', 'Recharts', 'Clerk Auth'],
-      demoUrl: '#',
-      githubUrl: '#',
-      category: 'Data & Analytics'
+      githubUrl: '#'
     }
+    // ... add other projects
   ];
 
   return (
     <Section id="projects" className="bg-slate-50">
-      <div className="text-center mb-16">
-        <Badge color="purple">AI-Integrated Projects</Badge>
-        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-4 mb-4">
-          Projects I'm Building
-        </h2>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Real-world applications combining modern web development with AI capabilities. 
-          Each project demonstrates architectural thinking applied to AI-native engineering.
-        </p>
-      </div>
-
       <div className="grid md:grid-cols-2 gap-8">
-        {projects.map((project) => (
-          <Card key={project.title} className="overflow-hidden">
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-4xl">{project.image}</div>
-              <Badge color={project.status === 'Live' ? 'green' : project.status === 'Open Source' ? 'blue' : 'amber'}>
-                {project.status}
-              </Badge>
-            </div>
-            
-            <div className="mb-3">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{project.category}</span>
-            </div>
-            
-            <h3 className="text-xl font-bold text-slate-900 mb-3">{project.title}</h3>
-            <p className="text-slate-600 leading-relaxed mb-4">{project.description}</p>
-            
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">AI Features</p>
-              <div className="flex flex-wrap gap-2">
-                {project.aiFeatures.map((feature) => (
-                  <span key={feature} className="text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-md font-medium">
-                    {feature}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tech Stack</p>
-              <div className="flex flex-wrap gap-2">
-                {project.tech.map((t) => (
-                  <span key={t} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex gap-3 pt-4 border-t border-slate-100">
-              <a href={project.demoUrl} className="flex-1 text-center py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
-                Live Demo
-              </a>
-              <a href={project.githubUrl} className="flex-1 text-center py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:border-slate-900 hover:text-slate-900 transition-colors">
-                GitHub
-              </a>
+        {projects.map((p) => (
+          <Card key={p.title}>
+            <h3 className="text-xl font-bold mb-3">{p.title}</h3>
+            <p className="text-slate-600 mb-4">{p.description}</p>
+            <div className="flex gap-3 pt-4 border-t">
+              <a href={p.demoUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 bg-slate-900 text-white rounded-lg text-sm font-medium">Live Demo</a>
+              <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 border rounded-lg text-sm font-medium">GitHub</a>
             </div>
           </Card>
         ))}
@@ -590,7 +497,6 @@ function Projects() {
     </Section>
   );
 }
-
 export default Projects;
 ```
 
