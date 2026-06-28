@@ -4,7 +4,7 @@
 
 > **Goal of this capstone:** Apply everything you've learned throughout this tutorial series by building a complete, production-quality application from scratch.
 
----
+***
 
 # Welcome to the Capstone
 
@@ -30,13 +30,13 @@ Now comes the most important part:
 
 > Building a real system.
 
-Because software engineering is not learned by reading.
+Because software engineering is not learned by reading alone.
 
-It is learned by building.
+It is learned by building, debugging, refining, and operating something real.
 
----
+***
 
-# What Are We Building?
+# What We're Building
 
 We will build:
 
@@ -60,7 +60,11 @@ Media management
 Analytics platform
 ```
 
----
+This is not a toy app.
+
+It is a production-style system designed to teach real-world architecture, not just isolated features.
+
+***
 
 # Final Application Features
 
@@ -88,7 +92,11 @@ Our finished application will support:
 ✓ Production deployment
 ```
 
----
+These are the kinds of features real applications need.
+
+And these are the kinds of problems that turn tutorials into engineering.
+
+***
 
 # Final Architecture
 
@@ -96,7 +104,7 @@ Our finished application will support:
                     Browser
                         |
                         V
-                  CDN/Edge Cache
+                  CDN / Edge Cache
                         |
                         V
                     Next.js 16
@@ -114,12 +122,14 @@ Our finished application will support:
           +-------------+-------------+
           |                           |
           V                           V
-       Storage                   Background Jobs
+       Storage                 Background Jobs
 ```
 
----
+This architecture is intentionally layered so you can see how UI, caching, persistence, and asynchronous work fit together in a real application.
 
-# Why This Project?
+***
+
+# Why This Project
 
 Most tutorials teach:
 
@@ -129,35 +139,29 @@ Weather apps
 Counter apps
 ```
 
-Real applications contain:
+Those are useful for learning syntax, but they avoid the hard parts.
+
+Real applications involve:
 
 ```text
 Authentication
-
 Authorization
-
 Caching
-
 Database design
-
 Uploads
-
 Security
-
 Observability
-
 Deployment
-
 Operations
 ```
 
-This project teaches all of those.
+This capstone teaches exactly those things.
 
----
+***
 
 # What You'll Learn
 
-By building Nexus CMS, you'll learn:
+By building Nexus CMS, you'll learn how to think across multiple layers of the stack.
 
 ## Frontend Engineering
 
@@ -171,7 +175,7 @@ Forms
 UI architecture
 ```
 
----
+***
 
 ## Backend Engineering
 
@@ -184,7 +188,7 @@ Validation
 Error handling
 ```
 
----
+***
 
 ## Database Engineering
 
@@ -197,7 +201,7 @@ Migrations
 Transactions
 ```
 
----
+***
 
 ## Performance Engineering
 
@@ -209,7 +213,7 @@ revalidateTag()
 Partial prerendering
 ```
 
----
+***
 
 ## Security Engineering
 
@@ -223,7 +227,7 @@ Rate limiting
 Uploads
 ```
 
----
+***
 
 ## Operations Engineering
 
@@ -237,7 +241,7 @@ Deployment
 Recovery
 ```
 
----
+***
 
 # Technology Stack
 
@@ -249,7 +253,7 @@ React 19
 TypeScript
 ```
 
----
+***
 
 ## Database
 
@@ -258,7 +262,7 @@ PostgreSQL
 Prisma ORM
 ```
 
----
+***
 
 ## Authentication
 
@@ -267,7 +271,7 @@ Session-based auth
 Role-based authorization
 ```
 
----
+***
 
 ## Storage
 
@@ -275,7 +279,7 @@ Role-based authorization
 Cloud object storage
 ```
 
----
+***
 
 ## Deployment
 
@@ -284,7 +288,9 @@ Vercel
 PostgreSQL hosting
 ```
 
----
+This stack is intentionally practical. It gives you modern tooling without hiding the realities of production engineering.
+
+***
 
 # Project Structure
 
@@ -292,35 +298,28 @@ PostgreSQL hosting
 nexus/
 
 ├── app/
-│
 ├── components/
-│
 ├── lib/
-│
 ├── actions/
-│
 ├── db/
-│
 ├── auth/
-│
 ├── hooks/
-│
 ├── services/
-│
 ├── types/
-│
 ├── tests/
-│
 ├── docs/
-│
 └── prisma/
 ```
 
----
+The goal is not to create folders for the sake of organization.
+
+The goal is to create a structure that mirrors how the system actually works.
+
+***
 
 # Database Design
 
-We'll build:
+We'll build relationships around core content and user activity.
 
 ```text
 Users
@@ -340,7 +339,9 @@ Posts
     +---- Media
 ```
 
----
+This model gives us enough depth to explore authorship, publishing, moderation, and content discovery.
+
+***
 
 # User Roles
 
@@ -348,19 +349,20 @@ We'll implement:
 
 ```text
 Guest
-
 Author
-
 Editor
-
 Administrator
 ```
 
----
+Each role will have different permissions, responsibilities, and access boundaries.
+
+That is how real CMS platforms stay manageable as they grow.
+
+***
 
 # Cache Strategy
 
-We'll implement:
+We'll implement caching deliberately, not accidentally.
 
 ```text
 Homepage
@@ -380,7 +382,9 @@ Dashboard
     dynamic rendering
 ```
 
----
+This lets us balance freshness, performance, and control.
+
+***
 
 # Security Model
 
@@ -388,19 +392,18 @@ We'll implement:
 
 ```text
 Authentication
-
 Authorization
-
 Input validation
-
 Upload security
-
 Rate limiting
-
 Permission checks
 ```
 
----
+Security is not a separate feature.
+
+It is part of the architecture.
+
+***
 
 # Observability Model
 
@@ -408,17 +411,15 @@ We'll implement:
 
 ```text
 Structured logging
-
 Metrics
-
 Tracing
-
 Error monitoring
-
 Health checks
 ```
 
----
+If you cannot observe your app, you cannot operate it well.
+
+***
 
 # Deployment Architecture
 
@@ -434,7 +435,9 @@ PostgreSQL
 Storage
 ```
 
----
+This gives you a realistic path from code to production.
+
+***
 
 # Development Philosophy
 
@@ -448,7 +451,7 @@ after
 feature
 ```
 
-Instead we will build:
+Instead, we will build with intent:
 
 ```text
 Feature
@@ -462,9 +465,9 @@ Performance
 Observability
 ```
 
-Because that's how professional systems are engineered.
+That is the difference between shipping demos and engineering systems.
 
----
+***
 
 # Capstone Roadmap
 
@@ -484,7 +487,7 @@ Part 31:
 Application layouts
 ```
 
----
+***
 
 ## Phase 2 — Core CMS
 
@@ -502,7 +505,7 @@ Part 35:
 Rich text editor
 ```
 
----
+***
 
 ## Phase 3 — Next.js 16 Features
 
@@ -520,7 +523,7 @@ Part 39:
 revalidateTag()
 ```
 
----
+***
 
 ## Phase 4 — Production Features
 
@@ -538,7 +541,7 @@ Part 43:
 Analytics
 ```
 
----
+***
 
 ## Phase 5 — Production Engineering
 
@@ -556,37 +559,29 @@ Part 47:
 Scaling
 ```
 
----
+***
 
 # The Capstone Rule
 
-Don't try to memorize:
+Do not try to memorize Next.js APIs.
 
-```text
-Next.js APIs.
-```
-
-Instead learn to ask:
+Instead, learn to ask:
 
 ```text
 What problem am I solving?
-
 What are the constraints?
-
 What are the tradeoffs?
-
 How does this fail?
-
 How do I recover?
 ```
 
-Because that's how software engineers build systems.
+Those questions are what turn code into engineering.
 
----
+***
 
 # Part 28 Preview
 
-In the next chapter we'll begin building Nexus CMS by creating:
+In the next chapter, we'll begin building Nexus CMS by creating:
 
 ```text
 ✓ Next.js 16 project
@@ -601,3 +596,7 @@ In the next chapter we'll begin building Nexus CMS by creating:
 ```
 
 This is where the real engineering begins.
+
+***
+
+ [Caching](https://nextjs.org/docs/app/api-reference/functions/cacheLife)
