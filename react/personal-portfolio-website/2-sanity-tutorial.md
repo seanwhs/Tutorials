@@ -11,10 +11,10 @@ This tutorial is part of a **five-document system**:
 | Document | Purpose | Link |
 |----------|---------|------|
 | **This Tutorial** | Hands-on, step-by-step building instructions | You are here |
-| **[Portfolio Frontend Tutorial](sandbox:///mnt/agents/output/portfolio-tutorial-nextjs16.md)** | Building the Next.js 16 frontend | [Download](sandbox:///mnt/agents/output/portfolio-tutorial-nextjs16.md) |
-| **[Blog Posts Tutorial](sandbox:///mnt/agents/output/blog-tutorial-nextjs16.md)** | Writing content and bridging frontend + backend | [Download](sandbox:///mnt/agents/output/blog-tutorial-nextjs16.md) |
-| **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd-nextjs16.md)** | What the system must do (requirements) | [Download](sandbox:///mnt/agents/output/srd-nextjs16.md) |
-| **[Architecture Document](sandbox:///mnt/agents/output/architecture-nextjs16.md)** | How the system is structured technically | [Download](sandbox:///mnt/agents/output/architecture-nextjs16.md) |
+| **[Portfolio Frontend Tutorial](1-portfolio-tutorial.md)** | Building the Next.js 16 frontend | [Download](sandbox:///mnt/agents/output/portfolio-tutorial-nextjs16.md) |
+| **[Blog Posts Tutorial](3-blog-tutorial.md)** | Writing content and bridging frontend + backend | [Download](sandbox:///mnt/agents/output/blog-tutorial-nextjs16.md) |
+| **[Software Requirements Document (SRD)](srd-portfolio.md)** | What the system must do (requirements) | [Download](sandbox:///mnt/agents/output/srd-nextjs16.md) |
+| **[Architecture Document](architecture-portfolio.md)** | How the system is structured technically | [Download](sandbox:///mnt/agents/output/architecture-nextjs16.md) |
 
 > 💡 **Tip**: When you see a 🔗 **Architecture** or 🔗 **SRD** reference, that decision is formally documented. You don't need to read them now, but they're available for deeper understanding.
 
