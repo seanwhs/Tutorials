@@ -1,0 +1,899 @@
+# Next.js 16 for Absolute Beginners
+
+# Part 6 — Data Fetching: Why Modern Next.js Doesn't Need `useEffect`
+
+> **Goal of this lesson:** Learn how data fetching works in modern Next.js, why most `useEffect` data fetching is obsolete, and how to fetch data efficiently using React Server Components.
+
+---
+
+# The Old Way of Fetching Data
+
+For many years, React developers wrote code like this:
+
+```jsx
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function UsersPage() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] =
+        useState(true);
+
+    useEffect(() => {
+        async function loadUsers() {
+            const response =
+                await fetch(
+                    "https://jsonplaceholder.typicode.com/users"
+                );
+
+            const data =
+                await response.json();
+
+            setUsers(data);
+            setLoading(false);
+        }
+
+        loadUsers();
+    }, []);
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
+    return (
+        <div>
+            {users.map(user => (
+                <p key={user.id}>
+                    {user.name}
+                </p>
+            ))}
+        </div>
+    );
+}
+```
+
+This works.
+
+But look at how much code we wrote:
+
+* `useState`
+* `useEffect`
+* loading state
+* async function
+* state updates
+* conditional rendering
+
+And this is just for displaying some data.
+
+---
+
+# What Actually Happens?
+
+Let's visualize what the browser is doing.
+
+```text
+User visits page
+        ↓
+Download JavaScript
+        ↓
+Execute React
+        ↓
+Render empty page
+        ↓
+Fetch API
+        ↓
+Wait
+        ↓
+Receive data
+        ↓
+Render again
+```
+
+There are multiple steps.
+
+There are multiple renders.
+
+There are multiple waits.
+
+---
+
+# React Server Components Change Everything
+
+Suppose the server can fetch data.
+
+Why do this?
+
+```text
+Server
+   ↓
+Send JS
+   ↓
+Browser
+   ↓
+Fetch Data
+   ↓
+Render
+```
+
+Instead, why not do this?
+
+```text
+Server
+   ↓
+Fetch Data
+   ↓
+Render UI
+   ↓
+Send Result
+```
+
+This is exactly what Next.js does.
+
+---
+
+# Your First Server Fetch
+
+Create:
+
+```text
+app/users/page.tsx
+```
+
+Write:
+
+```tsx
+export default async function UsersPage() {
+
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/users"
+        );
+
+    const users =
+        await response.json();
+
+    return (
+        <main>
+
+            <h1>
+                Users
+            </h1>
+
+            {users.map(user => (
+                <div key={user.id}>
+                    {user.name}
+                </div>
+            ))}
+
+        </main>
+    );
+}
+```
+
+---
+
+# That's It?
+
+Yes.
+
+No:
+
+```tsx
+useState()
+```
+
+No:
+
+```tsx
+useEffect()
+```
+
+No:
+
+```tsx
+loading
+```
+
+No:
+
+```tsx
+setState()
+```
+
+Just:
+
+```tsx
+await fetch()
+```
+
+---
+
+# Why Does This Work?
+
+Because your component executes on the server.
+
+```text
+Browser
+    |
+Request Page
+    |
+    V
+Next.js Server
+    |
+Fetch API
+    |
+Build HTML
+    |
+Send Result
+    |
+Browser Displays
+```
+
+The browser never performs the fetch.
+
+---
+
+# Understanding async Components
+
+This may look strange:
+
+```tsx
+export default async function Page() {
+}
+```
+
+In traditional React, this was impossible.
+
+In Next.js Server Components, it's normal.
+
+Example:
+
+```tsx
+export default async function Page() {
+
+    const data =
+        await getData();
+
+    return (
+        <div>
+            {data.title}
+        </div>
+    );
+}
+```
+
+Think of a Server Component as:
+
+```text
+HTML Template
+        +
+Database Query
+        +
+API Call
+```
+
+combined into one function.
+
+---
+
+# Fetching a Single Resource
+
+Example:
+
+```tsx
+export default async function Post() {
+
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/posts/1"
+        );
+
+    const post =
+        await response.json();
+
+    return (
+        <article>
+
+            <h1>
+                {post.title}
+            </h1>
+
+            <p>
+                {post.body}
+            </p>
+
+        </article>
+    );
+}
+```
+
+---
+
+# Fetching Multiple Resources
+
+Suppose we need:
+
+* users
+* posts
+* comments
+
+---
+
+# The Slow Way
+
+```tsx
+export default async function Dashboard() {
+
+    const users =
+        await fetchUsers();
+
+    const posts =
+        await fetchPosts();
+
+    const comments =
+        await fetchComments();
+
+    return (
+        <div>
+            Dashboard
+        </div>
+    );
+}
+```
+
+This is called:
+
+# Sequential Fetching
+
+---
+
+# Visualizing Sequential Fetching
+
+```text
+Fetch Users
+      ↓
+Wait
+      ↓
+Fetch Posts
+      ↓
+Wait
+      ↓
+Fetch Comments
+      ↓
+Wait
+```
+
+Total:
+
+```text
+1 sec
++
+1 sec
++
+1 sec
+=
+3 sec
+```
+
+---
+
+# The Fast Way
+
+Instead:
+
+```tsx
+export default async function Dashboard() {
+
+    const [
+        users,
+        posts,
+        comments
+    ] = await Promise.all([
+        fetchUsers(),
+        fetchPosts(),
+        fetchComments()
+    ]);
+
+    return (
+        <div>
+            Dashboard
+        </div>
+    );
+}
+```
+
+This is called:
+
+# Parallel Fetching
+
+---
+
+# Visualizing Parallel Fetching
+
+```text
+Users -----------+
+                 |
+Posts -----------+---->
+                 |
+Comments --------+
+```
+
+Total:
+
+```text
+1 second
+```
+
+instead of:
+
+```text
+3 seconds
+```
+
+---
+
+# Example Implementation
+
+```tsx
+async function getUsers() {
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/users"
+        );
+
+    return response.json();
+}
+
+async function getPosts() {
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/posts"
+        );
+
+    return response.json();
+}
+
+export default async function Dashboard() {
+
+    const [
+        users,
+        posts
+    ] = await Promise.all([
+        getUsers(),
+        getPosts()
+    ]);
+
+    return (
+        <div>
+
+            <h1>
+                Dashboard
+            </h1>
+
+            <p>
+                Users:
+                {users.length}
+            </p>
+
+            <p>
+                Posts:
+                {posts.length}
+            </p>
+
+        </div>
+    );
+}
+```
+
+---
+
+# Creating a Data Layer
+
+As applications grow, we don't want:
+
+```tsx
+fetch(...)
+```
+
+inside every component.
+
+Instead:
+
+```text
+lib/
+    api.ts
+```
+
+---
+
+## lib/api.ts
+
+```tsx
+export async function getUsers() {
+
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/users"
+        );
+
+    return response.json();
+}
+
+export async function getPosts() {
+
+    const response =
+        await fetch(
+            "https://jsonplaceholder.typicode.com/posts"
+        );
+
+    return response.json();
+}
+```
+
+---
+
+Now:
+
+```tsx
+import {
+    getUsers,
+    getPosts
+} from "@/lib/api";
+
+export default async function Page() {
+
+    const [
+        users,
+        posts
+    ] = await Promise.all([
+        getUsers(),
+        getPosts()
+    ]);
+
+    return (
+        <>
+            Users:
+            {users.length}
+
+            Posts:
+            {posts.length}
+        </>
+    );
+}
+```
+
+This pattern becomes extremely important in Next.js 16.
+
+---
+
+# What Happens When Fetch Fails?
+
+Suppose:
+
+```tsx
+const response =
+    await fetch(
+        "https://wrong-api.com"
+    );
+```
+
+You'll get an error.
+
+Example:
+
+```tsx
+export default async function Page() {
+
+    try {
+
+        const response =
+            await fetch(url);
+
+        const data =
+            await response.json();
+
+        return (
+            <div>
+                {data.name}
+            </div>
+        );
+
+    } catch {
+
+        return (
+            <p>
+                Failed to load
+            </p>
+        );
+    }
+}
+```
+
+---
+
+# Checking HTTP Status
+
+A fetch can succeed but still fail.
+
+Example:
+
+```text
+404
+500
+403
+```
+
+Always check:
+
+```tsx
+const response =
+    await fetch(url);
+
+if (!response.ok) {
+    throw new Error(
+        "Failed"
+    );
+}
+
+return response.json();
+```
+
+---
+
+# Dynamic Route Data Fetching
+
+Remember:
+
+```text
+blog/[slug]
+```
+
+Example:
+
+```tsx
+export default async function BlogPost({
+    params,
+}: {
+    params: Promise<{
+        slug: string;
+    }>;
+}) {
+
+    const { slug } =
+        await params;
+
+    const response =
+        await fetch(
+            `https://api.example.com/posts/${slug}`
+        );
+
+    const post =
+        await response.json();
+
+    return (
+        <article>
+
+            <h1>
+                {post.title}
+            </h1>
+
+        </article>
+    );
+}
+```
+
+---
+
+# Fetching Database Data
+
+Later we'll replace APIs with databases.
+
+Example:
+
+```tsx
+import { db } from "@/lib/db";
+
+export default async function UsersPage() {
+
+    const users =
+        await db.user.findMany();
+
+    return (
+        <>
+            {users.map(user => (
+                <p key={user.id}>
+                    {user.name}
+                </p>
+            ))}
+        </>
+    );
+}
+```
+
+Notice:
+
+There is no difference between:
+
+```tsx
+await fetch()
+```
+
+and:
+
+```tsx
+await database.query()
+```
+
+This is one reason Server Components are so powerful.
+
+---
+
+# The New Mental Model
+
+Forget:
+
+```text
+React Component
+        ↓
+Fetch Data
+        ↓
+Store State
+        ↓
+Render
+```
+
+Think:
+
+```text
+Server Component
+        ↓
+Get Data
+        ↓
+Return UI
+```
+
+---
+
+# Example Comparison
+
+## Old React
+
+```tsx
+const [data, setData] =
+    useState();
+
+useEffect(() => {
+    fetch(...)
+        .then(setData);
+}, []);
+```
+
+---
+
+## Modern Next.js
+
+```tsx
+const data =
+    await fetch(...);
+
+return <UI />;
+```
+
+---
+
+# Exercises
+
+## Exercise 1
+
+Create:
+
+```text
+/users
+```
+
+that fetches:
+
+```text
+https://jsonplaceholder.typicode.com/users
+```
+
+---
+
+## Exercise 2
+
+Create:
+
+```text
+/posts
+```
+
+that fetches:
+
+```text
+https://jsonplaceholder.typicode.com/posts
+```
+
+---
+
+## Exercise 3
+
+Create:
+
+```text
+/dashboard
+```
+
+that loads:
+
+* users
+* posts
+* comments
+
+using:
+
+```tsx
+Promise.all()
+```
+
+---
+
+# What You've Learned
+
+You now understand:
+
+✅ async Server Components
+
+✅ `fetch()`
+
+✅ server-side data fetching
+
+✅ sequential fetching
+
+✅ parallel fetching
+
+✅ `Promise.all()`
+
+✅ data layers
+
+✅ error handling
+
+✅ dynamic data fetching
+
+---
+
+# New Rule
+
+Whenever you think:
+
+> "I need `useEffect` to fetch data"
+
+stop and ask:
+
+> "Can this simply be a Server Component?"
+
+Most of the time, the answer is:
+
+```text
+YES
+```
+
+---
+
+# Part 7 Preview
+
+In the next chapter we'll learn:
+
+# Loading UI, Error UI, Streaming, and Suspense
+
+Including:
+
+* `loading.tsx`
+* `error.tsx`
+* `not-found.tsx`
+* React Suspense
+* streaming UI
+* skeleton screens
+* partial rendering
+
+This is where Next.js starts feeling like magic rather than a framework.
