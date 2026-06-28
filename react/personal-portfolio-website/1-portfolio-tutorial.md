@@ -1,4 +1,4 @@
-# Tutorial: Building Your Personal Portfolio Website (Next.js 16)
+# Tutorial: Building Your Personal Portfolio Website
 
 *A complete beginner's guide to building a modern, performant portfolio with Next.js 16, TypeScript, Tailwind CSS, Sanity CMS, and explicit caching — aligned with the project's Software Requirements Document (SRD) and Architecture Document.*
 
