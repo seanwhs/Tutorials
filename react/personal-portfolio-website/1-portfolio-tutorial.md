@@ -8,8 +8,8 @@
 
 This tutorial is part of a multi-document system:
 - **This tutorial** — hands-on, step-by-step building instructions
-- **[Software Requirements Document (SRD)](sandbox:///mnt/agents/output/srd-nextjs16.md)** — what the system must do (requirements)
-- **[Architecture Document](sandbox:///mnt/agents/output/architecture-nextjs16.md)** — how the system is structured technically
+- **[Software Requirements Document (SRD)](srd-portfolio.md)** — what the system must do (requirements)
+- **[Architecture Document](architecture-portfolio.md)** — how the system is structured technically
 
 > 💡 **Key difference from older tutorials**: Next.js 16 uses **explicit caching**. Nothing is cached unless you add `'use cache'`. This gives you precise control but requires intentional opt-in. Next.js 16 also replaces `middleware.ts` with `proxy.ts` and makes all request APIs (`params`, `cookies`, `headers`) fully asynchronous.
 
