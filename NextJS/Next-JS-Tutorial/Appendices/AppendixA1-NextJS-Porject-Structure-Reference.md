@@ -1,4 +1,4 @@
-**# Appendix A1 — Next.js 16 Project Structure Reference**  
+# **Appendix A1 — Next.js 16 Project Structure Reference**  
 **The Complete Guide to Organizing Next.js Applications**
 
 > **Purpose:** This appendix is the canonical reference for organizing, structuring, and scaling Next.js 16 applications — from small prototypes to large enterprise systems. It incorporates the latest App Router conventions, performance patterns, and battle-tested architectures.
