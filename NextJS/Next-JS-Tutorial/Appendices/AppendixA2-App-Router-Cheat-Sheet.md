@@ -1,4 +1,4 @@
-**# Appendix A2 — Next.js 16 App Router Cheat Sheet**  
+# **Appendix A2 — Next.js 16 App Router Cheat Sheet**  
 **The Complete Reference for the App Router**
 
 > **Purpose:** This appendix is your daily quick-reference guide for the Next.js 16 App Router. Keep it handy while building — it covers routing, rendering, special files, patterns, and best practices in one place.
