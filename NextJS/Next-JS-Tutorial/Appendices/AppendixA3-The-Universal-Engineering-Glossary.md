@@ -1,1083 +1,313 @@
-# Appendix A34 — The Universal Engineering Glossary
+**# Appendix A34 — The Universal Engineering Glossary**  
+**The Vocabulary of Modern Software Engineering**
 
-## The Vocabulary of Modern Software Engineering
-
-> **Purpose:** Software engineering is a language. Much confusion occurs because engineers use the same words to mean different things, or different words to describe the same ideas. This appendix defines the core concepts every engineer should understand.
+> **Purpose:** Software engineering is a language. Ambiguity in terminology causes more bugs, failed projects, and miscommunication than most technical challenges. This living glossary defines core concepts with clarity, mental models, tradeoffs, and real-world context.
 
 ---
 
-# Introduction
+### Introduction
 
 The biggest mistake engineers make is:
-
-```text id="gl001"
+```text
 Memorizing
 definitions.
 ```
 
 Professional engineers understand:
-
-```text id="gl002"
+```text
 Definitions
 are compressed
 experience.
 ```
 
+Mastery comes from internalizing **tradeoffs**, not just terms.
+
 ---
 
-# A
+### Core Principles
 
-## ACID
+#### YAGNI
+**You Aren’t Gonna Need It.**
 
+Do not build functionality until it is required.  
+**Mental Model:** Over-engineering is often more expensive than under-engineering.
+
+#### OODA Loop
+**Observe → Orient → Decide → Act**
+
+A decision-making framework for fast iteration in uncertain environments (popularized by John Boyd).
+
+---
+
+### A
+
+#### ACID
 Properties of reliable database transactions:
+- **Atomicity** — All or nothing
+- **Consistency** — Valid state transitions
+- **Isolation** — Transactions don’t interfere
+- **Durability** — Committed changes survive failures
 
-```text id="gl003"
-Atomicity
+**Mental Model:** Bank transfers — money doesn’t disappear.
 
-Consistency
+#### API
+**Application Programming Interface**
 
-Isolation
+A contract between systems (or layers) defining how they interact.  
+**Types:** REST, GraphQL, gRPC, Server Actions, etc.
 
-Durability
-```
+#### Availability
+Probability a system is operational when needed.  
+**Formula:** `Uptime / Total Time`  
+Common targets: 99%, 99.9% (“three nines”), 99.99%, 99.999% (“five nines”).
 
 ---
 
-### Example
+### B
 
-```sql id="gl004"
-BEGIN;
+#### Backpressure
+Mechanism that prevents overwhelming consumers by signaling producers to slow down.
 
-UPDATE accounts
-SET balance = balance - 100
-WHERE id = 1;
+**Example:** Streaming data where the UI or database can’t keep up.
 
-UPDATE accounts
-SET balance = balance + 100
-WHERE id = 2;
+#### BASE
+**Basically Available, Soft State, Eventually Consistent**  
+Alternative to ACID for distributed systems prioritizing availability.
 
-COMMIT;
-```
+#### Circuit Breaker
+Design pattern that detects failures and prevents cascading by “opening” the circuit temporarily.
 
----
-
-### Mental Model
-
-```text id="gl005"
-All
-
-or
-
-nothing.
-```
-
----
-
-## API
-
-Application Programming Interface.
-
----
-
-Mental model:
-
-```text id="gl006"
-A contract
-between systems.
-```
-
----
-
-## Availability
-
-The probability that a system is operational when requested.
-
----
-
-Formula:
-
-```text id="gl007"
-Availability
-
-=
-
-Uptime
-
-/
-
-Total Time
-```
-
----
-
-Examples:
-
-```text id="gl008"
-99%
-
-99.9%
-
-99.99%
-
-99.999%
-```
-
----
-
-# B
-
-## Backpressure
-
-A mechanism to slow producers when consumers cannot keep up.
-
----
-
-Example:
-
-```text id="gl009"
-Producer
-
-↓
-
-Queue
-
-↓
-
-Consumer
-```
-
----
-
-When consumer slows:
-
-```text id="gl010"
-Producer
-must slow.
-```
-
----
-
-## BASE
-
-Alternative to ACID:
-
-```text id="gl011"
-Basically Available
-
-Soft State
-
-Eventually Consistent
-```
-
----
-
-Mental model:
-
-```text id="gl012"
-Availability
-over
-consistency.
-```
-
----
-
-# C
-
-## Cache
-
-Temporary storage used to improve performance.
-
----
-
-Tradeoff:
-
-```text id="gl013"
-Speed
-
-vs
-
-Freshness
-```
-
----
-
-## CAP Theorem
-
-Distributed systems can optimize for only two:
-
-```text id="gl014"
-Consistency
-
-Availability
-
-Partition Tolerance
-```
-
----
-
-Mental model:
-
-```text id="gl015"
-Distributed systems
-are tradeoffs.
-```
-
----
-
-## Circuit Breaker
-
-Stops repeated failures.
-
----
-
-Pattern:
-
-```text id="gl016"
-Failure
-
-↓
-
-Open circuit
-
-↓
-
-Reject requests
-```
-
----
-
-## CQRS
-
-Command Query Responsibility Segregation.
-
----
-
-Separate:
-
-```text id="gl017"
-Writes
-
-and
-
-Reads.
-```
-
----
-
-# D
-
-## Deadlock
-
-Two or more processes waiting forever.
-
----
-
-Example:
-
-```text id="gl018"
-A waits for B
-
-B waits for A
-```
-
----
-
-## Distributed System
-
-A system where:
-
-```text id="gl019"
-Failure of
-one computer
-can affect
-another.
-```
-
----
-
-## Domain Driven Design (DDD)
-
-Design software around business domains.
-
----
-
-Mental model:
-
-```text id="gl020"
-Model reality.
-```
-
----
-
-# E
-
-## Eventual Consistency
-
-Guarantee:
-
-```text id="gl021"
-Data becomes
-consistent
-eventually.
-```
-
----
-
-No guarantee:
-
-```text id="gl022"
-When.
-```
-
----
-
-# F
-
-## Fault Tolerance
-
-Ability to continue operating after failure.
-
----
-
-Mental model:
-
-```text id="gl023"
-Fail
-
-and
-
-continue.
-```
-
----
-
-# H
-
-## Hallucination
-
-AI generates:
-
-```text id="gl024"
-Confidently
-incorrect
-output.
-```
-
----
-
-## Horizontal Scaling
-
-Add:
-
-```text id="gl025"
-More machines.
-```
-
----
-
-Instead of:
-
-```text id="gl026"
-Bigger machine.
-```
-
----
-
-# I
-
-## Idempotency
-
-Repeated execution produces the same result.
-
----
-
-Example:
-
-```http id="gl027"
-POST /payment
-```
-
-with:
-
-```text id="gl028"
-Idempotency-Key.
-```
-
----
-
-## Infrastructure
-
-Resources supporting applications.
-
----
-
-Examples:
-
-```text id="gl029"
-Servers
-
-Networks
-
-Storage
-
-Cloud
-
-Context
-```
-
----
-
-# J
-
-## Jitter
-
-Random delay added to avoid synchronized retries.
-
----
-
-Example:
-
-```text id="gl030"
-Retry:
+**States:** Closed (normal), Open (fail fast), Half-Open (testing recovery).
 
-1.2 sec
-
-instead of
-
-1 sec.
-```
-
----
-
-# K
-
-## Kubernetes
-
-Container orchestration platform.
-
----
-
-Mental model:
-
-```text id="gl031"
-Operating system
-for clusters.
-```
-
----
-
-# L
-
-## Latency
-
-Time required to complete an operation.
-
----
-
-Examples:
-
-```text id="gl032"
-P50
-
-P95
-
-P99
-```
-
----
-
-## Load Balancer
-
-Distributes traffic.
-
----
-
-Example:
-
-```text id="gl033"
-Users
-
-↓
-
-Load Balancer
-
-↓
-
-Servers
-```
-
----
-
-# M
-
-## MTBF
-
-Mean Time Between Failures.
-
----
-
-Measures:
-
-```text id="gl034"
-Reliability.
-```
-
----
-
-## MTTR
-
-Mean Time To Recovery.
-
----
-
-Measures:
-
-```text id="gl035"
-Recoverability.
-```
-
----
-
-# O
-
-## Observability
-
-Ability to understand internal state through outputs.
-
----
-
-Three pillars:
-
-```text id="gl036"
-Logs
-
-Metrics
-
-Traces
-```
-
----
-
-## OODA Loop
-
-Decision framework:
-
-```text id="gl037"
-Observe
-
-Orient
-
-Decide
-
-Act
-```
-
----
-
-# P
-
-## Partition
-
-Network split.
-
----
-
-Example:
-
-```text id="gl038"
-Cluster A
-
-X
-
-Cluster B
-```
-
----
-
-## P99
-
-99th percentile latency.
-
----
-
-Meaning:
-
-```text id="gl039"
-99%
-of requests
-complete faster.
-```
-
----
-
-## Prompt Injection
-
-Attack that manipulates AI instructions.
-
----
-
-Example:
-
-```text id="gl040"
-Ignore all
-previous instructions.
-```
-
 ---
 
-# Q
+### C
 
-## Queue
+#### Cache
+Temporary storage to improve performance and reduce load.  
+**Tradeoff:** Speed vs. Freshness (stale data).
 
-Temporary storage for asynchronous work.
+**Types:** In-memory (Redis), CDN, Browser, Application-level.
 
----
-
-Mental model:
-
-```text id="gl041"
-Wait here.
-```
-
----
-
-# R
-
-## RAG
-
-Retrieval-Augmented Generation.
-
----
-
-Architecture:
-
-```text id="gl042"
-Search
-
-↓
-
-Retrieve
-
-↓
-
-Generate
-```
-
----
-
-## Rate Limiting
-
-Restrict request frequency.
-
----
-
-Example:
-
-```text id="gl043"
-100 requests
-per minute.
-```
-
----
-
-## Replication
-
-Copying data across systems.
-
----
-
-Goal:
-
-```text id="gl044"
-Availability.
-```
-
----
-
-## Retry Storm
-
-Failure causing excessive retries.
-
----
-
-Pattern:
-
-```text id="gl045"
-Failure
-
-↓
-
-Retry
-
-↓
-
-More failure
-```
-
----
-
-# S
-
-## SAGA
-
-Distributed transaction pattern.
+#### CAP Theorem
+In distributed systems, you can only guarantee **two** of:
+- **Consistency**
+- **Availability**
+- **Partition Tolerance**
 
----
-
-Pattern:
-
-```text id="gl046"
-Transaction
-
-↓
-
-Compensation
-```
-
----
-
-## Scalability
-
-Ability to handle growth.
+**Mental Model:** During network partitions, choose between being correct or being responsive.
 
----
+#### CQRS
+**Command Query Responsibility Segregation**
 
-Question:
+Separate write (commands) from read (queries) models.  
+**Benefit:** Optimized data models for each concern.
 
-```text id="gl047"
-What happens
-at 10×?
-```
-
 ---
-
-## Service Level Agreement (SLA)
 
-Contractual guarantee.
+### D
 
----
+#### Deadlock
+Situation where two or more processes wait for each other indefinitely.
 
-Example:
+#### Distributed System
+System where components on different computers communicate over a network. Failure of one part can affect others.
 
-```text id="gl048"
-99.9% uptime.
-```
-
----
+#### Domain-Driven Design (DDD)
+Approach to software design that models the system around real business domains, using Ubiquitous Language, Bounded Contexts, Aggregates, etc.
 
-## Service Level Indicator (SLI)
+**Mental Model:** Make the code reflect business reality.
 
-Measured metric.
+#### Eventual Consistency
+Guarantee that data will become consistent across replicas given enough time.  
+**No guarantee on when.**
 
 ---
-
-Examples:
-
-```text id="gl049"
-Latency
-
-Availability
 
-Errors
-```
+### E
 
----
+#### Fault Tolerance
+System’s ability to continue operating despite component failures.
 
-## Service Level Objective (SLO)
+#### Horizontal Scaling
+Scale by adding more machines/instances (“scale out”).
 
-Target metric.
+#### Vertical Scaling
+Scale by increasing resources on a single machine (“scale up”).
 
 ---
 
-Example:
+### H
 
-```text id="gl050"
-99.95% availability.
-```
+#### Hallucination (AI)
+Confident but incorrect output generated by large language models.
 
----
+**Mitigations:** RAG, grounding, fact-checking, human-in-the-loop.
 
-## Split Brain
+#### Idempotency
+Property where repeating the same operation produces the same result (no side effects on retries).
 
-Multiple leaders in a distributed system.
+**Common Pattern:** `Idempotency-Key` header in APIs.
 
 ---
-
-Result:
 
-```text id="gl051"
-Corruption.
-```
+### I / K
 
----
+#### Infrastructure
+Underlying resources and platforms that support applications (servers, networks, cloud services, IaC tools like Terraform).
 
-# T
+#### Kubernetes
+Container orchestration platform.  
+**Mental Model:** An operating system for clusters of machines.
 
-## Throughput
+#### Latency
+Time to complete a single operation (often measured in percentiles: P50, P95, P99).
 
-Amount of work performed per unit time.
+#### Load Balancer
+Distributes incoming traffic across multiple servers.
 
 ---
-
-Examples:
-
-```text id="gl052"
-Requests/sec
 
-Messages/sec
+### M / O
 
-Transactions/sec
-```
+#### MTBF / MTTR
+- **Mean Time Between Failures** — Reliability metric
+- **Mean Time To Recovery** — Recoverability metric
 
----
+#### Observability
+Ability to understand a system’s internal state from its external outputs.  
+**Three Pillars:** Logs, Metrics, Traces (often + Profiling).
 
-## Tracing
+#### OODA Loop
+(See Core Principles above)
 
-Following requests through systems.
-
 ---
-
-Example:
-
-```text id="gl053"
-Frontend
-
-↓
-
-API
 
-↓
+### P
 
-Database
-```
+#### Partition
+Network split between nodes in a distributed system.
 
----
+#### P99 Latency
+99th percentile: 99% of requests are faster than this value.  
+Critical for user experience — tail latency matters.
 
-# V
+#### Partial Prerendering (PPR)
+Next.js 16+ technique combining static and dynamic rendering for optimal performance.
 
-## Vector Database
+#### Prompt Injection
+Security attack where malicious input manipulates an AI’s instructions.
 
-Stores embeddings for similarity search.
+**Defense:** Sanitization, privilege separation, output validation.
 
 ---
-
-Examples:
-
-```text id="gl054"
-Embedding
-
-↓
-
-Vector DB
-
-↓
 
-Nearest Neighbor Search
-```
+### Q / R
 
----
+#### Queue
+Temporary holding area for asynchronous processing (e.g., RabbitMQ, Kafka, Redis Streams).
 
-## Vertical Scaling
+#### RAG — Retrieval-Augmented Generation
+Architecture that improves LLM responses by retrieving relevant context before generation.
 
-Increase machine capacity.
-
----
+**Flow:** Query → Retrieve → Augment Prompt → Generate.
 
-Example:
+#### Rate Limiting
+Restricting the number of requests in a time window to protect resources.
 
-```text id="gl055"
-4 CPU
+#### Replication
+Copying data across multiple nodes for availability and fault tolerance.
 
-↓
+#### Retry Storm
+Cascading failure caused by mass retries after an outage.
 
-64 CPU
-```
+**Mitigation:** Exponential backoff + Jitter.
 
 ---
 
-# W
+### S
 
-## Webhook
+#### SAGA
+Pattern for managing distributed transactions using a sequence of local transactions with compensating actions on failure.
 
-Event delivered via HTTP callback.
+#### Scalability
+A system’s ability to handle increased load (users, data, traffic).
 
----
+**Key Question:** “What happens at 10x load?”
 
-Pattern:
+#### Service Level Agreement (SLA)
+Contractual promise to customers (e.g., 99.9% uptime).
 
-```text id="gl056"
-Event
+#### Service Level Indicator (SLI)
+Actual measured metric (latency, error rate, throughput).
 
-↓
+#### Service Level Objective (SLO)
+Target value for an SLI that defines internal reliability goals.
 
-POST request
-```
+#### Split Brain
+Situation in distributed systems where multiple nodes believe they are the leader, leading to data corruption.
 
 ---
-
-# Y
-
-## YAGNI
 
-Principle:
+### T / V / W
 
-```text id="gl057"
-You Aren't
-Gonna Need It.
-```
+#### Throughput
+Amount of work completed per unit time (requests/sec, transactions/sec).
 
----
+#### Tracing (Distributed)
+Following a request across multiple services (e.g., OpenTelemetry).
 
-Meaning:
+#### Vector Database
+Specialized DB for storing and querying high-dimensional embeddings (used in RAG, semantic search).  
+Examples: Pinecone, Weaviate, pgvector.
 
-```text id="gl058"
-Do not build
-future requirements.
-```
+#### Webhook
+Event-driven HTTP callback — a server sends a POST request to another system when an event occurs.
 
 ---
-
-# The Universal Engineering Dictionary
-
-Every engineering term eventually maps to one of:
-
-```text id="gl059"
-Performance
-
-Reliability
-
-Scalability
-
-Security
 
-Complexity
+### The Universal Engineering Dictionary
 
-Cost
+Every complex term ultimately relates to tradeoffs in:
 
-Uncertainty
-```
+- **Performance**
+- **Reliability**
+- **Scalability**
+- **Security**
+- **Maintainability / Complexity**
+- **Cost**
+- **Uncertainty / Predictability**
 
 ---
 
-# The Principal Engineer Translation Table
+### The Principal Engineer Translation Table
 
 When someone says:
 
----
-
-## "Performance"
-
-Ask:
-
-```text id="gl060"
-Compared
-to what?
-```
+- **“It’s performant”** → Ask: *Compared to what? Under what load?*
+- **“It’s scalable”** → Ask: *How much growth? Horizontal or vertical?*
+- **“It’s reliable”** → Ask: *Under what failure conditions?*
+- **“It’s secure”** → Ask: *Against which threats and attackers?*
+- **“It’s simple”** → Ask: *Simple for whom? Now or in six months?*
+- **“Production ready”** → Ask: *How do you know? What’s your observability and rollback plan?*
+- **“Just add caching”** → Ask: *What about invalidation, consistency, and memory usage?*
 
 ---
 
-## "Scalable"
+### The Ultimate Glossary Entry
 
-Ask:
-
-```text id="gl061"
-How much?
-```
+#### Software Engineering
+**Definition:**  
+The practice of making **sound decisions under uncertainty** while managing **complexity under constraints** to deliver value reliably.
 
 ---
 
-## "Reliable"
+### Final Thought
 
-Ask:
+**Junior engineers** learn definitions.  
+**Senior engineers** master tradeoffs.  
+**Principal engineers** understand that **every definition is itself a tradeoff**, and context is everything.
 
-```text id="gl062"
-Under what
-conditions?
-```
+Keep this glossary as a living document — update it as the industry evolves (especially with AI, distributed systems, and new frameworks like Next.js).
 
----
-
-## "Secure"
-
-Ask:
-
-```text id="gl063"
-Against whom?
-```
-
----
-
-## "Simple"
-
-Ask:
-
-```text id="gl064"
-For whom?
-```
-
----
-
-## "Fast"
-
-Ask:
-
-```text id="gl065"
-At what cost?
-```
-
----
-
-## "Production Ready"
-
-Ask:
-
-```text id="gl066"
-How do
-you know?
-```
-
----
-
-# The Ultimate Glossary Entry
-
-## Software Engineering
-
-Definition:
-
-```text id="gl067"
-The practice
-of making
-decisions
-
-under uncertainty
-
-while managing
-complexity
-
-under constraints.
-```
-
----
-
-# Final Thought
-
-Junior engineers learn:
-
-```text id="gl068"
-Definitions.
-```
-
-Senior engineers learn:
-
-```text id="gl069"
-Tradeoffs.
-```
-
-Principal engineers learn:
-
-```text id="gl070"
-That every
-definition
-is itself
-a tradeoff.
-```
+*Curated & Enhanced — June 2026*
