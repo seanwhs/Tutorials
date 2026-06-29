@@ -1,4 +1,4 @@
-**# Appendix A4 — Next.js 16 Caching Mastery**  
+# **Appendix A4 — Next.js 16 Caching Mastery**  
 **Cache Components + Turbopack: The Complete Guide**
 
 > **Purpose:** This appendix is your definitive reference for Next.js 16’s revolutionary dual caching system — **runtime data caching** (Cache Components) and **build-time incremental caching** (Turbopack). Master both to build blazing-fast, consistent, and maintainable applications.
