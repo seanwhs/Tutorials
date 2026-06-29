@@ -1,4 +1,4 @@
-**# Appendix A4 — Next.js 16 Cache Components Cheat Sheet**  
+# **Appendix A4 — Next.js 16 Cache Components Cheat Sheet**  
 **The Complete Guide to `"use cache"`, `cacheTag()`, `cacheLife()`, `revalidateTag()`, and `updateTag()`**
 
 > **Purpose:** This appendix is the definitive, practical reference for Next.js 16’s powerful new caching primitives. Use it daily when building fast, consistent, data-driven applications.
