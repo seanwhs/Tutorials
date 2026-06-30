@@ -192,5 +192,5 @@ By the end of this part, readers should understand:
 > Beginners think: “A website is a collection of pages.”  
 > Professionals think: “A website is a **hierarchical UI tree** where URLs determine which branches are shown.”
 
-**Ready for Part 4?**  
-We’ll dive into `next/link`, dynamic routes, and more advanced navigation patterns.
+**Ready for Part 2?**  
+We’ll dive into `React.ReactNode`, and props for layouts.
