@@ -2,29 +2,48 @@
 
 # Part 3 — Understanding Layouts: The Secret Behind Modern Web Applications
 
-> **Goal of this lesson:** Master layouts—the most powerful feature of the Next.js App Router—and understand how Next.js builds, preserves, and updates your application's user interface.
+> **Goal of this lesson:** Understand how the Next.js App Router builds applications using layouts, route segments, and persistent UI trees—and learn why layouts are the foundation of modern web application architecture.
 
 ---
 
 # Stop Thinking in Pages
 
-When most beginners first learn web development, they think of websites as collections of pages:
+One of the biggest conceptual shifts when learning Next.js is realizing that modern web applications are **not collections of pages**.
 
-* Home page
-* About page
-* Blog page
-* Contact page
+Most beginners start with a mental model like this:
 
-This mental model comes from traditional websites, where every navigation loads an entirely new HTML document.
+```text
+Website
+├── Home Page
+├── About Page
+├── Blog Page
+└── Contact Page
+```
 
-Modern web applications work differently.
+This model comes from traditional websites, where clicking a link causes the browser to:
 
-Professional developers think of applications as **hierarchical user interface trees**.
+1. Destroy the current page
+2. Request a new HTML document
+3. Rebuild the entire interface
+
+In other words:
+
+```text
+Click Link
+    ↓
+Destroy Everything
+    ↓
+Reload Everything
+```
+
+Modern web applications don't work this way.
+
+Instead, professional developers think about applications as **hierarchical user interfaces composed of reusable shells and changing content regions**.
 
 ```text
 Application
 │
-├── Shared UI
+├── Shared Interface
 │   ├── Header
 │   ├── Navigation
 │   ├── Sidebar
@@ -33,17 +52,19 @@ Application
 └── Current Content
 ```
 
-Instead of rebuilding everything during navigation, modern frameworks preserve the parts of the interface that remain unchanged.
+When navigation occurs, only the parts of the interface that actually change are replaced.
 
-This is exactly what layouts provide in Next.js.
+Everything else remains alive.
+
+This is the fundamental idea behind layouts.
 
 ---
 
 # Think Like an Architect
 
-Imagine building a shopping mall.
+Imagine constructing a shopping mall.
 
-Every store shares:
+Every shop shares:
 
 * entrances
 * escalators
@@ -51,48 +72,85 @@ Every store shares:
 * parking
 * electricity
 * air conditioning
+* security systems
 
-Individual stores do not rebuild these systems.
+Individual stores don't rebuild this infrastructure.
 
-They simply customize the interior of their own shops.
-
-Next.js layouts work exactly the same way.
+They only customize their own interior spaces.
 
 ```text
 Shopping Mall
-     ↓
+      ↓
 Shared Infrastructure
-     ↓
+      ↓
 Individual Stores
+```
 
+Next.js applications work exactly the same way.
+
+```text
 Next.js Application
-     ↓
-Shared Layout
-     ↓
+      ↓
+Shared Layouts
+      ↓
 Individual Pages
 ```
 
-Layouts provide the shared infrastructure.
+Layouts provide the infrastructure.
 
-Pages provide the unique content.
+Pages provide the content.
 
 ---
 
-# The App Router Is Built Around Special Files
+# The App Router Is a UI Composition Engine
 
-Unlike React Router, which requires explicit route configuration, the Next.js App Router uses special files inside the filesystem.
+Many developers initially believe the App Router is simply a "page router."
 
-## Important App Router Files
+It isn't.
 
-| File            | Purpose                   | Required  |
-| --------------- | ------------------------- | --------- |
-| `page.tsx`      | Creates a route           | Yes       |
-| `layout.tsx`    | Creates shared UI         | Root only |
-| `template.tsx`  | Creates non-persistent UI | No        |
-| `loading.tsx`   | Creates loading states    | No        |
-| `error.tsx`     | Creates error boundaries  | No        |
-| `not-found.tsx` | Creates 404 pages         | No        |
-| `route.ts`      | Creates API endpoints     | No        |
+The App Router is actually a **persistent UI composition engine** that constructs React component trees from your folder structure.
+
+Traditional thinking:
+
+```text
+URL
+   ↓
+Page
+```
+
+Next.js App Router thinking:
+
+```text
+URL
+   ↓
+Route Segments
+   ↓
+Special Files
+   ↓
+Layout Tree
+   ↓
+React Component Tree
+   ↓
+Rendered Application
+```
+
+Once you understand this idea, the rest of the App Router begins to make sense.
+
+---
+
+# Special Files Define Application Behavior
+
+Unlike React Router, which requires explicit route configuration, Next.js uses special filenames.
+
+| File            | Purpose                      | Required  |
+| --------------- | ---------------------------- | --------- |
+| `page.tsx`      | Creates a route              | Yes       |
+| `layout.tsx`    | Creates persistent shared UI | Root only |
+| `template.tsx`  | Creates remounting UI        | No        |
+| `loading.tsx`   | Loading state                | No        |
+| `error.tsx`     | Error boundary               | No        |
+| `not-found.tsx` | 404 UI                       | No        |
+| `route.ts`      | API endpoint                 | No        |
 
 Example:
 
@@ -102,22 +160,22 @@ app/
 ├── page.tsx
 ├── about/
 │   └── page.tsx
-├── blog/
-│   ├── layout.tsx
-│   ├── loading.tsx
-│   └── [slug]/
-│       └── page.tsx
+└── blog/
+    ├── layout.tsx
+    ├── loading.tsx
+    └── [slug]/
+        └── page.tsx
 ```
 
-These files do not merely define pages.
+These files don't merely create pages.
 
-They define how Next.js constructs a **user interface tree**.
+They define how Next.js constructs an application tree.
 
 ---
 
-# Route Segments: The Building Blocks of the App Router
+# Route Segments: The Building Blocks
 
-Every folder inside the `app` directory is called a **route segment**.
+Every folder inside `app/` becomes a **route segment**.
 
 Consider:
 
@@ -129,13 +187,13 @@ app/
                └── page.tsx
 ```
 
-This produces:
+This generates:
 
 ```text
 /blog/react/hooks
 ```
 
-Internally, Next.js thinks about this as:
+But internally, Next.js sees:
 
 ```text
 /
@@ -144,51 +202,21 @@ Internally, Next.js thinks about this as:
           └── hooks
 ```
 
-Each route segment can contribute:
+Each segment can contribute:
 
-* pages
 * layouts
+* pages
 * templates
 * loading states
 * error boundaries
 
-This means URLs are transformed into a hierarchy of UI components.
+This means your URL structure directly creates your UI structure.
 
 ---
 
-# The Professional Mental Model
+# Why Layouts Exist
 
-Beginners think:
-
-```text
-URL
- ↓
-Page
-```
-
-Professional Next.js engineers think:
-
-```text
-URL
- ↓
-Route Segments
- ↓
-Special Files
- ↓
-Layout Tree
- ↓
-React Component Tree
- ↓
-Rendered UI
-```
-
-This mental model explains almost everything in the App Router.
-
----
-
-# Why Do We Need Layouts?
-
-Suppose our application contains:
+Suppose your application contains:
 
 ```text
 /
@@ -197,87 +225,77 @@ Suppose our application contains:
 /contact
 ```
 
-Every page requires:
+Each page requires:
 
 * a header
 * navigation
 * footer
 
-Without layouts, we would repeatedly write:
+Without layouts:
 
 ```tsx
 export default function HomePage() {
   return (
     <>
-      <header>
-        <h1>My Website</h1>
-        <nav>...</nav>
-      </header>
+      <header>...</header>
 
       <main>
         Home Content
       </main>
 
-      <footer>
-        Copyright 2026
-      </footer>
+      <footer>...</footer>
     </>
   );
 }
 ```
 
-Then repeat the same structure:
+Then:
 
 ```tsx
 export default function AboutPage() {
   return (
     <>
-      <header>
-        <h1>My Website</h1>
-        <nav>...</nav>
-      </header>
+      <header>...</header>
 
       <main>
         About Content
       </main>
 
-      <footer>
-        Copyright 2026
-      </footer>
+      <footer>...</footer>
     </>
   );
 }
 ```
 
+This creates several problems.
+
 ---
 
-# Problems With This Approach
+# The Problems with Repeating UI
 
 ## Code Duplication
 
-The same code appears repeatedly.
+The same interface is written repeatedly.
 
-## Difficult Maintenance
+## Maintenance Overhead
 
-Changing navigation requires editing many files.
+Changing navigation requires editing multiple files.
 
-## Inconsistent UI
+## Inconsistent User Experience
 
-Pages slowly diverge.
+Pages slowly diverge over time.
 
-## Poor Performance
+## Performance Problems
 
-Entire pages reload unnecessarily.
+Entire interfaces reload unnecessarily.
 
 ---
 
 # Enter Layouts
 
-A layout is a special React component that wraps pages and other layouts.
+A layout is a React component that wraps pages and other layouts.
 
 ```tsx
-// app/layout.tsx
-
 export default function RootLayout({
   children,
 }: {
@@ -288,7 +306,6 @@ export default function RootLayout({
       <body>
         <header>
           <h1>Next.js Academy</h1>
-          <nav>...</nav>
         </header>
 
         {children}
@@ -302,13 +319,13 @@ export default function RootLayout({
 }
 ```
 
-Think of a layout as a reusable application shell.
+Think of a layout as an application shell.
 
 ---
 
 # The Root Layout
 
-Every App Router application must contain exactly one root layout.
+Every App Router application requires exactly one root layout.
 
 ```text
 app/
@@ -318,13 +335,13 @@ app/
 
 The root layout has two responsibilities.
 
-## 1. Wrap the Entire Application
+## Responsibility #1: Wrap the Entire Application
 
-Everything renders inside this component.
+Every page renders inside the root layout.
 
-## 2. Define the HTML Document
+## Responsibility #2: Define the HTML Document
 
-Unlike ordinary React components, the root layout must contain:
+Unlike ordinary React components, the root layout must render:
 
 ```html
 <html>
@@ -351,9 +368,9 @@ Without a root layout, your application cannot run.
 
 ---
 
-# Understanding the Function Syntax
+# Understanding the RootLayout Syntax
 
-Many beginners find this syntax intimidating:
+Many beginners find this intimidating:
 
 ```tsx
 export default function RootLayout({
@@ -369,9 +386,9 @@ Let's break it down.
 
 ---
 
-## What Next.js Actually Calls
+## Step 1: Next.js Passes an Object
 
-Internally, Next.js executes:
+Internally:
 
 ```tsx
 RootLayout({
@@ -379,11 +396,11 @@ RootLayout({
 });
 ```
 
-So the layout receives an object.
+The function receives an object.
 
 ---
 
-## Object Destructuring
+## Step 2: JavaScript Destructuring
 
 Instead of:
 
@@ -393,7 +410,7 @@ function RootLayout(props) {
 }
 ```
 
-we write:
+We write:
 
 ```tsx
 function RootLayout({ children }) {
@@ -401,31 +418,27 @@ function RootLayout({ children }) {
 }
 ```
 
-This is called destructuring.
+This is called object destructuring.
 
 ---
 
-## TypeScript Annotation
-
-The type:
+## Step 3: TypeScript Adds a Contract
 
 ```tsx
 {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 ```
 
-tells TypeScript:
+This tells TypeScript:
 
-> "This property contains valid React output."
+> This property contains something React can render.
 
 ---
 
 # What Is React.ReactNode?
 
-`React.ReactNode` means:
-
-> Anything React can render.
+`React.ReactNode` represents anything React can display.
 
 Examples:
 
@@ -446,11 +459,15 @@ null
 ]
 ```
 
+Think of `React.ReactNode` as:
+
+> "Any valid React output."
+
 ---
 
-# The Most Important Concept: Children Are Placeholders
+# Children Are Placeholders
 
-Suppose our layout contains:
+Consider:
 
 ```tsx
 <body>
@@ -462,13 +479,13 @@ Suppose our layout contains:
 </body>
 ```
 
-When the user visits:
+Suppose the user visits:
 
 ```text
 /about
 ```
 
-and `about/page.tsx` contains:
+And `about/page.tsx` contains:
 
 ```tsx
 export default function AboutPage() {
@@ -476,7 +493,7 @@ export default function AboutPage() {
 }
 ```
 
-Next.js automatically produces:
+Next.js produces:
 
 ```html
 <body>
@@ -488,23 +505,47 @@ Next.js automatically produces:
 </body>
 ```
 
-The page is injected into the layout.
+The page is injected into the layout automatically.
+
+---
+
+# The Most Important Mental Model
+
+Beginners think:
+
+```text
+Page
+    ↓
+Layout
+```
+
+Next.js actually works like this:
+
+```text
+Layout
+    ↓
+Page Slot
+    ↓
+Injected Page
+```
+
+The layout is permanent.
+
+The page is temporary.
 
 ---
 
 # Server Components vs Client Components
-
-One of the biggest conceptual shifts in Next.js is that not all React components run in the browser.
 
 Traditional React:
 
 ```text
 Browser
    ↓
-All Components
+Everything
 ```
 
-App Router:
+Next.js App Router:
 
 ```text
 Server
@@ -516,7 +557,7 @@ Browser
 Client Components
 ```
 
-By default, every component inside `app/` is a Server Component.
+By default:
 
 ```tsx
 export default function Page() {
@@ -524,30 +565,29 @@ export default function Page() {
 }
 ```
 
-Server Components:
+is a Server Component.
 
-* run on the server
-* send minimal JavaScript
-* improve performance
-* reduce bundle size
-* can fetch data directly
+Benefits:
+
+* smaller bundles
+* faster rendering
+* direct database access
+* improved performance
+* less JavaScript shipped
 
 ---
 
-# When Do We Need Client Components?
+# When Do You Need a Client Component?
 
-You need a Client Component whenever you require:
-
-| Feature             | Client Component Required |
+| Feature             | Requires Client Component |
 | ------------------- | ------------------------- |
 | `useState()`        | Yes                       |
 | `useReducer()`      | Yes                       |
 | `useEffect()`       | Yes                       |
 | `onClick`           | Yes                       |
-| `onSubmit`          | Yes                       |
-| `localStorage`      | Yes                       |
 | `window`            | Yes                       |
 | `document`          | Yes                       |
+| `localStorage`      | Yes                       |
 | `usePathname()`     | Yes                       |
 | `useSearchParams()` | Yes                       |
 
@@ -571,7 +611,7 @@ export default function Counter() {
 
 ---
 
-# The Golden Rule of Client Components
+# The Golden Rule
 
 > Keep `"use client"` as high as necessary, but as low as possible.
 
@@ -593,19 +633,19 @@ RootLayout (client)
 Entire Application
 ```
 
-Smaller client boundaries produce better performance.
+Smaller client boundaries create faster applications.
 
 ---
 
 # Layouts Are Persistent Application Shells
 
-Beginners think layouts are:
+Beginners think:
 
 ```text
 Reusable wrappers
 ```
 
-Professional developers think layouts are:
+Professionals think:
 
 ```text
 Persistent application shells
@@ -614,7 +654,7 @@ Persistent application shells
 Example:
 
 ```text
-Browser Window
+Browser
 │
 ├── RootLayout
 │
@@ -624,22 +664,20 @@ Browser Window
 │
 ├── AdminLayout
 │
-│   ├── Sidebar
-│   │
 │   └── Current Page
 │
 └── Footer
 ```
 
-The shell remains alive.
-
 Only the page changes.
+
+Everything else remains alive.
 
 ---
 
-# How Next.js Builds the Layout Tree
+# Nested Layouts
 
-Suppose we have:
+Consider:
 
 ```text
 app/
@@ -650,23 +688,19 @@ app/
         └── page.tsx
 ```
 
-When the user visits:
+Visiting:
 
 ```text
 /blog/hello-world
 ```
 
-Beginners think:
+does not render:
 
 ```text
 BlogPostPage
 ```
 
-gets rendered.
-
-This is incorrect.
-
-Next.js constructs:
+Instead, Next.js constructs:
 
 ```text
 RootLayout
@@ -686,100 +720,43 @@ Equivalent React:
 </RootLayout>
 ```
 
-This is the App Router execution tree.
+This hierarchy is called the layout tree.
 
 ---
 
-# Nested Layouts: The App Router Superpower
+# The Superpower: Persistent Layouts
 
-Nested layouts are arguably the most powerful feature of the App Router.
-
-Example:
-
-```text
-app/
-└── admin/
-     ├── layout.tsx
-     ├── page.tsx
-     ├── users/
-     │    └── page.tsx
-     └── settings/
-          └── page.tsx
-```
-
-The admin layout provides:
-
-* sidebar
-* navigation
-* shared state
-* dashboard shell
-
-Visiting:
+Suppose we have:
 
 ```text
 /admin/users
-```
-
-produces:
-
-```text
-RootLayout
-     ↓
-AdminLayout
-     ↓
-UsersPage
-```
-
-Visiting:
-
-```text
 /admin/settings
 ```
 
-produces:
+Both routes share:
 
 ```text
 RootLayout
      ↓
 AdminLayout
-     ↓
-SettingsPage
 ```
 
-Notice:
-
-```text
-RootLayout
-AdminLayout
-```
-
-never disappear.
-
----
-
-# The Lifetime of a Layout
-
-Suppose we navigate:
+When navigating:
 
 ```text
 /admin/users
-```
-
-to:
-
-```text
+      ↓
 /admin/settings
 ```
 
 Traditional websites:
 
 ```text
-Destroy everything
-       ↓
-Recreate everything
+Destroy Everything
+Create Everything
 ```
 
-App Router:
+Next.js:
 
 ```text
 Keep RootLayout
@@ -788,12 +765,13 @@ Destroy UsersPage
 Create SettingsPage
 ```
 
-This means:
+This enables:
 
-* sidebars stay open
-* search boxes preserve values
-* state survives navigation
-* interactions feel instant
+* preserved sidebar state
+* preserved search boxes
+* preserved scroll position
+* faster navigation
+* application-like behavior
 
 ---
 
@@ -802,102 +780,63 @@ This means:
 Traditional websites:
 
 ```text
-Click Link
-     ↓
-Destroy Everything
-     ↓
 Reload Everything
 ```
 
-App Router:
+Next.js:
 
 ```text
 Header
 Sidebar
 Footer
-       ↓
-Remain Alive
+     ↓
+Stay Alive
 
 Current Page
-       ↓
+     ↓
 Replace Only This
-```
-
-Example:
-
-Before:
-
-```text
-Header
-Sidebar
-Users Page
-Footer
-```
-
-After:
-
-```text
-Header
-Sidebar
-Settings Page
-Footer
 ```
 
 This optimization is called **partial rendering**.
 
 ---
 
-# What Actually Happens When You Click a Link?
+# What Happens When You Click a Link?
 
-Suppose we navigate:
+When navigating:
 
 ```text
 /admin/users
-        ↓
+      ↓
 /admin/settings
 ```
 
-The App Router performs:
+Next.js performs:
 
 ```text
-Step 1:
-Analyze URL
-
-        ↓
-
-Step 2:
-Find shared route segments
-
-        ↓
-
-Step 3:
-Preserve shared layouts
-
-        ↓
-
-Step 4:
-Destroy changed page subtree
-
-        ↓
-
-Step 5:
-Render new page subtree
+1. Analyze the new URL
+          ↓
+2. Compare route segments
+          ↓
+3. Preserve shared layouts
+          ↓
+4. Remove changed subtree
+          ↓
+5. Render new subtree
 ```
 
-Only the changed portion of the UI updates.
+Only the changed part of the interface updates.
 
 ---
 
-# Building an Interactive Admin Layout
+# Interactive Layouts
 
-Most layouts should remain Server Components.
-
-However, dashboards often require:
+Sometimes layouts require:
 
 * collapsible sidebars
 * localStorage
-* active navigation
 * keyboard shortcuts
+* active navigation
 * user preferences
 
 These require a Client Component.
@@ -905,13 +844,6 @@ These require a Client Component.
 ```tsx
 "use client";
 ```
-
-Once added, the layout can use:
-
-* `useState`
-* `useEffect`
-* `usePathname`
-* `localStorage`
 
 ---
 
@@ -921,13 +853,12 @@ Once added, the layout can use:
 const [collapsed, setCollapsed] = useState(false);
 ```
 
-Load preferences:
+Load:
 
 ```tsx
 useEffect(() => {
-  const saved = localStorage.getItem(
-    "sidebar"
-  );
+  const saved =
+    localStorage.getItem("sidebar");
 
   if (saved) {
     setCollapsed(saved === "true");
@@ -935,7 +866,7 @@ useEffect(() => {
 }, []);
 ```
 
-Persist preferences:
+Save:
 
 ```tsx
 useEffect(() => {
@@ -955,14 +886,12 @@ Navigate
        ↓
 Refresh Browser
        ↓
-Sidebar Still Collapsed
+Sidebar Remains Collapsed
 ```
 
 ---
 
-# Active Navigation with usePathname()
-
-Client layouts can inspect the current route.
+# Active Navigation
 
 ```tsx
 "use client";
@@ -980,26 +909,14 @@ This enables:
 
 * active links
 * breadcrumbs
-* route-aware navigation
-* dashboard menus
+* route-aware menus
+* dashboard navigation
 
 ---
 
-# Sharing Layout State with Context
+# Sharing State with Context
 
-A layout often contains shared state.
-
-Example:
-
-```text
-AdminLayout
-      │
-      ├── Sidebar State
-      │
-      └── Current Page
-```
-
-Instead of prop drilling:
+Instead of:
 
 ```text
 Layout
@@ -1011,51 +928,48 @@ Component
 Child
 ```
 
-Use Context:
+Use:
 
 ```text
 SidebarProvider
        ↓
 AdminLayout
        ↓
-UsersPage
-       ↓
-SettingsPage
+Entire Dashboard
 ```
 
-Now every page can access:
+Then:
 
 ```tsx
 const {
   collapsed,
-  toggleSidebar
+  toggleSidebar,
 } = useSidebar();
 ```
 
-without passing props.
+No prop drilling required.
 
 ---
 
 # Layouts vs Templates
 
-| Feature                    | `layout.tsx` | `template.tsx`    |
-| -------------------------- | ------------ | ----------------- |
-| Persists                   | Yes          | No                |
-| Preserves state            | Yes          | No                |
-| Preserves scroll           | Yes          | No                |
-| Remounts                   | No           | Yes               |
-| Runs animations repeatedly | No           | Yes               |
-| Best use                   | Shared UI    | Route transitions |
+| Feature            | `layout.tsx` | `template.tsx` |
+| ------------------ | ------------ | -------------- |
+| Persists           | Yes          | No             |
+| Preserves state    | Yes          | No             |
+| Preserves scroll   | Yes          | No             |
+| Remounts           | No           | Yes            |
+| Replays animations | No           | Yes            |
 
-Rule of thumb:
+Rule:
 
-> Use `layout.tsx` about 95% of the time.
+> Use `layout.tsx` almost all of the time.
 
 ---
 
 # Production Architecture
 
-Large applications often look like this:
+Large applications often look like:
 
 ```text
 app/
@@ -1078,12 +992,12 @@ app/
     └── pricing/
 ```
 
-Each layout acts as a separate application shell.
+Each layout becomes its own application shell.
 
 | Layout    | Responsibility      |
 | --------- | ------------------- |
 | Root      | Global application  |
-| Auth      | Authentication UI   |
+| Auth      | Authentication      |
 | Marketing | Public website      |
 | Dashboard | Dashboard shell     |
 | Settings  | Settings navigation |
@@ -1094,45 +1008,27 @@ Each layout acts as a separate application shell.
 
 ### Keep layouts server-first
 
-Good:
-
 ```text
-RootLayout (server)
+Server Layout
       ↓
-Header (server)
-      ↓
-SearchBox (client)
+Small Client Components
 ```
-
-Bad:
-
-```text
-RootLayout (client)
-      ↓
-Entire application
-```
-
----
 
 ### Store persistent UI state in layouts
 
 Examples:
 
 * sidebar state
-* theme preference
-* dashboard filters
-* open panels
+* theme selection
+* filters
 * active tabs
+* panel visibility
 
----
-
-### Share layout state with Context
+### Use Context for shared state
 
 Avoid prop drilling.
 
----
-
-### Extract complex logic into hooks
+### Extract complex behavior into hooks
 
 Example:
 
@@ -1141,17 +1037,13 @@ hooks/
 └── useAdminSidebar.ts
 ```
 
----
+### Use state libraries only when necessary
 
-### Consider state libraries for large applications
-
-For very large dashboards:
+Examples:
 
 * Zustand
 * Jotai
 * Redux Toolkit
-
-may become better choices.
 
 ---
 
@@ -1159,9 +1051,9 @@ may become better choices.
 
 You now understand:
 
-✅ App Router special files
-
 ✅ Route segments
+
+✅ Special App Router files
 
 ✅ Root layouts
 
@@ -1179,9 +1071,7 @@ You now understand:
 
 ✅ State preservation
 
-✅ Shared layout state
-
-✅ Context providers
+✅ Shared state management
 
 ✅ Templates
 
@@ -1195,7 +1085,7 @@ Beginners think:
 
 ```text
 Website
-   ↓
+    ↓
 Pages
 ```
 
@@ -1203,19 +1093,19 @@ Professional Next.js engineers think:
 
 ```text
 Website
-   ↓
+    ↓
 Route Segments
-   ↓
+    ↓
 Special Files
-   ↓
+    ↓
 Layout Tree
-   ↓
+    ↓
 Server Components
-   ↓
+    ↓
 Client Components
-   ↓
+    ↓
 Persistent UI Shell
-   ↓
+    ↓
 Rendered Application
 ```
 
@@ -1225,19 +1115,4 @@ Or, put another way:
 >
 > **It is a persistent UI composition engine that constructs and preserves a hierarchical React component tree based on the current URL.**
 
-Once you understand this, you understand the philosophy behind the Next.js App Router.
-
----
-
-## Coming Up Next
-
-In Part 4, we'll explore:
-
-* `next/link`
-* client-side navigation
-* dynamic routes
-* route parameters
-* catch-all routes
-* prefetching
-* navigation performance
-* route transitions
+Once you understand this idea, you understand the philosophy behind modern Next.js.
