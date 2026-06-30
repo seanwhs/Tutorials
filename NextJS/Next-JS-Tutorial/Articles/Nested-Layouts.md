@@ -1,4 +1,4 @@
-**Client Components & Nested Layouts in Next.js App Router**
+# **Client Components & Nested Layouts in Next.js App Router**
 
 ### Client Components (`"use client"`)
 By default, all components in the Next.js **App Router** are **Server Components**. This is excellent for performance — they run on the server, support direct data fetching, and have zero client-side JavaScript by default.
