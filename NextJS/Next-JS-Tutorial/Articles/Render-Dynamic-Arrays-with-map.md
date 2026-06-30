@@ -8,28 +8,35 @@ Building dynamic interfaces is a fundamental skill for data-driven development. 
 
 In JavaScript, `.map()` iterates over an array and applies a transformation to each element. In React and Next.js, we use this to map collections of data objects directly into arrays of **JSX elements**.
 
-### Practical Example: Rendering Service Cards
+### Implementation: Your Services Page
 
-Instead of hardcoding each element, store your data in an array and render it dynamically:
+By using `<ul>` and `<li>` elements, you ensure the list is semantically structured for screen readers and search engines:
 
 ```jsx
 const ServicesPage = () => {
   const services = [
-    { id: 's00001', name: 'Conduct Training', description: 'Plan, design, and facilitate workshops.' },
-    { id: 's00002', name: 'Build Web Apps', description: 'Full-stack development using Next.js.' },
+    { id: "s00001", name: "Conduct Training", description: "Plan, design, conduct training" },
+    { id: "s00002", name: "Build Web", description: "Build full stack Website" },
   ];
 
   return (
-    <div className="grid gap-4 mt-6">
-      {services.map((service) => (
-        <div key={service.id} className="border p-6 rounded-lg shadow-sm">
-          <h2 className="text-2xl font-bold text-blue-600">{service.name}</h2>
-          <p className="text-gray-600 mt-2">{service.description}</p>
-        </div>
-      ))}
-    </div>
+    <main className="flex flex-col p-8 items-center">
+      <h1 className="font-bold text-3xl">My Services</h1>
+      <p className="mt-8 text-gray-500">These are my services</p>
+      
+      <ul className="w-full max-w-md mt-6">
+        {services.map((service) => (
+          <li key={service.id} className="border p-4 my-2 rounded-lg">
+            <h2 className="text-2xl font-bold">{service.name}</h2>
+            <p className="text-gray-500">{service.description}</p>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 };
+
+export default ServicesPage;
 
 ```
 
@@ -79,6 +86,3 @@ To handle the unpredictable nature of network requests, utilize Next.js file-bas
 | `error.js` | Manages the **Rejected** state and provides recovery paths. |
 
 This modular approach prevents the common anti-pattern of burying complex data-fetching logic inside `useEffect` hooks, keeping your architecture clean and highly debuggable.
-
----
-
