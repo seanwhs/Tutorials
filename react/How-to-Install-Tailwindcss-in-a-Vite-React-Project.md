@@ -1,12 +1,12 @@
 # Tailwind CSS v4: A Modern, CSS-First Workflow
 
-Tailwind CSS v4 simplifies your styling architecture by moving configuration from JavaScript files directly into native CSS. This "CSS-first" approach eliminates the need for complex `tailwind.config.js` files, keeping your design tokens, plugins, and custom utilities exactly where they belong: in your stylesheets.
+Tailwind CSS v4 revolutionizes project architecture by moving configuration from JavaScript files directly into native CSS. This "CSS-first" approach eliminates the need for `tailwind.config.js` files, keeping your design tokens, plugins, and utilities exactly where they belong: in your stylesheets.
 
 ---
 
 ## 1. Installation
 
-Install the Tailwind CSS framework and the official Vite plugin:
+Install the framework and the official Vite plugin:
 
 ```bash
 npm install tailwindcss @tailwindcss/vite
@@ -23,7 +23,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
 })
 
 ```
@@ -39,7 +42,7 @@ In your global CSS file (e.g., `src/index.css`), replace all older `@tailwind` d
 
 ## 4. Native Plugin Management
 
-Tailwind v4 uses the native `@plugin` directive. You no longer need to manage a `plugins` array in a separate configuration file.
+Tailwind v4 utilizes the native `@plugin` directive. You no longer need to manage a `plugins` array in a separate configuration file.
 
 ### Example: `tailwind-scrollbar`
 
@@ -141,6 +144,6 @@ export default function App() {
 
 ### Setup Verification
 
-1. **CSS Import:** Ensure your `main.jsx` or `index.js` imports your global CSS (`import './index.css';`).
+1. **CSS Import:** Ensure your `main.jsx` (or `main.tsx`) imports your global CSS (`import './index.css';`).
 2. **Dev Server:** Run `npm run dev`.
 3. **Validation:** If the `flex-center` div is aligned, the button has the custom primary color, and the scrollbar is styled, your v4 installation is fully operational.
