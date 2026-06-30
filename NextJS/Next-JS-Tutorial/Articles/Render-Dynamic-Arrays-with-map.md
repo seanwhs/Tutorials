@@ -1,5 +1,8 @@
 # Mastering Dynamic Rendering in Next.js
 
+<img width="442" height="387" alt="image" src="https://github.com/user-attachments/assets/e2386c7e-48e6-450b-a265-dfbeb5c82976" />
+
+
 Building dynamic interfaces is a fundamental skill for data-driven development. By leveraging the JavaScript `.map()` method, you can transform raw data arrays into clean, repeatable UI components, ensuring your code remains DRY (Don't Repeat Yourself) and highly maintainable.
 
 ---
