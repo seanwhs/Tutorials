@@ -58,7 +58,7 @@ After installing the plugin (`npm install tailwind-scrollbar`), register and con
 
 ```
 
-> **Note on IDE Support:** If your IDE flags `@plugin` as an "Unknown at rule," it is because your editor's CSS validator is still catching up to v4 syntax. You can safely ignore these warnings; your terminal build will process it correctly.
+---
 
 ## 5. Custom Utilities & Theme Variables
 
@@ -92,12 +92,23 @@ Tailwind v4 treats design tokens as native CSS variables. Define your custom the
 
 ---
 
-## Why Migrate to v4?
+## Addressing IDE "Unknown At-Rule" Warnings
 
-* **Zero-Config Discovery:** Tailwind automatically detects your template files; no `content` array required.
-* **Elimination of `tailwind.config.js`:** All configuration (colors, breakpoints, plugins) is now handled via standard CSS variables and directives.
-* **Native CSS Layers:** Use `@layer` to gain better control over cascade priority without fighting specificity.
-* **Blazing Fast Builds:** By moving configuration to the CSS layer, Tailwind removes the overhead of parsing large JavaScript objects.
+Because Tailwind v4 uses new CSS syntax (like `@plugin`, `@theme`, and `@utility`) that standard CSS linters do not yet recognize, your IDE (such as VS Code) may flag these as "Unknown at rule."
+
+**These are false positives.** As long as your terminal build succeeds when running `npm run dev`, your configuration is correct.
+
+To suppress these warnings in VS Code:
+
+1. Create or open `.vscode/settings.json` in your project root.
+2. Add the following to disable these specific linting errors:
+
+```json
+{
+  "css.lint.unknownAtRules": "ignore"
+}
+
+```
 
 ---
 
@@ -142,8 +153,8 @@ export default function App() {
 
 ```
 
-### Setup Verification
+### Verification Steps
 
-1. **CSS Import:** Ensure your `main.jsx` (or `main.tsx`) imports your global CSS (`import './index.css';`).
-2. **Dev Server:** Run `npm run dev`.
-3. **Validation:** If the `flex-center` div is aligned, the button has the custom primary color, and the scrollbar is styled, your v4 installation is fully operational.
+1. **Import:** Ensure `src/index.css` is imported in `main.jsx`.
+2. **Terminal:** Run `npm run dev`.
+3. **Verify:** Check the browser; if the styles appear as expected, your v4 installation is fully operational.
