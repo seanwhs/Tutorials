@@ -1,12 +1,50 @@
-# Nested layouts are powerful
+**Client Components & Nested Layouts in Next.js App Router**
 
-One of the nicest features in the Next.js App Router is nested layouts. A nested layout is simply a `layout.tsx` file inside a folder, and it applies only to the pages inside that folder. This makes it perfect for parts of your app like `/admin`, `/dashboard`, or `/settings`, where you want a shared sidebar, header, or navigation bar. [nextjs]
+### Client Components (`"use client"`)
+By default, all components in the Next.js **App Router** are **Server Components**. This is excellent for performance — they run on the server, support direct data fetching, and have zero client-side JavaScript by default.
 
-For example, if you create `app/admin/layout.tsx`, every page inside `app/admin` will automatically use that same layout. That means you can build the admin shell once and reuse it across all admin pages instead of repeating the same UI everywhere. [nextjs]
+However, you need a **Client Component** when you require:
+- State (`useState`, `useReducer`)
+- Effects (`useEffect`)
+- Event handlers (`onClick`, `onSubmit`)
+- Browser APIs (`localStorage`, `window`, `document`)
+- Hooks like `usePathname()`, `useSearchParams()`
 
-## A collapsible sidebar layout
+Add `"use client";` at the very top of the file to opt into the client runtime.
 
-A very practical use case is an admin sidebar that can collapse and expand. You can make the layout a client component so it can use browser-only features like `useState`, `useEffect`, and `usePathname()`. That lets you add interactivity while still keeping the layout shared across all child pages. [nextjs]
+```tsx
+"use client";
+```
+
+> **Best Practice**: Keep `"use client"` as high as needed but as low as possible. Prefer Server Components for data fetching and layouts when you can.
+
+---
+
+### Nested Layouts — A Superpower
+
+**Nested layouts** are one of the most powerful features of the App Router. A `layout.tsx` file in a folder applies to **all pages and subfolders** inside it.
+
+Perfect for:
+- Admin panels (`/admin`)
+- Dashboards (`/dashboard`)
+- Settings areas (`/settings`)
+- Shared navigation, sidebars, headers
+
+Example structure:
+```
+app/
+├── admin/
+│   ├── layout.tsx          ← Shared admin shell
+│   ├── page.tsx            ← /admin
+│   ├── users/
+│   │   └── page.tsx        ← /admin/users
+│   └── settings/
+│       └── page.tsx
+```
+
+---
+
+### Complete Collapsible Sidebar Example (Best Practice)
 
 ```tsx
 // app/admin/layout.tsx
@@ -19,9 +57,9 @@ import { usePathname } from "next/navigation";
 const STORAGE_KEY = "admin-sidebar-collapsed";
 
 const navLinks = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin", label: "Dashboard", icon: "📊" },
+  { href: "/admin/users", label: "Users", icon: "👥" },
+  { href: "/admin/settings", label: "Settings", icon: "⚙️" },
 ];
 
 export default function AdminLayout({
@@ -33,42 +71,51 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Load preference on mount
   useEffect(() => {
     setMounted(true);
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) {
       setCollapsed(saved === "true");
     }
   }, []);
 
+  // Persist preference
   useEffect(() => {
-    if (!mounted) return;
-    window.localStorage.setItem(STORAGE_KEY, String(collapsed));
+    if (mounted) {
+      localStorage.setItem(STORAGE_KEY, String(collapsed));
+    }
   }, [collapsed, mounted]);
+
+  const toggleSidebar = () => setCollapsed((prev) => !prev);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <aside
-        className={`border-r bg-white transition-all duration-300 ${
+        className={`border-r bg-white transition-all duration-300 flex-shrink-0 ${
           collapsed ? "w-20" : "w-64"
         }`}
       >
         <div className="flex items-center justify-between border-b p-4">
-          <span className={`font-semibold ${collapsed ? "hidden" : "block"}`}>
+          <span
+            className={`font-bold text-xl tracking-tight ${
+              collapsed ? "hidden" : "block"
+            }`}
+          >
             Admin
           </span>
-
           <button
-            type="button"
-            onClick={() => setCollapsed((prev) => !prev)}
-            className="rounded px-3 py-2 text-sm hover:bg-gray-100"
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? "→" : "←"}
           </button>
         </div>
 
         <nav className="p-3">
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {navLinks.map((link) => {
               const isActive =
                 link.href === "/admin"
@@ -79,13 +126,14 @@ export default function AdminLayout({
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`block rounded px-3 py-2 text-sm transition-colors ${
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-blue-600 text-white"
+                        ? "bg-blue-600 text-white shadow-sm"
                         : "text-gray-700 hover:bg-gray-100"
-                    } ${collapsed ? "text-center" : ""}`}
+                    } ${collapsed ? "justify-center" : ""}`}
                   >
-                    {collapsed ? link.label.slice(0, 1) : link.label}
+                    <span>{link.icon}</span>
+                    {!collapsed && <span>{link.label}</span>}
                   </Link>
                 </li>
               );
@@ -94,37 +142,22 @@ export default function AdminLayout({
         </nav>
       </aside>
 
-      <main className="flex-1 p-6">{children}</main>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
 }
 ```
 
-## Why `localStorage` works well here
+---
 
-The sidebar state is stored in `localStorage`, so when the user refreshes the page, the layout remembers whether the sidebar was open or collapsed. That makes the interface feel more polished and less frustrating to use. [nextjs]
+### Sharing Layout State with Child Pages (Context)
 
-The key detail is that `localStorage` is only accessed inside `useEffect`, which runs in the browser after the component mounts. That avoids issues during server rendering, where browser APIs like `window` do not exist. [nextjs]
+Child pages often need to know the sidebar state (e.g., to adjust padding or show extra controls).
 
-## Highlighting the active link
-
-`usePathname()` is helpful because it tells you the current route. You can compare that route against each sidebar link and highlight the one that matches. This gives users a clear visual cue about where they are in the app. [nextjs]
+#### 1. Create Context (`app/admin/sidebar-context.tsx`)
 
 ```tsx
-const isActive = (href: string, pathname: string) => {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname.startsWith(href);
-};
-```
-
-That small helper is useful because it prevents the wrong links from appearing active, especially when one route is nested inside another. [nextjs]
-
-## Sharing layout state with child pages
-
-Sometimes child pages need access to layout state too. For example, a page might want to know whether the sidebar is collapsed so it can adjust spacing or trigger its own behavior. In that case, React context is a clean way to share the data from the layout down to the pages inside it. [nextjs]
-
-```tsx
-// app/admin/sidebar-context.tsx
 "use client";
 
 import { createContext, useContext } from "react";
@@ -137,11 +170,11 @@ type SidebarContextValue = {
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({
-  value,
   children,
+  value,
 }: {
-  value: SidebarContextValue;
   children: React.ReactNode;
+  value: SidebarContextValue;
 }) {
   return (
     <SidebarContext.Provider value={value}>
@@ -151,13 +184,15 @@ export function SidebarProvider({
 }
 
 export function useSidebar() {
-  const ctx = useContext(SidebarContext);
-  if (!ctx) throw new Error("useSidebar must be used inside SidebarProvider");
-  return ctx;
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error("useSidebar must be used within a SidebarProvider");
+  }
+  return context;
 }
 ```
 
-Then you wrap the layout with the provider:
+#### 2. Updated Layout with Provider
 
 ```tsx
 // app/admin/layout.tsx
@@ -165,8 +200,7 @@ Then you wrap the layout with the provider:
 
 import { useEffect, useState } from "react";
 import { SidebarProvider } from "./sidebar-context";
-
-const STORAGE_KEY = "admin-sidebar-collapsed";
+// ... navLinks and other imports
 
 export default function AdminLayout({
   children,
@@ -176,32 +210,24 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) setCollapsed(saved === "true");
-  }, []);
+  // ... same useEffect logic for localStorage
 
-  useEffect(() => {
-    if (mounted) {
-      window.localStorage.setItem(STORAGE_KEY, String(collapsed));
-    }
-  }, [collapsed, mounted]);
+  const toggleSidebar = () => setCollapsed((prev) => !prev);
 
   return (
-    <SidebarProvider
-      value={{
-        collapsed,
-        toggleSidebar: () => setCollapsed((prev) => !prev),
-      }}
-    >
-      <div className="min-h-screen">{children}</div>
+    <SidebarProvider value={{ collapsed, toggleSidebar }}>
+      <div className="flex min-h-screen bg-gray-50">
+        {/* Sidebar markup (same as above) */}
+        <aside className={`...`}> {/* ... */} </aside>
+
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
     </SidebarProvider>
   );
 }
 ```
 
-And a child page can consume it like this:
+#### 3. Using the Context in a Page
 
 ```tsx
 // app/admin/users/page.tsx
@@ -213,21 +239,46 @@ export default function UsersPage() {
   const { collapsed, toggleSidebar } = useSidebar();
 
   return (
-    <section>
-      <button onClick={toggleSidebar}>Toggle sidebar</button>
-      <p>The sidebar is {collapsed ? "collapsed" : "expanded"}.</p>
-    </section>
+    <div className={`transition-all ${collapsed ? "pl-4" : "pl-8"}`}>
+      <button
+        onClick={toggleSidebar}
+        className="mb-6 rounded-lg bg-white px-4 py-2 shadow hover:shadow-md"
+      >
+        Toggle Sidebar
+      </button>
+      <h1 className="text-3xl font-bold">Users Management</h1>
+      <p>Sidebar is currently {collapsed ? "collapsed" : "expanded"}</p>
+    </div>
   );
 }
 ```
 
-## Layouts vs templates
+---
 
-It helps to remember the difference between `layout.tsx` and `template.tsx`. A layout stays mounted as you navigate, so it preserves state and shared UI. A template remounts on every navigation, which is useful when you want a fresh render for animations, loaders, or similar effects. [nextjs]
+### `layout.tsx` vs `template.tsx`
 
-For most app shells, dashboards, and admin areas, `layout.tsx` is the better choice. If the UI should remember something, use a layout. If it should restart every time, use a template. [nextjs]
+| Feature              | `layout.tsx`                          | `template.tsx`                        |
+|----------------------|---------------------------------------|---------------------------------------|
+| Mounting behavior    | Persists across navigation            | Remounts on every route change        |
+| State preservation   | Yes (great for sidebars, modals)      | No                                    |
+| Use case             | Persistent UI (nav, sidebar)          | Animations, per-page entry effects    |
+| Recommendation       | **Most admin/dashboard shells**       | Specific animation needs              |
 
-## Why this pattern is worth using
+---
 
-This approach keeps your app organized, your sidebar reusable, and your navigation consistent. It also gives you a clean place to manage shared state without pushing everything into every page. For most real-world Next.js apps, especially dashboards and admin panels, this is one of the most useful patterns you can learn. [nextjs]
+### Why This Pattern Rocks
+
+- **DRY** — Build your admin shell once.
+- **Persistent UI** — Sidebar state survives navigation and refreshes.
+- **Clean Architecture** — Shared state via Context without prop drilling.
+- **Great UX** — Active link highlighting, collapsible navigation, responsive behavior.
+- **Scalable** — Easily extend with more shared state (theme, user info, etc.).
+
+This is the industry-standard pattern used in production Next.js dashboards (Supabase, Vercel, Linear-style interfaces).
+
+**Pro Tips**:
+- Consider moving complex sidebar logic into a custom hook (`useAdminSidebar`).
+- For very large apps, explore **Zustand** or **Jotai** instead of Context.
+- Add keyboard shortcuts (`[` / `]`) for toggling.
+- Use `next-themes` for dark mode integration.
 
