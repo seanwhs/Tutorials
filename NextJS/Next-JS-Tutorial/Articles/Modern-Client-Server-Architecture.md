@@ -1,5 +1,8 @@
 # Next.js 16 Deep Dive: Mastering Server Components, Client Components, Server Actions, and Route Handlers
 
+<img width="1162" height="316" alt="image" src="https://github.com/user-attachments/assets/481e4b5a-3bb5-46c8-89b5-110ee5b4de96" />
+
+
 > **Goal:** Understand not just *what* the four major building blocks of Next.js 16 are, but *when*, *why*, and *how* to use them in real-world applications.
 
 ---
