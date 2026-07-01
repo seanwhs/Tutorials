@@ -6,18 +6,75 @@
 
 ---
 
-# Introduction
+# Welcome to This Series
+
+Modern Next.js can feel overwhelming.
+
+Beginners quickly encounter terms like:
+
+* Server Components
+* Client Components
+* Server Actions
+* Route Handlers
+* Streaming
+* Server Rendering
+* React Server Components
+* Server Functions
+* Edge Runtime
+
+And one question appears almost immediately:
+
+> **"Why does Next.js suddenly have so many different ways to write code?"**
+
+The answer is surprisingly simple:
+
+> **Because modern web applications no longer run in one place.**
+
+This series was created specifically to help beginners understand the architectural shift that happened between traditional React applications and modern Next.js applications.
+
+Rather than memorizing APIs, we'll focus on building a mental model.
+
+Because once you understand the mental model, the APIs become easy.
+
+---
+
+# What You'll Learn In This Series
+
+Throughout this series, we'll progressively build a complete mental model of modern Next.js.
+
+| Part   | Topic                                              |
+| ------ | -------------------------------------------------- |
+| Part 1 | From Frontend vs Backend to Execution Environments |
+| Part 2 | Understanding Server Components — The Reader       |
+| Part 3 | Understanding Client Components — The Actor        |
+| Part 4 | Understanding Server Actions — The Mutator         |
+| Part 5 | Understanding Route Handlers — The Bridge          |
+| Part 6 | How The Four Environments Work Together            |
+| Part 7 | The Architect's Mental Model                       |
+
+By the end of this series, you'll understand:
+
+* where code executes,
+* why some code runs on the server,
+* why some code runs in the browser,
+* why Server Actions exist,
+* why Route Handlers still matter,
+* and how professional Next.js applications are actually designed.
+
+---
+
+# The Biggest Mistake Beginners Make
 
 One of the biggest reasons developers struggle with modern Next.js is that they bring an old mental model into a new architecture.
 
 For years, web development taught us to think about applications as two completely separate systems:
 
-* a **frontend application** that users interact with
-* a **backend application** that handles data and business logic
+* a **frontend application**
+* a **backend application**
 
 This model worked well for decades.
 
-In fact, entire ecosystems were built around this separation:
+Entire ecosystems were built around this separation:
 
 * React
 * Angular
@@ -28,7 +85,7 @@ In fact, entire ecosystems were built around this separation:
 * Rails
 * Laravel
 
-The architecture usually looked something like this:
+The architecture usually looked like this:
 
 ```text
 Frontend SPA
@@ -40,13 +97,13 @@ Frontend SPA
   Database
 ```
 
-If you learned React before learning Next.js, this architecture probably feels natural.
+If you learned React before learning Next.js, this architecture probably feels completely natural.
 
 The problem is:
 
 > **Next.js 16 doesn't really think this way anymore.**
 
-And that's why many beginners feel confused when they first encounter:
+And that's why many beginners become confused when they first encounter:
 
 * Server Components
 * Client Components
@@ -57,12 +114,213 @@ They ask questions like:
 
 * "Is this frontend?"
 * "Is this backend?"
-* "Why do I suddenly have four different kinds of components?"
+* "Why do I suddenly have four different types of components?"
 * "Why do Server Actions exist if Route Handlers already exist?"
 
-The answer is simple:
+The answer is:
 
 > **You're asking the wrong question.**
+
+---
+
+# The Question Has Changed
+
+Traditional web development asks:
+
+> **Should this code live in the frontend or backend?**
+
+Next.js asks:
+
+> **Where should this code execute?**
+
+That one question changes everything.
+
+Because different types of code have different requirements.
+
+Some code requires:
+
+* databases,
+* authentication,
+* secrets,
+* file systems.
+
+Other code requires:
+
+* clicks,
+* animations,
+* browser APIs,
+* local state.
+
+And some code requires:
+
+* HTTP endpoints,
+* webhooks,
+* machine-to-machine communication.
+
+The goal is no longer:
+
+```text
+Frontend
+     vs
+Backend
+```
+
+The goal becomes:
+
+```text
+Execute code
+where it works best
+```
+
+---
+
+# Before We Go Further, Meet The Four Execution Environments
+
+Everything in modern Next.js revolves around four execution environments.
+
+Think of them as four specialized workers inside your application.
+
+| Environment       | Primary Responsibility | Nickname    |
+| ----------------- | ---------------------- | ----------- |
+| Server Components | Reading information    | The Reader  |
+| Client Components | User interaction       | The Actor   |
+| Server Actions    | Modifying information  | The Mutator |
+| Route Handlers    | External communication | The Bridge  |
+
+---
+
+## Server Components — The Reader
+
+Server Components answer questions.
+
+Examples:
+
+* Fetch products
+* Read user profiles
+* Load blog posts
+* Query databases
+* Call external APIs
+
+```tsx
+const products =
+  await db.product.findMany();
+```
+
+Their job is simple:
+
+> **Read information.**
+
+---
+
+## Client Components — The Actor
+
+Client Components handle user interaction.
+
+Examples:
+
+* button clicks,
+* forms,
+* dropdown menus,
+* animations,
+* browser APIs.
+
+```tsx
+<button onClick={save}>
+  Save
+</button>
+```
+
+Their job is:
+
+> **Interact with humans.**
+
+---
+
+## Server Actions — The Mutator
+
+Server Actions change information.
+
+Examples:
+
+* create orders,
+* update profiles,
+* submit forms,
+* delete records,
+* process payments.
+
+```tsx
+await createOrder();
+```
+
+Their job is:
+
+> **Modify state safely on the server.**
+
+---
+
+## Route Handlers — The Bridge
+
+Route Handlers communicate with other systems.
+
+Examples:
+
+* REST APIs,
+* webhooks,
+* mobile applications,
+* external integrations.
+
+```tsx
+export async function POST() {
+  // webhook
+}
+```
+
+Their job is:
+
+> **Communicate with machines.**
+
+---
+
+# The Entire Architecture In One Picture
+
+```mermaid
+graph TD
+
+    USER[Human User]
+
+    MACHINE[External Systems]
+
+    CC[Client Components]
+    SC[Server Components]
+    SA[Server Actions]
+    RH[Route Handlers]
+
+    DB[(Database)]
+
+    USER --> CC
+
+    CC --> SA
+
+    SC --> DB
+
+    SA --> DB
+
+    MACHINE --> RH
+
+    RH --> DB
+```
+
+Notice what's missing.
+
+There is no:
+
+```text
+Frontend
+     ↓
+Backend
+```
+
+Instead, there are specialized execution environments.
 
 ---
 
@@ -70,7 +328,7 @@ The answer is simple:
 
 Traditional web architecture asks:
 
-> **Should this code live in the frontend or the backend?**
+> **Should this code live in the frontend or backend?**
 
 For example:
 
@@ -102,11 +360,9 @@ But notice how much infrastructure exists simply to move information around.
 
 # The Hidden Cost of Frontend/Backend Separation
 
-Consider what developers often have to build for one simple button click.
+Consider what developers often build for one simple button click.
 
 ## Duplicate Validation
-
-The same rule frequently exists in multiple places:
 
 ```text
 Browser Validation
@@ -116,23 +372,25 @@ API Validation
 Database Constraints
 ```
 
-For example:
+The same rule may exist in three different places.
+
+Example:
 
 ```text
 "Username must be at least 8 characters"
 ```
 
-might exist:
+exists in:
 
-* in React
-* in the API
-* in the database schema
+* React,
+* the API,
+* the database schema.
 
 ---
 
 ## Loading States Everywhere
 
-React developers quickly become familiar with this pattern:
+React developers become familiar with:
 
 ```tsx
 const [loading, setLoading] =
@@ -147,17 +405,17 @@ const [data, setData] =
 
 Then we spend time managing:
 
-* loading states
-* error states
-* retry states
-* empty states
-* stale states
+* loading,
+* errors,
+* retries,
+* stale data,
+* synchronization.
 
 ---
 
 ## API Boilerplate
 
-Even simple operations require many layers:
+Even simple operations become:
 
 ```text
 Button Click
@@ -177,13 +435,13 @@ Repository
 Database
 ```
 
-Sometimes hundreds of lines of code exist simply to move data from one place to another.
+Sometimes hundreds of lines exist simply to move data from one layer to another.
 
 ---
 
 ## Authentication Boundaries
 
-Authentication also becomes more complicated:
+Authentication becomes another layer of complexity:
 
 ```text
 Browser
@@ -199,20 +457,20 @@ Business Logic
 
 Every request must be:
 
-* authenticated
-* authorized
-* validated
-* serialized
-* deserialized
+* authenticated,
+* authorized,
+* validated,
+* serialized,
+* deserialized.
 
 ---
 
 ## Large JavaScript Bundles
 
-Traditional SPAs often send enormous amounts of JavaScript to the browser:
+Traditional SPAs often send enormous amounts of JavaScript:
 
 ```text
-Browser Downloads:
+Browser Downloads
 
 ✓ UI
 ✓ State Management
@@ -223,238 +481,25 @@ Browser Downloads:
 ✓ Data Fetching Logic
 ```
 
-Ironically, much of this code exists only because the frontend and backend are separate systems.
+Ironically, much of this complexity exists only because frontend and backend were separated.
 
 ---
 
-# The Next.js Mental Model Shift
+# The Big Idea
 
-Next.js asks a completely different question.
+The single most important thing to understand about Next.js 16 is this:
 
-Instead of asking:
+> **Next.js is not primarily a frontend framework.**
 
-> **Should this code live in the frontend or backend?**
+A more useful mental model is:
 
-Next.js asks:
-
-> **Where should this code execute?**
-
-That one question changes everything.
-
-Because different types of code have different requirements.
-
-Some code needs:
-
-* databases
-* secrets
-* authentication
-* file systems
-
-Other code needs:
-
-* clicks
-* animations
-* browser APIs
-* local state
-
-And some code needs:
-
-* HTTP endpoints
-* webhooks
-* third-party integrations
-
-The goal is no longer:
-
-```text
-Frontend
-     vs
-Backend
-```
-
-The goal becomes:
-
-```text
-Execute code
-where it works best
-```
-
----
-
-# Next.js Is Actually a Distributed Runtime
-
-Most beginners think:
-
-> "Next.js is React with server-side rendering."
-
-That's understandable.
-
-But there's a much more useful mental model:
-
-> **Next.js is a distributed application runtime that happens to use React.**
+> **Next.js is a distributed application runtime that uses React as its programming model.**
 
 Your application no longer runs in one place.
 
-Instead, it runs across multiple execution environments.
+It runs across multiple execution environments.
 
----
-
-## Visualizing the Architecture
-
-```mermaid
-graph TD
-
-    USER[User Browser]
-
-    subgraph SERVER["Next.js Runtime"]
-
-        SC[Server Components]
-
-        SA[Server Actions]
-
-        RH[Route Handlers]
-
-    end
-
-    DB[(Database)]
-
-    API[External APIs]
-
-    WEBHOOK[External Systems]
-
-    USER <-->|RSC Protocol| SC
-
-    USER -->|Interaction| SA
-
-    USER -->|HTTP Request| RH
-
-    SC -->|Read| DB
-
-    SC -->|Fetch| API
-
-    SA -->|Mutate| DB
-
-    WEBHOOK -->|Webhook/API| RH
-
-    RH -->|Integrate| DB
-```
-
-Look carefully at what's happening.
-
-We no longer have:
-
-```text
-Frontend
-     ↓
-Backend
-```
-
-Instead, we have:
-
-```text
-Read
-   ↓
-Interact
-   ↓
-Mutate
-   ↓
-Integrate
-```
-
----
-
-# The Four Execution Environments
-
-Modern Next.js applications are built from four primary execution environments.
-
-| Execution Environment | Responsibility         | Think Of It As |
-| --------------------- | ---------------------- | -------------- |
-| Server Components     | Reading data           | The Reader     |
-| Client Components     | User interaction       | The Actor      |
-| Server Actions        | Modifying data         | The Mutator    |
-| Route Handlers        | External communication | The Bridge     |
-
----
-
-## Another Way to Visualize It
-
-```mermaid
-graph TD
-
-    APP[Next.js Application]
-
-    APP --> SC[Server Components]
-    APP --> CC[Client Components]
-    APP --> SA[Server Actions]
-    APP --> RH[Route Handlers]
-
-    SC --> READ[Read Data]
-    CC --> INTERACT[User Interaction]
-    SA --> MUTATE[Modify Data]
-    RH --> COMMUNICATE[External Systems]
-```
-
-Notice something important:
-
-Each environment exists because it solves a different problem.
-
----
-
-# A Company Analogy
-
-Imagine your application is a company.
-
-Every department has a specialized responsibility.
-
-| Department        | Responsibility            |
-| ----------------- | ------------------------- |
-| Server Components | Research Department       |
-| Client Components | Customer Service          |
-| Server Actions    | Operations Department     |
-| Route Handlers    | Communications Department |
-
-```mermaid
-graph LR
-
-    USER[Customer]
-
-    EXT[Other Companies]
-
-    SC[Research]
-    CC[Customer Service]
-    SA[Operations]
-    RH[Communications]
-
-    USER --> CC
-
-    CC --> SA
-
-    SA --> SC
-
-    EXT --> RH
-```
-
-In this model:
-
-* **Server Components gather information**
-* **Client Components interact with users**
-* **Server Actions perform work**
-* **Route Handlers communicate externally**
-
----
-
-# Why This Matters
-
-Once you understand this mental model, many confusing Next.js concepts suddenly become obvious.
-
-You stop asking:
-
-> "Why do we need four different things?"
-
-And start asking:
-
-> "What responsibility does this code have?"
-
-Because in Next.js:
+And those environments have one simple responsibility each:
 
 > **Server Components read.**
 
@@ -464,70 +509,20 @@ Because in Next.js:
 
 > **Route Handlers communicate.**
 
----
-
-# A Simple Exercise
-
-Try categorizing the following tasks:
-
-| Task                     | Which Environment? |
-| ------------------------ | ------------------ |
-| Fetch blog posts         | ?                  |
-| Handle a button click    | ?                  |
-| Save a new order         | ?                  |
-| Receive a Stripe webhook | ?                  |
-
-Take a moment before reading the answers.
+Everything else in this series builds on top of that idea.
 
 ---
 
-## Answers
+# Up Next
 
-| Task                   | Environment      |
-| ---------------------- | ---------------- |
-| Fetch blog posts       | Server Component |
-| Handle button click    | Client Component |
-| Save new order         | Server Action    |
-| Receive Stripe webhook | Route Handler    |
-
-If that feels intuitive, you've already understood the most important concept in modern Next.js.
-
----
-
-# What We'll Learn Next
-
-In the next part, we'll dive into the first pillar:
+In Part 2, we'll explore the first execution environment:
 
 # **Server Components — The Reader**
 
 You'll learn:
 
-* why Server Components became the default
-* why `useEffect()` often disappears in Next.js
-* why Server Components send almost no JavaScript
-* how databases, authentication, SEO, and APIs fit naturally into Server Components
-* why Server Components represent one of the biggest architectural shifts in modern web development
-
----
-
-## Key Takeaways
-
-✅ Stop thinking in **frontend vs backend**
-
-✅ Start thinking in **execution environments**
-
-✅ Next.js is a **distributed runtime**
-
-✅ Every execution environment has one responsibility
-
-Remember this phrase:
-
-> **Server Components read.**
->
-> **Client Components interact.**
->
-> **Server Actions mutate.**
->
-> **Route Handlers communicate.**
-
-Everything else in Next.js builds on top of that mental model.
+* why Server Components became the default,
+* why `useEffect()` often disappears,
+* why Server Components send almost no JavaScript,
+* how they improve performance,
+* and why they represent one of the biggest architectural shifts in React history.
