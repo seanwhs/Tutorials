@@ -1,289 +1,195 @@
-# Next.js 16 Deep Dive: Mastering Server Components, Client Components, Server Actions, and Route Handlers
+# **Beyond Frontend vs Backend: Understanding the Four Pillars of Next.js 16 Architecture**
 
-<img width="1162" height="316" alt="image" src="https://github.com/user-attachments/assets/481e4b5a-3bb5-46c8-89b5-110ee5b4de96" />
+> **If React taught us to think in components, Next.js 16 teaches us to think in execution environments.**
 
 
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/637dbbaf-c6e1-41ae-8605-a9298a64b28d" />
 
-> **Goal:** Understand not just *what* the four major building blocks of Next.js 16 are, but *when*, *why*, and *how* to use them in real-world applications.
+For years, web developers were taught to think about applications as two separate systems:
 
----
+* a **frontend** application that users interact with
+* a **backend** application that handles data and business logic
 
-# The Mental Model Shift
-
-For years, web developers thought about applications using a strict separation of concerns:
+These two worlds communicated through APIs, resulting in architectures that often looked like this:
 
 ```text
-Frontend (React SPA)
-        ↓ API Calls
-Backend (Express/Rails/Spring)
-        ↓
+Frontend SPA
+      ↓
+ REST API
+      ↓
+Backend
+      ↓
 Database
 ```
 
-The frontend rendered user interfaces.
+This separation worked, but it introduced significant complexity:
 
-The backend handled business logic and data access.
+* duplicated validation logic
+* loading states everywhere
+* API boilerplate
+* authentication boundaries
+* network latency
+* large client-side JavaScript bundles
 
-Modern Next.js applications work differently.
+Modern applications built with [Next.js](https://nextjs.org?utm_source=chatgpt.com) take a fundamentally different approach.
 
-Instead of maintaining separate frontend and backend applications, **Next.js 16 distributes execution across multiple environments**, allowing each piece of code to run where it performs best.
-
-## Traditional Web Architecture
-
-```mermaid
-graph TD
-    FE[React Frontend]
-    API[REST API Backend]
-    DB[Database]
-
-    FE --> API
-    API --> DB
-```
-
----
-
-## Modern Next.js Architecture
-
-```mermaid
-graph LR
-    CLIENT[Browser Client]
-    SERVER[Next.js Server]
-    DB[Database]
-    FS[Filesystem]
-    EXT[External APIs]
-    AUTH[Authentication]
-
-    CLIENT <-->|RSC Protocol| SERVER
-
-    SERVER --> DB
-    SERVER --> FS
-    SERVER --> EXT
-    SERVER --> AUTH
-```
-
-The important question is no longer:
+Instead of asking:
 
 > **"Should this code live in the frontend or backend?"**
 
-Instead, ask:
+we now ask:
 
 > **"Where should this code execute?"**
 
----
-
-# The Four Execution Environments
-
-Next.js 16 applications are built from four primary execution environments.
-
-| Component         | Runs Where | Purpose                      |
-| ----------------- | ---------- | ---------------------------- |
-| Server Components | Server     | Rendering and data fetching  |
-| Client Components | Browser    | Interactivity and state      |
-| Server Actions    | Server     | Mutations and business logic |
-| Route Handlers    | Server     | APIs and integrations        |
-
-Think of them as specialized tools.
-
-```mermaid
-graph TD
-    APP[Application]
-
-    APP --> SC[Server Components]
-    APP --> CC[Client Components]
-    APP --> SA[Server Actions]
-    APP --> RH[Route Handlers]
-
-    SC --> DATA[Render Data]
-    CC --> UI[User Interaction]
-    SA --> MUTATE[Modify Data]
-    RH --> API[Expose APIs]
-```
+That single shift changes everything.
 
 ---
 
-# The Big Picture
+# The Big Idea: Next.js Is a Distributed Runtime
 
-A Next.js application is really a distributed system.
+Most beginners initially think of Next.js as:
+
+> "React plus server-side rendering."
+
+But that's not quite accurate.
+
+A better mental model is:
+
+> **Next.js is a distributed application runtime that happens to use React.**
+
+Your application is distributed across multiple execution environments, each optimized for a specific responsibility.
 
 ```mermaid
 graph LR
-    BROWSER[Browser]
+
+    CLIENT["Browser Client<br/>(Client Components)"]
 
     subgraph SERVER["Next.js Server"]
-        SC[Server Components]
-        SA[Server Actions]
-        RH[Route Handlers]
+
+        SC["Server Components<br/>(Read & Render)"]
+
+        SA["Server Actions<br/>(Mutate Data)"]
+
+        RH["Route Handlers<br/>(HTTP/API Bridge)"]
+
     end
 
-    DB[Database]
-    EXT[External APIs]
+    DB[(Database)]
 
-    BROWSER <-->|RSC Payload| SC
+    API[External APIs]
 
-    BROWSER --> SA
-    BROWSER --> RH
+    WH[Webhooks]
 
-    SC --> DB
-    SA --> DB
-    RH --> DB
+    CLIENT <-->|RSC Protocol| SC
 
-    SC --> EXT
-    RH --> EXT
+    CLIENT -->|Invoke Action| SA
+
+    CLIENT -->|HTTP Request| RH
+
+    SC -->|Read| DB
+    SC -->|Fetch| API
+
+    SA -->|Insert/Update/Delete| DB
+
+    WH -->|Webhook POST| RH
+    RH -->|Update| DB
+    RH -->|Call| API
 ```
 
-The browser contains only the code required for interaction.
-
-Everything else remains on the server:
-
-* data fetching
-* business logic
-* authentication
-* database access
-* API integrations
-* cache management
-
-This architecture delivers:
-
-* smaller JavaScript bundles
-* better security
-* improved SEO
-* faster page loads
-* improved scalability
+Instead of one frontend and one backend, you now have **four architectural pillars**.
 
 ---
 
-# Part 1 — Server Components
+# The Four Pillars of Next.js Architecture
 
-# What Are Server Components?
+| Pillar            | Responsibility         | Runs Where |
+| ----------------- | ---------------------- | ---------- |
+| Server Components | Read and render        | Server     |
+| Client Components | Interact               | Browser    |
+| Server Actions    | Modify data            | Server     |
+| Route Handlers    | Communicate externally | Server     |
 
-Server Components execute entirely on the server.
-
-They can:
-
-* access databases
-* access secrets
-* read files
-* call APIs
-* perform authentication
-* stream HTML
-* render React trees
-
-Most importantly:
-
-> **They ship zero JavaScript to the browser.**
+Think of them as specialists on a software engineering team.
 
 ---
 
-# Server Components Are the Default
+# Pillar #1 — Server Components: The Reader
+
+Server Components are responsible for:
+
+* fetching data
+* rendering pages
+* performing authentication
+* reading files
+* calling APIs
+* generating HTML
+
+Their defining characteristic is:
+
+> **They send almost no JavaScript to the browser.**
+
+---
+
+## The Old React Way
+
+Many React developers learned data fetching like this:
 
 ```tsx
-// app/page.tsx
+function Posts() {
+  const [posts, setPosts] =
+    useState([]);
 
-export default function HomePage() {
-  return <h1>Hello World</h1>;
-}
-```
-
-There is:
-
-* no `"use server"`
-* no configuration
-* no extra syntax
-
-Everything is a Server Component unless you opt into client execution.
-
----
-
-# Example: Database Access
-
-```tsx
-// app/dashboard/page.tsx
-
-import { prisma } from '@/lib/prisma';
-
-export default async function Dashboard() {
-  const users = await prisma.user.findMany();
+  useEffect(() => {
+    fetch('/api/posts')
+      .then(res => res.json())
+      .then(setPosts);
+  }, []);
 
   return (
     <div>
-      <h1>Users</h1>
-
-      {users.map(user => (
-        <p key={user.id}>
-          {user.name}
-        </p>
-      ))}
+      {posts.map(...)}
     </div>
   );
 }
 ```
 
-Notice what is missing:
+This required managing:
 
-❌ API routes
-❌ fetch calls
-❌ useEffect
-❌ loading state management
-
-The database query executes directly on the server.
-
----
-
-# Example: Reading Files
-
-```tsx
-import fs from 'fs/promises';
-
-export default async function DocsPage() {
-  const markdown = await fs.readFile(
-    './README.md',
-    'utf8'
-  );
-
-  return <pre>{markdown}</pre>;
-}
-```
-
-This is impossible inside browser JavaScript.
+* loading state
+* error state
+* retries
+* caching
+* API routes
 
 ---
 
-# Example: Environment Variables
+## The Next.js Way
 
 ```tsx
-export default function AdminPage() {
-  const secret =
-    process.env.ADMIN_SECRET;
-
-  return (
-    <div>
-      Secret loaded
-    </div>
-  );
-}
-```
-
-The browser never receives the secret.
-
----
-
-# Example: External APIs
-
-```tsx
-export default async function Products() {
+async function getPosts() {
   const response =
     await fetch(
-      'https://dummyjson.com/products'
+      'https://api.example.com/posts',
+      {
+        next: {
+          revalidate: 3600,
+        },
+      }
     );
 
-  const data =
-    await response.json();
+  return response.json();
+}
+
+export default async function PostsPage() {
+
+  const posts =
+    await getPosts();
 
   return (
     <ul>
-      {data.products.map(product => (
-        <li key={product.id}>
-          {product.title}
+      {posts.map(post => (
+        <li key={post.id}>
+          {post.title}
         </li>
       ))}
     </ul>
@@ -291,89 +197,78 @@ export default async function Products() {
 }
 ```
 
----
+Notice what's missing:
 
-# Server Component Architecture
+❌ `useEffect`
 
-```mermaid
-graph TD
-    DB[Database]
-    API[External API]
-    FS[Filesystem]
+❌ `useState`
 
-    SC[Server Component]
+❌ API boilerplate
 
-    BROWSER[Browser]
+❌ loading state management
 
-    DB --> SC
-    API --> SC
-    FS --> SC
+Instead:
 
-    SC --> BROWSER
+```text
+Fetch
+   ↓
+Render
+   ↓
+Stream UI
 ```
 
 ---
 
-# Use Server Components When
+## Server Components Are Excellent For
 
-✅ Fetching data
-✅ Accessing databases
-✅ Reading files
-✅ Accessing secrets
-✅ Rendering pages
-✅ SEO content
+✅ Database queries
+
+✅ Authentication
+
+✅ SEO
+
 ✅ Layouts
+
 ✅ Metadata
 
----
+✅ Reading files
 
-# Avoid Server Components When
-
-❌ useState
-❌ useEffect
-❌ onClick
-❌ Browser APIs
-❌ localStorage
-❌ Animations
+✅ Fetching APIs
 
 ---
 
-# Part 2 — Client Components
+# Pillar #2 — Client Components: The Interactive Layer
 
-Server Components cannot handle interaction.
+Server Components cannot:
 
-That's the responsibility of Client Components.
+* handle clicks
+* maintain state
+* access browser APIs
 
----
+That's the job of Client Components.
 
-# Creating a Client Component
+A Client Component simply declares:
 
 ```tsx
 'use client';
-
-export default function Button() {
-  return (
-    <button>
-      Click Me
-    </button>
-  );
-}
 ```
 
-The `"use client"` directive tells Next.js:
+which tells Next.js:
 
 > Ship this component to the browser.
 
 ---
 
-# Example: State
+## Example: State
 
 ```tsx
 'use client';
 
-import { useState } from 'react';
+import { useState }
+  from 'react';
 
 export default function Counter() {
+
   const [count, setCount] =
     useState(0);
 
@@ -395,560 +290,331 @@ export default function Counter() {
 
 ---
 
-# Example: Browser APIs
+## Client Components Are Excellent For
 
-```tsx
-'use client';
-
-export default function Location() {
-  function getLocation() {
-    navigator.geolocation
-      .getCurrentPosition(
-        console.log
-      );
-  }
-
-  return (
-    <button onClick={getLocation}>
-      Get Location
-    </button>
-  );
-}
-```
-
----
-
-# Example: Local Storage
-
-```tsx
-'use client';
-
-import { useEffect } from 'react';
-
-export default function Theme() {
-  useEffect(() => {
-    const theme =
-      localStorage.getItem(
-        'theme'
-      );
-
-    console.log(theme);
-  }, []);
-
-  return null;
-}
-```
-
----
-
-# Example: Animation
-
-```tsx
-'use client';
-
-import { motion }
-  from 'framer-motion';
-
-export default function Card() {
-  return (
-    <motion.div
-      whileHover={{
-        scale: 1.1,
-      }}
-    >
-      Product
-    </motion.div>
-  );
-}
-```
-
----
-
-# Client Component Architecture
-
-```mermaid
-graph TD
-    STATE[useState]
-    EFFECT[useEffect]
-    EVENT[Event Handlers]
-    STORAGE[localStorage]
-
-    CLIENT[Client Component]
-
-    STATE --> CLIENT
-    EFFECT --> CLIENT
-    EVENT --> CLIENT
-    STORAGE --> CLIENT
-```
-
----
-
-# Use Client Components When
-
-✅ useState
-✅ useEffect
-✅ Event handlers
-✅ Browser APIs
 ✅ Forms
-✅ Charts
+
+✅ Event handlers
+
 ✅ Animations
+
+✅ Browser APIs
+
+✅ Charts
+
 ✅ Drag-and-drop
-✅ Interactive widgets
+
+✅ State management
 
 ---
 
-# Part 3 — Combining Server and Client Components
+# Pillar #3 — Server Actions: The Mutator
 
-This is the most common architecture pattern.
+If Server Components perform **SELECT**, Server Actions perform:
 
-```mermaid
-graph LR
-    DB[Database]
+* INSERT
+* UPDATE
+* DELETE
 
-    SC[Server Component]
+Think of Server Actions as:
 
-    CC[Client Component]
-
-    STATE[useState]
-    EVENTS[User Events]
-
-    DB --> SC
-
-    SC --> CC
-
-    CC --> STATE
-    CC --> EVENTS
-```
+> **Server-side functions callable from the UI.**
 
 ---
 
-# Example: Searchable Product List
-
-## Server Component
-
-```tsx
-// app/products/page.tsx
-
-import ProductGrid from './ProductGrid';
-import { db } from '@/lib/db';
-
-export default async function Page() {
-  const products =
-    await db.product.findMany();
-
-  return (
-    <ProductGrid
-      products={products}
-    />
-  );
-}
-```
-
----
-
-## Client Component
-
-```tsx
-'use client';
-
-import { useState } from 'react';
-
-export default function ProductGrid({
-  products,
-}) {
-  const [search, setSearch] =
-    useState('');
-
-  const filtered =
-    products.filter(product =>
-      product.name
-        .includes(search)
-    );
-
-  return (
-    <>
-      <input
-        value={search}
-        onChange={e =>
-          setSearch(
-            e.target.value
-          )
-        }
-      />
-
-      {filtered.map(product => (
-        <p key={product.id}>
-          {product.name}
-        </p>
-      ))}
-    </>
-  );
-}
-```
-
----
-
-# Part 4 — Server Actions
-
-Server Components fetch data.
-
-Server Actions modify data.
-
-Think SQL:
-
-| Operation | Next.js Tool     |
-| --------- | ---------------- |
-| SELECT    | Server Component |
-| INSERT    | Server Action    |
-| UPDATE    | Server Action    |
-| DELETE    | Server Action    |
-
----
-
-# Creating a Server Action
-
-```tsx
-// app/actions.ts
-
-'use server';
-
-export async function createPost(
-  formData: FormData
-) {
-  const title =
-    formData.get('title');
-
-  console.log(title);
-}
-```
-
----
-
-# Database Example
-
-```tsx
-'use server';
-
-import { prisma }
-  from '@/lib/prisma';
-
-export async function addUser(
-  formData: FormData
-) {
-  await prisma.user.create({
-    data: {
-      name:
-        formData.get('name')
-        as string,
-    },
-  });
-}
-```
-
----
-
-# Using a Server Action
-
-```tsx
-import { addUser }
-  from './actions';
-
-export default function Page() {
-  return (
-    <form action={addUser}>
-      <input name="name" />
-
-      <button>
-        Create User
-      </button>
-    </form>
-  );
-}
-```
-
----
-
-# Revalidation
+## Creating a Server Action
 
 ```tsx
 'use server';
 
 import {
-  revalidatePath,
+  revalidatePath
 } from 'next/cache';
 
-export async function createPost() {
-  await db.post.create();
+export async function createPost(
+  formData: FormData
+) {
 
-  revalidatePath('/blog');
+  const title =
+    formData.get('title');
+
+  // Save to database
+
+  revalidatePath('/posts');
 }
 ```
 
 ---
 
-# Client Components Can Call Server Actions
+## Calling It From The Browser
 
 ```tsx
 'use client';
 
-import { addUser }
-  from './actions';
+import {
+  createPost
+} from './actions';
 
-export default function Save() {
-  async function save() {
-    await addUser(
-      new FormData()
-    );
-  }
+export function CreateForm() {
 
   return (
-    <button onClick={save}>
-      Save
-    </button>
+    <form action={createPost}>
+
+      <input
+        name="title"
+        required
+      />
+
+      <button>
+        Create Post
+      </button>
+
+    </form>
+  );
+}
+```
+
+Notice something remarkable:
+
+There is:
+
+* no fetch call
+* no API endpoint
+* no axios
+* no REST layer
+
+Next.js creates the communication layer automatically.
+
+---
+
+## The Revalidation Cycle
+
+```mermaid
+sequenceDiagram
+
+    participant U as User
+    participant C as Client
+    participant SA as Server Action
+    participant DB as Database
+    participant SC as Server Component
+
+    U->>C: Submit Form
+
+    C->>SA: Execute Action
+
+    SA->>DB: Update Data
+
+    SA->>SC: revalidatePath()
+
+    SC->>DB: Reload Data
+
+    SC-->>C: Fresh UI
+```
+
+This automatic revalidation is one of the biggest architectural advantages of modern Next.js.
+
+---
+
+# Pillar #4 — Route Handlers: The Bridge
+
+Sometimes your application isn't talking to a person.
+
+Sometimes it's talking to another machine.
+
+Examples include:
+
+* payment providers
+* authentication providers
+* mobile applications
+* webhooks
+* third-party services
+
+This is where Route Handlers come in.
+
+---
+
+## Example: Webhook Endpoint
+
+```tsx
+export async function POST(
+  request: Request
+) {
+
+  const payload =
+    await request.json();
+
+  if (
+    isAuthorized(
+      request.headers
+    )
+  ) {
+
+    // Update database
+
+    return Response.json({
+      success: true,
+    });
+  }
+
+  return Response.json(
+    {
+      error: 'Unauthorized',
+    },
+    {
+      status: 401,
+    }
   );
 }
 ```
 
 ---
 
-# Server Action Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant B as Browser
-    participant SA as Server Action
-    participant DB as Database
-
-    U->>B: Submit Form
-    B->>SA: Execute Action
-    SA->>DB: Modify Data
-    DB-->>SA: Success
-    SA-->>B: Return Result
-    B-->>U: Update UI
-```
-
----
-
-# Use Server Actions When
-
-✅ Create records
-✅ Update records
-✅ Delete records
-✅ Authentication
-✅ Form submission
-✅ Cache invalidation
-✅ Business rules
-
----
-
-# Part 5 — Route Handlers
-
-Sometimes you need a real HTTP API.
-
-Examples include:
-
-* Stripe webhooks
-* OAuth callbacks
-* mobile applications
-* REST APIs
-* file uploads
-* external integrations
-
----
-
-# GET Endpoint
-
-```tsx
-// app/api/users/route.ts
-
-export async function GET() {
-  return Response.json({
-    users: [],
-  });
-}
-```
-
----
-
-# POST Endpoint
-
-```tsx
-export async function POST(
-  request: Request
-) {
-  const body =
-    await request.json();
-
-  return Response.json({
-    success: true,
-  });
-}
-```
-
----
-
-# Stripe Webhook
-
-```tsx
-export async function POST(
-  request: Request
-) {
-  const payload =
-    await request.text();
-
-  // verify stripe signature
-
-  return Response.json({
-    received: true,
-  });
-}
-```
-
----
-
-# Route Handler Architecture
-
-```mermaid
-graph LR
-    BROWSER[Browser]
-    MOBILE[Mobile App]
-    STRIPE[Stripe]
-    GITHUB[GitHub]
-    API[Route Handler]
-    DB[Database]
-
-    BROWSER --> API
-    MOBILE --> API
-    STRIPE --> API
-    GITHUB --> API
-
-    API --> DB
-```
-
----
-
-# Use Route Handlers When
+## Route Handlers Are Excellent For
 
 ✅ Webhooks
-✅ Public APIs
-✅ Mobile clients
-✅ OAuth
-✅ Streaming
+
+✅ REST APIs
+
+✅ OAuth callbacks
+
+✅ Mobile apps
+
 ✅ File uploads
+
 ✅ Third-party integrations
 
 ---
 
-# Decision Tree
+# The Final Boss: Orchestrating Everything
 
-When in doubt:
+The real power of Next.js emerges when these four pillars work together.
 
-```mermaid
-flowchart TD
-    START[What are you building]
-
-    START --> UI{Rendering UI}
-
-    UI -->|Yes| STATE{Need Interactivity}
-    UI -->|No| API{Need HTTP API}
-
-    STATE -->|No| SC[Server Component]
-    STATE -->|Yes| CC[Client Component]
-
-    API -->|Yes| RH[Route Handler]
-    API -->|No| SA[Server Action]
-```
-
----
-
-# Real-World E-Commerce Architecture
-
-A typical Next.js application uses all four execution environments.
+Imagine an e-commerce website:
 
 ```mermaid
-graph TD
-    SC[Server Component]
-    CC[Client Component]
-    SA[Server Action]
-    RH[Route Handler]
-    DB[Database]
+sequenceDiagram
 
-    DB --> SC
+    participant USER
+    participant SC as Server Component
+    participant CC as Client Component
+    participant SA as Server Action
+    participant RH as Route Handler
+    participant DB as Database
+    participant EXT as External Service
 
-    SC --> CC
+    USER->>SC: Open Product Page
 
-    CC --> SA
-    CC --> RH
+    SC->>DB: Fetch Product
 
-    SA --> DB
-    RH --> DB
+    DB-->>SC: Return Data
+
+    SC-->>CC: Render UI
+
+    USER->>CC: Add To Cart
+
+    CC->>SA: Execute Action
+
+    SA->>DB: Update Cart
+
+    SA->>SC: Revalidate
+
+    EXT->>RH: Payment Webhook
+
+    RH->>DB: Update Order
+
+    RH->>SC: Revalidate
 ```
 
-| Feature           | Tool             |
-| ----------------- | ---------------- |
-| Product page      | Server Component |
-| Quantity selector | Client Component |
-| Add to cart       | Server Action    |
-| Stripe webhook    | Route Handler    |
+The application stays synchronized because:
+
+* Server Components read
+* Client Components interact
+* Server Actions mutate
+* Route Handlers integrate
 
 ---
 
-# The Golden Rule
+# The Architect's Cheat Sheet
 
-Ask yourself four questions.
-
-### Am I rendering data?
-
-➡️ Use a **Server Component**
-
----
-
-### Am I handling interaction?
-
-➡️ Use a **Client Component**
+| Question                      | Answer                |
+| ----------------------------- | --------------------- |
+| Am I rendering data?          | Use Server Components |
+| Am I handling interaction?    | Use Client Components |
+| Am I modifying data?          | Use Server Actions    |
+| Am I exposing HTTP endpoints? | Use Route Handlers    |
 
 ---
 
-### Am I modifying data?
+# Why This Architecture Matters
 
-➡️ Use a **Server Action**
+Traditional React applications often required developers to build:
 
----
-
-### Am I exposing an HTTP endpoint?
-
-➡️ Use a **Route Handler**
-
----
-
-# Final Mental Model
-
-```mermaid
-graph TD
-    SC[Server Components]
-    CC[Client Components]
-    SA[Server Actions]
-    RH[Route Handlers]
-    DB[Database]
-
-    SC -->|Render| DB
-    CC -->|Interact| SA
-    CC -->|API Call| RH
-    SA -->|Modify| DB
-    RH -->|Communicate| DB
+```text
+UI
+ ↓
+State
+ ↓
+Effect
+ ↓
+API
+ ↓
+Backend
+ ↓
+Database
 ```
 
-Remember:
+Next.js removes much of this complexity:
 
-> **Server Components render.**
->
-> **Client Components interact.**
->
-> **Server Actions mutate.**
->
-> **Route Handlers communicate.**
+```text
+UI
+ ↓
+Execution Environment
+ ↓
+Database
+```
 
-Once you understand these four responsibilities, Next.js 16 stops feeling magical and starts feeling like what it really is:
+The result is:
 
-> **A distributed application runtime that happens to use React.**
+* smaller bundles
+* fewer API layers
+* less boilerplate
+* improved security
+* better SEO
+* faster rendering
+* simpler mental models
+
+---
+
+# Conclusion
+
+The biggest mistake developers make when learning Next.js is trying to classify code as either:
+
+> frontend code
+
+or
+
+> backend code
+
+Next.js no longer thinks this way.
+
+Instead, ask:
+
+* **Am I rendering?**
+* **Am I interacting?**
+* **Am I mutating?**
+* **Am I integrating?**
+
+Once you begin thinking in terms of **execution environments and responsibilities**, Next.js stops feeling magical and starts feeling like what it actually is:
+
+> **A distributed application architecture platform built on top of React.**
+
+---
+
+# Further Reading
+
+* [Next.js Documentation](https://nextjs.org/docs?utm_source=chatgpt.com)
+* [React Server Components Documentation](https://react.dev/reference/rsc/server-components?utm_source=chatgpt.com)
+* [Next.js Server Actions Documentation](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations?utm_source=chatgpt.com)
+* [Next.js Route Handlers Documentation](https://nextjs.org/docs/app/building-your-application/routing/route-handlers?utm_source=chatgpt.com)
+* [Stripe Webhooks Documentation](https://docs.stripe.com/webhooks?utm_source=chatgpt.com)
+* [GitHub Webhooks Documentation](https://docs.github.com/en/webhooks?utm_source=chatgpt.com)
