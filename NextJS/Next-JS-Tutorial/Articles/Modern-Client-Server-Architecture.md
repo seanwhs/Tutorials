@@ -1,4 +1,4 @@
-# Next.js 16 Deep Dive: Mastering Client Components, Server Components, Server Actions, and Route Handlers
+# Next.js 16 Deep Dive: Mastering Server Components, Client Components, Server Actions, and Route Handlers
 
 > **Goal:** Understand not just *what* the four major building blocks of Next.js 16 are, but *when*, *why*, and *how* to use them in real-world applications.
 
@@ -6,7 +6,7 @@
 
 # The Mental Model Shift
 
-For years, developers thought about web applications like this:
+For years, web developers thought about applications using a strict separation of concerns:
 
 ```text
 Frontend (React SPA)
@@ -16,37 +16,45 @@ Backend (Express/Rails/Spring)
 Database
 ```
 
-The frontend rendered UI. The backend handled business logic and data.
+The frontend rendered user interfaces.
+
+The backend handled business logic and data access.
 
 Modern Next.js applications work differently.
 
-Instead of separating frontend and backend into completely different applications, **Next.js 16 distributes execution across multiple environments**, allowing each piece of code to run where it performs best.
+Instead of maintaining separate frontend and backend applications, **Next.js 16 distributes execution across multiple environments**, allowing each piece of code to run where it performs best.
 
-## Traditional Architecture
+## Traditional Web Architecture
 
 ```mermaid
 graph TD
+    FE[React Frontend]
+    API[REST API Backend]
+    DB[Database]
 
-A[React Frontend]
-B[REST API Backend]
-C[(Database)]
-
-A --> B
-B --> C
+    FE --> API
+    API --> DB
 ```
+
+---
 
 ## Modern Next.js Architecture
 
 ```mermaid
 graph LR
+    CLIENT[Browser Client]
+    SERVER[Next.js Server]
+    DB[Database]
+    FS[Filesystem]
+    EXT[External APIs]
+    AUTH[Authentication]
 
-A[Browser Client]
-    <-->|RSC Protocol| B[Next.js Server]
+    CLIENT <-->|RSC Protocol| SERVER
 
-B --> C[(Database)]
-B --> D[Filesystem]
-B --> E[External APIs]
-B --> F[Authentication]
+    SERVER --> DB
+    SERVER --> FS
+    SERVER --> EXT
+    SERVER --> AUTH
 ```
 
 The important question is no longer:
@@ -59,62 +67,84 @@ Instead, ask:
 
 ---
 
-# The Next.js Execution Model
+# The Four Execution Environments
 
-At a high level, Next.js 16 applications are built from four major building blocks.
+Next.js 16 applications are built from four primary execution environments.
 
-| Component         | Runs Where? | Primary Purpose              |
-| ----------------- | ----------- | ---------------------------- |
-| Server Components | Server      | Rendering and data fetching  |
-| Client Components | Browser     | Interactivity and state      |
-| Server Actions    | Server      | Mutations and business logic |
-| Route Handlers    | Server      | APIs and integrations        |
+| Component         | Runs Where | Purpose                      |
+| ----------------- | ---------- | ---------------------------- |
+| Server Components | Server     | Rendering and data fetching  |
+| Client Components | Browser    | Interactivity and state      |
+| Server Actions    | Server     | Mutations and business logic |
+| Route Handlers    | Server     | APIs and integrations        |
 
-Think of them as four specialized tools.
+Think of them as specialized tools.
 
 ```mermaid
 graph TD
+    APP[Application]
 
-UI[Application]
+    APP --> SC[Server Components]
+    APP --> CC[Client Components]
+    APP --> SA[Server Actions]
+    APP --> RH[Route Handlers]
 
-UI --> SC[Server Components]
-UI --> CC[Client Components]
-UI --> SA[Server Actions]
-UI --> RH[Route Handlers]
-
-SC --> DATA[Render Data]
-CC --> INTERACT[User Interaction]
-SA --> MUTATE[Modify Data]
-RH --> API[Expose APIs]
+    SC --> DATA[Render Data]
+    CC --> UI[User Interaction]
+    SA --> MUTATE[Modify Data]
+    RH --> API[Expose APIs]
 ```
 
 ---
 
-# The Big Picture Architecture
+# The Big Picture
 
-The diagram below captures the core architecture of a Next.js 16 application.
+A Next.js application is really a distributed system.
 
-![Next.js Client-Server Architecture](attachment\:image.png)
+```mermaid
+graph LR
+    BROWSER[Browser]
 
-The browser contains only interactive components.
+    subgraph SERVER["Next.js Server"]
+        SC[Server Components]
+        SA[Server Actions]
+        RH[Route Handlers]
+    end
 
-The server contains everything else:
+    DB[Database]
+    EXT[External APIs]
 
-* Server Components
-* Server Actions
-* Route Handlers
-* Databases
-* Business logic
-* Authentication
-* External API access
+    BROWSER <-->|RSC Payload| SC
 
-This separation allows Next.js to deliver:
+    BROWSER --> SA
+    BROWSER --> RH
 
-* Smaller JavaScript bundles
-* Better security
-* Faster page loads
-* Improved SEO
-* Better scalability
+    SC --> DB
+    SA --> DB
+    RH --> DB
+
+    SC --> EXT
+    RH --> EXT
+```
+
+The browser contains only the code required for interaction.
+
+Everything else remains on the server:
+
+* data fetching
+* business logic
+* authentication
+* database access
+* API integrations
+* cache management
+
+This architecture delivers:
+
+* smaller JavaScript bundles
+* better security
+* improved SEO
+* faster page loads
+* improved scalability
 
 ---
 
@@ -122,17 +152,17 @@ This separation allows Next.js to deliver:
 
 # What Are Server Components?
 
-Server Components are React components that execute entirely on the server.
+Server Components execute entirely on the server.
 
 They can:
 
-* Access databases
-* Access environment variables
-* Read files
-* Call external APIs
-* Perform authentication
-* Render HTML
-* Stream UI
+* access databases
+* access secrets
+* read files
+* call APIs
+* perform authentication
+* stream HTML
+* render React trees
 
 Most importantly:
 
@@ -150,11 +180,13 @@ export default function HomePage() {
 }
 ```
 
-No special syntax.
+There is:
 
-No `"use server"`.
+* no `"use server"`
+* no configuration
+* no extra syntax
 
-Everything is server-side unless you explicitly opt into client-side execution.
+Everything is a Server Component unless you opt into client execution.
 
 ---
 
@@ -184,12 +216,12 @@ export default async function Dashboard() {
 
 Notice what is missing:
 
-❌ API endpoint
-❌ fetch()
-❌ useEffect()
+❌ API routes
+❌ fetch calls
+❌ useEffect
 ❌ loading state management
 
-The query executes directly on the server.
+The database query executes directly on the server.
 
 ---
 
@@ -198,16 +230,13 @@ The query executes directly on the server.
 ```tsx
 import fs from 'fs/promises';
 
-export default async function Docs() {
-  const markdown =
-    await fs.readFile(
-      './README.md',
-      'utf8'
-    );
-
-  return (
-    <pre>{markdown}</pre>
+export default async function DocsPage() {
+  const markdown = await fs.readFile(
+    './README.md',
+    'utf8'
   );
+
+  return <pre>{markdown}</pre>;
 }
 ```
 
@@ -215,23 +244,22 @@ This is impossible inside browser JavaScript.
 
 ---
 
-# Example: Secure Environment Variables
+# Example: Environment Variables
 
 ```tsx
-export default function Admin() {
-
-  const key =
+export default function AdminPage() {
+  const secret =
     process.env.ADMIN_SECRET;
 
   return (
     <div>
-      Secret Loaded
+      Secret loaded
     </div>
   );
 }
 ```
 
-The browser never sees the secret.
+The browser never receives the secret.
 
 ---
 
@@ -239,18 +267,17 @@ The browser never sees the secret.
 
 ```tsx
 export default async function Products() {
-
   const response =
     await fetch(
       'https://dummyjson.com/products'
     );
 
-  const products =
+  const data =
     await response.json();
 
   return (
     <ul>
-      {products.products.map(product => (
+      {data.products.map(product => (
         <li key={product.id}>
           {product.title}
         </li>
@@ -266,24 +293,19 @@ export default async function Products() {
 
 ```mermaid
 graph TD
+    DB[Database]
+    API[External API]
+    FS[Filesystem]
 
-Browser
+    SC[Server Component]
 
-ServerComponent[
-Server Component
-]
+    BROWSER[Browser]
 
-Database[(Database)]
+    DB --> SC
+    API --> SC
+    FS --> SC
 
-API[External API]
-
-Filesystem[Files]
-
-Database --> ServerComponent
-API --> ServerComponent
-Filesystem --> ServerComponent
-
-ServerComponent --> Browser
+    SC --> BROWSER
 ```
 
 ---
@@ -314,9 +336,9 @@ ServerComponent --> Browser
 
 # Part 2 — Client Components
 
-Server Components cannot handle interactivity.
+Server Components cannot handle interaction.
 
-That responsibility belongs to Client Components.
+That's the responsibility of Client Components.
 
 ---
 
@@ -348,7 +370,6 @@ The `"use client"` directive tells Next.js:
 import { useState } from 'react';
 
 export default function Counter() {
-
   const [count, setCount] =
     useState(0);
 
@@ -376,9 +397,7 @@ export default function Counter() {
 'use client';
 
 export default function Location() {
-
-  async function getLocation() {
-
+  function getLocation() {
     navigator.geolocation
       .getCurrentPosition(
         console.log
@@ -386,9 +405,7 @@ export default function Location() {
   }
 
   return (
-    <button
-      onClick={getLocation}
-    >
+    <button onClick={getLocation}>
       Get Location
     </button>
   );
@@ -405,7 +422,6 @@ export default function Location() {
 import { useEffect } from 'react';
 
 export default function Theme() {
-
   useEffect(() => {
     const theme =
       localStorage.getItem(
@@ -421,20 +437,19 @@ export default function Theme() {
 
 ---
 
-# Example: Animations
+# Example: Animation
 
 ```tsx
 'use client';
 
 import { motion }
-from 'framer-motion';
+  from 'framer-motion';
 
 export default function Card() {
-
   return (
     <motion.div
       whileHover={{
-        scale: 1.1
+        scale: 1.1,
       }}
     >
       Product
@@ -449,20 +464,17 @@ export default function Card() {
 
 ```mermaid
 graph TD
+    STATE[useState]
+    EFFECT[useEffect]
+    EVENT[Event Handlers]
+    STORAGE[localStorage]
 
-Browser
+    CLIENT[Client Component]
 
-State[useState]
-Effects[useEffect]
-Events[onClick]
-Storage[localStorage]
-
-ClientComponent
-
-State --> ClientComponent
-Effects --> ClientComponent
-Events --> ClientComponent
-Storage --> ClientComponent
+    STATE --> CLIENT
+    EFFECT --> CLIENT
+    EVENT --> CLIENT
+    STORAGE --> CLIENT
 ```
 
 ---
@@ -487,14 +499,21 @@ This is the most common architecture pattern.
 
 ```mermaid
 graph LR
+    DB[Database]
 
-A[Server Component]
-    --> B[(Database)]
+    SC[Server Component]
 
-A --> C[Client Component]
+    CC[Client Component]
 
-C --> D[useState]
-C --> E[User Events]
+    STATE[useState]
+    EVENTS[User Events]
+
+    DB --> SC
+
+    SC --> CC
+
+    CC --> STATE
+    CC --> EVENTS
 ```
 
 ---
@@ -506,11 +525,10 @@ C --> E[User Events]
 ```tsx
 // app/products/page.tsx
 
-import ProductGrid
-from './ProductGrid';
+import ProductGrid from './ProductGrid';
+import { db } from '@/lib/db';
 
 export default async function Page() {
-
   const products =
     await db.product.findMany();
 
@@ -529,22 +547,18 @@ export default async function Page() {
 ```tsx
 'use client';
 
-import { useState }
-from 'react';
+import { useState } from 'react';
 
 export default function ProductGrid({
-  products
+  products,
 }) {
-
-  const [search,
-    setSearch] =
-      useState('');
+  const [search, setSearch] =
+    useState('');
 
   const filtered =
-    products.filter(
-      product =>
-        product.name
-          .includes(search)
+    products.filter(product =>
+      product.name
+        .includes(search)
     );
 
   return (
@@ -597,7 +611,6 @@ Think SQL:
 export async function createPost(
   formData: FormData
 ) {
-
   const title =
     formData.get('title');
 
@@ -607,37 +620,36 @@ export async function createPost(
 
 ---
 
-# Example: Database Insert
+# Database Example
 
 ```tsx
 'use server';
 
 import { prisma }
-from '@/lib/prisma';
+  from '@/lib/prisma';
 
 export async function addUser(
   formData: FormData
 ) {
-
   await prisma.user.create({
     data: {
       name:
         formData.get('name')
-    }
+        as string,
+    },
   });
 }
 ```
 
 ---
 
-# Using Server Actions
+# Using a Server Action
 
 ```tsx
 import { addUser }
-from './actions';
+  from './actions';
 
 export default function Page() {
-
   return (
     <form action={addUser}>
       <input name="name" />
@@ -658,34 +670,27 @@ export default function Page() {
 'use server';
 
 import {
-  revalidatePath
-}
-from 'next/cache';
+  revalidatePath,
+} from 'next/cache';
 
 export async function createPost() {
-
   await db.post.create();
 
-  revalidatePath(
-    '/blog'
-  );
+  revalidatePath('/blog');
 }
 ```
 
 ---
 
-# Client Components Can Invoke Server Actions
+# Client Components Can Call Server Actions
 
 ```tsx
 'use client';
 
-import {
-  addUser
-}
-from './actions';
+import { addUser }
+  from './actions';
 
 export default function Save() {
-
   async function save() {
     await addUser(
       new FormData()
@@ -693,9 +698,7 @@ export default function Save() {
   }
 
   return (
-    <button
-      onClick={save}
-    >
+    <button onClick={save}>
       Save
     </button>
   );
@@ -708,25 +711,17 @@ export default function Save() {
 
 ```mermaid
 sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant SA as Server Action
+    participant DB as Database
 
-participant User
-participant Browser
-participant ServerAction
-participant Database
-
-User->>Browser: Submit Form
-
-Browser->>ServerAction:
-POST Request
-
-ServerAction->>Database:
-INSERT/UPDATE/DELETE
-
-Database-->>ServerAction:
-Success
-
-ServerAction-->>Browser:
-Return Result
+    U->>B: Submit Form
+    B->>SA: Execute Action
+    SA->>DB: Modify Data
+    DB-->>SA: Success
+    SA-->>B: Return Result
+    B-->>U: Update UI
 ```
 
 ---
@@ -737,7 +732,7 @@ Return Result
 ✅ Update records
 ✅ Delete records
 ✅ Authentication
-✅ Form submissions
+✅ Form submission
 ✅ Cache invalidation
 ✅ Business rules
 
@@ -747,63 +742,61 @@ Return Result
 
 Sometimes you need a real HTTP API.
 
-Examples:
+Examples include:
 
 * Stripe webhooks
-* Mobile applications
 * OAuth callbacks
+* mobile applications
 * REST APIs
-* File uploads
+* file uploads
+* external integrations
 
 ---
 
-# Example GET Endpoint
+# GET Endpoint
 
 ```tsx
 // app/api/users/route.ts
 
 export async function GET() {
-
   return Response.json({
-    users: []
+    users: [],
   });
 }
 ```
 
 ---
 
-# Example POST Endpoint
+# POST Endpoint
 
 ```tsx
 export async function POST(
   request: Request
 ) {
-
   const body =
     await request.json();
 
   return Response.json({
-    success: true
+    success: true,
   });
 }
 ```
 
 ---
 
-# Stripe Webhook Example
+# Stripe Webhook
 
 ```tsx
 export async function POST(
   request: Request
 ) {
-
-  const body =
+  const payload =
     await request.text();
 
   // verify stripe signature
 
   return Response.json({
-    received: true
+    received: true,
   });
 }
 ```
@@ -814,28 +807,24 @@ export async function POST(
 
 ```mermaid
 graph LR
+    BROWSER[Browser]
+    MOBILE[Mobile App]
+    STRIPE[Stripe]
+    GITHUB[GitHub]
+    API[Route Handler]
+    DB[Database]
 
-Browser
-    --> API
+    BROWSER --> API
+    MOBILE --> API
+    STRIPE --> API
+    GITHUB --> API
 
-Mobile
-    --> API
-
-Stripe
-    --> API
-
-GitHub
-    --> API
-
-API
-    --> Database
+    API --> DB
 ```
 
 ---
 
-# When Should I Use Route Handlers?
-
-Use Route Handlers when:
+# Use Route Handlers When
 
 ✅ Webhooks
 ✅ Public APIs
@@ -853,30 +842,18 @@ When in doubt:
 
 ```mermaid
 flowchart TD
+    START[What are you building]
 
-START[What are you trying to do?]
+    START --> UI{Rendering UI}
 
-START --> UI{Render UI?}
+    UI -->|Yes| STATE{Need Interactivity}
+    UI -->|No| API{Need HTTP API}
 
-UI -->|Yes| INTERACTIVE{
-Need State?
-}
+    STATE -->|No| SC[Server Component]
+    STATE -->|Yes| CC[Client Component]
 
-UI -->|No| API{
-Need HTTP API?
-}
-
-INTERACTIVE -->|No|
-SERVER[Server Component]
-
-INTERACTIVE -->|Yes|
-CLIENT[Client Component]
-
-API -->|Yes|
-ROUTE[Route Handler]
-
-API -->|No|
-ACTION[Server Action]
+    API -->|Yes| RH[Route Handler]
+    API -->|No| SA[Server Action]
 ```
 
 ---
@@ -887,27 +864,22 @@ A typical Next.js application uses all four execution environments.
 
 ```mermaid
 graph TD
+    SC[Server Component]
+    CC[Client Component]
+    SA[Server Action]
+    RH[Route Handler]
+    DB[Database]
 
-SC[Server Component]
-CC[Client Component]
-SA[Server Action]
-RH[Route Handler]
-DB[(Database)]
+    DB --> SC
 
-SC --> DB
+    SC --> CC
 
-SC --> CC
+    CC --> SA
+    CC --> RH
 
-CC --> SA
-
-CC --> RH
-
-SA --> DB
-
-RH --> DB
+    SA --> DB
+    RH --> DB
 ```
-
-Example:
 
 | Feature           | Tool             |
 | ----------------- | ---------------- |
@@ -950,21 +922,17 @@ Ask yourself four questions.
 
 ```mermaid
 graph TD
+    SC[Server Components]
+    CC[Client Components]
+    SA[Server Actions]
+    RH[Route Handlers]
+    DB[Database]
 
-SC[Server Components]
-CC[Client Components]
-SA[Server Actions]
-RH[Route Handlers]
-
-SC -->|Render| DB[(Database)]
-
-CC -->|Interact| SA
-
-CC -->|API Calls| RH
-
-SA -->|Mutate| DB
-
-RH -->|Communicate| DB
+    SC -->|Render| DB
+    CC -->|Interact| SA
+    CC -->|API Call| RH
+    SA -->|Modify| DB
+    RH -->|Communicate| DB
 ```
 
 Remember:
