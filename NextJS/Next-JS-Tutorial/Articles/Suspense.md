@@ -296,4 +296,4 @@ Together, they let you build applications that feel fast by design.
 - Next.js Loading UI and Streaming: https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming  
 - Next.js Partial Prerendering: https://nextjs.org/docs/app/building-your-application/rendering/partial-prerendering  
 - Next.js App Router overview: https://nextjs.org/docs/app  
-- Vercel blog on Partial Prerendering (conceptual deep dive): https://vercel.com/blog/partial-prerendering  
+- Vercel blog on Cache Components for Instant and Fresh Pages: https://vercel.com/academy/nextjs-foundations/cache-components  
