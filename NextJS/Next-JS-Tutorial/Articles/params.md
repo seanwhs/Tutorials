@@ -49,23 +49,28 @@ Here is how you fetch and render a post in a Next.js 16 application:
 
 ```typescript
 interface PostPageProps {
+  // Define params as a Promise to conform to Next.js 16 requirements
   params: Promise<{ id: string }>;
 }
 
 const PostPage = async ({ params }: PostPageProps) => {
-  // Await the params to resolve the dynamic ID from the URL
+  // Await the params to resolve the dynamic ID from the URL object
   const { id } = await params;
 
-  // Fetch data using the resolved ID
+  // Fetch the post data from the external API using the resolved ID
   const response = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`);
+  
+  // Parse the raw response into a JSON object
   const post = await response.json();
 
   return (
     <article className="space-y-6">
       <div className="space-y-4">
         <h1 className="text-center text-4xl font-semibold text-zinc-950 sm:text-5xl">
+          {/* Format the title: capitalize the first character and join with the remainder of the string */}
           {post.title.charAt(0).toUpperCase() + post.title.slice(1)}
         </h1>
+        {/* Render the main body content of the fetched post */}
         <p className="text-lg leading-8 text-zinc-700">{post.body}</p>
       </div>
     </article>
@@ -73,7 +78,6 @@ const PostPage = async ({ params }: PostPageProps) => {
 };
 
 export default PostPage;
-
 ```
 
 ---
