@@ -41,7 +41,7 @@ datasource db {
 
 ### B. Create `prisma.config.mjs`
 
-Create this file in your project root to define your database URL.
+Create this file in your project root. **Note:** Ensure your `DATABASE_URL` in `.env` is set to `file:./dev.db` to avoid protocol errors.
 
 ```javascript
 import { defineConfig } from 'prisma/config';
@@ -85,13 +85,13 @@ npx prisma migrate dev --name init
 
 Next.js hot-reloading can spin up multiple database connections in development. Use a singleton pattern to keep one connection alive.
 
-Create `lib/prisma.js`:
+Create `lib/prisma.ts`:
 
-```javascript
+```typescript
 import { PrismaClient } from '../generated/client';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
-const globalForPrisma = global;
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 const adapter = new PrismaBetterSqlite3({ 
   url: process.env.DATABASE_URL || 'file:./dev.db' 
@@ -133,7 +133,3 @@ export default nextConfig;
 ```
 
 SQLite is an incredible tool for development. Since your database is just a `dev.db` file, you can always reset by deleting the file and running your migrations again. Happy coding!
-
----
-
-*Are you planning to link your `userId` to a formal `User` table, or should the `userId` remain a simple integer for your current prototype?*
