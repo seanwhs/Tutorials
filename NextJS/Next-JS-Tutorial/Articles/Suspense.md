@@ -61,3 +61,12 @@ export default async function Page({ params }) {
 It is common to think of `<Suspense>` as a "keyword" or "magic syntax," but it is simply a React component. It works by "catching" a Promise thrown by a component during the rendering phase. Once that Promise resolves, it triggers a re-render. It is a clean, architectural way to handle the complexities of asynchronous data flow without bloating your code with messy `if (loading)` logic.
 
 By adopting `<Suspense>`, you aren't just writing better code—you are building a faster, more resilient web for your users.
+
+---
+
+## References
+
+* **React Documentation:** [Suspense for Data Fetching](https://react.dev/reference/react/Suspense)
+* **Next.js Documentation:** [Loading UI and Streaming](https://nextjs.org/docs/app/building-your-application/routing/loading-ui-and-streaming)
+* **Next.js Documentation:** [Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components)
+
