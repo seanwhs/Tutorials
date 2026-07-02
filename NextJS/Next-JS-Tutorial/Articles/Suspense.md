@@ -297,3 +297,4 @@ Together, they let you build applications that feel fast by design.
 - Next.js Partial Prerendering: https://nextjs.org/docs/app/building-your-application/rendering/partial-prerendering  
 - Next.js App Router overview: https://nextjs.org/docs/app  
 - Vercel blog on Cache Components for Instant and Fresh Pages: https://vercel.com/academy/nextjs-foundations/cache-components  
+- Blog: A Practical Guide to Partial Prerendering in Next.js 16: https://www.ashishgogula.in/blogs/a-practical-guide-to-partial-prerendering-in-next-js-16
