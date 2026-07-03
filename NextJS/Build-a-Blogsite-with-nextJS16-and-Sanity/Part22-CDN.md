@@ -4,7 +4,7 @@
 
 > **Goal of this lesson:** Add images to GreyMatter Journal while learning how binary data works, why databases don't store most files directly, how CDNs function, what image optimization actually does, and why the modern internet is fundamentally a giant distributed caching system.
 
----
+***
 
 # Our Blog Has Another Problem
 
@@ -23,7 +23,7 @@ Text
 Text
 ```
 
-Professional blogs look like:
+Professional blogs look more like:
 
 ```text
 Hero Image
@@ -43,7 +43,7 @@ To build this, we need to answer a deceptively simple question:
 
 > Where do images actually live?
 
----
+***
 
 # The Beginner Mental Model
 
@@ -67,16 +67,16 @@ id | title | image
 1  | React | photo.jpg
 ```
 
-Unfortunately, this becomes a disaster very quickly.
+This model works for tiny projects, but becomes a disaster very quickly.
 
----
+***
 
 # Why Databases Hate Large Files
 
 Suppose:
 
 ```text
-Article:
+Article text:
 10 KB
 ```
 
@@ -110,11 +110,11 @@ Database
 File Server
 ```
 
-which databases are not optimized for.
+Relational databases and document stores are optimized for **structured data**, not for storing and streaming gigabytes of binary blobs.
 
----
+***
 
-# Modern Architecture
+# Modern Architecture: Split Data and Files
 
 Instead, modern systems separate:
 
@@ -147,7 +147,9 @@ Example:
 }
 ```
 
----
+The database stores **pointers** (URLs, keys, IDs); the actual bytes live in object storage or on a CDN.
+
+***
 
 # What Is Binary Data?
 
@@ -176,7 +178,7 @@ becomes:
 ...
 ```
 
-Image:
+An image:
 
 ```text
 Photo
@@ -190,15 +192,17 @@ also becomes:
 ...
 ```
 
-The difference is simply:
+The difference isn’t the bits—it’s the:
 
 ```text
 Interpretation
 ```
 
----
+Text is interpreted as characters; images as pixels; audio as samples. The storage is generic; the meaning comes from how we decode it.
 
-# Step 1 — Add A Hero Image
+***
+
+# Step 1 — Add a Hero Image
 
 Open:
 
@@ -211,20 +215,19 @@ Add:
 ```typescript
 defineField({
   name: "heroImage",
-
   title: "Hero Image",
-
   type: "image",
-
   options: {
     hotspot: true,
   },
 });
 ```
 
----
+This gives each post a dedicated “hero” image field, stored as an image asset reference rather than a raw URL.
 
-# Wait...
+***
+
+# Wait…
 
 What Is `hotspot`?
 
@@ -256,7 +259,7 @@ the system needs to know:
 What part is important?
 ```
 
-Hotspots allow editors to specify:
+Hotspots allow editors to specify a:
 
 ```text
 Focus Area
@@ -278,9 +281,11 @@ Image
      Keep This
 ```
 
----
+When the image is cropped or resized, the hotspot guides which region should remain visible.
 
-# Step 2 — Update The Query
+***
+
+# Step 2 — Update the Query
 
 Open:
 
@@ -294,15 +299,10 @@ Update:
 export const POSTS_QUERY = `
   *[_type == "post"]{
     _id,
-
     title,
-
     slug,
-
     excerpt,
-
     heroImage,
-
     author->{
       name
     }
@@ -310,17 +310,21 @@ export const POSTS_QUERY = `
 `;
 ```
 
----
+Now our frontend has access to the `heroImage` field alongside the rest of the post metadata.
 
-# Step 3 — Install The Image Library
+***
 
-Open terminal:
+# Step 3 — Install the Image Library
+
+In your terminal:
 
 ```bash
 npm install @sanity/image-url
 ```
 
----
+This helper library knows how to turn Sanity’s image references into real URLs with transformations applied.
+
+***
 
 # Why Another Library?
 
@@ -330,13 +334,12 @@ Suppose Sanity stores:
 {
   "_type": "image",
   "asset": {
-    "_ref":
-      "image-abc123"
+    "_ref": "image-abc123"
   }
 }
 ```
 
-This is not an image URL.
+This is **not** a direct URL.
 
 Instead, it is:
 
@@ -344,11 +347,15 @@ Instead, it is:
 Image Metadata
 ```
 
-We need a translator.
+We need a translator that understands:
 
----
+- which project and dataset to use,
+- how to derive a URL from the asset ref,
+- how to add parameters for resizing, cropping, and formats.
 
-# Step 4 — Create The Image Builder
+***
+
+# Step 4 — Create the Image Builder
 
 Create:
 
@@ -359,31 +366,25 @@ lib/image.ts
 Add:
 
 ```typescript
-import imageUrlBuilder
-  from "@sanity/image-url";
+import imageUrlBuilder from "@sanity/image-url";
+import { client } from "./sanity";
 
-import { client }
-  from "./sanity";
+const builder = imageUrlBuilder(client);
 
-const builder =
-  imageUrlBuilder(client);
-
-export function urlFor(
-  source: unknown
-) {
-  return builder.image(
-    source
-  );
+export function urlFor(source: unknown) {
+  return builder.image(source);
 }
 ```
 
----
+Now `urlFor(image)` returns a builder object that can produce optimized URLs.
 
-# Wait...
+***
 
-What Is A Builder?
+# Wait…
 
-Builders are objects that progressively construct something.
+What Is a Builder?
+
+A builder is an object that progressively constructs something.
 
 Example:
 
@@ -414,9 +415,11 @@ Builder
 URL
 ```
 
----
+Instead of manually concatenating query parameters, you compose transformations fluently and let the builder generate the correct URL.
 
-# Step 5 — Render The Image
+***
+
+# Step 5 — Render the Image
 
 Open:
 
@@ -427,48 +430,33 @@ components/PostCard.tsx
 Import:
 
 ```typescript
-import Image
-  from "next/image";
-
-import {
-  urlFor,
-} from "@/lib/image";
+import Image from "next/image";
+import { urlFor } from "@/lib/image";
 ```
 
 Add:
 
 ```tsx
-{
-  post.heroImage && (
-    <Image
-      src={
-        urlFor(
-          post.heroImage
-        )
-          .width(800)
-          .height(400)
-          .url()
-      }
-      alt={post.title}
-      width={800}
-      height={400}
-    />
-  );
-}
+{post.heroImage && (
+  <Image
+    src={urlFor(post.heroImage).width(800).height(400).url()}
+    alt={post.title}
+    width={800}
+    height={400}
+  />
+)}
 ```
 
----
+Now each post card displays a properly sized hero image with alt text for accessibility.
 
-# Wait...
+***
 
-Why Use `<Image>` Instead Of `<img>`?
+# Why Use `<Image>` Instead of `<img>`?
 
 Traditional HTML:
 
 ```html
-<img
-  src="image.jpg"
-/>
+<img src="image.jpg" />
 ```
 
 Modern Next.js:
@@ -477,7 +465,7 @@ Modern Next.js:
 <Image />
 ```
 
-because Next.js performs:
+because `<Image>` performs:
 
 ```text
 Optimization
@@ -489,7 +477,9 @@ Lazy Loading
 
 automatically.
 
----
+It integrates with Next.js’ image optimization pipeline so you get responsive, efficient images without writing your own transformation service.
+
+***
 
 # What Is Image Optimization?
 
@@ -500,7 +490,7 @@ Suppose you upload:
 10 MB
 ```
 
-But mobile users need:
+But mobile users only need:
 
 ```text
 400×300
@@ -541,25 +531,22 @@ Compress
 Deliver
 ```
 
----
+The user sees the same image *visually*, but the network download is dramatically smaller.
 
-# The Browser Never Needs The Original
+***
 
-Desktop:
+# The Browser Never Needs the Original
+
+Display sizes:
 
 ```text
+Desktop:
 1200px
-```
 
 Tablet:
-
-```text
 800px
-```
 
 Mobile:
-
-```text
 400px
 ```
 
@@ -571,11 +558,13 @@ Why send:
 
 to everyone?
 
----
+Instead, we generate variants tailored to each viewport and device.
+
+***
 
 # Step 6 — Add Responsive Images
 
-Update:
+Update your image component:
 
 ```tsx
 <Image
@@ -583,21 +572,22 @@ Update:
   alt={post.title}
   width={1200}
   height={600}
-  sizes="
-    (max-width:768px)
-    100vw,
-    800px
-  "
+  sizes="(max-width: 768px) 100vw, 800px"
 />
 ```
 
----
+This tells the browser:
 
-# Wait...
+- On small screens, the image should occupy the full viewport width (`100vw`).
+- On larger screens, it will be about `800px` wide.
 
-What Is `sizes`?
+The browser can then choose the most appropriate image variant to download.
 
-It tells browsers:
+***
+
+# What Is `sizes`?
+
+`sizes` tells browsers:
 
 ```text
 How large
@@ -619,17 +609,19 @@ Desktop
 800px
 ```
 
-Then browsers download:
+Armed with `sizes` and `srcset`, the browser can download:
 
 ```text
 Only what's needed.
 ```
 
----
+No more 4K images for tiny phone screens.
 
-# What Is A CDN?
+***
 
-Suppose your server lives in:
+# What Is a CDN?
+
+Suppose your origin server lives in:
 
 ```text
 Singapore
@@ -651,13 +643,13 @@ Brazil
 Singapore
 ```
 
-every request.
+for every request.
 
-Slow.
+Latency is high and bandwidth cross-continent.
 
----
+***
 
-# With A CDN
+# With a CDN
 
 Diagram:
 
@@ -685,7 +677,9 @@ Brazil User
 Brazil Cache
 ```
 
----
+The first user in a region may hit the origin; subsequent users are served from nearby cache nodes.
+
+***
 
 # What Does CDN Mean?
 
@@ -704,9 +698,11 @@ Thousands of tiny caches
 around the planet.
 ```
 
----
+It’s a geographically distributed layer whose only job is to deliver content quickly and cheaply.
 
-# Example
+***
+
+# Example: With vs Without CDN
 
 Without CDN:
 
@@ -737,9 +733,11 @@ Brazil Cache
 Europe Cache
 ```
 
----
+Content fans out from the origin once, then fans out again from regional caches.
 
-# Sanity Uses A CDN
+***
+
+# Sanity Uses a CDN
 
 When we configure:
 
@@ -767,15 +765,17 @@ CDN
 Sanity
 ```
 
----
+Sanity’s CDN front-ends their APIs and image servers so most reads never touch the origin directly.
 
-# Wait...
+***
 
-Haven't We Seen This Before?
+# Wait…
+
+Haven’t We Seen This Before?
 
 Yes.
 
-Remember:
+Earlier, in Draft Mode, we saw:
 
 ```text
 Draft Mode
@@ -791,7 +791,9 @@ Cache
 Potentially Stale Reality
 ```
 
----
+Preview needs freshness; published sites can trade some freshness for speed.
+
+***
 
 # The Internet Is Mostly Caching
 
@@ -840,7 +842,9 @@ Server Cache
 Database
 ```
 
----
+Every layer tries to avoid recomputing or refetching data that it can cheaply reuse.
+
+***
 
 # Why Does This Work?
 
@@ -864,9 +868,9 @@ Uploaded:
 1 time
 ```
 
-Caching exploits this asymmetry.
+Caching exploits this asymmetry: many reads, very few writes.
 
----
+***
 
 # Image Transformation Pipelines
 
@@ -879,7 +883,7 @@ urlFor(image)
   .format("webp")
 ```
 
-Sanity performs:
+the pipeline is:
 
 ```text
 Original Image
@@ -909,18 +913,20 @@ Cache
 Deliver
 ```
 
----
+Once generated, the transformed image is cached, so the expensive work happens only once per variant.
+
+***
 
 # What Is WebP?
 
-Traditional:
+Traditional formats:
 
 ```text
 JPEG
 PNG
 ```
 
-Modern:
+Modern formats:
 
 ```text
 WebP
@@ -930,7 +936,7 @@ AVIF
 Benefits:
 
 ```text
-Same Quality
+Same Visual Quality
 
 Smaller Files
 ```
@@ -945,7 +951,9 @@ WebP:
 180 KB
 ```
 
----
+Modern browsers support these newer formats, so they become the default choice for optimized delivery.
+
+***
 
 # Lazy Loading
 
@@ -993,11 +1001,11 @@ Only:
 3
 ```
 
-download initially.
+download initially; others load as the user scrolls. This saves bandwidth and speeds up first render.
 
----
+***
 
-# The Hidden Architecture
+# The Hidden Architecture of an Image
 
 When a browser requests an image:
 
@@ -1034,13 +1042,13 @@ Optimized Image
 Browser
 ```
 
----
+What looks like “an image tag in HTML” is actually a pipeline of transforms, caches, and distributed systems working together.
 
-# Wait...
+***
 
-Does This Look Familiar?
+# Cache Trees
 
-We've already seen:
+We’ve already seen:
 
 ```text
 Route Trees
@@ -1068,9 +1076,11 @@ of
 cached realities.
 ```
 
----
+Each layer stores its own partial view of the truth, with its own freshness rules.
 
-# The Deep Secret Of The Internet
+***
+
+# The Deep Secret of the Internet
 
 Most beginners think:
 
@@ -1091,7 +1101,7 @@ Distributed
         System
 ```
 
-Questions become:
+Core questions:
 
 ```text
 Where is the content?
@@ -1105,7 +1115,9 @@ Who serves it?
 How quickly?
 ```
 
----
+Everything from HTML to images to AI model weights gets delivered through this lens.
+
+***
 
 # Mental Model To Remember Forever
 
@@ -1140,17 +1152,18 @@ Machines
               Efficiently
 ```
 
-Once you understand this, CDNs, caching, databases, object storage, AI vector stores, and distributed systems begin to look like variations of the same underlying architecture.
+Once you understand this, CDNs, caching, databases, object storage, AI vector stores, and distributed systems all start to look like variations of the same underlying architecture.
 
----
+***
 
 # Up Next
 
-In **Part 23**, we'll deploy GreyMatter Journal to production while learning:
+In **Part 23**, we’ll deploy GreyMatter Journal to production while exploring:
 
-* build pipelines,
-* CI/CD,
-* environment promotion,
-* edge networks,
-* infrastructure as code,
-* and why modern software engineering is fundamentally the discipline of turning source code into running systems.
+- build pipelines,
+- CI/CD,
+- environment promotion,
+- edge networks,
+- infrastructure as code,
+
+and why modern software engineering is fundamentally the discipline of turning source code into running systems.
