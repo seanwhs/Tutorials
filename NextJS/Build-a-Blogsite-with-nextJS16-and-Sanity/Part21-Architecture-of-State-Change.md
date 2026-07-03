@@ -2,9 +2,9 @@
 
 # Part 21 — Comments, Likes, Mutations, and the Architecture of State Change
 
-> **Goal of this lesson:** Add comments and likes to GreyMatter Journal while learning how mutations work, what state transitions are, why optimistic updates exist, how transactions guarantee consistency, and why software systems are fundamentally machines for transforming state over time.
+> **Goal of this lesson:** Add comments and likes to GreyMatter Journal while learning how mutations work, what state transitions are, why optimistic updates exist, how transactions guarantee consistency, and why software systems are fundamentally machines for transforming state over time. [dev](https://dev.to/realacjoshua/nextjs-16-caching-explained-revalidation-tags-draft-mode-real-production-patterns-26dl)
 
----
+***
 
 # Up Until Now, Our Blog Has Been Read-Only
 
@@ -38,13 +38,17 @@ But they cannot:
 ✗ Create content
 ```
 
-This is because we've only built:
+In other words, we have only built:
 
-# Queries
+```text
+Queries
+```
 
----
+We’ve taught the system how to read; now we need to teach it how to write.
 
-# The Other Half Of Software
+***
+
+# The Other Half of Software
 
 Most beginners think:
 
@@ -80,9 +84,11 @@ Database
     └── Mutation
 ```
 
----
+Queries **observe** state; mutations **change** state.
 
-# What Is A Mutation?
+***
+
+# What Is a Mutation?
 
 Suppose we have:
 
@@ -117,9 +123,9 @@ Operation
 New State
 ```
 
-A mutation transforms one state into another.
+A mutation is any operation that transforms one state of the system into another.
 
----
+***
 
 # Software Is Really About State
 
@@ -131,7 +137,7 @@ Programming
 Writing Logic
 ```
 
-But computers spend most of their lives doing:
+But computers spend most of their time doing:
 
 ```text
 Current State
@@ -177,11 +183,13 @@ Create Comment
 Comment Exists
 ```
 
----
+Once you see everything as state and transitions, mutations stop being mysterious and start becoming systematic.
+
+***
 
 # Building Comments
 
-We'll create:
+We’ll extend posts with comments:
 
 ```text
 Post
@@ -201,9 +209,11 @@ Article
    └── Comment
 ```
 
----
+Each comment is a separate document that references a post.
 
-# Step 1 — Create The Comment Schema
+***
+
+# Step 1 — Create the Comment Schema
 
 Create:
 
@@ -214,75 +224,49 @@ studio/schemaTypes/comment.ts
 Add:
 
 ```typescript
-import {
-  defineField,
-  defineType,
-} from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "comment",
-
   title: "Comment",
-
   type: "document",
-
   fields: [
     defineField({
       name: "author",
-
       title: "Author",
-
       type: "string",
     }),
-
     defineField({
       name: "email",
-
       title: "Email",
-
       type: "string",
     }),
-
     defineField({
       name: "content",
-
       title: "Content",
-
       type: "text",
     }),
-
     defineField({
       name: "approved",
-
       title: "Approved",
-
       type: "boolean",
-
       initialValue: false,
     }),
-
     defineField({
       name: "post",
-
       title: "Post",
-
       type: "reference",
-
-      to: [
-        {
-          type: "post",
-        },
-      ],
+      to: [{ type: "post" }],
     }),
   ],
 });
 ```
 
----
+This gives us structured, relational comments with an explicit moderation flag. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-# Wait...
+***
 
-Why Add Approval?
+# Why Add Approval?
 
 Without moderation:
 
@@ -303,7 +287,7 @@ Abuse
 Garbage
 ```
 
-Instead:
+Instead, we want:
 
 ```text
 User
@@ -321,9 +305,11 @@ Editor Approval
 Published
 ```
 
----
+We’re turning comments into a small workflow, not just raw text.
 
-# This Is A State Machine
+***
+
+# This Is a State Machine
 
 Diagram:
 
@@ -339,13 +325,15 @@ Pending
 Approved
 ```
 
-A state machine simply means:
+A state machine is simply:
 
 > A system with valid states and legal transitions.
 
----
+You can later extend this with states like `Rejected`, `Flagged`, or `Archived` without changing the core mental model.
 
-# Step 2 — Register The Schema
+***
+
+# Step 2 — Register the Schema
 
 Open:
 
@@ -356,8 +344,7 @@ studio/schemaTypes/index.ts
 Add:
 
 ```typescript
-import comment
-  from "./comment";
+import comment from "./comment";
 
 export const schemaTypes = [
   post,
@@ -367,16 +354,16 @@ export const schemaTypes = [
 ];
 ```
 
----
+Now Sanity Studio knows about the `comment` document type and can display, edit, and query it. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-# Step 3 — Create The Form
+***
+
+# Step 3 — Create the Comment Form
 
 Create:
 
 ```text
-components/
-
-CommentForm.tsx
+components/CommentForm.tsx
 ```
 
 Add:
@@ -384,8 +371,7 @@ Add:
 ```tsx
 "use client";
 
-export default function
-CommentForm({
+export default function CommentForm({
   postId,
 }: {
   postId: string;
@@ -421,11 +407,11 @@ CommentForm({
 }
 ```
 
----
+This is a classic HTML-form flow: submit data to a server endpoint, let the server perform the mutation, then respond.
 
-# Wait...
+***
 
-Why Are Forms Still Important?
+# Why Are Forms Still Important?
 
 Many beginners think:
 
@@ -462,63 +448,38 @@ Server
 Mutation
 ```
 
----
+Forms are how the web has expressed “state changes” for decades; frameworks like Next.js simply modernize how we handle them.
 
-# Step 4 — Create API Endpoint
+***
+
+# Step 4 — Create the Comments API Endpoint
 
 Create:
 
 ```text
 app/
-
-api/
-
-comments/
-
-route.ts
+  api/
+    comments/
+      route.ts
 ```
 
 Add:
 
 ```typescript
-import {
-  writeClient,
-} from "@/lib/sanity";
+import { writeClient } from "@/lib/sanity";
 
-export async function POST(
-  request: Request
-) {
-  const data =
-    await request.formData();
+export async function POST(request: Request) {
+  const data = await request.formData();
 
   await writeClient.create({
     _type: "comment",
-
-    author:
-      data.get(
-        "author"
-      ),
-
-    email:
-      data.get(
-        "email"
-      ),
-
-    content:
-      data.get(
-        "content"
-      ),
-
+    author: data.get("author"),
+    email: data.get("email"),
+    content: data.get("content"),
     approved: false,
-
     post: {
-      _type:
-        "reference",
-
-      _ref:
-        data.get(
-          "postId"
-        ),
+      _type: "reference",
+      _ref: data.get("postId"),
     },
   });
 
@@ -528,11 +489,15 @@ export async function POST(
 }
 ```
 
----
+This endpoint:
 
-# Wait...
+- Accepts form data.
+- Writes a new `comment` document in Sanity.
+- Flags it as `approved: false` for moderation. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-Why Use A Separate Client?
+***
+
+# Why Use a Separate Client?
 
 Reading content:
 
@@ -561,7 +526,7 @@ Write Client
 Secret Token
 ```
 
-Never expose:
+We must never expose:
 
 ```text
 Write Tokens
@@ -569,9 +534,9 @@ Write Tokens
 
 to browsers.
 
----
+***
 
-# Step 5 — Create A Write Client
+# Step 5 — Create a Write Client
 
 Open:
 
@@ -582,26 +547,23 @@ lib/sanity.ts
 Add:
 
 ```typescript
-export const
-writeClient =
-  createClient({
-    projectId,
-
-    dataset,
-
-    apiVersion,
-
-    token:
-      process.env
-        .SANITY_API_TOKEN,
-
-    useCdn: false,
-  });
+export const writeClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  token: process.env.SANITY_API_TOKEN,
+  useCdn: false,
+});
 ```
 
----
+- The read client can use the CDN and public configuration.
+- The write client uses a secret token and bypasses the CDN because writes must go directly to the origin. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-# Why Is Mutation Different?
+Mutations are inherently more dangerous than queries, so they use different credentials, networks, and guardrails.
+
+***
+
+# Why Mutation Is Different
 
 Reading:
 
@@ -621,7 +583,9 @@ Because mutations create:
 Permanent Changes
 ```
 
----
+A bug in a query shows the wrong data; a bug in a mutation corrupts the data itself.
+
+***
 
 # Adding Likes
 
@@ -652,54 +616,48 @@ The system performs:
 43
 ```
 
----
+Likes are another small state machine: a numeric counter that changes over time with user actions.
 
-# Step 6 — Add Like Count
+***
 
-Update:
+# Step 6 — Add Like Count to the Schema
+
+Update your post schema:
 
 ```typescript
 defineField({
   name: "likes",
-
   type: "number",
-
   initialValue: 0,
 })
 ```
 
----
+Now each post can track its like count as a simple integer field. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-# Create Like Endpoint
+***
+
+# Create the Likes Endpoint
 
 Create:
 
 ```text
 app/
-
-api/
-
-likes/
-
-route.ts
+  api/
+    likes/
+      route.ts
 ```
 
 Add:
 
 ```typescript
-export async function POST(
-  request: Request
-) {
-  const body =
-    await request.json();
+import { writeClient } from "@/lib/sanity";
+
+export async function POST(request: Request) {
+  const body = await request.json();
 
   await writeClient
-    .patch(
-      body.id
-    )
-    .inc({
-      likes: 1,
-    })
+    .patch(body.id)
+    .inc({ likes: 1 })
     .commit();
 
   return Response.json({
@@ -708,15 +666,11 @@ export async function POST(
 }
 ```
 
----
+Sanity’s `patch().inc()` performs an atomic increment on the `likes` field. [sanity](https://www.sanity.io/blog/build-your-own-blog-with-sanity-and-next-js)
 
-# Wait...
+***
 
-Why Not Do This?
-
-```typescript
-likes = likes + 1;
-```
+# Why Not Just Do `likes = likes + 1`?
 
 Suppose:
 
@@ -727,7 +681,7 @@ User B
 
 both click simultaneously.
 
-Without atomic operations:
+Naive flow:
 
 ```text
 42
@@ -747,11 +701,13 @@ Result:
 
 Wrong.
 
----
+We lost a like because two updates raced against each other.
+
+***
 
 # Atomic Operations
 
-Instead:
+With atomic increments:
 
 ```text
 42
@@ -780,9 +736,11 @@ Atomic Operation
 Correct Result
 ```
 
----
+Atomic operations let the database handle concurrency; multiple clients can safely update the same value without stepping on each other.
 
-# This Is Called A Race Condition
+***
+
+# This Is Called a Race Condition
 
 Diagram:
 
@@ -799,9 +757,11 @@ User A ────┐
 User B ────┘
 ```
 
-Multiple actors compete to change state.
+Multiple actors compete to change state at the same time.
 
----
+Race conditions are not bugs in a single function; they are bugs in the **timing** of interactions between functions.
+
+***
 
 # Optimistic Updates
 
@@ -833,32 +793,33 @@ Update Immediately
 Server Confirms Later
 ```
 
----
+The UI behaves as if the operation succeeded, and only corrects itself if the server later disagrees. [dev](https://dev.to/realacjoshua/nextjs-16-caching-explained-revalidation-tags-draft-mode-real-production-patterns-26dl)
 
-# Example
+***
+
+# Example of an Optimistic Like
 
 ```tsx
-const handleLike =
-  async () => {
+const handleLike = async () => {
+  setLikes(likes + 1);
 
-    setLikes(
-      likes + 1
-    );
+  const response = await fetch("/api/likes", {
+    method: "POST",
+    body: JSON.stringify({ id: postId }),
+  });
 
-    await fetch(
-      "/api/likes",
-      {
-        method: "POST",
-      }
-    );
-  };
+  if (!response.ok) {
+    // Roll back if the server failed
+    setLikes(likes);
+  }
+};
 ```
 
----
+This pattern trades short-term accuracy for responsiveness; the UI feels instant, even over slow networks.
 
-# Wait...
+***
 
-What If The Server Fails?
+# What If the Server Fails?
 
 Then:
 
@@ -886,11 +847,13 @@ Now we must:
 Rollback
 ```
 
----
+or reconcile later, accepting that client and server may temporarily disagree.
+
+***
 
 # This Is Eventual Consistency Again
 
-We've seen:
+We’ve already seen:
 
 ```text
 Draft vs Published
@@ -898,25 +861,23 @@ Draft vs Published
 Cache vs Database
 ```
 
-Now:
+Now we add:
 
 ```text
 Client vs Server
 ```
 
-Temporary disagreement is normal.
+Temporary disagreement is normal; the important property is that the system converges to a consistent state eventually. [dev](https://dev.to/realacjoshua/nextjs-16-caching-explained-revalidation-tags-draft-mode-real-production-patterns-26dl)
 
----
+***
 
 # Transactions
 
-Suppose:
+Suppose a single user action should cause:
 
 ```text
 Create Comment
-
 Send Email
-
 Update Counter
 ```
 
@@ -932,9 +893,9 @@ Email Failed
 Counter Wrong
 ```
 
-Bad.
+The system ends up in a partially updated, inconsistent state.
 
----
+***
 
 # Transactions Guarantee:
 
@@ -958,11 +919,13 @@ Transaction
       └── Rollback
 ```
 
----
+Transactions ensure that related mutations either all succeed together or all fail together.
+
+***
 
 # Event-Driven Architecture
 
-Suppose someone comments:
+Suppose someone submits a comment:
 
 ```text
 Comment Created
@@ -993,7 +956,9 @@ Comment
     └── Cache
 ```
 
----
+Instead of doing everything synchronously in a single request, we emit events and let downstream systems react.
+
+***
 
 # Modern Systems Are Event Systems
 
@@ -1005,7 +970,7 @@ Request
 Response
 ```
 
-Modern architectures often work as:
+Modern architectures often behave like:
 
 ```text
 Event
@@ -1016,9 +981,11 @@ Event
     └── Action
 ```
 
----
+APIs, queues, webhooks, and background workers form an ecosystem driven by events, not just individual HTTP requests.
 
-# The Hidden Architecture
+***
+
+# The Hidden Architecture of a Comment
 
 When a user submits a comment:
 
@@ -1058,13 +1025,13 @@ Event
 UI Update
 ```
 
----
+What looks like “I typed a comment and hit submit” is actually a pipeline of state transitions and events.
 
-# Wait...
+***
 
-Does This Look Familiar?
+# State Trees
 
-We've already seen:
+We’ve already seen:
 
 ```text
 React Trees
@@ -1090,9 +1057,11 @@ through
 time.
 ```
 
----
+Different branches represent different possible futures as mutations are applied or rolled back.
 
-# The Deep Secret Of Software Engineering
+***
+
+# The Deep Secret of Software Engineering
 
 Beginners think:
 
@@ -1112,7 +1081,7 @@ State
 Transitions
 ```
 
-Questions become:
+Key questions:
 
 ```text
 What state exists?
@@ -1128,7 +1097,9 @@ What if the change fails?
 Can it be reversed?
 ```
 
----
+Architecting systems is largely about answering these questions consistently.
+
+***
 
 # Mental Model To Remember Forever
 
@@ -1162,17 +1133,18 @@ Machines
                 Time
 ```
 
-Once you understand this, concepts like CRUD, events, transactions, messaging systems, distributed systems, and AI agent workflows become manifestations of the same fundamental principle.
+Once you understand this, concepts like CRUD, events, transactions, messaging systems, distributed systems, and AI agent workflows all become manifestations of the same fundamental principle. [dev](https://dev.to/realacjoshua/nextjs-16-caching-explained-revalidation-tags-draft-mode-real-production-patterns-26dl)
 
----
+***
 
 # Up Next
 
-In **Part 22**, we'll implement image uploads, optimization, and CDN delivery while learning:
+In **Part 22**, we’ll implement image uploads, optimization, and CDN delivery while exploring:
 
-* binary data,
-* object storage,
-* CDNs,
-* image transformation pipelines,
-* caching hierarchies,
-* and why the internet is fundamentally a giant distributed content delivery system.
+- binary data,
+- object storage,
+- CDNs,
+- image transformation pipelines,
+- caching hierarchies,
+
+and why the internet is fundamentally a giant distributed content delivery system.
