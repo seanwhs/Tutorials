@@ -1,696 +1,218 @@
-# GreyMatter Journal
-
-# Part 2 — Understanding the App Router: Why Modern Web Applications Are Not Collections of Pages
-
-> **Goal of this lesson:** Understand what the Next.js App Router actually is, why folders become URLs, what `page.tsx` and `layout.tsx` do, and why modern web applications are built as persistent UI trees rather than disconnected pages.
+**✅ Part 2 — Understanding the App Router**
 
 ---
 
-# The Biggest Mental Shift In Next.js
+# GreyMatter Journal  
+## Part 2 — Understanding the App Router: Why Modern Web Applications Are Not Collections of Pages
 
-One of the hardest things for beginners to understand about Next.js is that modern web applications are **not really collections of pages**.
+> **Goal of this lesson:** Master the **Next.js App Router**, understand why folders become routes, the power of `page.tsx` and `layout.tsx`, and why modern applications are built as **persistent UI trees** instead of isolated pages.
 
-Most of us learned web development like this:
+---
 
-```text id="h71sux"
+### The Biggest Mental Shift in Next.js
+
+Traditional web development taught us to think in **static pages**:
+
+```text
 home.html
 about.html
-contact.html
 blog.html
-```
-
-Every file represented a page.
-
-When users clicked a link:
-
-```text id="jdhj8m"
-Page A
-    ↓
-destroy everything
-    ↓
-load Page B
-```
-
-This model worked for decades.
-
-Unfortunately, modern applications don't behave this way.
-
----
-
-# Think About The Applications You Use Every Day
-
-Consider:
-
-* Gmail
-* YouTube
-* LinkedIn
-* GitHub
-* Notion
-* ChatGPT
-
-When you navigate, does everything disappear?
-
-No.
-
-For example:
-
-```text id="u0r3rr"
-Sidebar
-    ↓
-stays
-
-Navbar
-    ↓
-stays
-
-User menu
-    ↓
-stays
-
-Theme
-    ↓
-stays
-
-Content
-    ↓
-changes
-```
-
-What you're actually seeing is this:
-
-```text id="ik24h2"
-Persistent UI
-        +
-Changing UI
-```
-
----
-
-# Traditional Website Thinking
-
-Traditional websites think like this:
-
-```text id="58v22r"
-Page 1
-```
-
-```text id="89s9k2"
-Page 2
-```
-
-```text id="qjlwmz"
-Page 3
-```
-
-Each page is completely independent.
-
-Diagram:
-
-```text id="hmkjlwm"
-Browser
-    │
-    ▼
-Page A
-
-Browser
-    │
-    ▼
-Page B
-
-Browser
-    │
-    ▼
-Page C
-```
-
-Everything gets rebuilt.
-
----
-
-# Modern Application Thinking
-
-Modern applications think differently.
-
-Instead of pages, they build:
-
-```text id="w3c0jr"
-Application Tree
-```
-
-Diagram:
-
-```text id="7yx30o"
-Application
-
-├── Navbar
-├── Sidebar
-├── Footer
-└── Content
-```
-
-When navigation occurs:
-
-```text id="h4ftkq"
-Navbar
-    stays
-
-Sidebar
-    stays
-
-Footer
-    stays
-
-Content
-    changes
-```
-
-This creates:
-
-* faster navigation,
-* less rendering,
-* preserved state,
-* better user experience.
-
----
-
-# Why Next.js Created The App Router
-
-Before Next.js 13, applications used something called the **Pages Router**.
-
-Example:
-
-```text id="gv2es5"
-pages/
-
-index.tsx
-about.tsx
-contact.tsx
-blog.tsx
-```
-
-This worked well for websites.
-
-It worked less well for applications.
-
-Why?
-
-Because applications need:
-
-* persistent layouts,
-* nested interfaces,
-* streaming,
-* server components,
-* partial rendering.
-
-The App Router was created to solve these problems.
-
----
-
-# The App Router Philosophy
-
-The App Router asks a different question.
-
-Instead of asking:
-
-> Which page are we rendering?
-
-it asks:
-
-> Which part of the application tree changed?
-
-This is a fundamental shift.
-
----
-
-# Our First App Router Project
-
-Inside our project, you'll find:
-
-```text id="n7d5zt"
-greymatter-journal/
-
-app/
-    layout.tsx
-    page.tsx
-```
-
-At first, this seems strange.
-
-Why don't we have:
-
-```text id="4aewv7"
-index.html
-about.html
 contact.html
 ```
 
-Because the App Router uses folders as routes.
+Clicking a link meant:
+- Destroy the current page completely
+- Load the entire new page from scratch
+
+Modern applications (Gmail, Notion, GitHub, Linear, etc.) don’t work this way. They feel continuous.
+
+**What stays:**
+- Navigation bar
+- Sidebar
+- Footer
+- Theme / user state
+
+**What changes:**
+- Only the main content area
+
+This is the core idea behind the **App Router**.
 
 ---
 
-# Folders Become URLs
+### Traditional Pages vs Modern Applications
 
-Suppose we create:
-
-```text id="qwgxmd"
-app/
-
-about/
-    page.tsx
-
-posts/
-    page.tsx
-
-authors/
-    page.tsx
-```
-
-Next.js automatically creates:
-
-```text id="fijlk9"
-/about
-
-/posts
-
-/authors
-```
-
-No router configuration.
-
-No route registration.
-
-No setup.
-
-The filesystem becomes the router.
+| Aspect                  | Traditional Pages               | Modern Applications (App Router)     |
+|-------------------------|----------------------------------|--------------------------------------|
+| Navigation              | Full page reload                 | Partial update                       |
+| Layouts                 | Duplicated across files          | Persistent & nested                  |
+| State                   | Lost on navigation               | Preserved                            |
+| Performance             | Slower                           | Faster (less re-rendering)           |
+| User Experience         | Disjointed                       | Smooth & app-like                    |
 
 ---
 
-# Example
+### The App Router Philosophy
 
-Consider this structure:
+The App Router changes the fundamental question from:
 
-```text id="2c57uk"
-app/
+> “Which page should I show?”
 
-page.tsx
-about/page.tsx
-contact/page.tsx
-blog/page.tsx
-```
+to:
 
-Next.js builds:
+> “Which **parts** of the UI tree need to change?”
 
-| File                   | URL        |
-| ---------------------- | ---------- |
-| `app/page.tsx`         | `/`        |
-| `app/about/page.tsx`   | `/about`   |
-| `app/contact/page.tsx` | `/contact` |
-| `app/blog/page.tsx`    | `/blog`    |
+It uses the **file system** as the router — a concept called **file-system routing**.
 
 ---
 
-# What Is page.tsx?
+### Folders = Routes
 
-A `page.tsx` file defines what content appears at a route.
+In the `app/` directory:
 
-Example:
+| File / Folder Structure                    | Resulting URL          |
+|-------------------------------------------|------------------------|
+| `app/page.tsx`                            | `/` (homepage)         |
+| `app/about/page.tsx`                      | `/about`               |
+| `app/posts/page.tsx`                      | `/posts`               |
+| `app/posts/[slug]/page.tsx`               | `/posts/my-first-post` |
+| `app/admin/(dashboard)/page.tsx`          | `/admin` (route group) |
 
-```tsx id="4hrlb6"
+**Route groups** (folders wrapped in parentheses) like `(site)` do **not** affect the URL — they are used for organization (as shown in **Appendix B**).
+
+---
+
+### Core Building Blocks
+
+#### 1. `page.tsx` — The Content
+
+Every route needs a `page.tsx` file to define what is rendered at that URL.
+
+```tsx
+// app/page.tsx
 export default function HomePage() {
-  return <h1>GreyMatter Journal</h1>;
+  return (
+    <div>
+      <h1 className="text-4xl font-bold">GreyMatter Journal</h1>
+      <p>Exploring software engineering and systems thinking.</p>
+    </div>
+  );
 }
 ```
 
-This creates:
+#### 2. `layout.tsx` — The Persistent UI
 
-```text id="h7c48d"
-/
-```
+Layouts wrap pages and persist across navigation.
 
-Another example:
-
-```tsx id="gk25dr"
-export default function AboutPage() {
-  return <h1>About Us</h1>;
-}
-```
-
-inside:
-
-```text id="ijpbld"
-app/about/page.tsx
-```
-
-creates:
-
-```text id="14jdqc"
-/about
-```
-
----
-
-# What Is layout.tsx?
-
-This is where the App Router becomes powerful.
-
-A layout defines UI that persists between routes.
-
-Example:
-
-```tsx id="klydba"
-export default function Layout({
+```tsx
+// app/layout.tsx
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <nav>Navbar</nav>
-      {children}
-      <footer>Footer</footer>
-    </>
+    <html lang="en">
+      <body>
+        <nav>Persistent Navigation</nav>
+        {children}        {/* ← Page content goes here */}
+        <footer>Persistent Footer</footer>
+      </body>
+    </html>
   );
 }
 ```
 
-Notice:
-
-```text id="g15n9l"
-Navbar
-    stays
-
-Footer
-    stays
-
-children
-    changes
-```
+**Key insight:** The `children` prop represents the content of the current page (or nested layout).
 
 ---
 
-# Understanding children
+### Nested Layouts — The Real Power
 
-Suppose we have:
+You can create layouts at any level:
 
-```text id="dbxwji"
+```text
 app/
-
-layout.tsx
-page.tsx
-about/page.tsx
+├── layout.tsx                 ← Root Layout (applies everywhere)
+├── page.tsx
+├── posts/
+│   ├── layout.tsx             ← Posts-specific layout (sidebar, etc.)
+│   ├── page.tsx               ← /posts
+│   └── [slug]/
+│       └── page.tsx           ← /posts/my-post
 ```
 
-and:
+**Visual Tree:**
 
-```tsx id="j0ijow"
-export default function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <nav>Navbar</nav>
-
-      {children}
-
-      <footer>Footer</footer>
-    </>
-  );
-}
-```
-
-When visiting:
-
-```text id="q8pb0u"
-/
-```
-
-Next.js builds:
-
-```text id="wwic7n"
-Layout
+```text
+Root Layout
    ├── Navbar
-   ├── HomePage
+   ├── Posts Layout          ← Only active under /posts
+   │     ├── Sidebar
+   │     └── {children}
    └── Footer
 ```
 
-When visiting:
+When navigating between posts, the **Root Layout** and **Posts Layout** stay mounted. Only the innermost page changes.
 
-```text id="r0c9r1"
-/about
-```
-
-Next.js builds:
-
-```text id="up6z1e"
-Layout
-   ├── Navbar
-   ├── AboutPage
-   └── Footer
-```
-
-The layout remains.
-
-Only the children change.
+**Benefits:**
+- Preserved component state
+- Reduced JavaScript execution
+- Better performance
+- Smoother user experience
 
 ---
 
-# Nested Layouts
+### The GreyMatter Journal Structure (Preview)
 
-This becomes even more powerful.
+As defined in **Appendix B**, our final routing will look like this:
 
-Consider:
-
-```text id="jz3s7m"
+```text
 app/
-
-layout.tsx
-
-posts/
-    layout.tsx
-    page.tsx
-
-posts/[slug]/
-    page.tsx
+├── (site)/                    ← Route group (no URL impact)
+│   ├── page.tsx               ← Homepage
+│   ├── posts/
+│   │   ├── page.tsx
+│   │   └── [slug]/
+│   │       └── page.tsx
+│   └── about/
+│       └── page.tsx
+├── globals.css
+└── layout.tsx                 ← Root layout
 ```
 
-Diagram:
-
-```text id="jlwm6m"
-Root Layout
-       │
-       ▼
- Posts Layout
-       │
-       ▼
-   Post Page
-```
-
-Visiting:
-
-```text id="phw6cn"
-/posts
-```
-
-renders:
-
-```text id="1on0n8"
-Root Layout
-      ↓
-Posts Layout
-      ↓
-Posts Page
-```
-
-Visiting:
-
-```text id="4ovmio"
-/posts/react-server-components
-```
-
-renders:
-
-```text id="5nvtyd"
-Root Layout
-      ↓
-Posts Layout
-      ↓
-Article Page
-```
+This organization keeps the project clean and scalable.
 
 ---
 
-# Why Layouts Matter
+### Mental Model To Remember Forever
 
-Imagine a navigation sidebar.
-
-Without layouts:
-
-```text id="mbg2df"
-navigate
-    ↓
-destroy sidebar
-    ↓
-rebuild sidebar
+**Wrong mental model:**
+```text
+Next.js = Collection of Pages
 ```
 
-With layouts:
-
-```text id="yzocws"
-navigate
-    ↓
-keep sidebar
-    ↓
-change content
-```
-
-Benefits:
-
-* faster rendering,
-* preserved state,
-* fewer network requests,
-* smoother navigation.
-
----
-
-# How Next.js Thinks About Your Application
-
-Beginners think:
-
-```text id="36zn3o"
-Website
-   ↓
-Pages
-```
-
-Next.js thinks:
-
-```text id="40obdn"
-Application
-       ↓
-Layouts
-       ↓
-Layouts
-       ↓
-Layouts
-       ↓
-Page
-```
-
-Example:
-
-```text id="c7h2dn"
-Root Layout
-    │
-    ▼
-Blog Layout
-    │
-    ▼
-Article Layout
-    │
-    ▼
-Article Page
-```
-
----
-
-# The GreyMatter Journal Architecture
-
-Eventually, our project will look like this:
-
-```text id="xjlwm7"
-app/
-
-layout.tsx
-
-page.tsx
-
-articles/
-    layout.tsx
-    page.tsx
-
-    [slug]/
-        page.tsx
-
-authors/
-    page.tsx
-
-    [slug]/
-        page.tsx
-
-categories/
-    page.tsx
-
-    [slug]/
-        page.tsx
-```
-
-Visually:
-
-```text id="lcvz3t"
-Root Layout
-      │
-      ├── Home
-      │
-      ├── Articles
-      │        └── Article
-      │
-      ├── Authors
-      │        └── Author
-      │
-      └── Categories
-               └── Category
-```
-
----
-
-# Mental Model To Remember Forever
-
-The biggest mistake beginners make is thinking:
-
-```text id="mjmhln"
-Next.js = Pages
-```
-
-The correct mental model is:
-
-```text id="xjlwm8"
+**Correct mental model:**
+```text
 Next.js = UI Tree
-```
-
-More specifically:
-
-```text id="3r6nrm"
-Application
       ↓
-Layouts
+Root Layout
       ↓
 Nested Layouts
       ↓
-Pages
+Page Component
       ↓
-Components
+Child Components
 ```
 
-Modern web applications are not collections of pages.
-
-They are collections of user interfaces that persist while parts of the interface change.
+Modern web applications are **composable user interfaces** where stable parts stay and dynamic parts update efficiently.
 
 ---
 
-# Up Next
+### Up Next — Part 3: Deep Dive into `app/layout.tsx`
 
-In **Part 3**, we'll explore one of the most confusing files in every Next.js application:
-
-```text id="p9xygn"
-app/layout.tsx
-```
-
-We'll learn:
-
-* what RootLayout actually is,
-* what `children` actually means,
-* what `React.ReactNode` actually means,
-* why every Next.js application requires a layout,
-* and how layouts fundamentally changed web application architecture.
+We’ll examine the root layout in detail and learn:
+- Why every Next.js app needs a root layout
+- How to structure HTML document (`<html>`, `<body>`)
+- What `React.ReactNode` really means
+- How to add global styles, fonts, and providers
+- Best practices for the GreyMatter Journal design
