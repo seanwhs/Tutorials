@@ -1,225 +1,47 @@
-# GreyMatter Journal
-
-# Part 15 — Layouts, Navigation, and the Architecture of Persistent User Interfaces
-
-> **Goal of this lesson:** Build the navigation system for GreyMatter Journal and understand one of the most important concepts in modern web architecture: persistent UI trees, nested layouts, and why Next.js applications are actually trees composed of other trees.
+# **✅ Part 15 — Layouts, Navigation, and Persistent UI**
 
 ---
 
-# Our Blog Finally Feels Like A Blog
+# GreyMatter Journal  
+## Part 15 — Layouts, Navigation, and the Architecture of Persistent User Interfaces
 
-At this point, we have:
-
-```text
-✓ Homepage
-✓ Dynamic Articles
-✓ Portable Text
-✓ Images
-✓ Authors
-✓ Categories
-✓ Routing
-```
-
-But something still feels missing.
-
-Most real websites have:
-
-```text
-Logo
-Navigation
-Content
-Footer
-```
-
-Like this:
-
-```text
-+--------------------------------+
-| GreyMatter Journal             |
-| Home Articles About            |
-+--------------------------------+
-|                                |
-|          Content               |
-|                                |
-+--------------------------------+
-|          Footer                |
-+--------------------------------+
-```
+> **Goal of this lesson:** Implement a clean navigation system and deeply understand why modern web applications are built as **persistent UI trees**.
 
 ---
 
-# How Beginners Think About Pages
+### From Static Pages to Persistent Applications
 
-Many beginners imagine:
-
-```text
-Home Page
-About Page
-Article Page
-```
-
-as completely separate pages.
-
-Diagram:
-
-```text
-Page A
-
-Page B
-
-Page C
-```
-
-But modern applications don't work this way.
+Our blog now has real content, but it still lacks the consistent shell that makes great websites feel cohesive.
 
 ---
 
-# How Next.js Thinks About Applications
+### Create the Navigation
 
-Next.js thinks:
-
-```text
-Application
-      │
-      ├── Shared UI
-      │
-      └── Page Content
-```
-
-Diagram:
-
-```text
-Application
-
-       │
-
-       ├── Navigation
-       │
-       ├── Main Content
-       │
-       └── Footer
-```
-
-This distinction changes everything.
-
----
-
-# Remember RootLayout?
-
-Back in Part 2, we learned:
+Create `components/layout/Navbar.tsx`:
 
 ```tsx
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html>
-      <body>
-        {children}
-      </body>
-    </html>
-  );
-}
-```
-
-At the time, it seemed mysterious.
-
-Now we can understand it properly.
-
----
-
-# What Is `children` Really?
-
-Most beginners think:
-
-```text
-children
-      =
-magic
-```
-
-Not quite.
-
-Consider JavaScript:
-
-```javascript
-function Wrapper(
-  content
-) {
-  return `
-    <div>
-      ${content}
-    </div>
-  `;
-}
-```
-
-React works similarly:
-
-```tsx
-function Layout({
-  children
-}) {
-  return (
-    <div>
-      {children}
-    </div>
-  );
-}
-```
-
-Diagram:
-
-```text
-Layout
-
-    ┌──────────┐
-    │ Header   │
-    │          │
-    │children  │
-    │          │
-    │ Footer   │
-    └──────────┘
-```
-
----
-
-# Building Our Navigation Component
-
-Create:
-
-```text
-components/
-
-Navbar.tsx
-```
-
-Add:
-
-```tsx
-import Link
-  from "next/link";
+import Link from "next/link";
 
 export default function Navbar() {
   return (
-    <nav>
-      <Link href="/">
-        Home
-      </Link>
+    <nav className="border-b bg-white sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+        <Link href="/" className="text-2xl font-bold tracking-tight">
+          GreyMatter Journal
+        </Link>
 
-      {" | "}
-
-      <Link href="/articles">
-        Articles
-      </Link>
-
-      {" | "}
-
-      <Link href="/about">
-        About
-      </Link>
+        <div className="flex items-center gap-8 text-sm font-medium">
+          <Link href="/" className="hover:text-gray-600 transition-colors">
+            Home
+          </Link>
+          <Link href="/posts" className="hover:text-gray-600 transition-colors">
+            Posts
+          </Link>
+          <Link href="/about" className="hover:text-gray-600 transition-colors">
+            About
+          </Link>
+        </div>
+      </div>
     </nav>
   );
 }
@@ -227,121 +49,18 @@ export default function Navbar() {
 
 ---
 
-# Wait...
+### Create the Footer
 
-Why Are We Using `Link`?
-
-Why not:
-
-```html
-<a href="/">
-  Home
-</a>
-```
-
-Because:
-
-```html
-<a>
-```
-
-causes:
-
-```text
-Browser
-      ↓
-Reload Entire Page
-```
-
-But:
-
-```tsx
-<Link>
-```
-
-causes:
-
-```text
-Next.js Router
-         ↓
-Replace UI
-```
-
-Diagram:
-
-```text
-Traditional
-
-Click
-   ↓
-Reload
-   ↓
-New Page
-
-Next.js
-
-Click
-   ↓
-Router
-   ↓
-Update UI
-```
-
----
-
-# What Is Client-Side Navigation?
-
-Traditional websites:
-
-```text
-Page A
-   ↓
-Server
-   ↓
-Page B
-```
-
-Modern applications:
-
-```text
-Application
-       │
-       ▼
-Replace
-Small Portion
-Of UI
-```
-
-This creates:
-
-```text
-✓ Faster transitions
-✓ Less downloading
-✓ Better UX
-```
-
----
-
-# Creating The Footer
-
-Create:
-
-```text
-components/
-
-Footer.tsx
-```
-
-Add:
+Create `components/layout/Footer.tsx`:
 
 ```tsx
 export default function Footer() {
   return (
-    <footer>
-      <p>
-        © 2026
-        GreyMatter Journal
-      </p>
+    <footer className="border-t mt-24 py-12 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-6 text-center text-sm text-gray-500">
+        © {new Date().getFullYear()} GreyMatter Journal. 
+        Built with Next.js 16 and Sanity.
+      </div>
     </footer>
   );
 }
@@ -349,22 +68,18 @@ export default function Footer() {
 
 ---
 
-# Updating RootLayout
-
-Open:
-
-```text
-app/layout.tsx
-```
-
-Update:
+### Update Root Layout (`app/layout.tsx`)
 
 ```tsx
-import Navbar
-  from "@/components/Navbar";
+import type { Metadata } from "next";
+import "./globals.css";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 
-import Footer
-  from "@/components/Footer";
+export const metadata: Metadata = {
+  title: "GreyMatter Journal",
+  description: "Exploring software engineering, systems thinking, and architecture.",
+};
 
 export default function RootLayout({
   children,
@@ -373,11 +88,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-white text-gray-900 antialiased">
         <Navbar />
-
-        {children}
-
+        <main>{children}</main>
         <Footer />
       </body>
     </html>
@@ -387,532 +100,57 @@ export default function RootLayout({
 
 ---
 
-# What Happens Now?
+### Understanding Persistent UI
 
-Suppose the user visits:
+When navigating between pages:
 
-```text
-/
-```
+- **Root Layout** stays mounted
+- **Navbar** and **Footer** remain
+- Only `children` (the current page) changes
 
-Next.js creates:
+This is the power of the App Router and layouts.
 
-```text
-RootLayout
-
-     │
-
-     ├── Navbar
-     │
-     ├── HomePage
-     │
-     └── Footer
-```
-
-If they navigate to:
-
-```text
-/posts/react
-```
-
-Next.js creates:
-
-```text
-RootLayout
-
-     │
-
-     ├── Navbar
-     │
-     ├── PostPage
-     │
-     └── Footer
-```
-
-Notice something important?
+**Benefits:**
+- Preserved state (search input, theme, etc.)
+- Faster navigation
+- Smoother user experience
+- Reduced re-rendering
 
 ---
 
-# Navbar Never Changes
+### Create Supporting Pages
 
-Diagram:
+- `app/about/page.tsx`
+- `app/posts/page.tsx` (list view)
 
-```text
-Before
-
-Navbar
-Home
-Footer
-
-
-After
-
-Navbar
-Post
-Footer
-```
-
-Only:
-
-```text
-children
-```
-
-changed.
-
-This is called:
-
-# Persistent UI
+These pages benefit from the shared layout automatically.
 
 ---
 
-# Why Is This Important?
+### Mental Model To Remember Forever
 
-Traditional websites:
-
+**Old web:**
 ```text
-Destroy Everything
-
-Rebuild Everything
+Separate Pages
 ```
 
-Modern applications:
-
+**Modern web:**
 ```text
-Keep Shared UI
-
-Update Dynamic UI
+Persistent Shell + Dynamic Content
 ```
 
-Benefits:
-
-```text
-✓ Faster
-✓ Less Work
-✓ Better UX
-✓ Shared State
-```
-
----
-
-# Let's Create An About Page
-
-Create:
-
-```text
-app/
-
-about/
-
-page.tsx
-```
-
-Add:
-
-```tsx
-export default function AboutPage() {
-  return (
-    <>
-      <h1>
-        About
-      </h1>
-
-      <p>
-        GreyMatter Journal
-        explores software
-        architecture,
-        systems design,
-        and AI-era
-        engineering.
-      </p>
-    </>
-  );
-}
-```
-
-Visit:
-
-```text
-/about
-```
-
-Notice:
-
-```text
-Navbar remains.
-
-Footer remains.
-
-Only content changes.
-```
-
----
-
-# But Wait...
-
-Our navigation contains:
-
-```text
-/articles
-```
-
-We don't have that route.
-
-Let's create it.
-
----
-
-# Create The Articles Route
-
-Create:
-
-```text
-app/
-
-articles/
-
-page.tsx
-```
-
-Add:
-
-```tsx
-import Link
-  from "next/link";
-
-import { client }
-  from "@/lib/sanity";
-
-import {
-  POSTS_QUERY,
-} from "@/lib/queries";
-
-export default async function
-ArticlesPage() {
-  const posts =
-    await client.fetch(
-      POSTS_QUERY
-    );
-
-  return (
-    <>
-      <h1>
-        Articles
-      </h1>
-
-      {posts.map(post => (
-        <article
-          key={post._id}
-        >
-          <Link
-            href={
-              `/posts/${post.slug.current}`
-            }
-          >
-            {post.title}
-          </Link>
-        </article>
-      ))}
-    </>
-  );
-}
-```
-
----
-
-# Notice Something Interesting
-
-This page:
-
-```tsx
-export default async function
-ArticlesPage()
-```
-
-is:
-
-```text
-Server Component
-```
-
-while:
-
-```tsx
-<Link>
-```
-
-is:
-
-```text
-Client Navigation
-```
-
-Diagram:
-
-```text
-Server
-
-Render HTML
-
-       │
-       ▼
-
-Browser
-
-       │
-       ▼
-
-Client Router
-```
-
-Modern applications mix:
-
-```text
-Server
-+
-Client
-```
-
-continuously.
-
----
-
-# Nested Layouts
-
-Suppose we want:
-
-```text
-Articles
-
-├── Categories
-├── Search
-└── Content
-```
-
-Next.js allows:
-
-```text
-app/
-
-articles/
-
-    layout.tsx
-
-    page.tsx
-
-    [slug]/
-```
-
-Diagram:
-
-```text
-RootLayout
-
-      │
-
-      ▼
-
-ArticlesLayout
-
-      │
-
-      ▼
-
-ArticlePage
-```
-
----
-
-# This Creates Nested UI Trees
-
-Example:
+Or more deeply:
 
 ```text
 Application
-
-     │
-
-     ├── Navbar
-     │
-     ├── Articles Layout
-     │       │
-     │       ├── Sidebar
-     │       │
-     │       └── Article
-     │
-     └── Footer
+   = Tree of Trees
+   (Layout Tree + Route Tree + Component Tree)
 ```
 
-Notice:
-
-```text
-Tree
-inside
-tree
-inside
-tree
-```
+Next.js applications are **composable trees** — one of the most powerful ideas in modern frontend architecture.
 
 ---
 
-# Wait...
+### Up Next — Part 16: Search & Filtering
 
-Does This Look Familiar?
-
-We've already seen:
-
-```text
-Portable Text Tree
-
-React Tree
-
-Route Tree
-
-Folder Tree
-```
-
-Now:
-
-```text
-Layout Tree
-```
-
-appears too.
-
----
-
-# The Hidden Secret Of Next.js
-
-A Next.js application is actually:
-
-```text
-Filesystem Tree
-          ↓
-Route Tree
-          ↓
-Layout Tree
-          ↓
-React Tree
-          ↓
-HTML Tree
-```
-
-Diagram:
-
-```text
-Folders
-    ↓
-
-Routes
-    ↓
-
-Layouts
-    ↓
-
-Components
-    ↓
-
-HTML
-```
-
-Everything transforms into another tree.
-
----
-
-# Why Persistent Layouts Matter
-
-Suppose your navbar contains:
-
-```text
-Search Box
-Notifications
-Theme
-User Profile
-```
-
-Without persistence:
-
-```text
-Reload
-Lose Everything
-```
-
-With persistence:
-
-```text
-Keep State
-Replace Content
-```
-
-Diagram:
-
-```text
-Navbar State
-
-       │
-       ▼
-
-Page Change
-
-       │
-       ▼
-
-Navbar State
-Preserved
-```
-
----
-
-# Mental Model To Remember Forever
-
-Beginners think:
-
-```text
-Website
-      =
-Pages
-```
-
-Modern frameworks think:
-
-```text
-Website
-      =
-Persistent UI Tree
-      +
-Dynamic Subtrees
-```
-
-Or even more abstractly:
-
-```text
-Application
-       =
-Tree Of Trees
-```
-
-Examples:
-
-```text
-Filesystem
-Routing
-Layouts
-React
-Portable Text
-DOM
-```
-
-Once you understand that software architecture is largely the organization and transformation of trees, modern frameworks become dramatically easier to understand.
-
----
-
-# Up Next
-
-In **Part 16**, we'll build search and filtering for GreyMatter Journal and learn:
-
-* what query languages really are,
-* how GROQ filtering works,
-* how search engines think,
-* server-side search versus client-side search,
-* URL search parameters,
-* and why databases are fundamentally systems for traversing graphs and trees.
+We’ll implement search and category filtering, exploring GROQ queries, URL parameters, and server-side data operations.
