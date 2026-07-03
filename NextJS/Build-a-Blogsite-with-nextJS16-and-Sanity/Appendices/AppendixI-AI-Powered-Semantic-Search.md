@@ -1,4 +1,4 @@
-# Appendix H — AI-Powered Search, Maintenance, and Evolutionary Growth
+# Appendix I — AI-Powered Search, Maintenance, and Evolutionary Growth
 
 > **Goal of this appendix:** Master the operational intelligence of your application. Learn how to implement semantic search, manage AI knowledge systems, and maintain your architecture as a "living garden" that scales alongside your users.
 
