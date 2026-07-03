@@ -2,11 +2,11 @@
 
 # Part 23 — Deploying to Production, CI/CD, Edge Networks, and the Architecture of Software Delivery
 
-> **Goal of this lesson:** Deploy GreyMatter Journal to production while learning what deployment actually means, how CI/CD pipelines work, what edge networks are, why environment variables exist, and why software engineering ultimately concerns transforming source code into running systems.
+> **Goal of this lesson:** Deploy GreyMatter Journal to production while learning what deployment actually means, how CI/CD pipelines work, what edge networks are, why environment variables exist, and why software engineering ultimately concerns transforming source code into running systems. [nextjs](https://nextjs.org/learn/pages-router/deploying-nextjs-app-deploy)
 
----
+***
 
-# We've Been Living In Development Mode
+# We've Been Living in Development Mode
 
 Until now, our application has lived here:
 
@@ -14,7 +14,7 @@ Until now, our application has lived here:
 http://localhost:3000
 ```
 
-This means:
+This implies:
 
 ```text
 Your Computer
@@ -28,7 +28,7 @@ The fundamental question becomes:
 
 > How does source code become a running system that millions of people can access?
 
----
+***
 
 # The Beginner Mental Model
 
@@ -42,7 +42,7 @@ Upload Website
 Done
 ```
 
-Reality:
+Reality looks more like:
 
 ```text
 Write Code
@@ -66,7 +66,9 @@ Monitor
 Maintain
 ```
 
----
+Each step is a distinct phase in turning ideas into reliable, running software.
+
+***
 
 # What Does "Deploy" Actually Mean?
 
@@ -84,23 +86,25 @@ This file exists as:
 app/page.tsx
 ```
 
-Question:
+Questions:
 
 ```text
 Can browsers execute TypeScript?
-```
-
-No.
 
 Can browsers execute React components?
 
-No.
-
 Can browsers execute Next.js routing?
+```
 
+Answer:
+
+```text
 No.
+```
 
----
+Browsers understand HTML, CSS, and JavaScript—not TypeScript, JSX, or Next.js’ server component model.
+
+***
 
 # Deployment Is Transformation
 
@@ -126,30 +130,36 @@ Deployment fundamentally means:
 
 > Transforming developer artifacts into runtime artifacts.
 
----
+Think of it as a compiler pipeline for entire systems, not just for individual files.
+
+***
 
 # Why We'll Use Vercel
 
 Next.js was created by:
 
+```text
 Vercel
+```
 
-and Vercel provides:
+Vercel provides:
 
 ```text
-✓ Next.js hosting
-✓ Serverless functions
-✓ Edge network
-✓ CDN
-✓ Deployment pipelines
+✓ First-class Next.js hosting
+✓ Serverless and edge functions
+✓ Global edge network
+✓ Built-in CDN
+✓ Git-based deployment pipelines
 ✓ Environment management
 ```
 
----
+For most Next.js apps, Vercel offers the “default path”: push code to Git, Vercel builds and deploys automatically. [vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
 
-# Step 1 — Create A Git Repository
+***
 
-Open terminal:
+# Step 1 — Create a Git Repository
+
+In your terminal:
 
 ```bash
 git init
@@ -159,9 +169,11 @@ git add .
 git commit -m "Initial GreyMatter Journal"
 ```
 
----
+Git turns your project into a versioned history of changes rather than a loose folder of files.
 
-# Wait...
+***
+
+# Wait…
 
 Why Git?
 
@@ -205,13 +217,13 @@ History
 Relationships
 ```
 
----
+It lets you move through time: compare versions, revert mistakes, and branch experiments without losing track.
 
-# Step 2 — Push To GitHub
+***
 
-Create a repository:
+# Step 2 — Push to GitHub
 
-[GitHub Official Website](https://github.com?utm_source=chatgpt.com)
+Create a repository on GitHub.
 
 Then:
 
@@ -222,9 +234,11 @@ https://github.com/USERNAME/greymatter-journal.git
 git push -u origin main
 ```
 
----
+Now your source of truth lives in a hosted Git repository that deployment platforms can pull from. [vercel](https://vercel.com/kb/guide/deploying-next-and-userbase-with-vercel)
 
-# Why Push To GitHub?
+***
+
+# Why Push to GitHub?
 
 Because modern deployment works like this:
 
@@ -258,15 +272,19 @@ Vercel
 Internet
 ```
 
----
+Instead of manually uploading files, you push commits; the platform reacts to those commits by building and deploying. [youtube](https://www.youtube.com/watch?v=9n8Gh4t5byE)
 
-# Step 3 — Create A Vercel Account
+***
+
+# Step 3 — Create a Vercel Account
 
 Visit:
 
-[Vercel Official Website](https://vercel.com?utm_source=chatgpt.com)
+```text
+https://vercel.com
+```
 
-Sign in using:
+Sign in with:
 
 ```text
 GitHub
@@ -275,7 +293,7 @@ GitHub
 Then click:
 
 ```text
-Import Project
+New Project
 ```
 
 Choose:
@@ -284,9 +302,11 @@ Choose:
 greymatter-journal
 ```
 
----
+Vercel will automatically detect that this is a Next.js project and apply sensible defaults for build settings. [vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
 
-# Wait...
+***
+
+# Wait…
 
 That's It?
 
@@ -300,7 +320,7 @@ When you click:
 Deploy
 ```
 
-Vercel performs:
+Vercel does roughly:
 
 ```text
 Clone Repository
@@ -319,69 +339,59 @@ Compile Next.js
         │
         ▼
 
-Create Assets
+Create Artifacts
         │
         ▼
 
-Deploy Infrastructure
+Provision Infrastructure
         │
         ▼
 
-Configure CDN
+Configure Edge + CDN
         │
         ▼
 
 Publish Website
 ```
 
----
+All that is compressed into a single “Deploy” button. [youtube](https://www.youtube.com/watch?v=f8nrw6fdMeM)
+
+***
 
 # Step 4 — Add Environment Variables
 
-Open:
+In the Vercel dashboard:
 
 ```text
-Vercel Dashboard
-
-Settings
-
-Environment Variables
+Project → Settings → Environment Variables
 ```
 
 Add:
 
 ```bash
 NEXT_PUBLIC_SANITY_PROJECT_ID
-
 NEXT_PUBLIC_SANITY_DATASET
-
 SANITY_API_TOKEN
 
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-
 CLERK_SECRET_KEY
 ```
 
----
+Use the same values you configured in `.env.local`, but now stored securely in Vercel’s environment. [eastondev](https://eastondev.com/blog/en/posts/dev/20251220-nextjs-vercel-deploy-guide/)
 
-# Wait...
+***
+
+# Wait…
 
 Why Not Commit `.env.local`?
 
 Suppose your repository contains:
 
 ```bash
-CLERK_SECRET_KEY=
-super-secret-key
+CLERK_SECRET_KEY=super-secret-key
 ```
 
-Now imagine:
-
-```text
-GitHub Repository
-```
-
-becomes public.
+and your repo becomes public.
 
 Diagram:
 
@@ -397,22 +407,24 @@ Public Repository
 Catastrophe
 ```
 
----
+Anyone could impersonate your backend or access your users’ data.
 
-# Environment Variables Are Dependency Injection
+Environment variables keep secrets **out of** the codebase and **in** the deployment environment.
+
+***
+
+# Environment Variables as Dependency Injection
 
 Instead of:
 
 ```typescript
-const secret =
-  "abc123";
+const secret = "abc123";
 ```
 
 we write:
 
 ```typescript
-const secret =
-  process.env.SECRET;
+const secret = process.env.SECRET;
 ```
 
 Diagram:
@@ -439,7 +451,9 @@ from
 Deployment
 ```
 
----
+The same code can run in development, staging, and production with different configuration injected at runtime. [eastondev](https://eastondev.com/blog/en/posts/dev/20251220-nextjs-vercel-deploy-guide/)
+
+***
 
 # Step 5 — Deploy
 
@@ -449,15 +463,19 @@ Click:
 Deploy
 ```
 
-Then wait.
+Vercel will:
 
-Eventually you'll see:
+- Clone the repo,
+- Install dependencies,
+- Run `next build`,
+- Upload the resulting `.next` artifacts,
+- Wire everything into its edge network and CDN. [youtube](https://www.youtube.com/watch?v=f8nrw6fdMeM)
+
+Eventually you’ll see a URL like:
 
 ```text
 https://greymatter-journal.vercel.app
 ```
-
-Congratulations.
 
 Your application is now:
 
@@ -465,17 +483,17 @@ Your application is now:
 Production Software
 ```
 
----
+***
 
-# Wait...
+# Wait…
 
-What Just Happened?
+What Just Happened? (The Pipeline)
 
-Let's examine the actual pipeline.
+Let’s zoom into each stage.
 
----
+***
 
-# Step 1 — Clone Repository
+## Stage 1 — Clone Repository
 
 ```text
 GitHub
@@ -485,9 +503,11 @@ GitHub
 Source Code Downloaded
 ```
 
----
+Vercel pulls the exact commit you pushed, so builds are reproducible and traceable. [vercel](https://vercel.com/kb/guide/deploying-next-and-userbase-with-vercel)
 
-# Step 2 — Install Dependencies
+***
+
+## Stage 2 — Install Dependencies
 
 ```bash
 npm install
@@ -507,41 +527,43 @@ Dependency Graph
 node_modules
 ```
 
----
+The platform recreates your dependency tree to ensure the build environment matches your project’s requirements. [vercel](https://vercel.com/kb/guide/deploying-next-and-userbase-with-vercel)
 
-# Step 3 — Build Next.js
+***
+
+## Stage 3 — Build Next.js
 
 ```bash
 npm run build
 ```
 
-This performs:
+This step:
 
 ```text
-Analyze Routes
+Analyzes routes
 
-Compile React
+Compiles React components
 
-Compile TypeScript
+Compiles TypeScript
 
-Optimize Images
+Builds server and client bundles
 
-Create Server Functions
+Optimizes images and assets
 
-Generate Static Pages
+Configures data fetching and caching
 ```
 
----
+Next.js emits serverless/edge functions and static assets into the `.next/` directory. [vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
 
-# Step 4 — Create Artifacts
+***
+
+## Stage 4 — Create Artifacts
 
 Before:
 
 ```text
 app/
-
 components/
-
 lib/
 ```
 
@@ -549,6 +571,10 @@ After:
 
 ```text
 .next/
+  server/
+  static/
+  routes-manifest.json
+  build-manifest.json
 ```
 
 Diagram:
@@ -565,9 +591,9 @@ Compiler
 Artifacts
 ```
 
----
+***
 
-# What Is An Artifact?
+# What Is an Artifact?
 
 Artifacts are:
 
@@ -577,21 +603,19 @@ Examples:
 
 ```text
 JavaScript bundles
-
-HTML
-
-CSS
-
-Serverless functions
-
-Images
-
-Metadata
+HTML files
+CSS files
+Serverless function bundles
+Edge function bundles
+Optimized images
+Metadata & manifests
 ```
 
----
+These are what actually run in production; your TypeScript and JSX never leave the build step. [vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
 
-# Step 5 — Upload To Edge Network
+***
+
+## Stage 5 — Upload to the Edge Network
 
 Vercel distributes:
 
@@ -611,6 +635,7 @@ across:
 
 ```text
 Multiple Regions
+and Edge Locations
 ```
 
 Diagram:
@@ -627,18 +652,18 @@ Sydney
 New York
 ```
 
----
+Each region caches static assets and runs serverless/edge functions close to users. [vercel](https://vercel.com/frameworks/nextjs)
 
-# Wait...
+***
 
-What Is The Edge?
+# What Is the Edge?
 
 Most beginners think:
 
 ```text
 Internet
       =
-Servers
+Single Server
 ```
 
 Actually:
@@ -648,11 +673,11 @@ User
    │
    ▼
 
-Nearby Server
+Nearby Edge Node
    │
    ▼
 
-Main Server
+Origin Infrastructure
 ```
 
 Diagram:
@@ -669,7 +694,7 @@ Edge
 Origin
 ```
 
-The edge means:
+The **edge** means:
 
 ```text
 Computers
@@ -677,7 +702,9 @@ close
 to users.
 ```
 
----
+Inference: we move computation and data outward, closer to where requests originate.
+
+***
 
 # Why Does Edge Matter?
 
@@ -691,7 +718,7 @@ User:
 Singapore
 ```
 
-Request:
+Without edge:
 
 ```text
 Singapore
@@ -700,10 +727,10 @@ Singapore
 New York
 ```
 
-takes:
+Latency might be:
 
 ```text
-200ms
+~200ms
 ```
 
 With edge:
@@ -715,15 +742,17 @@ Singapore
 Singapore Edge
 ```
 
-takes:
+Latency can drop to:
 
 ```text
-10ms
+~10–20ms
 ```
 
----
+Multiply that across dozens of assets and thousands of users, and the difference becomes enormous.
 
-# Continuous Integration
+***
+
+# Continuous Integration (CI)
 
 Every push triggers:
 
@@ -759,11 +788,15 @@ CI Pipeline
 
 This is called:
 
-# Continuous Integration (CI)
+```text
+Continuous Integration (CI)
+```
 
----
+CI aims to catch integration issues early by building and testing on every change. [medium](https://medium.com/@itsamanyadav/deploying-your-next-js-app-on-vercel-step-by-step-943d3a1ac7c8)
 
-# Continuous Deployment
+***
+
+# Continuous Deployment (CD)
 
 If CI succeeds:
 
@@ -779,11 +812,15 @@ Deploy
 Production
 ```
 
-This is called:
+This is:
 
-# Continuous Deployment (CD)
+```text
+Continuous Deployment (CD)
+```
 
----
+CD automates the path from “build is green” to “feature is live”, often with safeguards such as approvals or release strategies. [youtube](https://www.youtube.com/watch?v=9n8Gh4t5byE)
+
+***
 
 # CI/CD Together
 
@@ -817,39 +854,47 @@ Deploy
 Production
 ```
 
----
+Every commit can go through this pipeline, creating a chain of small, frequent, low-risk releases instead of big, risky ones.
+
+***
 
 # Why Automate?
 
-Suppose humans deploy manually:
+Manual deployment:
 
 ```text
-SSH
-
-Copy Files
-
-Restart Server
-
+SSH into server
+Copy files
+Install dependencies
+Restart processes
 Hope
 ```
 
-This creates:
+This yields:
 
 ```text
 Human Error
+Inconsistent Environments
+Undocumented Steps
 ```
 
-Automation creates:
+Automation yields:
 
 ```text
 Repeatability
+Traceability
+Confidence
 ```
 
----
+The same pipeline runs the same way every time.
+
+***
 
 # Environments
 
-Professional systems have:
+Professional systems rarely have just one environment.
+
+They typically use:
 
 ```text
 Development
@@ -877,7 +922,9 @@ Staging
 Production
 ```
 
----
+Each environment has its own databases, credentials, and risk profile.
+
+***
 
 # Why Multiple Environments?
 
@@ -901,9 +948,11 @@ Testing directly in production is:
 Extremely Expensive
 ```
 
----
+Staging and preview deployments let you test builds with realistic settings before promoting them to production. [nextjs](https://nextjs.org/learn/pages-router/deploying-nextjs-app-deploy)
 
-# Infrastructure As Code
+***
+
+# Infrastructure as Code
 
 Old approach:
 
@@ -912,7 +961,8 @@ Human
     │
     ▼
 
-Configure Server
+Click Around Cloud Console
+Configure Server by Hand
 ```
 
 Modern approach:
@@ -922,7 +972,7 @@ Code
    │
    ▼
 
-Create Server
+Create Infrastructure
 ```
 
 Example:
@@ -941,7 +991,9 @@ Infrastructure itself becomes:
 Software
 ```
 
----
+So the environment can be versioned, reviewed, and reproduced just like code.
+
+***
 
 # Observability
 
@@ -951,7 +1003,7 @@ After deployment, we must answer:
 Is it working?
 ```
 
-Questions include:
+Key questions:
 
 ```text
 How many users?
@@ -962,10 +1014,12 @@ Any errors?
 
 Any crashes?
 
-Any failures?
+Any failed requests?
 ```
 
----
+Platforms like Vercel provide analytics, logs, and error tracking; you can also integrate external APM and monitoring tools. [youtube](https://www.youtube.com/watch?v=9n8Gh4t5byE)
+
+***
 
 # Deployment Never Ends
 
@@ -1018,9 +1072,11 @@ Improve
 Repeat
 ```
 
----
+Deployment is a **loop**, not a single event.
 
-# The Hidden Architecture
+***
+
+# The Hidden Architecture of Delivery
 
 When you deploy GreyMatter Journal:
 
@@ -1056,13 +1112,13 @@ CDN
 Users
 ```
 
----
+Your readers never see this pipeline; they just see a URL that works.
 
-# Wait...
+***
 
-Does This Look Familiar?
+# Deployment Trees
 
-We've already discovered:
+We’ve already discovered:
 
 ```text
 React Trees
@@ -1078,7 +1134,7 @@ State Trees
 Cache Trees
 ```
 
-Now we discover:
+Now we add:
 
 ```text
 Deployment Trees
@@ -1092,9 +1148,11 @@ transformations
 of artifacts.
 ```
 
----
+Each stage in the pipeline produces a new “shape” of your system: source, build, artifacts, release.
 
-# The Deep Secret Of DevOps
+***
+
+# The Deep Secret of DevOps
 
 Most beginners think:
 
@@ -1121,7 +1179,7 @@ Operations
 The software is not:
 
 ```text
-Git repository
+Just the Git repository
 ```
 
 The software is:
@@ -1130,7 +1188,9 @@ The software is:
 The running system.
 ```
 
----
+DevOps is about aligning how we write code with how we run and operate it.
+
+***
 
 # Mental Model To Remember Forever
 
@@ -1165,16 +1225,19 @@ The Discipline
                     Running Systems
 ```
 
----
+Once you see deployment as a pipeline of transformations, CI/CD, infrastructure as code, edge networks, and observability all become different lenses on the same process.
+
+***
 
 # Up Next
 
 In **Part 24**, we'll implement observability, analytics, logging, monitoring, and tracing while learning:
 
-* telemetry,
-* distributed tracing,
-* metrics,
-* logs,
-* monitoring,
-* debugging production systems,
-* and why software engineering ultimately becomes the science of observing invisible machines.
+- telemetry,
+- distributed tracing,
+- metrics,
+- logs,
+- monitoring,
+- debugging production systems,
+
+and why software engineering ultimately becomes the science of observing invisible machines.
