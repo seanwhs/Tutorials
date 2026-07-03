@@ -1,214 +1,53 @@
-# GreyMatter Journal
-
-# Part 6 — Building Our First Real Layout: Understanding Application Shells and Persistent UI
-
-> **Goal of this lesson:** Build the first real layout for GreyMatter Journal and understand why modern web applications are built around persistent application shells rather than individual pages.
+# **✅ Part 6 — Building Our First Real Layout**
 
 ---
 
-# Until Now, Our Website Has Been Lying To Us
+# GreyMatter Journal  
+## Part 6 — Building Our First Real Layout: Application Shells and Persistent UI
 
-Currently, our application looks something like this:
-
-```text
-/
-```
-
-and:
-
-```tsx
-export default function HomePage() {
-  return (
-    <main>
-      <h1>GreyMatter Journal</h1>
-    </main>
-  );
-}
-```
-
-This feels natural because we've spent years thinking:
-
-```text
-Website
-    ↓
-Pages
-```
-
-But modern applications don't actually work like this.
-
-Instead, they work like this:
-
-```text
-Application
-        ↓
-Persistent Shell
-        ↓
-Dynamic Content
-```
+> **Goal of this lesson:** Implement a clean, persistent application shell for GreyMatter Journal and understand why modern web apps are built around **layouts** rather than individual pages.
 
 ---
 
-# What Is An Application Shell?
+### The Shift from Pages to Shells
 
-Think about applications you use every day.
+Our current homepage is just raw content. But real applications have a consistent **Application Shell** that stays visible across all pages.
 
-## YouTube
+Examples from daily tools:
+- **YouTube**: Header + Sidebar stay while videos change
+- **GitHub**: Top nav + repo header persist during navigation
+- **Notion**: Sidebar workspace stays while pages change
 
-```text
-Header
-Sidebar
-Search Bar
-
-remain
-
-Video
-changes
-```
+This persistent structure is what makes apps feel fast and cohesive.
 
 ---
 
-## GitHub
+### Designing GreyMatter Journal’s Shell
 
-```text
-Navigation
-User Menu
-Theme
+Following the minimal, readable philosophy from **Appendix B**, our shell will include:
 
-remain
-
-Repository Content
-changes
-```
+- Clean Header with branding and navigation
+- Main content area
+- Simple Footer
 
 ---
 
-## ChatGPT
+### Update the Root Layout
 
-```text
-Sidebar
-Header
-Account Menu
-
-remain
-
-Conversation
-changes
-```
-
----
-
-This persistent part of the interface is called:
-
-# The Application Shell
-
-Diagram:
-
-```text
-┌───────────────────────────┐
-│         Header            │
-├────────────┬──────────────┤
-│ Sidebar    │ Content      │
-│            │              │
-│            │              │
-└────────────┴──────────────┘
-```
-
----
-
-# Why Application Shells Exist
-
-Imagine navigating between pages.
-
-Without layouts:
-
-```text
-Navigate
-    ↓
-Destroy navbar
-    ↓
-Destroy footer
-    ↓
-Destroy sidebar
-    ↓
-Build everything again
-```
-
-With layouts:
-
-```text
-Navigate
-    ↓
-Keep navbar
-    ↓
-Keep footer
-    ↓
-Keep sidebar
-    ↓
-Change content only
-```
-
-Benefits:
-
-* faster navigation,
-* preserved state,
-* smoother UI,
-* less rendering,
-* better performance.
-
----
-
-# Designing GreyMatter Journal
-
-Let's design our application shell.
-
-Eventually our blog will contain:
-
-```text
-Header
-    ↓
-Navigation
-    ↓
-Main Content
-    ↓
-Footer
-```
-
-Diagram:
-
-```text
-┌────────────────────────────┐
-│      GreyMatter Journal    │
-├────────────────────────────┤
-│ Home Articles About Search │
-├────────────────────────────┤
-│                            │
-│        Content             │
-│                            │
-├────────────────────────────┤
-│          Footer            │
-└────────────────────────────┘
-```
-
----
-
-# Updating RootLayout
-
-Open:
-
-```text
-app/layout.tsx
-```
-
-Replace everything with:
+Open `app/layout.tsx` and replace its content with:
 
 ```tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "GreyMatter Journal",
-  description:
-    "Thoughts on software, architecture, and systems",
+  description: "Exploring software engineering, systems thinking, and architecture.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -218,20 +57,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <header>
-          <h1>GreyMatter Journal</h1>
-        </header>
+      <body className="bg-white text-gray-900 antialiased">
+        <Header />
+        
+        <main className="min-h-[calc(100vh-200px)]">
+          {children}
+        </main>
 
-        <nav>
-          Home | Articles | Authors
-        </nav>
-
-        <main>{children}</main>
-
-        <footer>
-          © 2026 GreyMatter Journal
-        </footer>
+        <Footer />
       </body>
     </html>
   );
@@ -240,453 +73,144 @@ export default function RootLayout({
 
 ---
 
-# What Did We Just Build?
+### Create the Header Component
 
-Remember:
+Create the folder structure:
 
-```text
-Layout
-      ↓
-contains
-      ↓
-Page
+```bash
+mkdir -p components/layout
 ```
 
-So Next.js now creates:
+Then create `components/layout/Header.tsx`:
 
-```text
-RootLayout
-      │
-      ▼
-Current Page
-```
+```tsx
+import Link from "next/link";
 
-Diagram:
+export default function Header() {
+  return (
+    <header className="border-b border-gray-200 bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-6 flex items-center justify-between">
+        <Link href="/" className="text-3xl font-bold tracking-tight">
+          GreyMatter Journal
+        </Link>
 
-```text
-<html>
-
-    <body>
-
-        Header
-
-        Navigation
-
-        Current Page
-
-        Footer
-
-    </body>
-
-</html>
+        <nav className="flex items-center gap-8 text-sm font-medium">
+          <Link href="/" className="hover:text-gray-600 transition-colors">
+            Home
+          </Link>
+          <Link href="/posts" className="hover:text-gray-600 transition-colors">
+            Posts
+          </Link>
+          <Link href="/about" className="hover:text-gray-600 transition-colors">
+            About
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
 ```
 
 ---
 
-# Let's Improve The Homepage
+### Create the Footer Component
 
-Open:
+Create `components/layout/Footer.tsx`:
 
-```text
-app/page.tsx
+```tsx
+export default function Footer() {
+  return (
+    <footer className="border-t border-gray-200 mt-20">
+      <div className="mx-auto max-w-6xl px-6 py-12 text-center text-sm text-gray-500">
+        © {new Date().getFullYear()} GreyMatter Journal. 
+        Built with Next.js and Sanity.
+      </div>
+    </footer>
+  );
+}
 ```
 
-Replace the contents:
+---
+
+### Update the Homepage
+
+Update `app/page.tsx`:
 
 ```tsx
 export default function HomePage() {
   return (
-    <>
-      <h2>Welcome to GreyMatter Journal</h2>
-
-      <p>
-        Exploring software engineering,
-        architecture, distributed systems,
-        and modern web development.
+    <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+      <h1 className="text-6xl font-bold tracking-tight">
+        GreyMatter Journal
+      </h1>
+      <p className="mt-6 text-xl text-gray-600">
+        Thoughts on software engineering, 
+        systems architecture, and building lasting digital systems.
       </p>
-    </>
-  );
-}
-```
-
-Refresh your browser.
-
-You should now see:
-
-```text
-GreyMatter Journal
-
-Home | Articles | Authors
-
-Welcome to GreyMatter Journal
-
-Exploring software engineering...
-
-© 2026 GreyMatter Journal
-```
-
----
-
-# Creating Our First Additional Page
-
-Let's create:
-
-```text
-app/
-
-about/
-    page.tsx
-```
-
-Create:
-
-```tsx
-export default function AboutPage() {
-  return (
-    <>
-      <h2>About GreyMatter Journal</h2>
-
-      <p>
-        GreyMatter Journal is a modern
-        publication platform built with
-        Next.js 16 and Sanity.
-      </p>
-    </>
-  );
-}
-```
-
-Visit:
-
-```text
-http://localhost:3000/about
-```
-
-What happened?
-
----
-
-# The Magic Of Layout Persistence
-
-Even though we created a new page:
-
-```text
-/about
-```
-
-Next.js still renders:
-
-```text
-Header
-Navigation
-About Content
-Footer
-```
-
-Why?
-
-Because internally, Next.js constructs:
-
-```text
-RootLayout
-        │
-        ▼
-AboutPage
-```
-
-Diagram:
-
-```text
-                RootLayout
-                     │
-                     ▼
-        ┌────────────────────────┐
-        │ Header                 │
-        │ Navigation             │
-        │                        │
-        │ AboutPage              │
-        │                        │
-        │ Footer                 │
-        └────────────────────────┘
-```
-
----
-
-# Creating A Real Navigation Menu
-
-Our current navigation:
-
-```tsx
-<nav>
-  Home | Articles | Authors
-</nav>
-```
-
-isn't very useful.
-
-Next.js provides a special component:
-
-```tsx
-import Link from "next/link";
-```
-
-Let's update our layout:
-
-```tsx
-import Link from "next/link";
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "GreyMatter Journal",
-  description:
-    "Thoughts on software, architecture, and systems",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>
-        <header>
-          <h1>GreyMatter Journal</h1>
-        </header>
-
-        <nav>
-          <Link href="/">Home</Link>{" "}
-          <Link href="/about">About</Link>
-        </nav>
-
-        <main>{children}</main>
-
-        <footer>
-          © 2026 GreyMatter Journal
-        </footer>
-      </body>
-    </html>
+    </div>
   );
 }
 ```
 
 ---
 
-# Why Not Use `<a>` Tags?
+### Test Navigation
 
-Many beginners ask:
+1. Run `npm run dev`
+2. Visit `http://localhost:3000`
+3. Create `app/about/page.tsx` with simple content
+4. Navigate between `/` and `/about`
 
-```html
-<a href="/about">About</a>
-```
-
-Why can't we use this?
-
-Because traditional links behave like this:
-
-```text
-Click
-   ↓
-Browser Request
-   ↓
-Destroy Page
-   ↓
-Load Page
-```
-
-`Link` behaves like this:
-
-```text
-Click
-   ↓
-Next.js Router
-   ↓
-Fetch New Content
-   ↓
-Update UI Tree
-```
-
-Diagram:
-
-```text
-Traditional
-
-Page A
-   ↓
-Destroy
-   ↓
-Page B
-
-Next.js
-
-Layout
-   ↓
-Replace Child
-   ↓
-New Content
-```
+Notice how the **Header** and **Footer** remain stable. This is the power of layouts.
 
 ---
 
-# The Hidden Architecture
+### Why `Link` Instead of `<a>`?
 
-When you click:
-
-```text
-/about
-```
-
-Next.js doesn't think:
-
-```text
-Load another page
-```
-
-It thinks:
-
-```text
-Keep:
-
-✓ RootLayout
-
-Replace:
-
-✗ Current Page
-```
-
-Internally:
-
-```text
-Before
-
-RootLayout
-     └── HomePage
-
-After
-
-RootLayout
-     └── AboutPage
-```
-
-The layout survives.
-
-The child changes.
+| Feature               | `<a href="">`               | `next/link`                     |
+|-----------------------|-----------------------------|---------------------------------|
+| Navigation            | Full page reload            | Client-side (fast)              |
+| Layout Behavior       | Destroys everything         | Preserves layout                |
+| Performance           | Slower                      | Faster + prefetching            |
 
 ---
 
-# Why This Matters For Blogs
+### Mental Model To Remember Forever
 
-Imagine our future blog.
-
-Without layouts:
-
+**Old way:**
 ```text
-Article A
-      ↓
-destroy navigation
-      ↓
-destroy sidebar
-      ↓
-destroy footer
+Website = Collection of Pages
 ```
 
-With layouts:
-
+**New way:**
 ```text
-Article A
-      ↓
-keep navigation
-      ↓
-keep footer
-      ↓
-replace article
+Application = Persistent Shell + Dynamic Content
 ```
 
-This enables:
-
-* instant navigation,
-* article prefetching,
-* preserved state,
-* streaming updates,
-* excellent user experience.
-
----
-
-# Our Future GreyMatter Journal Tree
-
-Eventually our application will look like this:
+Or more precisely:
 
 ```text
 RootLayout
-     │
-     ├── HomePage
-     │
-     ├── ArticlesLayout
-     │       ├── ArticlesPage
-     │       └── ArticlePage
-     │
-     ├── AuthorsLayout
-     │       ├── AuthorsPage
-     │       └── AuthorPage
-     │
-     └── CategoriesLayout
-             ├── CategoriesPage
-             └── CategoryPage
+   ├── Header
+   ├── Navigation
+   ├── {children} ← changes per route
+   └── Footer
 ```
 
-Notice something important:
+**Layouts are the architecture. Pages are the content.**
 
-```text
-The pages are not the application.
-
-The layouts are the application.
-```
+This pattern scales beautifully as we add posts, authors, categories, and more — exactly as planned in **Appendix B**.
 
 ---
 
-# Mental Model To Remember Forever
+### Up Next — Part 7: Introducing Sanity
 
-Most beginners think:
+We’ll bring in the **content layer**:
 
-```text
-Website
-      ↓
-Pages
-```
+- What a Headless CMS really is
+- Why Next.js shouldn’t store blog posts
+- Initializing Sanity Studio
+- Understanding the Content Lake
+- Separating concerns between content and presentation
 
-Modern Next.js thinks:
-
-```text
-Application
-       ↓
-Persistent Layouts
-       ↓
-Dynamic Content
-```
-
-Or more specifically:
-
-```text
-Application Shell
-          +
-Changing Content
-```
-
-This is the architectural idea that powers nearly every modern web application.
-
----
-
-# Up Next
-
-In **Part 7**, we'll finally introduce the second half of our architecture:
-
-# Sanity
-
-We'll learn:
-
-* what a Headless CMS actually is,
-* why Next.js doesn't store blog posts,
-* what the Sanity Content Lake is,
-* what `npx sanity@latest init` actually creates,
-* and why modern applications separate content management from rendering.
+This is where GreyMatter Journal becomes a true modern publication system.
