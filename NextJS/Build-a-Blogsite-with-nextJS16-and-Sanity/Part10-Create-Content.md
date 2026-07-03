@@ -1,872 +1,155 @@
-# GreyMatter Journal
-
-# Part 10 — Creating Our First Content: Understanding Documents, References, and Rich Text in Sanity
-
-> **Goal of this lesson:** Create our first authors, categories, and posts in Sanity, understand document relationships, learn how references work, and render our first real content in Next.js 16.
+# **✅ Part 10 — Creating Our First Content**
 
 ---
 
-# We Finally Have A CMS
+# GreyMatter Journal  
+## Part 10 — Creating Our First Content: Documents, References, and Rich Text in Sanity
 
-At this point, we have built:
-
-```text
-✓ Next.js Application
-✓ Sanity Studio
-✓ Content Models
-✓ Sanity Client
-✓ API Connection
-```
-
-But our application still has one major problem.
-
-Our database contains:
-
-```text
-Nothing.
-```
-
-This is actually a wonderful moment.
-
-Because we now get to experience the single most important concept in content management systems:
-
-> Content is data.
-
-Not pages.
-
-Not components.
-
-Not HTML.
-
-Just data.
+> **Goal of this lesson:** Populate the Content Lake with real data and understand how documents, references, and Portable Text work together.
 
 ---
 
-# Let's Think Like Editors
+### The Moment of Truth
 
-Suppose you're the editor of GreyMatter Journal.
-
-You want to publish:
-
-```text
-Understanding React Server Components
-```
-
-Before writing the article, you need:
-
-```text
-Who wrote it?
-
-Which category does it belong to?
-
-When was it published?
-```
-
-This immediately tells us:
-
-```text
-Post
-   │
-   ├── Author
-   │
-   └── Category
-```
-
-Content systems are really systems of relationships.
+We now have a fully connected system. It’s time to add real content.
 
 ---
 
-# Step 1 — Start The Studio
-
-Open a terminal:
+### Start the Studio
 
 ```bash
 cd studio
-
 npm run dev
 ```
 
-Open:
+Open: `http://localhost:3333`
 
-```text
-http://localhost:3333
-```
-
-You should now see:
-
-```text
-Posts
-Authors
-Categories
-```
+You’ll see the three content types we defined: **Posts**, **Authors**, and **Categories**.
 
 ---
 
-# Step 2 — Create Our First Author
+### 1. Create an Author
 
-Select:
+Go to **Authors** → **Create new**
 
-```text
-Authors
-```
+- **Name**: Sean Wong
+- **Slug**: (auto-generated)
+- **Biography**: Write a short bio
+- **Avatar**: Upload an image (optional)
 
-Create:
-
-```text
-Name:
-Sean Wong
-```
-
-```text
-Biography:
-Software architect, educator, and writer
-exploring software engineering,
-distributed systems, and AI-era
-development.
-```
-
-Upload an avatar image if desired.
-
-Click:
-
-```text
-Publish
-```
-
-Congratulations.
-
-You have created your first document.
+**Publish**
 
 ---
 
-# What Did Sanity Actually Store?
+### 2. Create Categories
 
-You entered:
+Create a few categories:
 
-```text
-Name:
-Sean Wong
-```
-
-But internally, Sanity created something like:
-
-```json
-{
-  "_id": "author-abc123",
-  "_type": "author",
-  "name": "Sean Wong",
-  "slug": {
-    "current": "sean-wong"
-  },
-  "bio": "Software architect..."
-}
-```
-
-Notice:
-
-```text
-You never created HTML.
-
-You created data.
-```
+- **Architecture** – Software design and systems thinking
+- **Web Development** – Modern frontend and frameworks
+- **AI Engineering** – Building intelligent systems
 
 ---
 
-# Step 3 — Create Categories
+### 3. Create Your First Post
 
-Create:
+Go to **Posts** → **Create new**
 
-```text
-Architecture
-```
+Fill in:
 
-Description:
-
-```text
-Software architecture and systems design.
-```
-
----
-
-Create:
-
-```text
-Web Development
-```
-
-Description:
-
-```text
-Modern web frameworks and frontend engineering.
-```
+- **Title**: Understanding React Server Components
+- **Slug**: (generate from title)
+- **Excerpt**: A clear, beginner-friendly introduction...
+- **Cover Image**: Upload one
+- **Author**: Select "Sean Wong"
+- **Categories**: Select multiple
+- **Published At**: Choose today's date
 
 ---
 
-Create:
+### Writing in Portable Text
 
-```text
-AI Engineering
-```
+In the **Body** field, write content using the rich text editor. You can add:
 
-Description:
+- Headings
+- Paragraphs
+- Lists
+- Blockquotes, etc.
 
-```text
-Engineering systems in the age of AI.
-```
-
----
-
-Internally:
-
-```text
-Category
-
-├── Architecture
-├── Web Development
-└── AI Engineering
-```
+**Publish** the post.
 
 ---
 
-# Step 4 — Create Our First Post
+### What Sanity Actually Stores
 
-Open:
+Sanity doesn’t store HTML. It stores **structured data** (Portable Text for rich content + references for relationships).
 
-```text
-Posts
-```
-
-Create:
-
-```text
-Title:
-Understanding React Server Components
-```
-
-Generate the slug:
-
-```text
-understanding-react-server-components
-```
+This is extremely powerful because the same content can be rendered on websites, mobile apps, RSS feeds, newsletters, etc.
 
 ---
 
-Add an excerpt:
+### Query the Content from Next.js
 
-```text
-A beginner-friendly introduction
-to React Server Components and
-modern rendering architecture.
-```
-
----
-
-Select the author:
-
-```text
-Sean Wong
-```
-
----
-
-Select categories:
-
-```text
-Architecture
-Web Development
-```
-
----
-
-Set:
-
-```text
-Published Date:
-Today
-```
-
----
-
-# Understanding References
-
-When you selected:
-
-```text
-Sean Wong
-```
-
-Sanity did NOT copy the author.
-
-Instead it stored:
-
-```json
-{
-  "author": {
-    "_ref": "author-abc123"
-  }
-}
-```
-
-Diagram:
-
-```text
-Post
-   │
-   │ reference
-   ▼
-Author
-```
-
-Similarly:
-
-```json
-{
-  "categories": [
-    {
-      "_ref": "category1"
-    },
-    {
-      "_ref": "category2"
-    }
-  ]
-}
-```
-
-Diagram:
-
-```text
-              Category
-
-                  ▲
-                  │
-                  │
-
-Post ─────────────┼────────────► Category
-```
-
----
-
-# Why References Matter
-
-Imagine Sean writes 500 articles.
-
-Bad design:
-
-```text
-Article 1
-Author: Sean Wong
-
-Article 2
-Author: Sean Wong
-
-Article 3
-Author: Sean Wong
-```
-
-Good design:
-
-```text
-Author
-    ▲
-    │
-    │
-500 Articles
-```
-
-Benefits:
-
-```text
-✓ Less duplication
-✓ Easier updates
-✓ Better consistency
-✓ Smaller storage
-```
-
----
-
-# Step 5 — Writing Rich Text
-
-Now let's edit the body.
-
-Write:
-
-```text
-React Server Components represent
-one of the biggest architectural
-changes in React history.
-```
-
-Add another paragraph:
-
-```text
-Instead of rendering everything
-in the browser, components can
-execute on the server.
-```
-
-Create a heading:
-
-```text
-Why Server Components Matter
-```
-
-Add:
-
-```text
-They allow developers to reduce
-bundle sizes and improve
-performance.
-```
-
-Publish the post.
-
----
-
-# Wait... Where Did The HTML Go?
-
-Many beginners expect:
-
-```html
-<h2>
-  Why Server Components Matter
-</h2>
-
-<p>
-  They allow developers...
-</p>
-```
-
-But Sanity stores something else.
-
----
-
-# Introducing Portable Text
-
-Sanity stores rich text as structured data.
-
-Example:
-
-```json
-[
-  {
-    "_type": "block",
-    "style": "normal",
-    "children": [
-      {
-        "text":
-          "React Server Components represent..."
-      }
-    ]
-  },
-
-  {
-    "_type": "block",
-    "style": "h2",
-    "children": [
-      {
-        "text":
-          "Why Server Components Matter"
-      }
-    ]
-  }
-]
-```
-
-Diagram:
-
-```text
-Document
-
-├── Paragraph
-├── Paragraph
-├── Heading
-└── Paragraph
-```
-
----
-
-# Why Not Store HTML?
-
-Traditional CMS:
-
-```html
-<h2>Heading</h2>
-<p>Text</p>
-```
-
-Problem:
-
-```text
-HTML
-     ↓
-Website only
-```
-
-Portable Text:
-
-```json
-{
-  "style": "h2",
-  "text": "Heading"
-}
-```
-
-Benefits:
-
-```text
-Website
-Mobile App
-RSS
-API
-Newsletter
-AI
-```
-
-One content format.
-
-Many outputs.
-
----
-
-# Let's Query Our Content
-
-Create:
-
-```text
-app/test/page.tsx
-```
-
-Update:
+Update or create `app/test/page.tsx`:
 
 ```tsx
 import { client } from "@/lib/sanity";
 
 export default async function TestPage() {
-  const posts =
-    await client.fetch(`
-      *[_type == "post"]{
-        title,
-        slug,
-        excerpt,
-        publishedAt
-      }
-    `);
-
-  return (
-    <pre>
-      {JSON.stringify(
-        posts,
-        null,
-        2
-      )}
-    </pre>
-  );
-}
-```
-
-Visit:
-
-```text
-http://localhost:3000/test
-```
-
-You should see:
-
-```json
-[
-  {
-    "title":
-      "Understanding React Server Components",
-
-    "slug": {
-      "current":
-        "understanding-react-server-components"
-    },
-
-    "excerpt":
-      "A beginner-friendly introduction...",
-
-    "publishedAt":
-      "2026-07-03T..."
-  }
-]
-```
-
----
-
-# Understanding GROQ Projections
-
-Consider:
-
-```groq
-*[_type == "post"]
-```
-
-This means:
-
-```text
-Give me everything.
-```
-
-But:
-
-```groq
-*[_type == "post"]{
-  title,
-  excerpt
-}
-```
-
-means:
-
-```text
-Give me only these fields.
-```
-
-Diagram:
-
-```text
-Document
-
-├── title
-├── body
-├── author
-├── category
-├── image
-└── date
-
-        ↓
-
-Projection
-
-├── title
-└── date
-```
-
----
-
-# Resolving References
-
-Our current query returns:
-
-```json
-{
-  "author": {
-    "_ref": "abc123"
-  }
-}
-```
-
-That's not very useful.
-
-GROQ can follow references.
-
-Example:
-
-```groq
-*[_type == "post"]{
-  title,
-
-  author->{
-    name
-  }
-}
-```
-
-Notice:
-
-```text
-->
-```
-
-This means:
-
-```text
-Follow the reference.
-```
-
-Diagram:
-
-```text
-Post
-   │
-   ▼
-Author Reference
-   │
-   ▼
-Author Document
-```
-
----
-
-# Let's Fetch Real Data
-
-Update:
-
-```tsx
-import { client } from "@/lib/sanity";
-
-export default async function TestPage() {
-  const posts =
-    await client.fetch(`
-      *[_type == "post"]{
-        title,
-
-        excerpt,
-
-        author->{
-          name
-        },
-
-        categories[]->{
-          title
-        }
-      }
-    `);
-
-  return (
-    <pre>
-      {JSON.stringify(
-        posts,
-        null,
-        2
-      )}
-    </pre>
-  );
-}
-```
-
-Now you'll see:
-
-```json
-[
-  {
-    "title":
-      "Understanding React Server Components",
-
-    "excerpt":
-      "...",
-
-    "author": {
-      "name":
-        "Sean Wong"
-    },
-
-    "categories": [
-      {
-        "title":
-          "Architecture"
+  const posts = await client.fetch(`
+    *[_type == "post"]{
+      title,
+      slug,
+      excerpt,
+      publishedAt,
+      author->{
+        name
       },
-      {
-        "title":
-          "Web Development"
+      categories[]->{
+        title
       }
-    ]
-  }
-]
+    }
+  `);
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8">Content Test</h1>
+      <pre className="bg-gray-900 text-gray-100 p-6 rounded-xl overflow-auto text-sm">
+        {JSON.stringify(posts, null, 2)}
+      </pre>
+    </div>
+  );
+}
 ```
+
+Visit `http://localhost:3000/test` — you should see your post with resolved author and categories.
 
 ---
 
-# What Just Happened?
+### Key Concepts
 
-We traversed a graph.
-
-Diagram:
-
-```text
-                 Category
-
-                     ▲
-                     │
-                     │
-
-Post ───────────────► Author
-```
-
-This is why GROQ stands for:
-
-```text
-Graph-Oriented Query Language
-```
+- **Documents**: Individual pieces of content (Post, Author, Category)
+- **References** (`_ref`): Links between documents (no data duplication)
+- **Portable Text**: Structured rich text instead of HTML
+- **GROQ Projections**: Fetch exactly the fields you need
 
 ---
 
-# Our System Is Finally Alive
+### Mental Model To Remember Forever
 
-We now have:
+> A blog post is not an HTML page.  
+> It is a **document** with **relationships** and **structured data**.
 
-```text
-Editor
-   │
-   ▼
-Sanity Studio
-   │
-   ▼
-Content Lake
-   │
-   ▼
-GROQ
-   │
-   ▼
-Next.js Server Component
-   │
-   ▼
-Browser
-```
-
-And for the first time:
-
-```text
-Real Content
-       ↓
-Real Data
-       ↓
-Real Rendering
-```
+The frontend’s job is to transform that data into beautiful UI.
 
 ---
 
-# Mental Model To Remember Forever
+### Up Next — Part 11: Building the Homepage
 
-Beginners think:
+We’ll:
+- Create a proper homepage that lists posts
+- Learn how to render lists in Server Components
+- Style cards with Tailwind
+- Prepare for dynamic routes (`[slug]`)
 
-```text
-Blog Post
-      =
-HTML Page
-```
-
-Modern systems think:
-
-```text
-Blog Post
-      =
-Document
-      +
-Relationships
-      +
-Metadata
-```
-
-Or more generally:
-
-```text
-Content
-      =
-Structured Data
-```
-
-Everything else is presentation.
-
----
-
-# Up Next
-
-In **Part 11**, we'll build our first real blog homepage and learn:
-
-* how Server Components fetch data,
-* why `await` works inside React components,
-* how to render lists of posts,
-* what the `key` prop actually does,
-* and why React components are really functions that describe user interfaces.
+This is where GreyMatter Journal starts looking like a real publication.
