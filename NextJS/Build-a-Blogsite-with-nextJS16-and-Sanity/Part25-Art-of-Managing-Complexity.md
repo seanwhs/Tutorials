@@ -4,7 +4,7 @@
 
 > **Goal of this lesson:** Refactor GreyMatter Journal into a production-grade architecture while learning software architecture, separation of concerns, dependency inversion, layering, boundaries, and why software engineering ultimately becomes the discipline of managing complexity rather than writing code.
 
----
+***
 
 # Congratulations
 
@@ -25,13 +25,15 @@ At this point, GreyMatter Journal has:
 
 Unfortunately, we now have the biggest problem of all:
 
-> Success.
+```text
+Success.
+```
 
----
+***
 
-# Wait...
+# Wait…
 
-How Can Success Become A Problem?
+How Can Success Become a Problem?
 
 Because our application probably now looks something like this:
 
@@ -60,15 +62,21 @@ lib/
     utils.ts
 ```
 
-Question:
+New question:
 
 ```text
 Where does anything belong?
 ```
 
-Nobody knows.
+Answer:
 
----
+```text
+Nobody is quite sure.
+```
+
+As the codebase grows, the primary risk is no longer “does it work?” but “can anyone understand it?”.
+
+***
 
 # The Beginner Mental Model
 
@@ -99,15 +107,17 @@ Software
 Managing Complexity
 ```
 
----
+The features are just the user-facing surface; architecture is about everything underneath that makes ongoing change possible.
+
+***
 
 # What Is Complexity?
 
 Suppose you have:
 
 ```javascript
-function add(a,b){
-  return a+b;
+function add(a, b) {
+  return a + b;
 }
 ```
 
@@ -141,9 +151,11 @@ The challenge becomes:
 
 > How do humans understand systems larger than their brains?
 
----
+Architecture is the set of constraints that makes that understanding possible.
 
-# The First Rule Of Architecture
+***
+
+# The First Rule of Architecture
 
 Architecture is not about:
 
@@ -163,11 +175,21 @@ Architecture is about:
 Boundaries
 ```
 
----
+Boundaries answer:
+
+```text
+What belongs where?
+
+What depends on what?
+
+What is allowed to talk to what?
+```
+
+***
 
 # Why Boundaries Matter
 
-Suppose you own a city.
+Suppose you design a city.
 
 Would you build:
 
@@ -186,29 +208,27 @@ Factory
 Farm
 ```
 
-mixed together?
+all mixed together?
 
 Of course not.
 
-Instead:
+Instead you create:
 
 ```text
-Residential
+Residential Zones
 
-Industrial
+Industrial Zones
 
-Commercial
+Commercial Zones
 ```
 
-zones exist.
+Software architecture works the same way: we partition the system into zones with clear responsibilities.
 
-Software architecture works the same way.
-
----
+***
 
 # Our Current Architecture
 
-Probably:
+Right now, it probably looks like:
 
 ```text
 app/
@@ -228,55 +248,61 @@ Everything
 Everything
 ```
 
-This scales poorly.
+This “flat” architecture scales poorly. Every new concern ends up in `lib/` or `utils/`, and coupling grows silently.
 
----
+***
 
-# A Production Architecture
+# A Production-Oriented Architecture
 
-Let's reorganize:
+Let’s introduce a more intentional structure:
 
 ```text
 src/
 
 ├── app/
 │
-├── features/
+├── domain/
 │
-├── shared/
+├── features/
 │
 ├── infrastructure/
 │
-└── domain/
+└── shared/
 ```
 
----
+Each top-level folder represents a different kind of responsibility.
 
-# Wait...
+***
 
-What Are These?
+# What Are These Layers?
 
-Think:
+Think in terms of concepts:
 
 ```text
 Domain
      =
-Business
+Business Concepts
 
 Infrastructure
      =
-Technology
+Technology & Integrations
 
 Features
      =
-Use Cases
+Use Cases / Vertical Slices
 
 Shared
      =
-Reusable Code
+Cross-cutting Reusable Code
+
+App
+     =
+Next.js Wiring & Routes
 ```
 
----
+We’re separating *what the system is about* from *how it talks to the outside world*.
+
+***
 
 # Domain Layer
 
@@ -286,25 +312,26 @@ Create:
 src/domain/
 ```
 
-Example:
+Examples:
 
 ```text
 domain/
-
-post.ts
-comment.ts
-author.ts
-user.ts
+  post.ts
+  comment.ts
+  author.ts
+  user.ts
 ```
 
----
+***
 
-# What Goes Into Domain?
+## What Goes Into Domain?
 
 Domain contains:
 
 ```text
 Business Concepts
+and
+Business Rules
 ```
 
 Example:
@@ -312,16 +339,14 @@ Example:
 ```typescript
 export interface Post {
   id: string;
-
   title: string;
-
   slug: string;
-
   publishedAt: Date;
+  likes: number;
 }
 ```
 
-Notice:
+Notice what is *not* here:
 
 ```text
 No React
@@ -329,6 +354,8 @@ No React
 No Next.js
 
 No Sanity
+
+No HTTP
 ```
 
 Because:
@@ -339,11 +366,11 @@ Business
 Technology
 ```
 
----
+The domain describes *what* things are, not *how* we fetch or render them.
 
-# Wait...
+***
 
-Why Is This Important?
+# Why Is This Important?
 
 Suppose we replace:
 
@@ -375,7 +402,9 @@ is still
 a post.
 ```
 
----
+Domain models should be stable even when infrastructure changes; otherwise everything becomes brittle.
+
+***
 
 # Infrastructure Layer
 
@@ -385,46 +414,41 @@ Create:
 src/infrastructure/
 ```
 
+Examples:
+
+```text
+infrastructure/
+  sanity/
+  auth/
+  analytics/
+  logging/
+```
+
+This is where technology-specific code lives.
+
+***
+
+## Example: Sanity Integration
+
+```text
+infrastructure/sanity/
+
+  client.ts
+  queries.ts
+  post-repository.ts
+```
+
 Example:
 
-```text
-infrastructure/
-
-sanity/
-auth/
-analytics/
-logging/
-```
-
----
-
-# Example
-
-```text
-infrastructure/
-
-sanity/
-
-    client.ts
-    queries.ts
-    posts.ts
-```
-
-Now:
-
 ```typescript
-export async function
-getPostBySlug(
-  slug: string
-) {
-  return client.fetch(
-    QUERY,
-    { slug }
-  );
+export async function getPostBySlug(slug: string) {
+  return client.fetch(QUERY, { slug });
 }
 ```
 
----
+This module *knows* about GROQ, Sanity client APIs, and datasets.
+
+***
 
 # Why Separate Infrastructure?
 
@@ -454,7 +478,9 @@ Business Decision
 
 These change at different speeds.
 
----
+Infrastructure is where you talk to databases, CMSs, queues, external APIs, and cloud services; domain is where you talk about posts, comments, users, and workflows.
+
+***
 
 # Feature Layer
 
@@ -464,29 +490,29 @@ Create:
 src/features/
 ```
 
-Example:
+Examples:
 
 ```text
 features/
-
-posts/
-comments/
-likes/
-search/
-auth/
+  posts/
+  comments/
+  likes/
+  search/
+  auth/
 ```
 
----
+Each feature folder is a vertical slice: UI + use cases + any local logic for a specific capability.
 
-# Example Structure
+***
+
+## Example Feature Structure
 
 ```text
 features/posts/
-
-    components/
-    actions/
-    hooks/
-    types.ts
+  components/
+  actions/
+  hooks/
+  types.ts
 ```
 
 Diagram:
@@ -496,13 +522,15 @@ Posts Feature
 
        │
 
-       ├── UI
-       ├── Actions
-       ├── Types
-       └── Logic
+       ├── UI Components
+       ├── Actions / Use Cases
+       ├── Hooks
+       └── Types
 ```
 
----
+Features orchestrate domain and infrastructure to solve real user problems.
+
+***
 
 # Shared Layer
 
@@ -512,28 +540,29 @@ Create:
 src/shared/
 ```
 
-Example:
+Examples:
 
 ```text
 shared/
-
-components/
-hooks/
-utils/
-constants/
+  components/
+  hooks/
+  utils/
+  constants/
 ```
 
----
+This is where you place cross-cutting, reusable pieces that are not tied to a single feature.
 
-# Why Shared Exists
+***
 
-Suppose:
+## Why Shared Exists
+
+Suppose you have a:
 
 ```text
 Button
 ```
 
-is used:
+used by:
 
 ```text
 Posts
@@ -560,30 +589,24 @@ Button
 Shared contains:
 
 ```text
-Reusable Things
+Common Building Blocks
 ```
 
----
+that can be safely reused without pulling in feature-specific dependencies.
 
-# Separation Of Concerns
+***
 
-Suppose we have:
+# Separation of Concerns
+
+Suppose we start with a Next.js page that does everything:
 
 ```tsx
-export default async function
-PostPage() {
-
-  const post =
-    await client.fetch();
-
+export default async function PostPage() {
+  const post = await client.fetch();
   await analytics();
-
   await auth();
-
   await comments();
-
   await logging();
-
   return <UI />;
 }
 ```
@@ -606,32 +629,31 @@ Which means:
 Nothing clearly.
 ```
 
----
+***
 
-# Instead
+# Instead, Refactor Responsibilities
 
 ```tsx
-export default async function
-PostPage() {
-
-  const post =
-    await getPost();
-
-  return (
-    <PostView
-      post={post}
-    />
-  );
+export default async function PostPage() {
+  const post = await getPostUseCase();
+  return <PostView post={post} />;
 }
 ```
 
 Now:
 
+- `PostPage` is responsible for wiring to Next.js (route-level concerns).
+- `getPostUseCase` (in `features/posts`) orchestrates data and business logic.
+- `PostView` (in `features/posts/components`) renders UI.
+
+Each layer has:
+
 ```text
-One responsibility.
+One primary reason
+to change.
 ```
 
----
+***
 
 # The Single Responsibility Principle
 
@@ -647,11 +669,11 @@ Bad:
 ```text
 PostService
 
-Fetches data
-Sends email
-Logs metrics
-Caches results
-Authenticates users
+- Fetches data
+- Sends emails
+- Logs metrics
+- Caches results
+- Authenticates users
 ```
 
 Good:
@@ -664,15 +686,17 @@ EmailService
 Logger
 
 Cache
+
+AuthService
 ```
 
----
+Each module focuses on one axis of change.
 
-# Wait...
+***
 
-Haven't We Seen This Before?
+# Responsibility Boundaries
 
-Remember:
+We’ve already talked about:
 
 ```text
 Failure Boundaries
@@ -688,53 +712,46 @@ Architecture introduces:
 Responsibility Boundaries
 ```
 
----
+Boundaries define:
+
+```text
+This module does X,
+and only X.
+```
+
+Everything else is someone else’s job.
+
+***
 
 # Dependency Inversion
 
-Suppose:
+Consider:
 
 ```typescript
 class PostService {
-
   constructor(
-    private sanity:
-      SanityClient
+    private sanity: SanityClient
   ) {}
 }
 ```
 
-Problem:
+Here:
 
 ```text
-Business
-    │
-    ▼
-Technology
+Business Layer
+      depends on
+Technology Detail
 ```
 
-Dependency inversion says:
+Dependency inversion flips this relationship.
 
-```text
-Technology
-     │
-     ▼
-Business
-```
+***
 
----
-
-# Example
-
-Define:
+## Defining an Abstraction
 
 ```typescript
-export interface
-PostRepository {
-
-  getPost(
-    slug: string
-  ): Promise<Post>;
+export interface PostRepository {
+  getPost(slug: string): Promise<Post>;
 }
 ```
 
@@ -742,15 +759,19 @@ Then:
 
 ```typescript
 class PostService {
-
   constructor(
-    private repo:
-      PostRepository
+    private repo: PostRepository
   ) {}
+
+  async getPost(slug: string) {
+    return this.repo.getPost(slug);
+  }
 }
 ```
 
----
+`PostService` now depends on an abstraction (`PostRepository`), not on a concrete `SanityClient`.
+
+***
 
 # Why Is This Better?
 
@@ -785,30 +806,28 @@ PostRepository
 
       ▲
 
-      ├── Sanity
-      ├── Contentful
-      └── Postgres
+      ├── SanityPostRepository
+      ├── ContentfulPostRepository
+      └── PostgresPostRepository
 ```
 
-Business code never changes.
+Business logic doesn’t change when infrastructure does; you only swap implementations.
 
----
+***
 
 # This Is Dependency Injection
 
 Instead of:
 
 ```typescript
-const client =
-  new SanityClient();
+const service = new PostService(new SanityClient());
 ```
 
-we do:
+we move construction to a higher layer:
 
 ```typescript
-new PostService(
-  repository
-);
+const repo = new SanityPostRepository(client);
+const service = new PostService(repo);
 ```
 
 Diagram:
@@ -825,18 +844,22 @@ Inject Dependency
 Use Dependency
 ```
 
----
+Construction and usage are separated.
 
-# Why Does React Use This?
+***
 
-Remember:
+# Why This Feels Familiar in React
+
+Remember patterns like:
 
 ```tsx
 <AuthProvider>
-
-<ThemeProvider>
-
-<QueryProvider>
+  <ThemeProvider>
+    <QueryProvider>
+      {children}
+    </QueryProvider>
+  </ThemeProvider>
+</AuthProvider>
 ```
 
 These are all:
@@ -845,41 +868,44 @@ These are all:
 Dependency Injection
 ```
 
-systems.
+mechanisms: they inject context and services into the React tree without hard-coding them everywhere.
 
----
+***
 
 # Layered Architecture
 
-Diagram:
+Classic layered architecture:
 
 ```text
-Presentation
+Presentation (UI)
 
        ▲
 
-Application
+Application (Use Cases)
 
        ▲
 
-Domain
+Domain (Business)
 
        ▲
 
-Infrastructure
+Infrastructure (Details)
 ```
 
-Rule:
+Rule of thumb:
 
 ```text
 Upper layers
-never know
-lower details.
+depend on
+lower abstractions,
+not concrete infrastructure.
 ```
 
----
+Details are plugged in at the edges.
 
-# Example
+***
+
+## Bad vs Good Flow
 
 Bad:
 
@@ -890,27 +916,31 @@ React
 Sanity
 ```
 
+UI directly talks to CMS APIs.
+
 Good:
 
 ```text
-React
+React (Presentation)
    │
    ▼
 
-Use Case
+Use Case / Service (Application)
    │
    ▼
 
-Repository
+Repository Interface (Domain)
    │
    ▼
 
-Sanity
+Sanity Implementation (Infrastructure)
 ```
 
----
+Each layer has a clear role and clear dependencies.
 
-# What Is A Use Case?
+***
+
+# What Is a Use Case?
 
 Examples:
 
@@ -924,24 +954,25 @@ Publish Article
 Like Article
 ```
 
-These represent:
+Use cases represent:
 
 ```text
 Business Actions
 ```
 
----
+They answer: “What does this system do for the user?” not “Which HTTP call does it make?”.
 
-# Example
+***
+
+## Example Use Case
 
 ```typescript
-export async function
-createComment(
-  input:
-    CommentInput
+export async function createCommentUseCase(
+  input: CommentInput,
+  repo: CommentRepository
 ) {
-  return repository
-    .create(input);
+  // validate, enforce rules, etc.
+  return repo.create(input);
 }
 ```
 
@@ -959,9 +990,10 @@ Only:
 
 ```text
 Business Logic
+wired through abstractions.
 ```
 
----
+***
 
 # Architecture Is Compression
 
@@ -969,12 +1001,14 @@ Suppose you have:
 
 ```text
 100,000 lines
+of code
 ```
 
-Humans cannot understand:
+Humans cannot hold:
 
 ```text
 100,000 lines
+in their head at once.
 ```
 
 But humans can understand:
@@ -989,17 +1023,19 @@ Users
 Auth
 ```
 
-Architecture compresses complexity.
+Architecture compresses complexity into concepts.
 
----
+Instead of thinking about every file, you think about a few well-defined modules and their contracts.
 
-# Conway's Law
+***
 
-One of the most important laws in engineering:
+# Conway’s Law
 
-> Systems resemble the organizations that build them.
+One of the most important observations in software:
 
-Example:
+> Systems tend to mirror the communication structures of the organizations that build them.
+
+Example organization:
 
 ```text
 Frontend Team
@@ -1007,39 +1043,35 @@ Backend Team
 Platform Team
 ```
 
-often produces:
+Often produces architecture like:
 
 ```text
 Frontend
 
 Backend
 
-Platform
+Platform / Infra
 ```
 
-architecture.
+This is neither good nor bad; it’s a reminder that architecture is partly a **social** design.
 
----
+***
 
-# Wait...
-
-Does This Mean Architecture Is Social?
+# Is Architecture Social?
 
 Yes.
 
-Software architecture is partially:
+Software architecture is:
 
 ```text
-Technical
+Part Technical
+
+Part Organizational
+
+Part Cognitive
 ```
 
-and partially:
-
-```text
-Human
-```
-
-because software exists to help:
+Because software exists to help:
 
 ```text
 Humans
@@ -1047,47 +1079,49 @@ understand
 complexity.
 ```
 
----
+If the team cannot understand the system, the architecture is failing, regardless of how “clean” the code looks.
 
-# The Hidden Architecture
+***
 
-Our finished GreyMatter Journal now looks like:
+# The Hidden Architecture of GreyMatter
+
+Conceptually, our final GreyMatter Journal looks like:
 
 ```text
-app/
+Next.js App (app/)
      │
      ▼
 
-Features
+Features (posts, comments, auth, etc.)
      │
      ▼
 
-Use Cases
+Use Cases / Services
      │
      ▼
 
-Domain
+Domain Models
      │
      ▼
 
-Repositories
+Repositories (interfaces)
      │
      ▼
 
-Infrastructure
+Infrastructure (Sanity, Clerk, Vercel, etc.)
      │
      ▼
 
 External Systems
 ```
 
----
+Each layer knows only what it needs to know, and nothing more.
 
-# Wait...
+***
 
-Does This Look Familiar?
+# Complexity Trees
 
-We've discovered:
+We’ve already discovered:
 
 ```text
 React Trees
@@ -1107,29 +1141,32 @@ Deployment Trees
 Observation Trees
 ```
 
-Now we discover:
+Now we add:
 
 ```text
 Complexity Trees
 ```
 
-because architecture itself is simply:
+because architecture is:
 
 ```text
-Organized
-Complexity.
+The way we shape
+and prune
+complexity.
 ```
 
----
+Each “branch” is a module, boundary, or abstraction that helps us reason about a system too large to see all at once.
 
-# The Deep Secret Of Software Architecture
+***
+
+# The Deep Secret of Software Architecture
 
 Most beginners think:
 
 ```text
 Architecture
             =
-Folders
+Folder Structure
 ```
 
 Professional engineers think:
@@ -1142,12 +1179,12 @@ Decisions
             Complexity
 ```
 
-Questions become:
+Key questions:
 
 ```text
-What changes?
+What changes most?
 
-How often?
+How often does it change?
 
 Who owns it?
 
@@ -1155,10 +1192,13 @@ What depends on it?
 
 Can we replace it?
 
-Can humans understand it?
+Can humans understand it
+in a few diagrams or pages?
 ```
 
----
+Architecture is the set of constraints that keep these answers sane over time.
+
+***
 
 # Mental Model To Remember Forever
 
@@ -1190,14 +1230,17 @@ The Art
             Larger
             Than
             Human Brains
+Can Fully Hold
 ```
 
----
+Once you see architecture this way, frameworks, patterns, layers, and dependencies become tools for one task: keeping complexity just small enough for humans to safely change the system.
+
+***
 
 # Up Next
 
-In **Part 26 (Finale)**, we'll step back and examine everything we've built while learning:
+In **Part 26 (Finale)**, we’ll step back and examine everything we’ve built while exploring:
 
-* why software engineering is fundamentally systems thinking,
-* how React, Next.js, databases, caches, CDNs, and AI systems share the same underlying principles,
-* and why becoming a senior engineer is ultimately about developing better mental models rather than learning more frameworks.
+- why software engineering is fundamentally systems thinking,
+- how React, Next.js, databases, caches, CDNs, and AI systems share the same underlying principles,
+- and why becoming a senior engineer is ultimately about developing better mental models rather than learning more frameworks.
