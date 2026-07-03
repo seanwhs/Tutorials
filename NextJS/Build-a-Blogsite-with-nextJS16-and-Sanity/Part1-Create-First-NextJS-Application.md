@@ -1,4 +1,4 @@
-**✅ Enhanced Version: Part 1 — Creating Our First Next.js 16 Application**
+# **✅ Part 1 — Creating Our First Next.js 16 Application**
 
 ---
 
@@ -226,7 +226,3 @@ You’ll learn:
 - How layouts create persistent UI
 - The difference between Server and Client Components
 - The mental model shift from “pages” to “UI trees”
-
----
-
-**Ready to continue?** Let me know if you want any adjustments to this part (more diagrams, common pitfalls section, etc.) before we move to **Part 2**.
