@@ -1,4 +1,4 @@
-**Enhanced Version: Part 0 — Understanding Modern Blog Architecture**
+# **Part 0 — Understanding Modern Blog Architecture**
 
 ---
 
