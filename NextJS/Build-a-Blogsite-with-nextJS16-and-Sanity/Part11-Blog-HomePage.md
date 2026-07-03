@@ -1,103 +1,23 @@
-# GreyMatter Journal
-
-# Part 11 — Building Our First Real Blog Homepage: Understanding Server Components, Async Rendering, and React Lists
-
-> **Goal of this lesson:** Build the first real homepage for GreyMatter Journal and understand how Next.js Server Components fetch data, why `await` works inside components, how React renders lists, and what React components actually are.
+# **✅ Part 11 — Building Our First Real Blog Homepage**
 
 ---
 
-# This Is The Moment Everything Comes Together
+# GreyMatter Journal  
+## Part 11 — Building Our First Real Blog Homepage: Server Components, Data Fetching, and Lists
 
-Up until now, we've built many pieces:
-
-```text
-✓ Next.js Application
-✓ App Router
-✓ Layouts
-✓ Sanity Studio
-✓ Content Models
-✓ Content Lake
-✓ Sanity Client
-✓ GROQ Queries
-```
-
-But our website still looks like this:
-
-```text
-GreyMatter Journal
-
-Welcome to GreyMatter Journal
-```
-
-Today we finally build:
-
-```text
-GreyMatter Journal
-
-Latest Articles
-
-[Article]
-[Article]
-[Article]
-```
-
-This is the first time our application becomes a real blog.
+> **Goal of this lesson:** Create a dynamic homepage that displays real posts from Sanity and understand how Next.js Server Components, data fetching, and React lists work.
 
 ---
 
-# What Are We Actually Building?
+### Everything Comes Together
 
-Our homepage should display:
-
-```text
-Latest Articles
-
-Understanding React Server Components
-by Sean Wong
-
-A beginner-friendly introduction...
-
-----------------------------------
-
-Understanding Next.js Layouts
-by Sean Wong
-
-Persistent UI trees explained...
-```
-
-Conceptually:
-
-```text
-Database
-
-Post
-Post
-Post
-
-      ↓
-
-Next.js
-
-      ↓
-
-React Components
-
-      ↓
-
-HTML
-```
+We now have layouts, a content system, and a working connection. It’s time to build the homepage that readers will actually see.
 
 ---
 
-# Step 1 — Create A Query File
+### Step 1: Create the Query
 
-Create:
-
-```text
-lib/queries.ts
-```
-
-Add:
+Create `lib/queries.ts`:
 
 ```typescript
 export const POSTS_QUERY = `
@@ -105,229 +25,69 @@ export const POSTS_QUERY = `
   | order(publishedAt desc)
   {
     _id,
-
     title,
-
     slug,
-
     excerpt,
-
     publishedAt,
-
     author->{
-      name
+      name,
+      slug
     },
-
     categories[]->{
-      title
+      title,
+      slug
     }
   }
 `;
 ```
 
----
-
-# Why Create Separate Query Files?
-
-Many beginners do this:
-
-```typescript
-const posts =
-  await client.fetch(`
-    ...
-  `);
-```
-
-inside every component.
-
-This quickly becomes:
-
-```text
-Messy
-Duplicated
-Difficult to maintain
-```
-
-Instead:
-
-```text
-Queries
-     ↓
-lib/queries.ts
-
-Components
-     ↓
-app/
-```
-
-This separation is called:
-
-# Separation of Concerns
+This query fetches the newest posts with resolved relationships.
 
 ---
 
-# Understanding Our Query
+### Step 2: Create the PostCard Component
 
-Let's read it like English.
-
----
-
-## Step 1
-
-```groq
-*[_type == "post"]
-```
-
-means:
-
-```text
-Find all posts.
-```
-
----
-
-## Step 2
-
-```groq
-| order(publishedAt desc)
-```
-
-means:
-
-```text
-Sort newest first.
-```
-
-Diagram:
-
-```text
-Old
-Old
-New
-
-      ↓
-
-New
-Old
-Old
-```
-
----
-
-## Step 3
-
-```groq
-author->{
-  name
-}
-```
-
-means:
-
-```text
-Follow the author reference.
-```
-
-Diagram:
-
-```text
-Post
-   │
-   ▼
-Author
-```
-
----
-
-## Step 4
-
-```groq
-categories[]->{
-  title
-}
-```
-
-means:
-
-```text
-Follow every category reference.
-```
-
-Diagram:
-
-```text
-Post
-
-   ├── Category
-   ├── Category
-   └── Category
-```
-
----
-
-# Step 2 — Create A Post Card Component
-
-Create:
-
-```text
-components/
-```
-
-Inside:
-
-```text
-components/PostCard.tsx
-```
-
-Add:
+Create `components/posts/PostCard.tsx`:
 
 ```tsx
-type PostCardProps = {
-  post: {
-    _id: string;
-    title: string;
-    excerpt: string;
-    publishedAt: string;
+import Link from "next/link";
 
-    author: {
-      name: string;
-    };
-
-    categories: {
-      title: string;
-    }[];
-
-    slug: {
-      current: string;
-    };
-  };
+type Post = {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  excerpt: string;
+  publishedAt: string;
+  author: { name: string };
+  categories: { title: string }[];
 };
 
-export default function PostCard({
-  post,
-}: PostCardProps) {
+export default function PostCard({ post }: { post: Post }) {
   return (
-    <article>
-      <h2>{post.title}</h2>
+    <article className="border border-gray-200 rounded-xl p-8 hover:shadow-lg transition">
+      <div className="flex gap-2 mb-3">
+        {post.categories.map((cat) => (
+          <span
+            key={cat.title}
+            className="text-xs uppercase tracking-widest text-blue-600"
+          >
+            {cat.title}
+          </span>
+        ))}
+      </div>
 
-      <p>
-        By {post.author.name}
-      </p>
+      <Link href={`/posts/${post.slug.current}`}>
+        <h2 className="text-3xl font-bold tracking-tight mb-3 hover:underline">
+          {post.title}
+        </h2>
+      </Link>
 
-      <p>
-        {post.excerpt}
-      </p>
+      <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
 
-      <p>
-        Categories:
-        {" "}
-        {post.categories
-          .map(
-            category =>
-              category.title
-          )
-          .join(", ")}
-      </p>
+      <div className="text-sm text-gray-500">
+        By {post.author.name} •{" "}
+        {new Date(post.publishedAt).toLocaleDateString()}
+      </div>
     </article>
   );
 }
@@ -335,547 +95,84 @@ export default function PostCard({
 
 ---
 
-# Wait...
+### Step 3: Build the Homepage
 
-Many beginners think:
-
-```text
-React Component
-       =
-HTML Template
-```
-
-Not quite.
-
-A React component is simply:
-
-```text
-Function
-      ↓
-Returns UI Description
-```
-
-Diagram:
-
-```text
-Input Data
-       │
-       ▼
-Function
-       │
-       ▼
-User Interface
-```
-
----
-
-# Step 3 — Build The Homepage
-
-Open:
-
-```text
-app/page.tsx
-```
-
-Replace everything:
+Update `app/page.tsx`:
 
 ```tsx
 import { client } from "@/lib/sanity";
 import { POSTS_QUERY } from "@/lib/queries";
-import PostCard from "@/components/PostCard";
+import PostCard from "@/components/posts/PostCard";
 
 export default async function HomePage() {
-  const posts =
-    await client.fetch(
-      POSTS_QUERY
-    );
+  const posts = await client.fetch(POSTS_QUERY);
 
   return (
-    <main>
-      <h1>
-        Latest Articles
-      </h1>
-
-      {posts.map(post => (
-        <PostCard
-          key={post._id}
-          post={post}
-        />
-      ))}
-    </main>
-  );
-}
-```
-
----
-
-# Wait...
-
-Did we just do this?
-
-```tsx
-export default async function HomePage()
-```
-
-Yes.
-
-And this is one of the biggest architectural changes in React history.
-
----
-
-# Traditional React
-
-Traditional React works like this:
-
-```text
-Render Empty UI
-       ↓
-Browser Fetches Data
-       ↓
-Receive Data
-       ↓
-Render Again
-```
-
-Diagram:
-
-```text
-Browser
-
-Loading...
-
-       ↓
-
-Fetch
-
-       ↓
-
-Render
-```
-
----
-
-# Server Components
-
-Server Components work differently:
-
-```text
-Fetch Data
-      ↓
-Render HTML
-      ↓
-Send To Browser
-```
-
-Diagram:
-
-```text
-Server
-
-Fetch
-   ↓
-Render
-   ↓
-HTML
-   ↓
-Browser
-```
-
-This means:
-
-```tsx
-const posts =
-  await client.fetch();
-```
-
-works directly inside components.
-
----
-
-# Why Does This Feel Strange?
-
-Because most of us learned React like this:
-
-```tsx
-useEffect(() => {
-  fetch(...);
-}, []);
-```
-
-Example:
-
-```tsx
-const [posts, setPosts] =
-  useState([]);
-
-useEffect(() => {
-  fetchPosts();
-}, []);
-```
-
-This creates:
-
-```text
-Render
-    ↓
-Fetch
-    ↓
-Re-render
-```
-
-But Server Components allow:
-
-```text
-Fetch
-    ↓
-Render
-```
-
-Which is dramatically simpler.
-
----
-
-# What Does `map()` Actually Do?
-
-This line:
-
-```tsx
-posts.map(post => (
-  <PostCard
-    key={post._id}
-    post={post}
-  />
-))
-```
-
-confuses many beginners.
-
-Suppose:
-
-```typescript
-const posts = [
-  "React",
-  "Next",
-  "Sanity",
-];
-```
-
-Then:
-
-```typescript
-posts.map(post =>
-  `Article: ${post}`
-);
-```
-
-produces:
-
-```typescript
-[
-  "Article: React",
-  "Article: Next",
-  "Article: Sanity",
-]
-```
-
-React simply does:
-
-```text
-Data
-     ↓
-map()
-     ↓
-Components
-```
-
-Diagram:
-
-```text
-Post
-Post
-Post
-
-    ↓
-
-Component
-Component
-Component
-```
-
----
-
-# What Is The `key` Prop?
-
-This question has confused React developers for years.
-
-Consider:
-
-```text
-A
-B
-C
-```
-
-Now imagine:
-
-```text
-A
-X
-B
-C
-```
-
-React must determine:
-
-```text
-Which item changed?
-```
-
-Without keys:
-
-```text
-Everything looks new.
-```
-
-With keys:
-
-```text
-A unchanged
-
-X added
-
-B unchanged
-
-C unchanged
-```
-
-Diagram:
-
-```text
-Before
-
-1
-2
-3
-
-After
-
-1
-4
-2
-3
-```
-
-Keys allow React to identify objects.
-
----
-
-# Let's Improve The UI
-
-Update:
-
-```tsx
-import { client } from "@/lib/sanity";
-import { POSTS_QUERY } from "@/lib/queries";
-import PostCard from "@/components/PostCard";
-
-export default async function HomePage() {
-  const posts =
-    await client.fetch(
-      POSTS_QUERY
-    );
-
-  return (
-    <main>
-      <h1>
-        GreyMatter Journal
-      </h1>
-
-      <p>
-        Thoughts on software,
-        architecture,
-        and engineering.
-      </p>
-
-      <hr />
-
-      <h2>
-        Latest Articles
-      </h2>
-
-      {posts.length === 0 ? (
-        <p>
-          No posts found.
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="text-center mb-16">
+        <h1 className="text-6xl font-bold tracking-tight mb-6">
+          GreyMatter Journal
+        </h1>
+        <p className="text-xl text-gray-600 max-w-md mx-auto">
+          Exploring software engineering, systems thinking, and modern architecture.
         </p>
-      ) : (
-        posts.map(post => (
-          <PostCard
-            key={post._id}
-            post={post}
-          />
-        ))
-      )}
-    </main>
+      </div>
+
+      <section>
+        <h2 className="text-3xl font-semibold mb-8">Latest Articles</h2>
+
+        {posts.length === 0 ? (
+          <p className="text-center text-gray-500 py-12">No posts yet. Start writing in Sanity Studio!</p>
+        ) : (
+          <div className="space-y-12">
+            {posts.map((post: any) => (
+              <PostCard key={post._id} post={post} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 ```
 
 ---
 
-# Wait...
+### Why `async` Components Work
 
-What Is This?
+In **Server Components**, you can use `await` directly inside the component. Next.js handles data fetching on the server before sending HTML to the browser.
 
-```tsx
-posts.length === 0
-  ? ...
-  : ...
-```
-
-This is called:
-
-# Conditional Rendering
-
-Think of it as:
-
-```text
-IF posts exist
-
-    show posts
-
-ELSE
-
-    show empty state
-```
-
-Diagram:
-
-```text
-Condition
-      │
-      ▼
-
- TRUE        FALSE
-   │            │
-   ▼            ▼
-
-Posts      Empty State
-```
+This is much simpler than the old `useEffect` + `useState` pattern.
 
 ---
 
-# Our Rendering Pipeline
+### Key Concepts Explained
 
-For the first time, our entire system is operational:
-
-```text
-Editor
-   │
-   ▼
-Sanity Studio
-   │
-   ▼
-Content Lake
-   │
-   ▼
-GROQ Query
-   │
-   ▼
-Sanity Client
-   │
-   ▼
-Server Component
-   │
-   ▼
-React Tree
-   │
-   ▼
-HTML
-   │
-   ▼
-Browser
-```
+- **`map()`**: Transforms an array of data into an array of React elements
+- **`key` prop**: Helps React efficiently update lists when data changes
+- **Conditional Rendering**: Using ternaries (`condition ? A : B`) for empty states
+- **Server Components**: Fetch → Render → HTML (no client-side waterfalls)
 
 ---
 
-# The Secret Of React Components
+### Mental Model To Remember Forever
 
-Many beginners think:
-
-```text
-React Components
-       =
-HTML Files
-```
-
-But React components are actually:
+**Modern React:**
 
 ```text
-Functions
-      +
-Data
-      +
-Composition
-```
-
-Or more formally:
-
-```text
-UI
-    =
-f(state)
-```
-
-Meaning:
-
-```text
-User Interface
-        =
-Function(Data)
-```
-
-This idea is the foundation of React.
-
----
-
-# Mental Model To Remember Forever
-
-Old web development:
-
-```text
-Database
+Data (from Sanity)
      ↓
-Template
+Server Component (async function)
      ↓
-HTML
+React Elements (UI description)
+     ↓
+HTML sent to browser
 ```
 
-Modern React architecture:
-
-```text
-Data
-    ↓
-Functions
-    ↓
-Components
-    ↓
-UI Tree
-    ↓
-HTML
-```
-
-React isn't an HTML framework.
-
-React is a system for transforming data into user interfaces.
+React components are **functions that turn data into user interfaces**.
 
 ---
 
-# Up Next
+### Up Next — Part 12: Dynamic Article Pages
 
-In **Part 12**, we'll build our first dynamic article page and learn:
-
-* what dynamic routes actually are,
-* how `[slug]` folders work,
-* how URL parameters become function arguments,
-* how to fetch a single article,
-* and why routing is really just tree traversal.
+We’ll build individual post pages using dynamic routes (`[slug]`), learn how to fetch a single post, and render rich Portable Text content.
