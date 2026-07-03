@@ -1,4 +1,4 @@
-# Appendix D — The Complete GROQ Query Cookbook for GreyMatter Journal
+# Appendix D1 — The Complete GROQ Query Cookbook for GreyMatter Journal
 
 > **Goal of this appendix:** Master the Graph-Relational Object Queries (GROQ) language used by Sanity while learning the broader concepts of querying, filtering, projection, joins, aggregation, and information retrieval systems.
 
