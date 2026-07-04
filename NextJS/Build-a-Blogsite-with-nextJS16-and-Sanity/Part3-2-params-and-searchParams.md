@@ -26,7 +26,7 @@ export default async function PostPage({
 }
 ```
 
-Or:
+Or perhaps this:
 
 ```tsx
 export default async function SearchPage({
@@ -42,14 +42,14 @@ export default async function SearchPage({
 }
 ```
 
-This immediately raises a new set of questions:
+This immediately creates a new set of questions:
 
 * Where does `params` come from?
 * Who creates `searchParams`?
 * Why don't we pass them ourselves?
-* What's the difference between them?
 * Why are they typed?
 * Why are they `Promise`s?
+* What do the angle brackets (`< >`) mean?
 
 These questions reveal another important truth about modern web applications:
 
@@ -59,15 +59,17 @@ These questions reveal another important truth about modern web applications:
 
 ---
 
-# The URL Is Data
+# The URL Is Not A String
 
-Most beginners think of URLs as strings:
+Beginners often think about URLs like this:
 
 ```text
 /posts/react-server-components
 ```
 
-But professional systems think of URLs differently.
+as merely a string.
+
+Professional systems think differently.
 
 A URL is structured information.
 
@@ -103,16 +105,70 @@ parameter:
     q = react
 ```
 
-The job of the router is to transform URLs into structured data.
+The router's job is to transform URLs into structured data.
+
+---
+
+# The Router Is A Translator
+
+You can think of the router as a translator:
+
+```text
+User Intent
+        ↓
+
+URL
+        ↓
+
+Router
+        ↓
+
+Structured Data
+        ↓
+
+React Components
+```
+
+For example:
+
+```text
+/posts/react-server-components
+```
+
+becomes:
+
+```typescript
+{
+  slug:
+    "react-server-components"
+}
+```
+
+while:
+
+```text
+/search?q=react
+```
+
+becomes:
+
+```typescript
+{
+  q: "react"
+}
+```
+
+The router continuously transforms URLs into JavaScript objects.
 
 ---
 
 # Dynamic Routes
 
-Suppose we create this file:
+Suppose we create:
 
 ```text
 app/
+
 └── (site)/
     └── posts/
         └── [slug]/
@@ -129,7 +185,7 @@ is called a **dynamic segment**.
 
 It tells Next.js:
 
-> "Capture whatever appears here and give it to me."
+> Capture whatever appears here and give it to me.
 
 For example:
 
@@ -139,7 +195,7 @@ For example:
 
 becomes:
 
-```tsx
+```typescript
 {
   slug: "react"
 }
@@ -153,13 +209,13 @@ while:
 
 becomes:
 
-```tsx
+```typescript
 {
   slug: "nextjs"
 }
 ```
 
-The router automatically constructs this object.
+The router constructs this object automatically.
 
 ---
 
@@ -175,7 +231,8 @@ export default async function PostPage({
     slug: string;
   }>;
 }) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
   return <h1>{slug}</h1>;
 }
@@ -187,7 +244,7 @@ When a user visits:
 /posts/react-server-components
 ```
 
-Next.js internally does something conceptually similar to:
+Next.js conceptually performs something similar to:
 
 ```tsx
 <PostPage
@@ -200,17 +257,23 @@ Next.js internally does something conceptually similar to:
 />
 ```
 
-You never create this object.
+Notice something important:
 
-You never pass this object.
+```text
+You never create params.
 
-The router creates it automatically.
+You never pass params.
+
+You never construct params.
+```
+
+The router does.
 
 ---
 
-# Visualizing Dynamic Routes
+# Visualizing Route Resolution
 
-Consider our application:
+Suppose our application contains:
 
 ```text
 app/
@@ -262,7 +325,7 @@ Visually:
 
 ---
 
-# What About Multiple Parameters?
+# Multiple Route Parameters
 
 Suppose we build:
 
@@ -276,7 +339,7 @@ authors/
                 page.tsx
 ```
 
-Visiting:
+Then:
 
 ```text
 /authors/sean/posts/nextjs
@@ -284,7 +347,7 @@ Visiting:
 
 produces:
 
-```tsx
+```typescript
 {
   author: "sean",
   slug: "nextjs",
@@ -297,7 +360,7 @@ The router simply maps folder names to values.
 
 # Understanding `searchParams`
 
-Now consider this URL:
+Now consider:
 
 ```text
 /search?q=react&page=2
@@ -315,7 +378,7 @@ Everything after:
 
 becomes:
 
-```tsx
+```typescript
 {
   q: "react",
   page: "2",
@@ -345,15 +408,19 @@ export default async function SearchPage({
 }
 ```
 
-Again, you never create this object.
+Again:
 
-The router creates it.
+```text
+You never create searchParams.
+
+The router creates them.
+```
 
 ---
 
-# The Difference Between `params` and `searchParams`
+# `params` vs `searchParams`
 
-This distinction is extremely important.
+This distinction is one of the most important ideas in routing.
 
 ## Route Parameters
 
@@ -363,9 +430,9 @@ This distinction is extremely important.
 
 becomes:
 
-```tsx
+```typescript
 params = {
-  slug: "react",
+  slug: "react"
 }
 ```
 
@@ -381,9 +448,9 @@ Route parameters identify resources.
 
 becomes:
 
-```tsx
+```typescript
 searchParams = {
-  q: "react",
+  q: "react"
 }
 ```
 
@@ -391,7 +458,7 @@ Search parameters modify behavior.
 
 ---
 
-Think of it this way:
+A useful mental model is:
 
 ```text
 params
@@ -429,13 +496,13 @@ Examples:
 
 Consider:
 
-```tsx
+```typescript
 params: Promise<{
   slug: string;
 }>
 ```
 
-TypeScript creates a contract:
+This creates a contract:
 
 ```text
 Router
@@ -467,34 +534,230 @@ This contract prevents entire classes of bugs.
 
 ---
 
-# Why Are They `Promise`s?
+# Understanding `Promise<{ slug: string }>`
 
-In recent versions of Next.js, route information is asynchronous.
+For many beginners, this line looks terrifying:
 
-This allows Next.js to integrate routing with:
-
-* React Server Components
-* streaming
-* Suspense
-* server rendering
-* partial rendering
-* future router optimizations
-
-Instead of:
-
-```tsx
-const slug =
-  params.slug;
+```typescript
+Promise<{
+  slug: string;
+}>
 ```
 
-we now write:
+In reality, it consists of three simple ideas.
 
-```tsx
-const { slug } =
-  await params;
+---
+
+## Layer 1 — Object Types
+
+This:
+
+```typescript
+{
+  slug: string;
+}
 ```
 
-The router becomes another asynchronous data source.
+means:
+
+> An object containing a property called `slug`, and that property must be a string.
+
+Example:
+
+```typescript
+{
+  slug:
+    "react-server-components"
+}
+```
+
+---
+
+## Layer 2 — Generics
+
+<img width="587" height="348" alt="image" src="https://github.com/user-attachments/assets/8be9c4ec-4ffd-4d78-a3b3-2947f467d0b4" />
+
+
+The angle brackets:
+
+```typescript
+<>
+```
+
+are called **generics**.
+
+Think of generics as labels attached to containers.
+
+For example:
+
+```typescript
+Array<string>
+```
+
+means:
+
+```text
+An array
+containing strings
+```
+
+while:
+
+```typescript
+Array<number>
+```
+
+means:
+
+```text
+An array
+containing numbers
+```
+
+The pattern is:
+
+```text
+Container<Type>
+```
+
+---
+
+## Layer 3 — Promise<T>
+
+A Promise is simply an asynchronous container.
+
+For example:
+
+```typescript
+Promise<string>
+```
+
+means:
+
+```text
+A Promise
+that eventually
+contains a string
+```
+
+Visually:
+
+```text
+Promise
+      ↓
+(wait)
+      ↓
+"hello"
+```
+
+Similarly:
+
+```typescript
+Promise<number>
+```
+
+means:
+
+```text
+Promise
+      ↓
+(wait)
+      ↓
+42
+```
+
+---
+
+# Putting Everything Together
+
+Now we combine the pieces.
+
+We know:
+
+```typescript
+{
+  slug: string;
+}
+```
+
+means:
+
+```text
+An object
+containing a slug
+```
+
+Wrapping it inside a Promise:
+
+```typescript
+Promise<{
+  slug: string;
+}>
+```
+
+means:
+
+```text
+A Promise
+that eventually
+contains:
+
+{
+    slug: string
+}
+```
+
+Visually:
+
+```text
+Promise
+      ↓
+(wait)
+      ↓
+
+{
+    slug:
+      "react-server-components"
+}
+```
+
+---
+
+# Why Are Route Parameters Asynchronous?
+
+Older versions of Next.js behaved more like this:
+
+```typescript
+params: {
+  slug: string;
+}
+```
+
+Modern Next.js behaves like this:
+
+```typescript
+params: Promise<{
+  slug: string;
+}>
+```
+
+because routing now participates in the asynchronous rendering pipeline.
+
+This allows Next.js to integrate with:
+
+```text
+React Server Components
+            ↓
+Streaming
+            ↓
+Suspense
+            ↓
+Partial Rendering
+            ↓
+Future Optimizations
+```
+
+The router itself has become another asynchronous data source.
 
 ---
 
@@ -531,7 +794,7 @@ export default async function PostPage({
 }
 ```
 
-The flow becomes:
+The complete flow becomes:
 
 ```text
 URL
@@ -605,7 +868,7 @@ UI
 
 ---
 
-# The Router Is a Data Transformation Engine
+# The Router Is A Data Transformation Engine
 
 Beginners often think:
 
@@ -679,7 +942,7 @@ searchParams
 Resource Configuration
 ```
 
-Or, even more broadly:
+Or even more broadly:
 
 ```text
 User Intent
@@ -706,13 +969,13 @@ User Interface
 
 You never pass:
 
-```tsx
+```typescript
 params
 ```
 
 You never create:
 
-```tsx
+```typescript
 searchParams
 ```
 
@@ -730,30 +993,13 @@ However, once we understand that the router provides structured information, ano
 
 For example:
 
-```text
-/posts/react-server-components
-```
-
-should ideally produce:
-
 ```html
 <title>
   React Server Components
 </title>
-
-<meta
-  name="description"
-  content="An introduction to React Server Components..."
-/>
 ```
 
-while:
-
-```text
-/posts/nextjs-app-router
-```
-
-should produce:
+or:
 
 ```html
 <title>
@@ -761,15 +1007,13 @@ should produce:
 </title>
 ```
 
-But where does this metadata come from?
+Where does this metadata come from?
 
-How does Next.js generate different `<title>` tags for different pages?
-
-And why does metadata generation participate in the same server-rendering pipeline as the page itself?
+How does metadata participate in the rendering pipeline?
 
 These questions lead us to one of the most important ideas in modern web applications:
 
-> User interfaces are not the only thing applications render.
+> Applications don't only render user interfaces.
 
 They also render metadata, documents, previews, social cards, and machine-readable descriptions of reality.
 
@@ -777,7 +1021,7 @@ They also render metadata, documents, previews, social cards, and machine-readab
 
 # Up Next — Part 3-3: Understanding `generateMetadata()`
 
-Next, we'll explore how Next.js generates metadata dynamically using:
+Next, we'll explore:
 
 ```tsx
 export async function generateMetadata()
