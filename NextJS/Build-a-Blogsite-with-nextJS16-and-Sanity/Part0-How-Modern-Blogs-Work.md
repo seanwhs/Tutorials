@@ -192,6 +192,10 @@ This flexibility is why Sanity feels dramatically more powerful than older CMS p
 
 ### Next.js 16 — The Rendering Engine
 
+<img width="800" height="401" alt="image" src="https://github.com/user-attachments/assets/615a6fc7-e2f3-427e-ace1-611ddb008749" />
+
+<img width="1554" height="828" alt="image" src="https://github.com/user-attachments/assets/e6130781-c7f3-4fcf-a65f-710bc3b026c3" />
+
 Next.js is not just a framework — it’s a full-stack **rendering and optimization platform**.
 
 Its responsibilities in GreyMatter Journal:
@@ -204,6 +208,8 @@ Its responsibilities in GreyMatter Journal:
 * Handle image optimization, routing, and more
 
 #### Key Next.js 16 Innovations
+
+<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/983d8ccf-868a-4643-94d0-6ad82d46fef1" />
 
 **Server Components**
 Data fetching and rendering happen on the server → minimal client JavaScript.
