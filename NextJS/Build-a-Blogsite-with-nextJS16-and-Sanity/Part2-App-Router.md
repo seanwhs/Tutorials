@@ -681,6 +681,10 @@ This gives us:
 
 ---
 
+<img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/de3ce672-b5d9-4aed-85f2-4a801490acde" />
+
+---
+
 # Understanding `globals.css`
 
 Another file created by Next.js is:
