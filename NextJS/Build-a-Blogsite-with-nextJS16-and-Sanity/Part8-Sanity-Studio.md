@@ -10,7 +10,7 @@
 
 ---
 
-### You Now Have Two Applications
+## You Now Have Two Applications
 
 After running:
 
@@ -18,12 +18,12 @@ After running:
 npx sanity@latest init
 ```
 
-your project contains two distinct applications:
+your project now contains two distinct applications:
 
 * **`app/`** → Next.js frontend for **readers**
-* **`studio/`** → Sanity Studio for **writers & editors**
+* **`studio/`** → Sanity Studio for **writers and editors**
 
-This separation is intentional and powerful.
+This separation is intentional and extremely powerful.
 
 ```text id="r7m4tk"
 Next.js
@@ -35,9 +35,18 @@ Sanity Studio
 Content Layer
 ```
 
+Unlike traditional CMS platforms, modern systems separate:
+
+* Content creation
+* Content storage
+* Content delivery
+* Content presentation
+
+into specialized layers.
+
 ---
 
-### Exploring the `studio/` Folder
+## Exploring the `studio/` Folder
 
 ```text id="c9v2wx"
 studio/
@@ -54,9 +63,9 @@ studio/
 | `package.json`     | Studio dependencies                   |
 | `tsconfig.json`    | TypeScript configuration              |
 
-The Studio itself is a **React application** that connects to your Content Lake.
+The Studio itself is actually a React application that connects to your Content Lake.
 
-This is one of the reasons Sanity feels so different from traditional CMS platforms:
+This is one reason why Sanity feels fundamentally different from traditional CMS systems.
 
 ```text id="b6n8qe"
 CMS
@@ -74,9 +83,15 @@ API
 Editor
 ```
 
+Sanity is not merely storing content.
+
+It is providing an entire platform for modeling, editing, validating, querying, and delivering content.
+
 ---
 
-### Run the Studio
+## Run the Studio
+
+Start the Studio server:
 
 ```bash id="z2q7mk"
 cd studio
@@ -89,7 +104,7 @@ Open:
 http://localhost:3333
 ```
 
-You now have two development servers running simultaneously:
+You now have two applications running simultaneously:
 
 | Application   | Port   | Users             |
 | ------------- | ------ | ----------------- |
@@ -98,11 +113,11 @@ You now have two development servers running simultaneously:
 
 ---
 
-### Two Applications, One System
+## Two Applications, One System
 
-This architecture can initially feel strange.
+This architecture often surprises beginners.
 
-Most beginners expect:
+Most people initially expect:
 
 ```text id="m8r3ky"
 One Folder
@@ -134,9 +149,16 @@ Next.js
 Readers
 ```
 
+This separation allows:
+
+* Better scalability
+* Better authoring experience
+* Better performance
+* Better maintainability
+
 ---
 
-### Content-First Thinking
+## Content-First Thinking
 
 Most beginners design **pages** first.
 
@@ -150,30 +172,33 @@ Blog Page
 Contact Page
 ```
 
-Professional content platforms design **content** first.
+Professional content systems design **content** first.
 
-The key question Sanity asks is:
+The most important question becomes:
 
-> **What types of content exist in your business?**
+> **What types of content exist in my business?**
 
-For GreyMatter Journal, we define:
+For GreyMatter Journal, we initially define:
 
 * **Post**
 * **Author**
 * **Category**
 
-Later we might add:
+Later we may add:
 
 * Comments
 * Likes
 * Newsletter issues
 * Tags
 * Series
-* Featured content
+* Featured posts
+* Reading lists
+
+Notice that we're describing **business concepts**, not pages.
 
 ---
 
-### Content Modeling = Domain Modeling
+## Content Modeling = Domain Modeling
 
 Before writing code, we model the business domain.
 
@@ -194,7 +219,7 @@ Our planned model looks like this:
    Author       Category
 ```
 
-Relationships are the key to scalable content systems.
+Relationships are what make content systems powerful.
 
 Examples:
 
@@ -218,11 +243,11 @@ This means:
 
 * Updating an author's biography updates every article automatically.
 * Renaming a category updates every article automatically.
-* Content relationships remain consistent.
+* Relationships remain consistent throughout the system.
 
 ---
 
-### Why Relationships Matter
+## Why Relationships Matter
 
 Imagine storing author information directly inside every article:
 
@@ -239,7 +264,7 @@ Post C
 
 Now John changes his biography.
 
-You must edit:
+You must update:
 
 ```text id="d8w5mp"
 Post A
@@ -248,7 +273,7 @@ Post C
 ...
 ```
 
-Instead, with references:
+Instead, using references:
 
 ```text id="s3k9fy"
 Author
@@ -261,11 +286,13 @@ Post C
 
 You edit the author once.
 
-This concept is called **normalization**, and it is one of the foundations of scalable software systems.
+Every article automatically receives the updated information.
+
+This concept is called **normalization**, and it is one of the fundamental ideas behind scalable systems.
 
 ---
 
-### Creating the Schemas
+## Creating the Schemas
 
 Inside:
 
@@ -273,11 +300,11 @@ Inside:
 studio/schemaTypes/
 ```
 
-we'll create our content definitions.
+we'll define our business entities.
 
 ---
 
-#### 1. `category.ts`
+### 1. `category.ts`
 
 ```typescript id="n5m8qt"
 import {
@@ -305,20 +332,14 @@ export const categoryType =
         title: "Slug",
         type: "slug",
         options: {
-          source:
-            "title",
+          source: "title",
         },
       }),
 
       defineField({
-        name:
-          "description",
-
-        title:
-          "Description",
-
-        type:
-          "text",
+        name: "description",
+        title: "Description",
+        type: "text",
       }),
     ],
   });
@@ -326,7 +347,7 @@ export const categoryType =
 
 ---
 
-#### 2. `author.ts`
+### 2. `author.ts`
 
 ```typescript id="v4p7rm"
 import {
@@ -354,8 +375,7 @@ export const authorType =
         title: "Slug",
         type: "slug",
         options: {
-          source:
-            "name",
+          source: "name",
         },
       }),
 
@@ -376,7 +396,7 @@ export const authorType =
 
 ---
 
-#### 3. `post.ts`
+### 3. `post.ts`
 
 ```typescript id="k8r2vx"
 import {
@@ -404,8 +424,7 @@ export const postType =
         title: "Slug",
         type: "slug",
         options: {
-          source:
-            "title",
+          source: "title",
         },
       }),
 
@@ -421,31 +440,21 @@ export const postType =
         type: "reference",
         to: [
           {
-            type:
-              "author",
+            type: "author",
           },
         ],
       }),
 
       defineField({
-        name:
-          "categories",
-
-        title:
-          "Categories",
-
-        type:
-          "array",
-
+        name: "categories",
+        title: "Categories",
+        type: "array",
         of: [
           {
-            type:
-              "reference",
-
+            type: "reference",
             to: [
               {
-                type:
-                  "category",
+                type: "category",
               },
             ],
           },
@@ -453,30 +462,18 @@ export const postType =
       }),
 
       defineField({
-        name:
-          "publishedAt",
-
-        title:
-          "Published At",
-
-        type:
-          "datetime",
+        name: "publishedAt",
+        title: "Published At",
+        type: "datetime",
       }),
 
       defineField({
-        name:
-          "body",
-
-        title:
-          "Body",
-
-        type:
-          "array",
-
+        name: "body",
+        title: "Body",
+        type: "array",
         of: [
           {
-            type:
-              "block",
+            type: "block",
           },
         ],
       }),
@@ -486,7 +483,7 @@ export const postType =
 
 ---
 
-### Register Schemas
+## Register Schemas
 
 Update:
 
@@ -507,21 +504,20 @@ import {
   categoryType,
 } from "./category";
 
-export const
-  schemaTypes = [
-    postType,
-    authorType,
-    categoryType,
-  ];
+export const schemaTypes = [
+  postType,
+  authorType,
+  categoryType,
+];
 ```
 
-After saving, the Studio automatically updates with the new content types.
+After saving, the Studio automatically updates with your new document types.
 
 ---
 
-### Schemas Are Contracts
+## Schemas Are Contracts
 
-If you've been following our TypeScript discussions, this should feel familiar.
+If you've been following our TypeScript discussions, this idea should feel familiar.
 
 A TypeScript type:
 
@@ -532,7 +528,7 @@ type Post = {
 };
 ```
 
-is a contract.
+creates a contract.
 
 A Sanity schema:
 
@@ -543,15 +539,53 @@ defineType({
 });
 ```
 
-is also a contract.
+also creates a contract.
 
 Both answer the same question:
 
 > **What does a valid Post look like?**
 
+This is one of the most important ideas in modern software engineering:
+
+```text id="u3q7mn"
+Reality
+    ↓
+Contract
+    ↓
+Software
+```
+
 ---
 
-### Content Modeling Is More Important Than Writing Code
+## Content Contracts Become System Contracts
+
+As GreyMatter Journal grows, our content contracts propagate throughout the entire architecture:
+
+```text id="qhk2gs"
+Sanity Schema
+       ↓
+Content Lake
+       ↓
+GROQ Query
+       ↓
+TypeScript Type
+       ↓
+React Component
+       ↓
+Rendered UI
+```
+
+Notice what happened.
+
+We never duplicated business logic.
+
+Instead, we described reality once and reused that description throughout the system.
+
+This is one reason modern software systems can scale while remaining maintainable.
+
+---
+
+## Content Modeling Is More Important Than Writing Code
 
 One of the biggest lessons in software engineering is:
 
@@ -579,7 +613,7 @@ A good content model:
 
 ---
 
-### A Small Preview of What Comes Next
+## A Small Preview of What Comes Next
 
 In the next part, we'll finally connect our two applications.
 
@@ -597,11 +631,11 @@ React Server Components
 Browser
 ```
 
-This is where GreyMatter Journal starts becoming a real distributed application.
+This is where GreyMatter Journal starts becoming a real distributed system.
 
 ---
 
-### Mental Model To Remember Forever
+## Mental Model To Remember Forever
 
 > **Content modeling is more important than writing code.**
 
@@ -621,9 +655,11 @@ am I modeling?
 
 Schemas are contracts describing that reality.
 
+And modern software systems scale because those contracts remain consistent.
+
 ---
 
-### Up Next — Part 9: Connecting Next.js to Sanity
+## Up Next — Part 9: Connecting Next.js to Sanity
 
 We'll:
 
@@ -633,4 +669,4 @@ We'll:
 * Learn how Next.js fetches content from the Content Lake
 * Understand how two separate applications become one unified system
 
-This is where the two systems start working together.
+This is where the two systems finally start working together.
