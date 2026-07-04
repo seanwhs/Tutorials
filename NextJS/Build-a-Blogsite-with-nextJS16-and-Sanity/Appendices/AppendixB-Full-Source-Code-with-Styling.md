@@ -1,12 +1,6 @@
-# Appendix B — The Complete GreyMatter Journal Reference Architecture
+# Appendix B — Complete Source Code Structure and Reference Architecture
 
-> **Goal of this appendix:** Provide the complete reference architecture for **GreyMatter Journal**, including the production folder structure, design system organization, feature architecture, infrastructure layers, styling systems, and architectural reasoning behind every major subsystem.
->
-> This appendix serves three purposes simultaneously:
->
-> * A **source code map** for the entire GreyMatter Journal codebase
-> * A **reference implementation** for future Next.js projects
-> * A **systems blueprint** for understanding how modern web applications are organized
+> **Goal of this appendix:** Provide the complete source code structure and reference architecture for **GreyMatter Journal**, including project organization, styling systems, design system foundations, production architecture patterns, and the rationale behind each major subsystem. This appendix serves both as a companion to the tutorial series and as a reference blueprint for building modern content-driven applications.
 
 ---
 
@@ -14,7 +8,7 @@
 
 Throughout this tutorial series, we built **GreyMatter Journal** incrementally.
 
-What began as a simple blog evolved into a modern, production-grade content platform featuring:
+What started as a simple blog evolved into a production-grade distributed content platform featuring:
 
 ```text
 ✓ Next.js 16 App Router
@@ -23,56 +17,679 @@ What began as a simple blog evolved into a modern, production-grade content plat
 ✓ Server Actions
 ✓ Sanity CMS
 ✓ Portable Text
-✓ Dynamic Routing
+✓ Image Optimization
+✓ Metadata & SEO
+✓ Draft Mode
 ✓ Authentication
 ✓ Comments
 ✓ Likes
-✓ Draft Mode
-✓ Metadata & SEO
-✓ Image Optimization
-✓ Caching & Revalidation
 ✓ Error Boundaries
-✓ Observability
+✓ Loading States
+✓ Caching & Revalidation
 ✓ Analytics
-✓ Design Systems
-✓ Theme Architecture
+✓ Observability
 ✓ Dark Mode
-✓ Production Deployment
+✓ Design Tokens
+✓ Design System Principles
+✓ Production Architecture
 ```
 
-At first glance, GreyMatter Journal appears to be a blog.
-
-Architecturally, however, it is a distributed information system.
+Although GreyMatter Journal appears to be a blog, architecturally it is a distributed information system:
 
 ```text
-Writers
+Authors
     ↓
-
 Sanity Studio
     ↓
-
 Content Lake
     ↓
-
 GROQ API
     ↓
-
-Next.js Runtime
+Next.js Rendering Engine
     ↓
-
-React Server Components
+React Component Tree
     ↓
-
-Design System
-    ↓
-
 Browser
-    ↓
-
-Readers
 ```
 
-This appendix presents the final production architecture.
+---
+
+# Complete Repository Structure
+
+```text
+greymatter-journal/
+
+├── app/
+│
+│   ├── (site)/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   │
+│   │   ├── about/
+│   │   │   └── page.tsx
+│   │   │
+│   │   ├── authors/
+│   │   │   └── [slug]/
+│   │   │       └── page.tsx
+│   │   │
+│   │   ├── categories/
+│   │   │   └── [slug]/
+│   │   │       └── page.tsx
+│   │   │
+│   │   └── posts/
+│   │       ├── page.tsx
+│   │       │
+│   │       └── [slug]/
+│   │           ├── page.tsx
+│   │           ├── loading.tsx
+│   │           ├── error.tsx
+│   │           └── not-found.tsx
+│   │
+│   ├── api/
+│   │   ├── comments/
+│   │   ├── likes/
+│   │   ├── draft/
+│   │   └── revalidate/
+│   │
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── loading.tsx
+│   ├── error.tsx
+│   └── not-found.tsx
+│
+├── actions/
+│   ├── comments.ts
+│   ├── likes.ts
+│   └── posts.ts
+│
+├── components/
+│   │
+│   ├── comments/
+│   │   ├── CommentForm.tsx
+│   │   ├── CommentList.tsx
+│   │   └── CommentCard.tsx
+│   │
+│   ├── layout/
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   └── ThemeToggle.tsx
+│   │
+│   ├── portable-text/
+│   │   ├── PortableTextRenderer.tsx
+│   │   ├── CodeBlock.tsx
+│   │   └── ImageBlock.tsx
+│   │
+│   ├── posts/
+│   │   ├── PostCard.tsx
+│   │   ├── PostList.tsx
+│   │   └── PostHero.tsx
+│   │
+│   ├── providers/
+│   │   └── ThemeProvider.tsx
+│   │
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Card.tsx
+│       ├── Badge.tsx
+│       └── Container.tsx
+│
+├── hooks/
+│   ├── useTheme.ts
+│   └── useLocalStorage.ts
+│
+├── lib/
+│   ├── analytics.ts
+│   ├── auth.ts
+│   ├── cache.ts
+│   ├── image.ts
+│   ├── logger.ts
+│   ├── queries.ts
+│   ├── sanity.ts
+│   ├── theme.ts
+│   └── utils.ts
+│
+├── styles/
+│   ├── tokens.css
+│   ├── themes.css
+│   └── prose.css
+│
+├── public/
+│
+├── types/
+│   ├── author.ts
+│   ├── category.ts
+│   ├── comment.ts
+│   ├── post.ts
+│   └── index.ts
+│
+├── studio/
+│   ├── schemaTypes/
+│   ├── sanity.config.ts
+│   └── package.json
+│
+├── middleware.ts
+├── next.config.ts
+├── tsconfig.json
+├── postcss.config.js
+└── package.json
+```
+
+---
+
+# Understanding the Architecture
+
+Professional engineers organize systems around responsibilities.
+
+```text
+app/
+        =
+Application Layer
+
+components/
+        =
+Presentation Layer
+
+actions/
+        =
+Mutation Layer
+
+lib/
+        =
+Infrastructure Layer
+
+types/
+        =
+Contracts
+
+styles/
+        =
+Design System
+
+studio/
+        =
+Content Management System
+```
+
+This separation allows complexity to scale without becoming chaos.
+
+---
+
+# Dependency Installation
+
+Core dependencies:
+
+```bash
+npm install \
+next \
+react \
+react-dom \
+sanity \
+next-sanity \
+@sanity/image-url \
+@portabletext/react \
+@sanity/icons \
+@sanity/vision \
+zod \
+clsx \
+tailwind-merge
+```
+
+Optional:
+
+```bash
+npm install \
+@clerk/nextjs \
+@vercel/analytics \
+@vercel/speed-insights
+```
+
+Development:
+
+```bash
+npm install -D \
+typescript \
+tailwindcss \
+@tailwindcss/postcss \
+eslint \
+eslint-config-next
+```
+
+---
+
+# Styling Architecture
+
+GreyMatter Journal follows a layered styling architecture:
+
+```text
+Design Tokens
+        ↓
+Themes
+        ↓
+Component Styles
+        ↓
+Page Layouts
+        ↓
+Content Presentation
+```
+
+---
+
+# Design Tokens
+
+```css
+/* styles/tokens.css */
+
+:root {
+  --background: white;
+  --foreground: #111827;
+
+  --muted: #6b7280;
+
+  --border: #e5e7eb;
+
+  --accent: #2563eb;
+
+  --radius: 0.75rem;
+
+  --content-width: 75ch;
+}
+```
+
+---
+
+# Dark Theme
+
+```css
+/* styles/themes.css */
+
+.dark {
+  --background: #0f172a;
+
+  --foreground: #f8fafc;
+
+  --muted: #94a3b8;
+
+  --border: #334155;
+
+  --accent: #60a5fa;
+}
+```
+
+---
+
+# Global Styles
+
+```css
+/* app/globals.css */
+
+@import "tailwindcss";
+
+@import "../styles/tokens.css";
+@import "../styles/themes.css";
+@import "../styles/prose.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+
+  background:
+    var(--background);
+
+  color:
+    var(--foreground);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.prose {
+  max-width:
+    var(--content-width);
+}
+```
+
+---
+
+# Root Layout
+
+```tsx
+import "./globals.css";
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+Remember:
+
+```text
+Root Layout
+        =
+Application Shell
+```
+
+---
+
+# Site Layout
+
+```tsx
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+
+export default function SiteLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <Header />
+
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        {children}
+      </main>
+
+      <Footer />
+    </>
+  );
+}
+```
+
+---
+
+# Header Component
+
+```tsx
+import Link from "next/link";
+
+export default function Header() {
+  return (
+    <header className="border-b">
+
+      <div className="
+        mx-auto
+        flex
+        max-w-6xl
+        items-center
+        justify-between
+        px-4
+        py-6
+      ">
+
+        <Link
+          href="/"
+          className="text-2xl font-bold"
+        >
+          GreyMatter Journal
+        </Link>
+
+        <nav className="flex gap-6">
+          <Link href="/">Home</Link>
+          <Link href="/posts">Posts</Link>
+          <Link href="/about">About</Link>
+        </nav>
+
+      </div>
+
+    </header>
+  );
+}
+```
+
+---
+
+# Footer Component
+
+```tsx
+export default function Footer() {
+  return (
+    <footer className="mt-16 border-t">
+
+      <div className="
+        mx-auto
+        max-w-6xl
+        px-4
+        py-8
+      ">
+
+        <p className="
+          text-sm
+          text-gray-500
+        ">
+          © 2026 GreyMatter Journal
+        </p>
+
+      </div>
+
+    </footer>
+  );
+}
+```
+
+---
+
+# Homepage
+
+```tsx
+import { getPosts } from "@/lib/sanity";
+import PostCard from "@/components/posts/PostCard";
+
+export default async function HomePage() {
+  const posts = await getPosts();
+
+  return (
+    <div className="space-y-12">
+
+      <section className="py-12">
+
+        <h1 className="text-5xl font-bold">
+          GreyMatter Journal
+        </h1>
+
+        <p className="mt-4 text-xl text-gray-600">
+          Exploring software engineering,
+          systems thinking,
+          and architecture.
+        </p>
+
+      </section>
+
+      <section className="grid gap-8">
+
+        {posts.map((post) => (
+          <PostCard
+            key={post._id}
+            post={post}
+          />
+        ))}
+
+      </section>
+
+    </div>
+  );
+}
+```
+
+---
+
+# Post Card
+
+```tsx
+import Image from "next/image";
+import Link from "next/link";
+
+export default function PostCard({
+  post,
+}: any) {
+  return (
+    <article className="
+      overflow-hidden
+      rounded-xl
+      border
+    ">
+
+      {post.heroImage && (
+        <Image
+          src={post.heroImage}
+          alt={post.title}
+          width={1200}
+          height={600}
+          className="
+            h-64
+            w-full
+            object-cover
+          "
+        />
+      )}
+
+      <div className="p-6">
+
+        <Link
+          href={`/posts/${post.slug.current}`}
+        >
+          <h2 className="text-2xl font-bold">
+            {post.title}
+          </h2>
+        </Link>
+
+        <p className="mt-4 text-gray-600">
+          {post.excerpt}
+        </p>
+
+      </div>
+
+    </article>
+  );
+}
+```
+
+---
+
+# Dynamic Article Page
+
+```tsx
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{
+    slug: string;
+  }>;
+}) {
+  const { slug } =
+    await params;
+
+  const post =
+    await getPostBySlug(slug);
+
+  return (
+    <article className="
+      prose
+      mx-auto
+    ">
+
+      <h1>{post.title}</h1>
+
+      <p>{post.excerpt}</p>
+
+      <PortableText
+        value={post.body}
+      />
+
+    </article>
+  );
+}
+```
+
+---
+
+# Interactive Components
+
+## Comment Form
+
+```tsx
+"use client";
+
+export default function CommentForm() {
+  return (
+    <form className="space-y-4">
+      {/* implementation */}
+    </form>
+  );
+}
+```
+
+## Like Button
+
+```tsx
+"use client";
+
+export default function LikeButton() {
+  return (
+    <button>
+      ❤️
+    </button>
+  );
+}
+```
+
+---
+
+# Error Handling
+
+```text
+loading.tsx
+        ↓
+error.tsx
+        ↓
+not-found.tsx
+```
+
+Together, these create resilient user experiences.
+
+---
+
+# Final System Architecture
+
+```text
+Browser
+    ↓
+React Components
+    ↓
+App Router
+    ↓
+React Server Components
+    ↓
+Server Actions
+    ↓
+Cache Layer
+    ↓
+Sanity Content Lake
+    ↓
+CDN
+    ↓
+Storage
+```
 
 ---
 
@@ -89,691 +706,33 @@ Application
 Professional engineers think:
 
 ```text
-Application
+Source Code
         =
+Blueprint
+```
+
+The real application consists of:
+
+```text
 Code
-        +
+    +
 Data
-        +
-Infrastructure
-        +
+    +
 Caching
-        +
-Observability
-        +
+    +
+Infrastructure
+    +
 Deployment
-        +
-Design Language
-        +
+    +
+Observability
+    +
 Human Understanding
-```
-
-Software architecture is ultimately the discipline of organizing complexity.
-
----
-
-# The Complete GreyMatter Journal Repository
-
-```text
-greymatter-journal/
-
-├── app/                         # Application entry layer
-│
-│   ├── (site)/                 # Public website
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   │
-│   │   ├── posts/
-│   │   │   ├── page.tsx
-│   │   │   └── [slug]/
-│   │   │       ├── page.tsx
-│   │   │       ├── loading.tsx
-│   │   │       ├── error.tsx
-│   │   │       └── not-found.tsx
-│   │   │
-│   │   ├── authors/
-│   │   │   └── [slug]/
-│   │   │
-│   │   ├── categories/
-│   │   │   └── [slug]/
-│   │   │
-│   │   ├── search/
-│   │   └── about/
-│   │
-│   ├── (auth)/
-│   │   ├── sign-in/
-│   │   └── sign-up/
-│   │
-│   ├── (admin)/
-│   │   ├── dashboard/
-│   │   └── analytics/
-│   │
-│   ├── api/
-│   │   ├── comments/
-│   │   ├── likes/
-│   │   ├── revalidate/
-│   │   └── draft/
-│   │
-│   ├── globals.css
-│   ├── layout.tsx
-│   ├── loading.tsx
-│   ├── error.tsx
-│   └── not-found.tsx
-│
-├── features/                   # Business domains
-│   │
-│   ├── posts/
-│   │   ├── actions/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── queries/
-│   │   ├── types/
-│   │   └── validation/
-│   │
-│   ├── comments/
-│   │   ├── actions/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── types/
-│   │   └── validation/
-│   │
-│   ├── likes/
-│   │
-│   ├── search/
-│   │
-│   └── analytics/
-│
-├── components/                # Shared presentation layer
-│   │
-│   ├── layout/
-│   ├── portable-text/
-│   ├── providers/
-│   └── ui/
-│
-├── design/                    # Design system
-│   │
-│   ├── tokens.ts
-│   ├── themes.ts
-│   ├── typography.ts
-│   ├── spacing.ts
-│   ├── shadows.ts
-│   ├── motion.ts
-│   └── breakpoints.ts
-│
-├── actions/                   # Global server actions
-│
-├── hooks/
-│
-├── lib/                       # Infrastructure layer
-│   │
-│   ├── sanity.ts
-│   ├── auth.ts
-│   ├── cache.ts
-│   ├── image.ts
-│   ├── analytics.ts
-│   ├── logger.ts
-│   ├── telemetry.ts
-│   ├── queries.ts
-│   └── utils.ts
-│
-├── types/
-│
-├── public/
-│
-├── studio/                    # Sanity Studio
-│   │
-│   ├── schemaTypes/
-│   ├── sanity.config.ts
-│   └── package.json
-│
-├── middleware.ts
-├── next.config.ts
-├── tsconfig.json
-├── postcss.config.js
-└── package.json
-```
-
----
-
-# Architectural Layers
-
-The folder structure is not arbitrary.
-
-Each folder represents a layer of responsibility.
-
-```text
-Presentation Layer
-        ↓
-Application Layer
-        ↓
-Domain Layer
-        ↓
-Infrastructure Layer
-        ↓
-External Systems
-```
-
----
-
-## 1. Presentation Layer
-
-```text
-app/
-components/
-design/
-```
-
-Responsible for:
-
-* Rendering
-* Navigation
-* Layouts
-* Themes
-* User interactions
-* Visual consistency
-
-Examples:
-
-```text
-Header
-Footer
-PostCard
-CommentForm
-LikeButton
-Button
-Card
-Modal
-```
-
----
-
-## 2. Application Layer
-
-```text
-actions/
-```
-
-Responsible for:
-
-```text
-Authentication
-Authorization
-Orchestration
-State transitions
-Workflows
-```
-
-Example:
-
-```text
-Submit Comment
-      ↓
-Validate
-      ↓
-Authenticate
-      ↓
-Persist
-      ↓
-Revalidate
-      ↓
-Return Result
-```
-
----
-
-## 3. Domain Layer
-
-```text
-features/
-```
-
-Responsible for business rules.
-
-Example:
-
-```text
-features/posts/
-
-components/
-actions/
-hooks/
-queries/
-types/
-validation/
-```
-
-Humans think in terms of:
-
-```text
-Posts
-Comments
-Likes
-Search
-Analytics
-```
-
-not:
-
-```text
-tsx
-ts
-css
-json
-```
-
----
-
-## 4. Infrastructure Layer
-
-```text
-lib/
-```
-
-Responsible for:
-
-```text
-Sanity
-Authentication
-Caching
-Logging
-Analytics
-Telemetry
-Image Processing
-```
-
-Rule:
-
-```text
-Business Logic
-        ≠
-lib/
-
-Infrastructure
-        =
-lib/
-```
-
----
-
-# Design System Architecture
-
-One of the biggest architectural shifts in modern frontend engineering is realizing:
-
-```text
-Styling
-      ≠
-Design System
-```
-
-Instead:
-
-```text
-Design Tokens
-        ↓
-Themes
-        ↓
-Components
-        ↓
-Patterns
-        ↓
-Applications
-```
-
----
-
-## Design Tokens
-
-```text
-design/
-
-tokens.ts
-spacing.ts
-typography.ts
-motion.ts
-shadows.ts
-```
-
-Example:
-
-```typescript
-export const spacing = {
-  xs: "0.25rem",
-  sm: "0.5rem",
-  md: "1rem",
-  lg: "2rem",
-};
-```
-
----
-
-## Theme System
-
-```text
-design/themes.ts
-```
-
-Example:
-
-```typescript
-export const lightTheme = {
-  background: "#ffffff",
-  foreground: "#111827",
-};
-
-export const darkTheme = {
-  background: "#111827",
-  foreground: "#ffffff",
-};
-```
-
----
-
-## Dark Mode Architecture
-
-```text
-User Preference
-        ↓
-Theme Provider
-        ↓
-CSS Variables
-        ↓
-Tailwind Utilities
-        ↓
-Components
-```
-
-Example:
-
-```tsx
-<html
-  suppressHydrationWarning
->
-  <body className="
-    bg-background
-    text-foreground
-  ">
-```
-
----
-
-# Content Architecture
-
-GreyMatter Journal is fundamentally a content system.
-
-```text
-Author
-    ↑
-    │
-Post
-    │
-    ↓
-Category
-```
-
-The guiding principle:
-
-```text
-Content Model
-        >
-Page Model
-```
-
----
-
-# Caching Architecture
-
-Modern applications do not have one cache.
-
-They have multiple caches.
-
-```text
-Browser Cache
-       ↓
-Router Cache
-       ↓
-React Cache
-       ↓
-Next.js Data Cache
-       ↓
-CDN Cache
-       ↓
-Origin
-```
-
----
-
-# Observability Architecture
-
-Production systems require visibility.
-
-```text
-User Request
-       ↓
-Logging
-       ↓
-Tracing
-       ↓
-Metrics
-       ↓
-Alerts
-```
-
-Tools:
-
-```text
-Vercel Analytics
-Speed Insights
-OpenTelemetry
-Structured Logging
-```
-
----
-
-# Shared UI Components
-
-```text
-components/ui/
-
-button.tsx
-card.tsx
-badge.tsx
-input.tsx
-textarea.tsx
-modal.tsx
-dropdown.tsx
-avatar.tsx
-```
-
-Principle:
-
-```text
-Components
-      =
-Stateless Primitives
-```
-
-Never:
-
-```text
-Mega Components
-```
-
-Always:
-
-```text
-Composable Components
-```
-
----
-
-# The GreyMatter Journal Runtime
-
-When a reader visits:
-
-```text
-/posts/understanding-nextjs
-```
-
-the actual system flow is:
-
-```text
-Browser
-    ↓
-
-App Router
-    ↓
-
-Route Matching
-    ↓
-
-React Server Components
-    ↓
-
-Sanity Query
-    ↓
-
-Content Lake
-    ↓
-
-Cache Layer
-    ↓
-
-Portable Text Renderer
-    ↓
-
-Design System
-    ↓
-
-HTML Stream
-    ↓
-
-Browser
-```
-
----
-
-# Design Philosophy
-
-GreyMatter Journal intentionally prioritizes:
-
-```text
-Readability
-Maintainability
-Accessibility
-Performance
-Simplicity
-Consistency
-```
-
-rather than:
-
-```text
-Animations
-Visual Effects
-Novelty
-Complexity
-Decoration
-```
-
-Because ultimately:
-
-```text
-Content
-      >
-Decoration
-```
-
----
-
-# The Final Architecture
-
-```text
-Writers
-    ↓
-
-Sanity Studio
-    ↓
-
-Content Lake
-    ↓
-
-GROQ API
-    ↓
-
-Next.js App Router
-    ↓
-
-React Server Components
-    ↓
-
-Server Actions
-    ↓
-
-Caching Layer
-    ↓
-
-Design System
-    ↓
-
-Browser
-    ↓
-
-Readers
-```
-
----
-
-# The Final Mental Model
-
-Beginners think:
-
-```text
-Folder Structure
-        =
-Organization
-```
-
-Professional engineers think:
-
-```text
-Folder Structure
-        =
-Architecture
-        =
-Communication
-        =
-Knowledge Boundaries
 ```
 
 GreyMatter Journal may appear to be a blog.
 
-In reality, it is:
+In reality, it is a production-grade distributed information system built using modern web engineering principles.
 
-```text
-A distributed
-content platform
+This appendix is not merely a folder reference.
 
-+
-
-A design system
-
-+
-
-A cache hierarchy
-
-+
-
-A deployment system
-
-+
-
-An observability system
-
-+
-
-A human coordination system
-```
-
-This appendix is not merely a reference for files.
-
-It is a map of how modern software systems are organized so that both machines and humans can evolve them safely over time.
+It is a map of how software systems, human understanding, and architectural decisions evolve together over time.
