@@ -5,6 +5,9 @@
 # GreyMatter Journal  
 ## Part 4 — Understanding TypeScript Through `RootLayout`: Why Types Are Contracts
 
+<img width="729" height="720" alt="image" src="https://github.com/user-attachments/assets/5c3ef2a4-a21d-4a58-b2a8-cea4f3cea7d7" />
+
+
 > **Goal of this lesson:** Demystify JavaScript destructuring, TypeScript type annotations, and the concept of types as **contracts** using the `RootLayout` function as our guide.
 
 ---
