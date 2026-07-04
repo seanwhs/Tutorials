@@ -1,230 +1,267 @@
-# **✅ Part 15 — Layouts, Route Groups, and Persistent User Interfaces**
-
 # GreyMatter Journal
 
-## Part 15 — Layouts, Navigation, and the Architecture of Persistent User Interfaces
+## Part 15 — Layouts, Navigation, and Persistent UI: Understanding Application Shells and UI Trees
 
-> **Goal of this lesson:** Build the persistent application shell for GreyMatter Journal, understand how route groups and nested layouts work together, and learn why modern web applications are fundamentally composed as persistent UI trees.
-
----
-
-# We've Built Pages. Now We Build an Application.
-
-At this point, GreyMatter Journal has:
-
-* A content management system
-* Dynamic routes
-* Rich text rendering
-* Optimized images
-* Server-side data fetching
-
-Yet something still feels incomplete.
-
-Our application has pages.
-
-What it does not yet have is a true application shell.
+> **Goal of this lesson:** Build a professional navigation system while developing a deep understanding of why modern web applications are architected as persistent user interface trees rather than collections of independent pages.
 
 ---
 
-# The Old Web Was Built from Pages
+# The Great Shift in Web Architecture
 
-Traditional websites looked like this:
+For most of the history of the web, websites were built as collections of separate documents.
+
+When a user navigated from one page to another, the browser would destroy everything and load an entirely new document.
 
 ```text
-home.html
-
-about.html
-
-posts.html
-
-article.html
+Request Page A
+      ↓
+Render Page A
+      ↓
+Destroy Page A
+      ↓
+Request Page B
+      ↓
+Render Page B
 ```
 
-When users navigated:
+This model worked well for documents.
+
+It works poorly for applications.
+
+Modern applications feel different because they follow a completely different architectural model.
+
+Instead of rebuilding the entire interface on every navigation, they preserve most of the application and replace only the parts that actually changed.
 
 ```text
-Current Page
-        ↓
-Destroyed
-        ↓
-Browser Request
-        ↓
-New Page
-        ↓
-Rendered
+Persistent Application Shell
+              +
+       Dynamic Content
 ```
 
-Everything disappeared.
-
-Everything reloaded.
-
-Everything restarted.
+This is one of the foundational ideas behind the Next.js App Router.
 
 ---
 
-# Modern Applications Work Differently
+# Applications Are Not Collections of Pages
 
-Open applications you use every day:
+Consider applications you use every day.
 
-* GitHub
-* Notion
-* Gmail
-* Linear
-* Slack
+### YouTube
 
-When navigating:
+```text
+Header
+   +
+Sidebar
+   +
+Video Player
+   +
+Comments
+```
+
+When you click another video:
+
+```text
+Header         stays
+Sidebar        stays
+Navigation     stays
+Video          changes
+Comments        change
+```
+
+---
+
+### GitHub
+
+```text
+Global Navigation
+        +
+Repository Header
+        +
+Current Tab Content
+```
+
+When moving from:
+
+```text
+Issues
+```
+
+to:
+
+```text
+Pull Requests
+```
+
+GitHub does not destroy the entire interface.
+
+Only part of the tree changes.
+
+---
+
+### Notion
+
+```text
+Workspace
+      +
+Sidebar
+      +
+Current Document
+```
+
+The workspace persists.
+
+Only the document changes.
+
+---
+
+# The Application Shell Pattern
+
+This architectural approach is called the **Application Shell Pattern**.
+
+An application shell contains the persistent parts of the user interface:
 
 ```text
 Navigation
-        stays
-
-Theme
-        stays
-
-Application state
-        stays
-
-Sidebar
-        stays
-
 Header
-        stays
-
-Only the content changes
+Sidebar
+Footer
+Theme
+Global State
+Providers
 ```
 
-This leads us to one of the most important ideas in modern frontend architecture:
+while the content area changes dynamically.
 
-> Applications are not collections of pages.
+```text
+Application Shell
+        +
+Route Content
+```
 
-They are persistent user interface trees.
+GreyMatter Journal follows exactly the same pattern.
 
 ---
 
-# The GreyMatter Journal Architecture
+# Designing the GreyMatter Journal Shell
 
-Our current application structure looks like this:
-
-```text
-greymatter-journal/
-
-app/
-
-├── layout.tsx
-│
-├── (site)/
-│   ├── layout.tsx
-│   ├── page.tsx
-│   │
-│   ├── about/
-│   │   └── page.tsx
-│   │
-│   └── posts/
-│       ├── page.tsx
-│       └── [slug]/
-│           └── page.tsx
-```
-
-Notice something important:
+Our application shell will contain:
 
 ```text
-(site)
-```
-
-does not appear in the URL.
-
-Instead, it acts as an organizational and architectural boundary.
-
----
-
-# Why Route Groups Exist
-
-Suppose we eventually build:
-
-```text
-Public Website
-
-Admin Dashboard
-
-Authentication Pages
-```
-
-Without route groups:
-
-```text
-app/
-
-about/
-posts/
-dashboard/
-login/
-register/
-settings/
-admin/
-analytics/
-```
-
-The application becomes difficult to understand.
-
-Instead:
-
-```text
-app/
-
-(site)/
-(auth)/
-(admin)/
-```
-
-gives us:
-
-```text
-Architecture
-        =
-Folder Structure
-```
-
-This is one of the major strengths of the App Router.
-
----
-
-# Our Layout Hierarchy
-
-GreyMatter Journal uses two primary layouts:
-
-```text
-Root Layout
-        ↓
-Site Layout
-        ↓
-Page
+Header
+     ↓
+Navigation
+     ↓
+Main Content
+     ↓
+Footer
 ```
 
 Visually:
 
 ```text
-Root Layout
-
-    Providers
-
-        Site Layout
-
-            Header
-
-            Navigation
-
-            Footer
-
-                Page
+┌─────────────────────────┐
+│      Header/Nav         │
+├─────────────────────────┤
+│                         │
+│       Content           │
+│                         │
+├─────────────────────────┤
+│        Footer           │
+└─────────────────────────┘
 ```
-
-The root layout manages infrastructure.
-
-The site layout manages visible UI.
 
 ---
 
-# The Root Layout
+# Step 1 — Create the Navigation Component
+
+Create:
+
+```text
+components/layout/Navigation.tsx
+```
+
+```tsx
+import Link from "next/link";
+
+export default function Navigation() {
+  return (
+    <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <Link
+          href="/"
+          className="text-2xl font-bold tracking-tight"
+        >
+          GreyMatter Journal
+        </Link>
+
+        <div className="flex items-center gap-8 text-sm font-medium">
+          <Link
+            href="/"
+            className="transition-colors hover:text-gray-600"
+          >
+            Home
+          </Link>
+
+          <Link
+            href="/posts"
+            className="transition-colors hover:text-gray-600"
+          >
+            Posts
+          </Link>
+
+          <Link
+            href="/categories"
+            className="transition-colors hover:text-gray-600"
+          >
+            Categories
+          </Link>
+
+          <Link
+            href="/search"
+            className="transition-colors hover:text-gray-600"
+          >
+            Search
+          </Link>
+
+          <Link
+            href="/about"
+            className="transition-colors hover:text-gray-600"
+          >
+            About
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
+```
+
+---
+
+# Step 2 — Create the Footer
+
+Create:
+
+```text
+components/layout/Footer.tsx
+```
+
+```tsx
+export default function Footer() {
+  return (
+    <footer className="mt-24 border-t border-gray-200 bg-gray-50">
+      <div className="mx-auto max-w-6xl px-6 py-12 text-center text-sm text-gray-500">
+        © {new Date().getFullYear()} GreyMatter Journal.
+        Built with Next.js 16 and Sanity.
+      </div>
+    </footer>
+  );
+}
+```
+
+---
+
+# Step 3 — Update the Root Layout
 
 Open:
 
@@ -232,13 +269,13 @@ Open:
 app/layout.tsx
 ```
 
-Our root layout remains intentionally simple:
-
 ```tsx
-import type { Metadata }
-  from "next";
+import type { Metadata } from "next";
 
 import "./globals.css";
+
+import Navigation from "@/components/layout/Navigation";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "GreyMatter Journal",
@@ -252,506 +289,306 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-    >
-      <body
-        className="
-          bg-white
-          text-gray-900
-          antialiased
-        "
-      >
-        {children}
+    <html lang="en">
+      <body className="bg-white text-gray-900 antialiased">
+        <Navigation />
+
+        <main className="min-h-screen">
+          {children}
+        </main>
+
+        <Footer />
       </body>
     </html>
   );
 }
 ```
 
-Notice:
-
-```text
-No navigation.
-
-No header.
-
-No footer.
-```
-
-Those belong elsewhere.
-
----
-
-# Building Our Site Layout
-
-Create:
-
-```text
-app/(site)/layout.tsx
-```
-
-```tsx
-import Header
-  from "@/components/layout/Header";
-
-import Footer
-  from "@/components/layout/Footer";
-
-export default function SiteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <Header />
-
-      <main
-        className="
-          mx-auto
-          max-w-6xl
-          px-4
-          py-10
-        "
-      >
-        {children}
-      </main>
-
-      <Footer />
-    </>
-  );
-}
-```
-
-This creates our persistent shell:
-
-```text
-Header
-       +
-Main Content
-       +
-Footer
-```
-
----
-
-# Creating the Header
-
-Create:
-
-```text
-components/layout/Header.tsx
-```
-
-```tsx
-import Link
-  from "next/link";
-
-export default function Header() {
-  return (
-    <header
-      className="
-        sticky
-        top-0
-        z-50
-        border-b
-        bg-white/90
-        backdrop-blur
-      "
-    >
-      <div
-        className="
-          mx-auto
-          flex
-          max-w-6xl
-          items-center
-          justify-between
-          px-6
-          py-5
-        "
-      >
-        <Link
-          href="/"
-          className="
-            text-2xl
-            font-bold
-            tracking-tight
-          "
-        >
-          GreyMatter Journal
-        </Link>
-
-        <nav
-          className="
-            flex
-            items-center
-            gap-8
-            text-sm
-            font-medium
-          "
-        >
-          <Link
-            href="/"
-            className="
-              transition-colors
-              hover:text-gray-600
-            "
-          >
-            Home
-          </Link>
-
-          <Link
-            href="/posts"
-            className="
-              transition-colors
-              hover:text-gray-600
-            "
-          >
-            Posts
-          </Link>
-
-          <Link
-            href="/about"
-            className="
-              transition-colors
-              hover:text-gray-600
-            "
-          >
-            About
-          </Link>
-        </nav>
-      </div>
-    </header>
-  );
-}
-```
-
----
-
-# Creating the Footer
-
-Create:
-
-```text
-components/layout/Footer.tsx
-```
-
-```tsx
-export default function Footer() {
-  return (
-    <footer
-      className="
-        mt-24
-        border-t
-      "
-    >
-      <div
-        className="
-          mx-auto
-          max-w-6xl
-          px-6
-          py-12
-          text-center
-          text-sm
-          text-gray-500
-        "
-      >
-        © {new Date().getFullYear()}
-        {" "}
-        GreyMatter Journal.
-
-        Built with Next.js
-        and Sanity.
-      </div>
-    </footer>
-  );
-}
-```
-
----
-
-# Why Not Put Header in Root Layout?
-
-Many beginners naturally write:
-
-```text
-Root Layout
-
-    Header
-
-    Footer
-
-    Pages
-```
-
-This works initially.
-
-However, consider future expansion:
-
-```text
-(site)
-
-(auth)
-
-(admin)
-```
-
-Should login pages show the blog navigation?
-
-```text
-No.
-```
-
-Should the admin dashboard use the public footer?
-
-```text
-No.
-```
-
-By moving visual structure into route-group layouts:
-
-```text
-Root Layout
-       =
-Infrastructure
-
-Route Layout
-       =
-User Experience
-```
-
-we gain architectural flexibility.
-
 ---
 
 # What Actually Happens During Navigation?
 
-Suppose we navigate:
+Suppose the user moves from:
 
 ```text
-/posts/react
+/posts/nextjs-16
 ```
 
 to:
 
 ```text
-/posts/nextjs
+/posts/react-server-components
 ```
 
-Next.js does not destroy everything.
+Many beginners imagine this:
+
+```text
+Destroy Everything
+        ↓
+Rebuild Everything
+```
+
+But that is not what happens.
 
 Instead:
 
 ```text
-Root Layout
-        stays
-
-Site Layout
-        stays
-
-Header
-        stays
-
-Footer
-        stays
-
-Only:
-
-Post Page
-        changes
+RootLayout
+     │
+     ├── Navigation
+     │
+     ├── Current Page
+     │
+     └── Footer
 ```
 
-Visually:
+becomes:
 
 ```text
-Before:
-
-Root
- └── Site
-      └── Post A
-
-
-After:
-
-Root
- └── Site
-      └── Post B
+RootLayout
+     │
+     ├── Navigation
+     │
+     ├── New Page
+     │
+     └── Footer
 ```
 
-Only the leaf node changes.
+Notice what changed:
+
+```text
+Navigation   → stays
+Footer       → stays
+Page         → changes
+```
+
+The application shell persists.
 
 ---
 
-# Why This Feels Fast
+# Why `next/link` Exists
 
-Traditional navigation:
+You may wonder why we use:
 
-```text
-Destroy Everything
-         ↓
-Download Everything
-         ↓
-Render Everything
+```tsx
+<Link href="/posts">
 ```
 
-Modern navigation:
+instead of:
+
+```html
+<a href="/posts">
+```
+
+The answer is architectural.
+
+### Traditional HTML
 
 ```text
-Keep Everything
-        ↓
-Replace One Node
-        ↓
-Render Minimal Changes
+Click Link
+      ↓
+Browser Request
+      ↓
+Destroy Document
+      ↓
+Download New Page
+      ↓
+Render Again
+```
+
+---
+
+### Next.js Navigation
+
+```text
+Click Link
+      ↓
+Prefetch Route
+      ↓
+Keep Layout Tree
+      ↓
+Replace Route Segment
+      ↓
+Update UI
 ```
 
 This provides:
 
 * Faster navigation
 * Less JavaScript execution
+* Reduced network traffic
 * Preserved state
-* Reduced network activity
 * Better user experience
 
 ---
 
-# React, Routing, and Trees
+# Persistent UI Means Persistent State
 
-Throughout this course, we've repeatedly discovered:
+Suppose we add a theme toggle:
 
 ```text
-React
-      =
-Tree
-
-Router
-      =
-Tree
-
-Layouts
-      =
-Tree
-
-Portable Text
-      =
-Tree
-
-File System
-      =
-Tree
+Dark Mode
 ```
 
-This is not accidental.
+If the layout remained persistent:
 
-Modern software systems are fundamentally hierarchical.
+```text
+Dark Mode
+        ↓
+Navigate
+        ↓
+Dark Mode remains
+```
+
+If the entire application reloaded:
+
+```text
+Dark Mode
+        ↓
+Navigate
+        ↓
+Dark Mode lost
+```
+
+Persistence is not just about performance.
+
+It is about preserving user context.
 
 ---
 
-# The Deep Mental Model
+# Layouts Form a Tree
 
-Beginners think:
-
-```text
-Page
-
-    +
-Header
-
-    +
-Footer
-```
-
-Professional engineers think:
+As our application grows, our layouts become hierarchical.
 
 ```text
-Infrastructure
-        ↓
-
-Providers
-        ↓
-
-Application Shell
-        ↓
-
-Persistent Layout Tree
-        ↓
-
-Dynamic Route Tree
-        ↓
-
-Component Tree
+Root Layout
+      │
+      └── Site Layout
+              │
+              └── Posts Layout
+                      │
+                      └── Article Page
 ```
 
-More concretely:
+Every level provides additional context.
+
+For example:
+
+```text
+Root Layout
+     =
+Global Shell
+
+Site Layout
+     =
+Site Navigation
+
+Posts Layout
+     =
+Blog Navigation
+
+Article Page
+     =
+Actual Content
+```
+
+This is why the App Router feels so natural.
+
+The folder structure mirrors the UI structure.
+
+---
+
+# The Deep Idea: Applications Are Trees of Trees
+
+By now, we have encountered many different kinds of trees:
+
+```text
+File System Tree
+
+Route Tree
+
+React Component Tree
+
+Layout Tree
+
+Portable Text Tree
+
+DOM Tree
+```
+
+These are not separate ideas.
+
+Modern software is largely the art of organizing and traversing trees.
+
+A Next.js application can be viewed as:
 
 ```text
 Application
-
-       =
-Root Layout
-
-       +
-Route Group Layouts
-
-       +
-Nested Layouts
-
-       +
-Pages
-
-       +
-Components
+        =
+Tree of Trees
 ```
+
+More specifically:
+
+```text
+Application
+      =
+Route Tree
+           +
+Layout Tree
+           +
+Component Tree
+           +
+Content Tree
+```
+
+This perspective explains much of modern frontend architecture.
 
 ---
 
 # Mental Model To Remember Forever
 
-Traditional web development:
+Beginners think:
 
 ```text
 Website
-      =
-Collection of Pages
+     =
+Pages
 ```
 
-Modern application architecture:
+Modern engineers think:
 
 ```text
 Application
-       =
+      =
 Persistent UI Tree
-       +
+             +
 Dynamic Data
 ```
 
 Or more fundamentally:
 
 ```text
-Layout Tree
-       +
-Route Tree
-       +
-Component Tree
-       +
-Data Tree
+Application
+      =
+Composition of Persistent Structures
 ```
 
-Everything in modern frontend architecture is ultimately a composition of trees.
+The App Router is not a page system.
+
+It is a system for managing persistent trees.
 
 ---
 
-# Up Next — Part 16: Search, Filtering, and URL State
+# Up Next — Part 16: Search, Filtering, and Information Retrieval
 
-We'll implement one of the most important features of any publication platform:
+We'll implement:
 
-* Search
+* Full-text search
 * Category filtering
-* Query parameters
-* URL state
-* Server-side filtering
-* GROQ query composition
-* Why URLs are part of your application's public API
+* URL-based state
+* GROQ queries
+* Information retrieval concepts
+* Search as data transformation
 
-This is where GreyMatter Journal begins to behave like a true information retrieval system.
+This is where GreyMatter Journal begins to evolve from a publication into an information retrieval system.
