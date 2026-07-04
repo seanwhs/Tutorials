@@ -1,32 +1,40 @@
 # ✅ Part 12 — Building Dynamic Article Pages
 
+<img width="1246" height="1050" alt="image" src="https://github.com/user-attachments/assets/f87126fc-3d0f-46e6-bd87-0d6152df6c6e" />
+
 # GreyMatter Journal
 
 ## Part 12 — Building Dynamic Article Pages: Understanding Routes, Parameters, and Tree Traversal
-
-<img width="1246" height="1050" alt="image" src="https://github.com/user-attachments/assets/f87126fc-3d0f-46e6-bd87-0d6152df6c6e" />
 
 > **Goal of this lesson:** Build our first dynamic article page, understand how Next.js captures URL parameters, and discover why routing in modern web applications is fundamentally a problem of traversing trees.
 
 ---
 
-# From Lists to Individual Pages
+# From Collections to Individual Resources
 
-Our homepage now displays a list of articles.
+Our homepage now displays a collection of articles.
 
-The next step is allowing readers to click on a post and view the full article.
+The next step is allowing readers to click on a post and view the complete article.
 
-Visually:
+Conceptually, we're moving from:
+
+```text
+Collection
+      ↓
+Individual Resource
+```
+
+For our blog:
 
 ```text
 Homepage
-    ↓
+      ↓
 List of Articles
-    ↓
+      ↓
 Single Article
 ```
 
-This pattern exists everywhere:
+This pattern exists throughout software:
 
 ```text
 Products
@@ -41,22 +49,50 @@ Movies
       ↓
 Movie Detail
 
+Orders
+      ↓
+Order Detail
+
 Articles
       ↓
 Article Page
 ```
 
-The data changes.
+The domain changes.
 
-The architecture stays the same.
+The architecture remains the same.
+
+---
+
+# The Fundamental Question
+
+Suppose a user visits:
+
+```text
+/posts/understanding-react-server-components
+```
+
+How does Next.js know:
+
+* which component to render?
+* which article to fetch?
+* where the value
+  `understanding-react-server-components`
+  came from?
+
+Answering this question requires understanding one of the deepest ideas in the App Router:
+
+> Routing is not page switching.
+>
+> Routing is structured tree traversal.
 
 ---
 
 # Step 1 — Making Articles Clickable
 
-In our `PostCard` component, we already have the post title.
+Our `PostCard` component already contains a title.
 
-Now we'll wrap it with a Next.js `Link`:
+We simply transform that title into a link:
 
 ```tsx
 import Link from "next/link";
@@ -69,10 +105,15 @@ import Link from "next/link";
 </Link>
 ```
 
-Suppose a post has this slug:
+Suppose our Sanity document contains:
 
-```text
-understanding-react-server-components
+```json
+{
+  "slug": {
+    "current":
+      "understanding-react-server-components"
+  }
+}
 ```
 
 The generated URL becomes:
@@ -93,19 +134,21 @@ becomes:
 /posts/nextjs-16-app-router
 ```
 
+Every article now has its own address.
+
 ---
 
-# Why Are Slugs Important?
+# Why Do We Use Slugs?
 
-A slug is simply a URL-friendly identifier.
+A slug is simply a human-readable identifier.
 
 Instead of:
 
 ```text
-/posts/87234987234
+/posts/83947298347
 ```
 
-we create:
+we prefer:
 
 ```text
 /posts/understanding-react-server-components
@@ -117,32 +160,19 @@ Good URLs should be:
 ✓ Human readable
 ✓ Predictable
 ✓ Stable
+✓ Bookmarkable
 ✓ Search-engine friendly
 ```
 
-In many ways, URLs become part of your application's public API.
+Professional engineers often think of URLs as part of their application's public API.
+
+Once a URL becomes public, changing it becomes expensive.
 
 ---
 
 # Step 2 — Creating a Dynamic Route
 
 Create:
-
-```text
-app/(site)/posts/[slug]/page.tsx
-```
-
-Notice the square brackets:
-
-```text
-[slug]
-```
-
-This tells Next.js:
-
-> This part of the URL is a variable.
-
-Our application structure now becomes:
 
 ```text
 app/
@@ -153,9 +183,15 @@ app/
             └── page.tsx
 ```
 
----
+The square brackets are special:
 
-# Understanding `[slug]`
+```text
+[slug]
+```
+
+This tells Next.js:
+
+> This segment is a variable.
 
 You can mentally translate:
 
@@ -175,9 +211,13 @@ or:
 :slug
 ```
 
-if you've used other frameworks.
+if you've previously used Express, NestJS, or React Router.
 
-Examples:
+---
+
+# Understanding Dynamic Segments
+
+Consider several URLs:
 
 | URL                  | Captured Value  |
 | -------------------- | --------------- |
@@ -185,9 +225,37 @@ Examples:
 | `/posts/react-hooks` | `"react-hooks"` |
 | `/posts/nextjs-16`   | `"nextjs-16"`   |
 
+Next.js automatically converts these into:
+
+```typescript
+{
+  slug: "hello-world"
+}
+```
+
+or:
+
+```typescript
+{
+  slug: "react-hooks"
+}
+```
+
+or:
+
+```typescript
+{
+  slug: "nextjs-16"
+}
+```
+
+You never create this object.
+
+The router creates it for you.
+
 ---
 
-# What Happens Internally?
+# What Actually Happens Internally?
 
 Suppose a user visits:
 
@@ -195,37 +263,36 @@ Suppose a user visits:
 /posts/react-server-components
 ```
 
-Next.js searches the application tree:
+Next.js begins traversing the application tree:
 
 ```text
-app/
-    ↓
-(site)/
-    ↓
-posts/
-    ↓
-[slug]/
-    ↓
+app
+ ↓
+(site)
+ ↓
+posts
+ ↓
+[slug]
+ ↓
 page.tsx
 ```
 
-When it reaches:
+The traversal looks conceptually like this:
 
 ```text
-[slug]
+Find "posts"
+        ✓
+
+Find
+"react-server-components"
+        ✗
+
+Find variable segment
+"[slug]"
+        ✓
 ```
 
-it says:
-
-> I don't have an exact folder called
->
-> ```text
-> react-server-components
-> ```
->
-> but I do have a variable folder.
-
-So it captures:
+At that point, the router captures:
 
 ```typescript
 {
@@ -234,7 +301,7 @@ So it captures:
 }
 ```
 
-and passes it into our page.
+and passes it into the page.
 
 ---
 
@@ -244,7 +311,7 @@ This reveals one of the deepest ideas in the App Router:
 
 ```text
 Routing
-      =
+       =
 Tree Traversal
 ```
 
@@ -254,7 +321,7 @@ Consider:
 /posts/react/hooks
 ```
 
-Internally:
+Internally, the router walks:
 
 ```text
 app
@@ -266,19 +333,39 @@ react
 hooks
 ```
 
-The router simply walks the folder tree.
+Similarly:
 
-This is why file-system routing feels so natural:
+```text
+/authors/sean/posts/nextjs
+```
+
+becomes:
+
+```text
+app
+ ↓
+authors
+ ↓
+sean
+ ↓
+posts
+ ↓
+nextjs
+```
+
+The router is fundamentally traversing a tree.
+
+This explains why file-system routing feels natural:
 
 ```text
 Folder Structure
-        =
+         =
 Application Structure
 ```
 
 ---
 
-# Step 3 — Building the Article Page
+# Step 3 — Creating the Article Page
 
 Create:
 
@@ -287,16 +374,9 @@ app/(site)/posts/[slug]/page.tsx
 ```
 
 ```tsx
-import { client }
-  from "@/lib/sanity";
-
-import {
-  POST_QUERY,
-} from "@/lib/queries";
-
-import {
-  notFound,
-} from "next/navigation";
+import { client } from "@/lib/sanity";
+import { POST_QUERY } from "@/lib/queries";
+import { notFound } from "next/navigation";
 
 export default async function PostPage({
   params,
@@ -305,9 +385,7 @@ export default async function PostPage({
     slug: string;
   }>;
 }) {
-
-  const { slug } =
-    await params;
+  const { slug } = await params;
 
   const post =
     await client.fetch(
@@ -330,9 +408,7 @@ export default async function PostPage({
         py-12
       "
     >
-      <header
-        className="mb-12"
-      >
+      <header className="mb-12">
         <h1
           className="
             mb-4
@@ -398,17 +474,7 @@ export default async function PostPage({
 
 # Wait... Why Is `params` a Promise?
 
-In Next.js 16, route parameters are asynchronous.
-
-Instead of:
-
-```typescript
-params: {
-  slug: string;
-}
-```
-
-we now write:
+One of the biggest surprises in Next.js 16 is this:
 
 ```typescript
 params: Promise<{
@@ -416,28 +482,45 @@ params: Promise<{
 }>
 ```
 
-and then:
+instead of:
+
+```typescript
+params: {
+  slug: string;
+}
+```
+
+This means we write:
 
 ```typescript
 const { slug } =
   await params;
 ```
 
-This initially feels strange.
+rather than:
 
-However, it allows Next.js to integrate route handling with:
+```typescript
+const slug =
+  params.slug;
+```
+
+At first, this feels strange.
+
+However, modern Next.js treats routing as an asynchronous operation that integrates with:
 
 ```text
 React Server Components
-            ↓
+             ↓
 Streaming
-            ↓
+             ↓
 Suspense
-            ↓
+             ↓
 Partial Rendering
-            ↓
-Future Optimizations
+             ↓
+Future Router Optimizations
 ```
+
+The router itself has become another asynchronous data source.
 
 ---
 
@@ -453,15 +536,9 @@ Promise<{
 
 What do the angle brackets mean?
 
-The angle brackets:
+These are called **generics**.
 
-```text
-< >
-```
-
-are called **TypeScript Generics**.
-
-Think of them as labels on containers.
+Think of generics as labels attached to containers.
 
 For example:
 
@@ -511,11 +588,13 @@ contains:
 }
 ```
 
+The generic tells TypeScript what will eventually emerge from the container.
+
 ---
 
-# What Does `client.fetch()` Return?
+# What Does `client.fetch()` Actually Do?
 
-When we run:
+When we execute:
 
 ```typescript
 const post =
@@ -525,17 +604,17 @@ const post =
   );
 ```
 
-we are saying:
+we're effectively saying:
 
-> Ask Sanity for the post whose slug matches the URL.
+> Fetch the post whose slug matches the URL.
 
-For example:
+Suppose the user visits:
 
 ```text
 /posts/why-nextjs-matters
 ```
 
-becomes:
+The router produces:
 
 ```typescript
 {
@@ -544,13 +623,13 @@ becomes:
 }
 ```
 
-which gets inserted into:
+This value gets inserted into our GROQ query:
 
 ```groq
 slug.current == $slug
 ```
 
-and returns:
+which might return:
 
 ```typescript
 {
@@ -567,14 +646,32 @@ and returns:
 }
 ```
 
+The complete pipeline becomes:
+
+```text
+URL
+    ↓
+Router
+    ↓
+params
+    ↓
+GROQ Query
+    ↓
+Sanity
+    ↓
+Document
+    ↓
+React UI
+```
+
 ---
 
-# What Does `notFound()` Do?
+# What Happens When Content Doesn't Exist?
 
 Suppose someone visits:
 
 ```text
-/posts/this-does-not-exist
+/posts/this-post-does-not-exist
 ```
 
 Our query returns:
@@ -583,7 +680,7 @@ Our query returns:
 null
 ```
 
-Instead of crashing, we do:
+Instead of crashing, we write:
 
 ```typescript
 if (!post) {
@@ -599,33 +696,39 @@ This tells Next.js:
 > not-found.tsx
 > ```
 >
-> page.
+> boundary.
 
-This gives us graceful error handling.
+This gives us:
+
+```text
+Graceful failure
+        instead of
+Application failure
+```
 
 ---
 
 # Dynamic Routes and Persistent UI
 
-Remember our most important architectural idea:
+Remember our most important architectural principle:
 
 > Modern applications are not collections of pages.
 
 They are persistent UI trees.
 
-When navigating between:
+When navigating from:
 
 ```text
 /posts/nextjs-16
 ```
 
-and:
+to:
 
 ```text
 /posts/react-server-components
 ```
 
-Next.js does not rebuild everything.
+Next.js does not destroy the entire application.
 
 Instead:
 
@@ -639,19 +742,27 @@ Article Page
 
 only the article page changes.
 
-The rest stays mounted.
+Everything else remains mounted:
 
-This is why modern applications feel fast.
+```text
+✓ Header stays
+✓ Navigation stays
+✓ Footer stays
+✓ Theme stays
+✓ Application state stays
+```
+
+This is why modern applications feel instantaneous.
 
 ---
 
-# Mental Model To Remember Forever
+# The Correct Mental Model
 
 Traditional thinking:
 
 ```text
 URL
-   ↓
+    ↓
 Page
 ```
 
@@ -659,13 +770,15 @@ Modern thinking:
 
 ```text
 URL
-   ↓
+    ↓
+Router
+    ↓
 Route Parameters
-   ↓
+    ↓
 Data Fetching
-   ↓
+    ↓
 React Tree
-   ↓
+    ↓
 User Interface
 ```
 
@@ -673,11 +786,42 @@ And underneath everything:
 
 ```text
 Routing
-      =
+       =
 Tree Traversal
 ```
 
-This single idea explains why the App Router architecture feels so natural.
+This single idea explains why the App Router architecture feels so intuitive.
+
+---
+
+# The Most Important Idea To Remember
+
+A URL is not merely a string.
+
+A URL is:
+
+```text
+Serialized Application State
+```
+
+The router's job is to transform:
+
+```text
+User Intent
+        ↓
+URL
+        ↓
+Structured Data
+        ↓
+React Tree
+        ↓
+User Interface
+```
+
+Once you understand this, file-system routing, dynamic segments, layouts, and Server Components all begin to feel like different pieces of the same system.
+
+---
+<img width="1023" height="1537" alt="image" src="https://github.com/user-attachments/assets/364faca2-0fa3-4ae1-8021-c70b2c9fcae0" />
 
 ---
 
@@ -687,6 +831,7 @@ Next we'll learn:
 
 * What Portable Text actually is
 * Why structured content beats HTML
+* Understanding content as an Abstract Syntax Tree (AST)
 * Building custom Portable Text renderers
 * Rendering headings, lists, images, and code blocks
 * Building a professional typography system for GreyMatter Journal
