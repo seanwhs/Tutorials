@@ -290,6 +290,9 @@ Headless Architecture
 
 # What Does "Headless" Mean?
 
+<img width="1920" height="816" alt="image" src="https://github.com/user-attachments/assets/461291f7-7b69-4536-9dee-4da4a2cede88" />
+
+
 Traditional systems combine:
 
 ```text
@@ -335,6 +338,9 @@ Managing Information
 ---
 
 # Why We Chose Sanity
+
+<img width="3388" height="2946" alt="image" src="https://github.com/user-attachments/assets/0319a025-f096-46cf-9171-00ed5d10657c" />
+
 
 Sanity is not merely a CMS.
 
@@ -389,6 +395,9 @@ All of these remain connected.
 ---
 
 # Why We Chose Next.js 16
+
+<img width="780" height="496" alt="image" src="https://github.com/user-attachments/assets/0cc7bd83-0f71-4460-b102-62f0e1e69ab9" />
+
 
 If Sanity manages information:
 
