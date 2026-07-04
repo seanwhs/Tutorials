@@ -4,6 +4,9 @@
 
 ## Part 3 — Understanding `app/layout.tsx`: The Operating System of Your Next.js Application
 
+<img width="495" height="420" alt="image" src="https://github.com/user-attachments/assets/90ee0de5-e7f5-4161-a65c-5a5c29d1ae08" />
+
+
 > **Goal of this lesson:** Understand why `app/layout.tsx` is the most important file in a Next.js application, learn what `children` and `React.ReactNode` mean, and discover how layouts create the persistent application shells used by modern web applications.
 
 ---
