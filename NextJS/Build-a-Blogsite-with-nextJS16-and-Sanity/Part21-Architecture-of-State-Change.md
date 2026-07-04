@@ -2,15 +2,15 @@
 
 # GreyMatter Journal
 
-## Part 21 — Comments, Likes, Mutations, and the Architecture of State Change
+## Part 21 — Comments, Likes, Mutations, State Machines, and the Architecture of Change
 
-> **Goal of this lesson:** Implement comments and likes while learning how modern applications manage state changes, mutations, transactions, optimistic updates, and consistency.
+> **Goal of this lesson:** Implement comments and likes while learning one of the deepest truths in software engineering: applications are fundamentally systems for managing state changes over time.
 
 ---
 
-# From Reading Systems to Interactive Systems
+# The Moment Software Becomes Difficult
 
-Up until now, GreyMatter Journal has been primarily a **read system**.
+Up until now, GreyMatter Journal has largely been a **read system**.
 
 Our architecture has looked like this:
 
@@ -26,7 +26,9 @@ Reader
 
 Readers consume information.
 
-But modern applications are rarely read-only.
+This architecture is relatively straightforward because nothing changes.
+
+However, modern applications are rarely read-only.
 
 Users expect to:
 
@@ -34,69 +36,170 @@ Users expect to:
 * Like
 * Bookmark
 * Follow
-* Share
+* Subscribe
 * Edit
 * Collaborate
+* Publish
 
 The moment users can change data, software becomes fundamentally more complex.
 
+Because software is not really about displaying information.
+
+Software is about managing change.
+
 ---
 
-# Software Is State Change
+# Software Is State Over Time
 
 One of the deepest ideas in computer science is:
 
-> Software exists to transform state over time.
+> Software exists to transform state through time.
 
-Consider a simple "Like" button.
-
-Initially:
+Consider the simplest possible feature:
 
 ```text
 Likes = 42
 ```
 
-User clicks:
+A user clicks:
 
 ```text
 Likes = 43
 ```
 
-That tiny interaction hides a surprisingly large amount of complexity:
+That tiny interaction hides an astonishing amount of complexity.
 
 ```text
 User Intent
        ↓
 Validation
        ↓
+Authorization
+       ↓
 Mutation
        ↓
-Database Update
-       ↓
-Cache Update
-       ↓
-UI Update
+Persistence
        ↓
 Consistency
+       ↓
+Cache Updates
+       ↓
+UI Updates
+       ↓
+Observability
 ```
 
-Modern applications are essentially machines for coordinating state changes.
+What appears to be:
+
+```text
+Click Button
+```
+
+is actually:
+
+```text
+Coordinate Reality Change
+```
+
+This is what modern applications do.
 
 ---
 
-# Queries vs Mutations
+# Applications Are State Machines
 
-A useful distinction comes from distributed systems:
+Beginners often think:
+
+```text
+Application
+      =
+Pages
+```
+
+Professional engineers think:
+
+```text
+Application
+      =
+State
+      +
+Transitions
+```
+
+For example:
+
+```text
+Article
+
+Draft
+   ↓
+Review
+   ↓
+Published
+   ↓
+Archived
+```
+
+Or:
+
+```text
+Authentication
+
+Anonymous
+      ↓
+Authenticated
+      ↓
+Authorized
+```
+
+Or:
+
+```text
+Comment
+
+Created
+      ↓
+Moderated
+      ↓
+Approved
+      ↓
+Visible
+```
+
+Software bugs frequently occur when systems permit transitions that should never happen.
+
+For example:
+
+```text
+Deleted
+      ↓
+Published
+```
+
+or:
+
+```text
+Anonymous
+      ↓
+Administrator
+```
+
+without proper validation.
+
+Modern software engineering is largely the art of designing valid state transitions.
+
+---
+
+# Queries Versus Mutations
+
+Distributed systems often separate operations into two categories.
 
 ## Queries
 
 Queries observe state.
 
-```text
-Current Likes?
-Current Comments?
-Current User?
-```
+They ask:
+
+> What does reality currently look like?
 
 Examples:
 
@@ -107,15 +210,31 @@ const posts =
   );
 ```
 
-Queries answer:
+Or:
 
-> What does the system currently look like?
+```text
+How many likes?
+
+Who is logged in?
+
+What comments exist?
+
+What articles are published?
+```
+
+Queries do not change reality.
+
+They only observe it.
 
 ---
 
 ## Mutations
 
 Mutations change state.
+
+They ask:
+
+> How should reality evolve?
 
 Examples:
 
@@ -127,53 +246,42 @@ Like Article
 Delete Post
 
 Publish Article
+
+Create User
 ```
 
-Mutations answer:
-
-> How should the system evolve?
+Mutations alter reality.
 
 ---
 
-# Thinking in State Machines
-
-Professional engineers often model systems as state machines.
-
-Consider article publishing:
+This distinction appears everywhere:
 
 ```text
-Draft
-   ↓
-Review
-   ↓
-Published
-   ↓
-Archived
+REST
+
+GET
+      ↓
+Query
+
+POST
+PUT
+PATCH
+DELETE
+      ↓
+Mutation
 ```
 
-Not every transition is legal:
+Or more fundamentally:
 
 ```text
-Archived
-    ↓
-Draft
+Query
+      =
+Observe Reality
+
+Mutation
+      =
+Change Reality
 ```
-
-may be forbidden.
-
-Similarly, comments have states:
-
-```text
-Created
-      ↓
-Pending Moderation
-      ↓
-Approved
-      ↓
-Visible
-```
-
-Thinking in states helps prevent invalid system behavior.
 
 ---
 
@@ -233,19 +341,19 @@ export default defineType({
 });
 ```
 
-Notice an important field:
+Notice one particularly important field:
 
 ```typescript
 approved
 ```
 
-New comments default to:
+which defaults to:
 
 ```text
 false
 ```
 
-This introduces moderation.
+This creates our first workflow state machine.
 
 ---
 
@@ -258,30 +366,36 @@ User
     ↓
 Comment
     ↓
-Immediately Public
+Public Website
 ```
 
-This creates risks:
+This introduces serious risks:
 
 * Spam
-* Abuse
-* Malware links
 * Harassment
+* Malware links
 * SEO poisoning
+* Abuse
 
-Instead, professional systems introduce a review stage:
+Professional systems introduce additional states:
 
 ```text
 User
     ↓
-Draft Comment
+Created
     ↓
-Moderation
+Pending Review
     ↓
-Published Comment
+Approved
+    ↓
+Published
 ```
 
-This is another example of state machines.
+Notice what happened.
+
+We didn't add a feature.
+
+We added a state machine.
 
 ---
 
@@ -305,8 +419,8 @@ export default function CommentForm() {
     >
       <input
         name="author"
-        placeholder="Name"
         required
+        placeholder="Name"
         className="
           w-full
           rounded-lg
@@ -318,8 +432,8 @@ export default function CommentForm() {
       <input
         name="email"
         type="email"
-        placeholder="Email"
         required
+        placeholder="Email"
         className="
           w-full
           rounded-lg
@@ -331,8 +445,8 @@ export default function CommentForm() {
       <textarea
         name="content"
         rows={6}
-        placeholder="Comment"
         required
+        placeholder="Comment"
         className="
           w-full
           rounded-lg
@@ -357,11 +471,11 @@ export default function CommentForm() {
 }
 ```
 
-This form performs a mutation.
+This form performs our first user-generated mutation.
 
 ---
 
-# Creating the API Route
+# Creating the Mutation Endpoint
 
 Create:
 
@@ -413,21 +527,25 @@ export async function POST(
 }
 ```
 
-The flow becomes:
+The mutation pipeline becomes:
 
 ```text
 Browser
       ↓
 API Route
       ↓
-Sanity Mutation
+Validation
       ↓
-Database
+Database Mutation
+      ↓
+Persistence
+      ↓
+Response
 ```
 
 ---
 
-# Adding Likes
+# Implementing Likes
 
 Now let's implement likes.
 
@@ -445,9 +563,13 @@ defineField({
 });
 ```
 
+At first glance this appears trivial.
+
+It isn't.
+
 ---
 
-# Why Counters Are Difficult
+# The Problem of Time
 
 Suppose two users click simultaneously.
 
@@ -457,50 +579,55 @@ Initial state:
 Likes = 42
 ```
 
-User A:
+User A reads:
 
 ```text
-42 + 1 = 43
+42
 ```
 
-User B:
+User B reads:
 
 ```text
-42 + 1 = 43
+42
 ```
 
-Result:
+User A writes:
 
 ```text
 43
 ```
 
-But the correct answer is:
+User B writes:
+
+```text
+43
+```
+
+Final result:
+
+```text
+43
+```
+
+But reality should be:
 
 ```text
 44
 ```
 
-This problem is called:
+This problem is called a:
 
 ```text
 Race Condition
 ```
 
+And race conditions are one of the fundamental problems of distributed systems.
+
 ---
 
-# Atomic Mutations
+# Atomic Operations
 
-To solve this, Sanity provides atomic updates.
-
-```typescript
-await writeClient
-  .patch(postId)
-  .inc({
-    likes: 1,
-  })
-  .commit();
-```
+To solve this problem, databases provide atomic operations.
 
 Instead of:
 
@@ -512,7 +639,7 @@ Modify
 Write
 ```
 
-the database performs:
+we perform:
 
 ```text
 Increment
@@ -520,11 +647,32 @@ Increment
 
 as a single operation.
 
-This guarantees correctness.
+Sanity provides this through:
+
+```typescript
+await writeClient
+  .patch(postId)
+  .inc({
+    likes: 1,
+  })
+  .commit();
+```
+
+The database guarantees:
+
+```text
+42
+ ↓
+43
+ ↓
+44
+```
+
+even when multiple users act simultaneously.
 
 ---
 
-# Building the Like API
+# Building the Like Endpoint
 
 Create:
 
@@ -554,13 +702,27 @@ export async function POST(
 }
 ```
 
+Our mutation pipeline now becomes:
+
+```text
+User Intent
+       ↓
+API Route
+       ↓
+Atomic Mutation
+       ↓
+Database
+       ↓
+Updated Reality
+```
+
 ---
 
-# Optimistic Updates
+# Optimistic User Interfaces
 
 Users dislike waiting.
 
-Traditional UI:
+Traditional applications behave like this:
 
 ```text
 Click
@@ -572,7 +734,7 @@ Server
 Update UI
 ```
 
-Modern UI:
+Modern applications behave differently:
 
 ```text
 Click
@@ -581,7 +743,7 @@ Update UI Immediately
      ↓
 Call Server
      ↓
-Confirm
+Confirm Later
 ```
 
 Example:
@@ -600,13 +762,49 @@ This technique is called:
 Optimistic UI
 ```
 
-because we optimistically assume success.
+because the system optimistically predicts the future.
 
 ---
 
-# Handling Failure
+# The UI Is Predicting Reality
 
-What if the mutation fails?
+This is a profound idea.
+
+Consider:
+
+```text
+Server Reality:
+42 likes
+```
+
+The user clicks:
+
+```text
+UI Reality:
+43 likes
+```
+
+before the server confirms it.
+
+The UI temporarily displays:
+
+```text
+Predicted Future State
+```
+
+rather than:
+
+```text
+Current State
+```
+
+Modern applications constantly predict reality.
+
+---
+
+# What Happens When Predictions Fail?
+
+Suppose the server rejects the mutation.
 
 ```text
 42
@@ -618,47 +816,43 @@ Server Error
 42
 ```
 
-The UI rolls back.
+The system rolls back.
 
-Professional systems constantly balance:
+Professional software constantly balances:
 
 ```text
 Correctness
-       vs
+
+versus
+
 Responsiveness
 ```
 
+This tradeoff appears throughout distributed systems.
+
 ---
 
-# Transactions and Consistency
+# Transactions
 
-Imagine publishing a post.
+Consider publishing an article.
 
-You may need to:
+You might need to:
 
 ```text
 Create Article
 
 Update Search Index
 
-Send Notification
+Send Notifications
 
-Invalidate Cache
+Refresh Cache
+
+Record Analytics
 ```
 
-Should these happen:
+What happens if step three fails?
 
-```text
-All together
-```
-
-or:
-
-```text
-One by one?
-```
-
-This introduces another fundamental idea:
+This introduces another foundational concept:
 
 ```text
 Transactions
@@ -674,23 +868,13 @@ or
 Everything fails
 ```
 
+Transactions protect system consistency.
+
 ---
 
-# Event-Driven Thinking
+# Event-Driven Systems
 
-Modern applications increasingly use events:
-
-```text
-User Liked Post
-          ↓
-Increase Counter
-          ↓
-Notify Author
-          ↓
-Update Analytics
-          ↓
-Refresh Cache
-```
+Modern systems increasingly think in terms of events.
 
 Instead of:
 
@@ -701,10 +885,69 @@ Call Function
 we think:
 
 ```text
-Emit Event
+User Liked Post
+          ↓
+Update Counter
+          ↓
+Notify Author
+          ↓
+Update Analytics
+          ↓
+Refresh Cache
+          ↓
+Record Activity Feed
 ```
 
-This allows systems to scale more naturally.
+The event becomes the source of truth.
+
+This architectural style scales naturally because systems communicate through events rather than direct dependencies.
+
+---
+
+# Eventual Consistency
+
+One of the deepest truths in distributed systems is:
+
+> Not all systems become consistent simultaneously.
+
+Example:
+
+```text
+User likes article
+        ↓
+Database updated
+        ↓
+Analytics updated
+        ↓
+Search updated
+        ↓
+Cache updated
+        ↓
+Notification delivered
+```
+
+For a brief period:
+
+```text
+Different systems
+see different realities.
+```
+
+This property is called:
+
+```text
+Eventual Consistency
+```
+
+Modern software constantly balances:
+
+```text
+Strong Consistency
+
+versus
+
+Scalability
+```
 
 ---
 
@@ -713,19 +956,13 @@ This allows systems to scale more naturally.
 Comments:
 
 ```text
-Pending
-    ↓
+Created
+     ↓
+Moderated
+     ↓
 Approved
-    ↓
+     ↓
 Published
-```
-
-Likes:
-
-```text
-42
- ↓
-43
 ```
 
 Authentication:
@@ -748,7 +985,15 @@ Review
 Published
 ```
 
-Modern software engineering is largely the art of designing valid state transitions.
+Likes:
+
+```text
+42
+ ↓
+43
+```
+
+Applications themselves are simply collections of interacting state machines.
 
 ---
 
@@ -757,25 +1002,21 @@ Modern software engineering is largely the art of designing valid state transiti
 Beginners think:
 
 ```text
-User clicks button
+User clicked button.
 ```
 
 Professional engineers think:
 
 ```text
-User Intent
-        ↓
-State Transition
-        ↓
-Validation
-        ↓
-Mutation
-        ↓
-Consistency
-        ↓
-Persistence
-        ↓
-User Interface
+User expressed intent.
+         ↓
+System validated intent.
+         ↓
+State transition executed.
+         ↓
+Consistency preserved.
+         ↓
+Reality changed.
 ```
 
 More fundamentally:
@@ -788,23 +1029,26 @@ State
 Time
       +
 Transitions
+      +
+Constraints
 ```
 
 Applications are not collections of pages.
 
-They are systems for managing change.
+They are systems for coordinating change over time.
 
 ---
 
-# Up Next — Part 22: Image Uploads, Object Storage, and CDN Delivery
+# Up Next — Part 22: Image Uploads, Object Storage, and Global Content Delivery
 
 We'll explore:
 
 * Image uploads
 * Object storage
 * Asset pipelines
-* CDNs
+* Content delivery networks
 * Cache invalidation
 * Transformation services
+* Global edge delivery
 
-and discover why the modern web is fundamentally a global content delivery system.
+and discover why the modern web is fundamentally a distributed content distribution system.
