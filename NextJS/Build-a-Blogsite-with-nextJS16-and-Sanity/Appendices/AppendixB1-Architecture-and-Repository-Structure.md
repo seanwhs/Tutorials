@@ -1,4 +1,15 @@
-# Appendix B1 — Complete Source Code Structure and Reference Architecture
+# Appendix B1 — Architecture & Repository Structure
+
+Appendix B is the **"Reference Implementation Appendix"**, and is split into two major sections:
+
+```text
+Appendix B
+    ├── Part I
+    │     Architecture & Repository Structure
+    │
+    └── Part II
+          Core Source Code Reference
+```
 
 > **Goal of this appendix:** Provide the complete reference architecture for **GreyMatter Journal**, including repository organization, architectural layers, styling systems, design system foundations, production engineering patterns, and the rationale behind every major subsystem. This appendix serves as both the culmination of the tutorial series and a reusable blueprint for building modern content-driven applications.
 
