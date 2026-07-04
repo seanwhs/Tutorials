@@ -1,17 +1,17 @@
 # Appendix B1 — Architecture & Repository Structure
 
-Appendix B is the **"Reference Implementation Appendix"**, and is split into two major sections:
-
-```text
-Appendix B
-    ├── **Part I**
-    │     Architecture & Repository Structure
-    │
-    └── Part II
-          Core Source Code Reference
-```
-
-> **Goal of this appendix:** Provide the complete reference architecture for **GreyMatter Journal**, including repository organization, architectural layers, styling systems, design system foundations, production engineering patterns, and the rationale behind every major subsystem. This appendix serves as both the culmination of the tutorial series and a reusable blueprint for building modern content-driven applications.
+> **Appendix B — Reference Implementation Appendix**
+>
+> ```text
+> Appendix B
+>     ├── Part I
+>     │     Architecture & Repository Structure
+>     │
+>     └── Part II
+>           Core Source Code Reference
+> ```
+>
+> **Goal of this appendix:** Provide the complete reference architecture for **GreyMatter Journal**, including repository organization, architectural layers, design systems, content modeling, caching, deployment, observability, and production engineering principles. This appendix serves both as the culmination of the tutorial series and as a reusable blueprint for building modern content-driven applications.
 
 ---
 
@@ -19,7 +19,7 @@ Appendix B
 
 Throughout this tutorial series, we built **GreyMatter Journal** incrementally.
 
-What began as a simple blog evolved into a modern, production-grade distributed content platform featuring:
+What began as a simple blog evolved into a modern, production-grade content platform featuring:
 
 ```text
 ✓ Next.js 16 App Router
@@ -27,11 +27,12 @@ What began as a simple blog evolved into a modern, production-grade distributed 
 ✓ Streaming & Suspense
 ✓ Server Actions
 ✓ Sanity CMS
-✓ Portable Text Rendering
+✓ Portable Text
 ✓ Image Optimization
 ✓ Metadata & SEO
 ✓ Draft Mode
 ✓ Authentication
+✓ Search & Filtering
 ✓ Comments & Likes
 ✓ Error Boundaries
 ✓ Loading States
@@ -40,12 +41,11 @@ What began as a simple blog evolved into a modern, production-grade distributed 
 ✓ Design Tokens
 ✓ Theme Systems
 ✓ Dark Mode
-✓ Design System Principles
 ✓ Production Architecture
 ✓ Systems Thinking
 ```
 
-Although GreyMatter Journal appears to be "just a blog," architecturally it is a distributed information system:
+Although GreyMatter Journal appears to be "just a blog," architecturally it is a distributed information system.
 
 ```text
 Authors
@@ -63,7 +63,7 @@ React Component Tree
 Browser
 ```
 
-Professional engineering requires understanding that applications are not merely collections of files:
+Professional engineering requires understanding that applications are not merely collections of files.
 
 ```text
 Application
@@ -75,6 +75,8 @@ Data
 Infrastructure
        +
 Caching
+       +
+Security
        +
 Deployment
        +
@@ -105,9 +107,39 @@ Single Responsibility
 Progressive Enhancement
 
 Production-First Architecture
+
+Explicit Boundaries
+
+Reliability Engineering
 ```
 
 The repository is organized around responsibilities rather than convenience.
+
+---
+
+# The Most Important Architectural Shift
+
+Beginners often think:
+
+```text
+Website
+    =
+Pages
+```
+
+Modern engineers think:
+
+```text
+Application
+    =
+Persistent UI Tree
+    +
+Data Flow Graph
+    +
+Distributed Infrastructure
+```
+
+This mental model explains why modern frameworks are organized around layouts, routes, data fetching, caching, and composition.
 
 ---
 
@@ -122,13 +154,18 @@ greymatter-journal/
 │   ├── globals.css
 │   ├── loading.tsx
 │   ├── error.tsx
+│   ├── global-error.tsx
 │   └── not-found.tsx
 │
 │   ├── (site)/
+│   │
 │   │   ├── layout.tsx
 │   │   ├── page.tsx
 │   │
 │   │   ├── about/
+│   │   │   └── page.tsx
+│   │
+│   │   ├── search/
 │   │   │   └── page.tsx
 │   │
 │   │   ├── authors/
@@ -146,6 +183,13 @@ greymatter-journal/
 │   │           ├── loading.tsx
 │   │           ├── error.tsx
 │   │           └── not-found.tsx
+│   │
+│   ├── sign-in/
+│   │   └── [[...sign-in]]/
+│   │       └── page.tsx
+│   │
+│   ├── admin/
+│   │   └── page.tsx
 │   │
 │   └── api/
 │       ├── comments/
@@ -227,9 +271,9 @@ greymatter-journal/
 │   ├── logger.ts
 │   ├── cache.ts
 │   ├── revalidate.ts
-│   ├── theme.ts
 │   ├── metadata.ts
 │   ├── seo.ts
+│   ├── theme.ts
 │   ├── env.ts
 │   ├── constants.ts
 │   ├── dates.ts
@@ -250,32 +294,87 @@ greymatter-journal/
 │   ├── post.ts
 │   └── index.ts
 │
-├── public/
-│   ├── logo.svg
-│   ├── favicon.ico
-│   ├── og-image.png
-│   └── images/
-│
 ├── studio/
 │   ├── sanity.config.ts
 │   ├── sanity.cli.ts
 │   ├── schemaTypes/
-│   │   ├── index.ts
-│   │   ├── post.ts
-│   │   ├── author.ts
-│   │   └── category.ts
 │   └── plugins/
 │
 ├── middleware.ts
 ├── next.config.ts
 ├── tsconfig.json
 ├── package.json
-├── postcss.config.js
-├── eslint.config.mjs
-├── .env.local
-├── .gitignore
 └── README.md
 ```
+
+---
+
+# Understanding Route Groups
+
+Throughout this tutorial series, we used:
+
+```text
+app/
+    (site)/
+```
+
+This raises an important architectural question:
+
+> Why create folders that do not appear in the URL?
+
+For example:
+
+```text
+app/
+    (site)/
+        posts/
+            [slug]/
+```
+
+still produces:
+
+```text
+/posts/my-article
+```
+
+not:
+
+```text
+/site/posts/my-article
+```
+
+This is because route groups are architectural boundaries rather than URL boundaries.
+
+For larger applications, route groups often evolve into:
+
+```text
+(marketing)
+(content)
+(auth)
+(admin)
+(api)
+```
+
+For example:
+
+```text
+app/
+
+├── (marketing)
+├── (content)
+├── (auth)
+└── (admin)
+```
+
+These groups allow engineers to organize systems around responsibilities rather than URLs.
+
+GreyMatter Journal intentionally keeps:
+
+```text
+(site)
+```
+
+to maintain conceptual consistency throughout the tutorial series while introducing the architectural idea.
 
 ---
 
@@ -290,7 +389,7 @@ app/
 components/
 styles/
 
-Application Layer
+Interaction Layer
 ─────────────────
 actions/
 
@@ -308,26 +407,62 @@ Content Layer
 studio/
 ```
 
-This layering reduces coupling and allows the system to evolve safely.
+This layering reduces coupling and allows systems to evolve safely.
+
+---
+
+# Presentation Architecture
+
+The presentation layer itself contains multiple nested layers:
+
+```text
+Layout Tree
+        ↓
+Page Tree
+        ↓
+Feature Components
+        ↓
+UI Components
+        ↓
+HTML
+```
+
+Examples:
+
+```text
+Root Layout
+       ↓
+Site Layout
+       ↓
+Page
+       ↓
+PostCard
+       ↓
+Button
+```
+
+This composition model is one of React's most powerful ideas.
 
 ---
 
 # Styling System Architecture
 
-GreyMatter Journal uses a layered styling model:
+GreyMatter Journal uses layered styling.
 
 ```text
 Design Tokens
         ↓
-Visual Themes
+Themes
         ↓
-Primitive Components
+Primitives
         ↓
-Feature Components
+Components
         ↓
-Application Composition
+Features
         ↓
-Content Presentation
+Pages
+        ↓
+Content
 ```
 
 This mirrors how professional design systems operate.
@@ -336,23 +471,7 @@ This mirrors how professional design systems operate.
 
 # Design Tokens
 
-```text
-styles/tokens.css
-```
-
-Design tokens represent visual facts:
-
-```text
-Color
-Spacing
-Typography
-Radius
-Shadow
-Layout
-Motion
-```
-
-Example:
+Design tokens represent visual facts.
 
 ```css
 :root {
@@ -365,17 +484,29 @@ Example:
 }
 ```
 
+Tokens define:
+
+```text
+Color
+Typography
+Spacing
+Radius
+Shadow
+Motion
+Layout
+```
+
 ---
 
-# Theme System
+# Theme Architecture
 
-GreyMatter Journal supports multiple visual themes through CSS custom properties.
+Themes override tokens.
 
 ```text
 Light Theme
-        ↓
+       ↓
 Dark Theme
-        ↓
+       ↓
 Future Themes
 ```
 
@@ -385,54 +516,17 @@ Example:
 .dark {
   --background: #0f172a;
   --foreground: #f8fafc;
-  --muted: #94a3b8;
-  --border: #334155;
   --accent: #60a5fa;
 }
 ```
 
-This allows themes to evolve independently from components.
-
----
-
-# Design System Architecture
-
-The UI system follows a layered design:
-
-```text
-Tokens
-    ↓
-Themes
-    ↓
-Primitives
-    ↓
-Components
-    ↓
-Features
-    ↓
-Pages
-```
-
-Examples:
-
-```text
-Button
-Card
-Badge
-Input
-Avatar
-Separator
-Skeleton
-Spinner
-```
-
-Feature components compose primitives rather than duplicating them.
+This separation allows visual systems to evolve independently from components.
 
 ---
 
 # Content Architecture
 
-GreyMatter Journal models content relationally:
+GreyMatter Journal models content relationally.
 
 ```text
 Author
@@ -448,9 +542,100 @@ This provides:
 
 ```text
 Normalization
+
 Relationship Integrity
+
 Single Source of Truth
+
 Scalable Content Modeling
+```
+
+---
+
+# Search Architecture
+
+Search is fundamentally a data transformation problem.
+
+```text
+Content
+      ↓
+Filtering
+      ↓
+Pattern Matching
+      ↓
+Projection
+      ↓
+Sorting
+      ↓
+Results
+```
+
+This same architecture scales from blogs to search engines.
+
+---
+
+# State Transition Architecture
+
+Modern applications are machines for transforming state.
+
+```text
+User Action
+       ↓
+UI State
+       ↓
+Optimistic Update
+       ↓
+Server Action
+       ↓
+Mutation
+       ↓
+Persistence
+       ↓
+Revalidation
+       ↓
+Updated UI
+```
+
+Examples include:
+
+```text
+Comments
+Likes
+Authentication
+Draft Mode
+Search
+```
+
+---
+
+# Trust Boundary Architecture
+
+Authentication introduced another important concept:
+
+```text
+Browser
+    ↓
+Authentication
+    ↓
+Middleware
+    ↓
+Server Components
+    ↓
+Server Actions
+    ↓
+CMS/API
+```
+
+Professional systems continuously answer:
+
+```text
+Who are you?
+
+Can I trust you?
+
+What may you access?
+
+How certain am I?
 ```
 
 ---
@@ -468,31 +653,85 @@ Router Cache
         ↓
 React Cache
         ↓
+RSC Payload Cache
+        ↓
 Next.js Data Cache
         ↓
-CDN Cache
+Edge Cache
         ↓
 Sanity CDN
+        ↓
+Content Lake
 ```
 
 Performance engineering is largely the discipline of managing these layers correctly.
 
 ---
 
+# Error Recovery Architecture
+
+Modern applications are designed around failure.
+
+```text
+loading.tsx
+        ↓
+error.tsx
+        ↓
+not-found.tsx
+        ↓
+global-error.tsx
+```
+
+Failures remain localized rather than catastrophic.
+
+---
+
+# Observability Architecture
+
+Production systems are invisible.
+
+Observability makes them visible.
+
+```text
+Application
+      ↓
+Metrics
+      ↓
+Logs
+      ↓
+Traces
+      ↓
+Dashboards
+      ↓
+Human Understanding
+```
+
+The three pillars of observability are:
+
+```text
+Metrics
+Logs
+Traces
+```
+
+---
+
 # Deployment Architecture
+
+Deployment transforms source code into a running system.
 
 ```text
 Developer
       ↓
 Git Repository
       ↓
-CI/CD Pipeline
+CI Pipeline
       ↓
-Vercel Build
+Build System
       ↓
 Next.js Runtime
       ↓
-React Server Components
+Edge Network
       ↓
 Cache Layer
       ↓
@@ -505,21 +744,42 @@ Browser
 
 ---
 
-# Error Recovery Architecture
+# GreyMatter Journal as a Distributed System
 
-Next.js provides resilience through layered recovery:
+GreyMatter Journal is not merely a website.
+
+It is a distributed system.
 
 ```text
-loading.tsx
-        ↓
-error.tsx
-        ↓
-not-found.tsx
-        ↓
-global-error.tsx
+Browser
+    ↓
+CDN
+    ↓
+Edge Network
+    ↓
+Next.js Runtime
+    ↓
+React Server Components
+    ↓
+Server Actions
+    ↓
+Sanity API
+    ↓
+Content Lake
+    ↓
+Asset CDN
 ```
 
-This ensures failures remain localized rather than catastrophic.
+Each layer introduces:
+
+```text
+Latency
+Caching
+Failure
+Consistency
+Security
+Observability
+```
 
 ---
 
@@ -587,9 +847,13 @@ Infrastructure
     +
 Caching
     +
+Security
+    +
 Deployment
     +
 Observability
+    +
+Operations
     +
 Human Understanding
 ```
