@@ -1,136 +1,910 @@
 # **✅ Part 10 — Creating Our First Content**
 
----
+<img width="1200" height="675" alt="image" src="https://github.com/user-attachments/assets/d7761981-266c-4de7-8daa-a15c636f639c" />
 
-# GreyMatter Journal  
-## Part 10 — Creating Our First Content: Documents, References, and Rich Text in Sanity
 
-> **Goal of this lesson:** Populate the Content Lake with real data and understand how documents, references, and Portable Text work together.
+# GreyMatter Journal
 
----
+## Part 10 — Creating Our First Content: Documents, References, and Portable Text in Sanity
 
-### The Moment of Truth
-
-We now have a fully connected system. It’s time to add real content.
+> **Goal of this lesson:** Populate the Sanity Content Lake with real content, understand how documents and references work, and discover why modern content systems store structured data instead of HTML pages.
 
 ---
 
-### Start the Studio
+# The Moment of Truth
+
+Up until now, we've built infrastructure.
+
+We have:
+
+```text
+✓ Next.js application
+✓ Application layouts
+✓ Sanity Studio
+✓ Content schemas
+✓ API integration
+✓ Sanity client
+✓ GROQ queries
+```
+
+But we still have one major problem:
+
+```text
+No content.
+```
+
+Our architecture currently looks like this:
+
+```text
+Editor
+      ↓
+
+Sanity Studio
+      ↓
+
+Content Lake
+
+      =
+
+(empty)
+```
+
+Today, for the first time, we'll create real content and watch it travel through our entire system.
+
+---
+
+# Start the Studio
+
+Open your Sanity Studio:
 
 ```bash
 cd studio
 npm run dev
 ```
 
-Open `http://localhost:3333`
+Visit:
 
-You’ll see **Posts**, **Authors**, and **Categories**.
+```text
+http://localhost:3333
+```
 
----
+You should see something similar to:
 
-### 1. Create an Author
+```text
+Content
 
-- **Name**: Sean Wong
-- **Biography**: Short bio
-- **Avatar**: Upload image (optional)
+├── Posts
+├── Authors
+└── Categories
+```
 
-**Publish**
+Congratulations.
 
----
-
-### 2. Create Categories
-
-- **Architecture** – Systems design
-- **Web Development** – Modern frontend
-- **AI Engineering** – Intelligent systems
+You now have your own content management system.
 
 ---
 
-### 3. Create Your First Post
+# Content Comes Before Pages
 
-- **Title**: Understanding React Server Components
-- **Slug**: Auto-generated
-- **Excerpt**: Beginner-friendly introduction...
-- **Hero Image**: Upload one
-- **Author**: Sean Wong
-- **Categories**: Multiple
-- **Published At**: Today
+Many beginners think:
+
+```text
+Page
+     ↓
+Content
+```
+
+Professional content systems work in the opposite direction:
+
+```text
+Content
+      ↓
+Pages
+```
+
+Why?
+
+Because content may eventually appear in:
+
+```text
+Website
+
+Mobile App
+
+RSS Feed
+
+Email Newsletter
+
+Search Results
+
+AI Systems
+
+Future Platforms
+```
+
+This is why modern CMS systems store:
+
+```text
+Structured Content
+```
+
+rather than:
+
+```text
+HTML Pages
+```
 
 ---
 
-### Writing with Portable Text
+# Step 1 — Create Your First Author
 
-In the **Body** field, use the rich text editor to add headings, paragraphs, lists, etc.
+Open:
 
-**Publish**
+```text
+Authors
+```
+
+Create:
+
+```text
+Name:
+    Sean Wong
+
+Bio:
+    Software engineer,
+    architect,
+    educator,
+    and systems thinker.
+
+Image:
+    Upload a profile photo
+    (optional)
+```
+
+Then click:
+
+```text
+Publish
+```
 
 ---
 
-### What Sanity Actually Stores
+# What Did Sanity Actually Create?
 
-Sanity stores **structured data**:
+Many beginners think:
 
-- Portable Text for rich content
-- References for relationships
+```text
+Author Page
+```
 
-This allows the same content to be used across websites, apps, RSS, etc.
+was created.
+
+It wasn't.
+
+Sanity created a document:
+
+```json
+{
+  "_type": "author",
+
+  "name":
+    "Sean Wong",
+
+  "bio":
+    "Software engineer...",
+}
+```
+
+Think of it as:
+
+```text
+Database Record
+```
+
+rather than:
+
+```text
+Web Page
+```
 
 ---
 
-### Query the Content
+# Step 2 — Create Categories
 
-Update `app/test/page.tsx`:
+Create several categories:
+
+```text
+Architecture
+```
+
+Description:
+
+```text
+Systems design and
+software architecture
+```
+
+---
+
+```text
+Web Development
+```
+
+Description:
+
+```text
+Modern frontend
+engineering
+```
+
+---
+
+```text
+AI Engineering
+```
+
+Description:
+
+```text
+Building systems
+in the age of AI
+```
+
+After publishing, your Content Lake contains:
+
+```text
+Author
+     ↓
+
+Categories
+```
+
+---
+
+# Understanding Documents
+
+Sanity stores information as documents.
+
+For example:
+
+```text
+Author
+```
+
+is a document.
+
+```text
+Category
+```
+
+is a document.
+
+```text
+Post
+```
+
+is a document.
+
+Visually:
+
+```text
+Content Lake
+
+    Author
+
+    Category
+
+    Category
+
+    Category
+
+    Post
+
+    Post
+```
+
+Think of documents as:
+
+```text
+Objects
+```
+
+stored in a giant distributed database.
+
+---
+
+# Step 3 — Create Your First Post
+
+Create:
+
+```text
+Title:
+    Understanding
+    React Server Components
+```
+
+Generate:
+
+```text
+Slug:
+    understanding-react-server-components
+```
+
+Add:
+
+```text
+Excerpt:
+    A beginner-friendly
+    introduction to
+    React Server Components.
+```
+
+Select:
+
+```text
+Author:
+    Sean Wong
+```
+
+Select categories:
+
+```text
+Architecture
+
+Web Development
+```
+
+Add:
+
+```text
+Published Date:
+    Today
+```
+
+Upload:
+
+```text
+Hero Image
+```
+
+---
+
+# The Most Important Field: Body
+
+The body field is where something interesting happens.
+
+Instead of writing:
+
+```html
+<h1>Hello</h1>
+
+<p>World</p>
+```
+
+Sanity stores something called:
+
+```text
+Portable Text
+```
+
+---
+
+# What Is Portable Text?
+
+Many beginners think:
+
+```text
+Rich Text
+      =
+HTML
+```
+
+Professional systems think:
+
+```text
+Rich Text
+      =
+Structured Data
+```
+
+Suppose you write:
+
+```markdown
+# React Server Components
+
+React Server Components
+allow rendering on
+the server.
+```
+
+Sanity stores something more like:
+
+```json
+[
+  {
+    "_type": "block",
+    "style": "h1",
+    "children": [
+      {
+        "text":
+          "React Server Components"
+      }
+    ]
+  },
+  {
+    "_type": "block",
+    "style": "normal",
+    "children": [
+      {
+        "text":
+          "React Server Components allow rendering on the server."
+      }
+    ]
+  }
+]
+```
+
+Notice:
+
+```text
+No HTML
+```
+
+Instead, we have:
+
+```text
+Structured content
+```
+
+---
+
+# Why Not Store HTML?
+
+HTML describes:
+
+```text
+Presentation
+```
+
+Portable Text describes:
+
+```text
+Meaning
+```
+
+For example:
+
+```text
+Heading
+
+Paragraph
+
+List
+
+Quote
+
+Code Block
+```
+
+This means the same content can be rendered as:
+
+```text
+Website
+
+Mobile App
+
+RSS
+
+PDF
+
+Email
+
+AI Context
+```
+
+without rewriting it.
+
+---
+
+# Understanding References
+
+When you selected:
+
+```text
+Author:
+    Sean Wong
+```
+
+did Sanity copy the author?
+
+No.
+
+Instead, it stored:
+
+```json
+{
+  "_ref":
+    "author-123"
+}
+```
+
+Likewise:
+
+```text
+Categories
+```
+
+become:
+
+```json
+[
+  {
+    "_ref":
+      "category-1"
+  },
+  {
+    "_ref":
+      "category-2"
+  }
+]
+```
+
+This is called:
+
+```text
+Normalization
+```
+
+---
+
+# Visualizing References
+
+Our data model now looks like:
+
+```text
+                Post
+                  |
+          ----------------
+          |              |
+          |              |
+       Author       Categories
+```
+
+More specifically:
+
+```text
+Post
+    ↓
+Author
+
+Post
+    ↓
+Category
+
+Post
+    ↓
+Category
+```
+
+This gives us:
+
+```text
+✓ No duplication
+✓ Better consistency
+✓ Better scalability
+✓ Better querying
+```
+
+---
+
+# What Actually Exists In The Content Lake?
+
+After publishing, Sanity contains something conceptually similar to:
+
+```text
+Document
+
+    Author
+        Sean Wong
+
+Document
+
+    Category
+        Architecture
+
+Document
+
+    Category
+        Web Development
+
+Document
+
+    Post
+        Understanding
+        React Server Components
+```
+
+Notice:
+
+```text
+No web pages exist.
+```
+
+Only documents.
+
+---
+
+# Querying The Content
+
+Let's verify everything works.
+
+Update:
+
+```text
+app/(site)/test/page.tsx
+```
 
 ```tsx
-import { client } from "@/lib/sanity";
+import {
+  client,
+} from "@/lib/sanity";
 
-export default async function TestPage() {
-  const posts = await client.fetch(`
-    *[_type == "post"]{
-      title,
-      slug,
-      excerpt,
-      publishedAt,
-      author->{
-        name
-      },
-      categories[]->{
-        title
+export default async function
+TestPage() {
+
+  const posts =
+    await client.fetch(`
+      *[_type=="post"]{
+        title,
+        slug,
+        excerpt,
+        publishedAt,
+
+        author->{
+          name
+        },
+
+        categories[]->{
+          title
+        }
       }
-    }
-  `);
+    `);
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Content Test</h1>
-      <pre className="bg-gray-900 text-gray-100 p-6 rounded-xl overflow-auto text-sm">
-        {JSON.stringify(posts, null, 2)}
+    <div
+      className="
+        mx-auto
+        max-w-4xl
+        p-8
+      "
+    >
+      <h1
+        className="
+          mb-8
+          text-3xl
+          font-bold
+        "
+      >
+        Content Test
+      </h1>
+
+      <pre
+        className="
+          overflow-auto
+          rounded-xl
+          bg-gray-900
+          p-6
+          text-sm
+          text-gray-100
+        "
+      >
+        {JSON.stringify(
+          posts,
+          null,
+          2
+        )}
       </pre>
     </div>
   );
 }
 ```
 
----
+Visit:
 
-### Key Concepts
+```text
+http://localhost:3000/test
+```
 
-- **Documents**: Individual pieces of content
-- **References** (`_ref`): Links between documents (no duplication)
-- **Portable Text**: Structured rich text (AST)
-- **GROQ Projections**: Fetch exactly what you need
-
----
-
-### Mental Model To Remember Forever
-
-> A blog post is not an HTML page.  
-> It is a **document** with **relationships** and **structured data**.
-
-The frontend transforms that data into UI.
+You should now see real content.
 
 ---
 
-### Up Next — Part 11: Building the Homepage
+# Understanding GROQ Projections
 
-We’ll create a list of posts, style cards, and prepare for dynamic routes.
+This query:
+
+```groq
+*[_type=="post"]{
+    title,
+    slug,
+
+    author->{
+        name
+    },
+
+    categories[]->{
+        title
+    }
+}
+```
+
+does several things simultaneously:
+
+```text
+Find Posts
+        ↓
+
+Select Fields
+        ↓
+
+Follow Author
+        ↓
+
+Follow Categories
+        ↓
+
+Construct New Object
+```
+
+GROQ doesn't return database rows.
+
+It returns exactly the shape your application needs.
+
+---
+
+# Visualizing The Entire System
+
+Our architecture now finally works end-to-end:
+
+```text
+Writer
+      ↓
+
+Sanity Studio
+      ↓
+
+Post Document
+      ↓
+
+Content Lake
+      ↓
+
+GROQ Query
+      ↓
+
+Sanity API
+      ↓
+
+Next.js
+      ↓
+
+React Server Components
+      ↓
+
+Browser
+```
+
+For the first time:
+
+```text
+Content
+      ↓
+
+Data
+      ↓
+
+UI
+```
+
+is fully operational.
+
+---
+
+# The Correct Mental Model
+
+Beginners think:
+
+```text
+Blog Post
+        =
+HTML Page
+```
+
+Professional engineers think:
+
+```text
+Blog Post
+        =
+Document
+        +
+Relationships
+        +
+Structured Content
+        +
+Metadata
+```
+
+Or even more fundamentally:
+
+```text
+Content
+        ≠
+Presentation
+```
+
+Instead:
+
+```text
+Content
+        ↓
+
+Transformation
+        ↓
+
+Presentation
+```
+
+---
+
+# The Most Important Idea To Remember
+
+When you publish a post in Sanity:
+
+You are not creating:
+
+```text
+A webpage
+```
+
+You are creating:
+
+```text
+Structured knowledge
+```
+
+The frontend's responsibility is simply to transform that knowledge into user experiences.
+
+Modern content systems are not page builders.
+
+They are knowledge management systems.
+
+---
+
+# Up Next — Part 11: Building the Homepage
+
+Next, we'll finally replace our placeholder homepage and build our first real feature:
+
+```text
+Content Lake
+        ↓
+
+GROQ Query
+        ↓
+
+Server Component
+        ↓
+
+Post Cards
+        ↓
+
+Homepage
+```
+
+We'll learn:
+
+* Fetching data in Server Components
+* Building reusable Post Cards
+* Rendering lists
+* Server-side data fetching
+* Component composition
+* Why React components are really UI functions
