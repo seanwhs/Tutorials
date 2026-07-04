@@ -4,6 +4,9 @@
 
 ## Part 2 — Understanding the App Router: Why Modern Web Applications Are Not Collections of Pages
 
+<img width="900" height="507" alt="image" src="https://github.com/user-attachments/assets/e2eee423-6d6c-4ceb-8d21-789054dedf47" />
+
+
 > **Goal of this lesson:** Understand the **Next.js App Router**, learn why folders become routes, discover the roles of `page.tsx` and `layout.tsx`, understand Route Groups, and develop the mental model that modern web applications are built as **persistent UI trees and architectural systems**, not collections of disconnected pages.
 
 ---
