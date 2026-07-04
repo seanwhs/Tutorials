@@ -149,17 +149,11 @@ Application
 When navigation occurs:
 
 ```text
-Navigation
-        =
-UNCHANGED
+Navigation = UNCHANGED
 
-Sidebar
-        =
-UNCHANGED
+Sidebar = UNCHANGED
 
-Content
-        =
-UPDATED
+Content = UPDATED
 ```
 
 Only the portions of the interface that actually changed are replaced.
