@@ -1,4 +1,4 @@
-# Appendix H — Production Folder Structures and Architecture Patterns
+# Appendix H — Production Folder Structures and Architecture Patterns: Organizing Systems, Teams, and Complexity
 
 > **Goal of this appendix:** Understand how production-grade Next.js applications are organized so they remain understandable, maintainable, and scalable as features, developers, and organizational complexity grow over time.
 
@@ -24,9 +24,13 @@ Small projects can survive with poor organization.
 
 Large systems cannot.
 
-As applications grow, the primary challenge stops being "writing code" and becomes:
+As applications grow, the primary challenge stops being:
 
-> **Managing complexity while preserving understanding.**
+> **How do we write more code?**
+
+and becomes:
+
+> **How do we preserve understanding while complexity grows?**
 
 This appendix explores the architectural patterns used by professional engineering teams to build software systems that remain maintainable years after their initial release.
 
@@ -38,7 +42,7 @@ One of the most important principles in software engineering is **Conway's Law**
 
 > Organizations design systems that mirror their own communication structures.
 
-In practice, this means:
+In practice:
 
 ```text
 Team Structure
@@ -50,7 +54,7 @@ System Architecture
 Code Organization
 ```
 
-A poorly organized team often produces:
+Poor organizational boundaries often produce:
 
 ```text
 Messy Teams
@@ -72,18 +76,25 @@ Maintainable Systems
 
 When you create folders, you are not merely organizing files.
 
-You are creating:
+You are defining:
 
-* boundaries of responsibility
-* ownership domains
+* ownership boundaries
 * communication contracts
-* mental models for future developers
+* cognitive models
+* team responsibilities
+* future maintenance costs
 
-A folder structure is ultimately a **map of organizational understanding**.
+A folder structure is ultimately a:
+
+```text
+Map
+       of
+Understanding
+```
 
 ---
 
-# 2. The Evolution of Application Structure
+# 2. The Evolution of Application Architecture
 
 Most applications evolve through predictable architectural stages.
 
@@ -95,8 +106,8 @@ Most applications evolve through predictable architectural stages.
 
 * Learning
 * Prototypes
-* Single developer projects
-* Applications under a few thousand lines of code
+* Single-developer projects
+* Small applications
 
 ```text
 app/
@@ -104,11 +115,11 @@ components/
 lib/
 ```
 
-This architecture works because the developer can keep the entire system in their head.
+This architecture succeeds because a single developer can keep the entire system in their head.
 
 Unfortunately, it scales poorly.
 
-After several months, `components/` often becomes:
+After several months:
 
 ```text
 components/
@@ -139,8 +150,8 @@ This is the first architectural trap.
 **Best for:**
 
 * Small teams
-* Early production systems
-* Medium-sized applications
+* Early production applications
+* Medium-scale systems
 
 ```text
 app/
@@ -151,7 +162,7 @@ types/
 hooks/
 ```
 
-Benefits:
+This introduces separation of concerns:
 
 ```text
 UI
@@ -163,31 +174,31 @@ Business Logic
 Infrastructure
 ```
 
-This improves maintainability considerably.
+The application becomes easier to maintain.
 
 However, a new problem emerges.
 
-Suppose you want to modify comments.
+Suppose you need to modify the comment system.
 
-You now search through:
+You must now search:
 
 ```text
 components/comments/
 actions/comments.ts
-types/comment.ts
 hooks/useComments.ts
+types/comment.ts
 lib/comments.ts
 ```
 
-The feature becomes fragmented.
+The feature becomes fragmented across multiple directories.
 
-This leads to the next evolutionary step.
+This fragmentation leads to the next evolutionary step.
 
 ---
 
 ## Stage 3 — Feature-Based Architecture (Vertical Slices)
 
-Modern systems increasingly organize by business capability rather than file type.
+Modern systems increasingly organize around business capabilities rather than file types.
 
 Instead of:
 
@@ -207,8 +218,8 @@ features/
     components/
     actions/
     hooks/
-    types/
     validation/
+    types/
 
   posts/
     components/
@@ -222,7 +233,7 @@ features/
     hooks/
 ```
 
-This approach is called:
+This approach is known as:
 
 * Vertical Slices
 * Feature Modules
@@ -230,36 +241,41 @@ This approach is called:
 
 ---
 
-### Why Vertical Slices Work
+## Why Vertical Slices Work
 
 Humans naturally think in terms of problems:
 
 ```text
-"I need to fix comments."
+"I need to modify comments."
 ```
 
 Humans do not think:
 
 ```text
-"I need to inspect comments.ts,
-comment-card.tsx,
-useComments.ts,
-comment.schema.ts,
-and comment.types.ts."
+"I need to inspect:
+
+comments.ts
+CommentCard.tsx
+useComments.ts
+comment.schema.ts
+comment.types.ts"
 ```
 
 Vertical organization aligns software architecture with human cognition.
+
+The system begins to reflect the way engineers actually reason about software.
 
 ---
 
 # 3. The GreyMatter Journal Production Architecture
 
-GreyMatter Journal uses a hybrid architecture that balances:
+GreyMatter Journal uses a hybrid architecture balancing:
 
 * Next.js App Router requirements
 * Feature encapsulation
 * Infrastructure separation
 * Team scalability
+* Long-term maintainability
 
 ```text
 greymatter-journal/
@@ -291,8 +307,9 @@ The App Router defines:
 * loading boundaries
 * error boundaries
 * route composition
+* streaming boundaries
 
-This layer should contain very little business logic.
+This layer should contain minimal business logic.
 
 Think of it as:
 
@@ -313,8 +330,8 @@ features/
 
   comments/
   posts/
-  search/
   likes/
+  search/
 ```
 
 This is the heart of the application.
@@ -324,31 +341,32 @@ Features contain:
 ```text
 Business Rules
 Validation
-UI
 Server Actions
+UI
 Types
 State Management
 ```
 
-Examples:
+Example:
 
 ```text
 features/
-    comments/
-        components/
-        actions/
-        validation/
-        hooks/
-        types/
+
+  comments/
+      components/
+      actions/
+      validation/
+      hooks/
+      types/
 ```
 
-This creates ownership boundaries.
+This creates clear ownership boundaries.
 
 ---
 
 ## components/ — Shared Presentation
 
-Only place truly reusable UI here.
+Only place truly reusable UI primitives here.
 
 Examples:
 
@@ -358,19 +376,20 @@ components/
 Button
 Card
 Dialog
-Modal
-Container
+Input
+Avatar
 Spinner
+Container
 ```
 
-Never place business logic in shared components.
+Never place business-specific components here.
 
 Bad:
 
 ```text
 CommentCard.tsx
 UserDashboard.tsx
-ProductCheckout.tsx
+CheckoutForm.tsx
 ```
 
 Good:
@@ -379,45 +398,57 @@ Good:
 Button.tsx
 Card.tsx
 Input.tsx
-Avatar.tsx
+Modal.tsx
+```
+
+Shared components should remain:
+
+```text
+Stateless
+Reusable
+Domain-agnostic
 ```
 
 ---
 
-## lib/ — Infrastructure Layer
+## lib/ — The Infrastructure Layer
 
 The `lib/` folder is one of the most abused folders in software engineering.
 
 A simple rule:
 
-> If it contains business logic, it does not belong in `lib/`.
+> If it contains business logic, it does not belong in `lib`.
 
-Examples of legitimate infrastructure:
+Examples:
 
 ```text
 lib/
 
 sanity.ts
 auth.ts
-logger.ts
 cache.ts
+logger.ts
 analytics.ts
 email.ts
 image.ts
+database.ts
 ```
 
 These files wrap:
 
-* external APIs
-* SDKs
 * databases
+* CMS systems
+* third-party SDKs
+* external APIs
 * infrastructure services
+
+They provide capabilities.
 
 They do not implement business rules.
 
 ---
 
-## actions/ — Application Layer
+## actions/ — The Application Layer
 
 Server Actions act as orchestration logic.
 
@@ -431,25 +462,26 @@ likes.ts
 posts.ts
 ```
 
-Responsibilities:
+Responsibilities include:
 
 ```text
 Authentication
 Authorization
 Transactions
-Orchestration
 Mutations
+Workflows
+Orchestration
 ```
 
 This layer coordinates systems.
 
-It should not contain domain complexity.
+It should not contain core business complexity.
 
 ---
 
 # 4. Architectural Layers
 
-Large software systems naturally evolve into layers.
+Large systems naturally evolve into layers:
 
 ```text
 Presentation
@@ -487,9 +519,9 @@ actions/
 
 Responsibilities:
 
-* workflows
 * orchestration
 * transactions
+* workflows
 * permissions
 
 ---
@@ -505,7 +537,7 @@ Responsibilities:
 * business rules
 * validation
 * domain concepts
-* feature behavior
+* application behavior
 
 ---
 
@@ -519,22 +551,22 @@ Responsibilities:
 
 * databases
 * CMS
-* logging
 * caching
+* logging
 * analytics
-* external APIs
+* external services
 
 ---
 
 # 5. Next.js App Router Patterns
 
-Next.js introduces architectural patterns that do not exist in traditional frameworks.
+The App Router introduces architectural patterns not present in traditional frameworks.
 
 ---
 
 ## Route Groups
 
-Route groups allow multiple applications to coexist.
+Route groups allow multiple logical applications to coexist.
 
 ```text
 app/
@@ -550,16 +582,16 @@ Examples:
 
 ```text
 (marketing)
-    Landing Pages
+    Public website
 
 (auth)
     Authentication
 
-(admin)
-    Internal Tools
-
 (dashboard)
-    User Application
+    User application
+
+(admin)
+    Internal tools
 ```
 
 This creates architectural boundaries without affecting URLs.
@@ -580,12 +612,10 @@ Dashboard Layout
 Page
 ```
 
-This is fundamentally different from page-based applications.
-
-Modern applications are:
+Modern applications are fundamentally:
 
 ```text
-Persistent Trees
+Persistent UI Trees
 ```
 
 rather than:
@@ -598,7 +628,7 @@ Independent Pages
 
 # 6. Monorepo Architecture
 
-Eventually, applications outgrow a single project.
+Eventually, large applications outgrow a single project.
 
 This leads to:
 
@@ -607,7 +637,7 @@ apps/
 packages/
 ```
 
-structures.
+architectures.
 
 Example:
 
@@ -628,8 +658,9 @@ Benefits:
 
 * shared design systems
 * shared business logic
-* independent deployments
-* versioned internal packages
+* independent deployment targets
+* reusable internal packages
+* organizational scalability
 
 ---
 
@@ -651,13 +682,14 @@ Spacing
 Typography
 Radius
 Shadows
+Animations
 ```
 
 ---
 
 ## Components
 
-Reusable primitives:
+Reusable building blocks:
 
 ```text
 Button
@@ -665,6 +697,7 @@ Input
 Card
 Dialog
 Table
+Badge
 ```
 
 ---
@@ -674,15 +707,16 @@ Table
 Composition rules:
 
 ```text
-Search Form
+Comment Form
 Login Flow
-Comment Editor
 Article Header
+Search Results
+Dashboard Layout
 ```
 
 ---
 
-# Building a Shared UI Package
+## Building a Shared UI Package
 
 ```text
 packages/
@@ -701,13 +735,13 @@ The critical principle:
 
 > Expose only stable interfaces.
 
-Your `index.ts` becomes the public API.
+Your `index.ts` file becomes the public API.
 
-Consumers should never import internal implementation files directly.
+Consumers should never import implementation details directly.
 
 ---
 
-# The Principle of Composition
+## The Principle of Composition
 
 Professional design systems avoid:
 
@@ -730,35 +764,35 @@ Example:
 <Button variant="destructive">
 ```
 
-The button does not know:
+The button does not understand:
 
 * users
 * permissions
-* business rules
 * workflows
+* business rules
 
-It only knows how to render itself.
+It only understands how to render itself.
 
 ---
 
 # 8. GreyMatter Journal System Design Index
 
-| Domain        | Technology          | Pattern              |
-| ------------- | ------------------- | -------------------- |
-| Identity      | Clerk               | Middleware Auth      |
-| Content       | Sanity              | Content Lake         |
-| Rendering     | Next.js             | Server Components    |
-| Mutations     | Server Actions      | RPC Pattern          |
-| Performance   | Next.js Cache       | ISR + Revalidation   |
-| Architecture  | Feature Slices      | Vertical Ownership   |
-| Design System | packages/ui         | Stateless Primitives |
-| Observability | Analytics + Logging | Feedback Loops       |
+| Domain        | Technology          | Primary Pattern           |
+| ------------- | ------------------- | ------------------------- |
+| Identity      | Clerk               | Middleware Authentication |
+| Content       | Sanity              | Content Lake              |
+| Rendering     | Next.js             | React Server Components   |
+| Mutations     | Server Actions      | RPC Pattern               |
+| Performance   | Next.js Cache       | ISR + Revalidation        |
+| Architecture  | Feature Slices      | Vertical Ownership        |
+| Design System | packages/ui         | Stateless Primitives      |
+| Observability | Analytics + Logging | Feedback Loops            |
 
 ---
 
 # The Most Important Lesson
 
-Beginners think software architecture is about:
+Beginners often think software architecture is about:
 
 ```text
 Folders
@@ -767,7 +801,7 @@ Patterns
 Libraries
 ```
 
-Professional engineers understand:
+Professional engineers eventually discover:
 
 ```text
 Architecture
