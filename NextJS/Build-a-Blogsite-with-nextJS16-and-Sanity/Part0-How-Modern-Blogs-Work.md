@@ -138,6 +138,8 @@ This led to the rise of **Headless CMS**.
 
 ### The Headless Revolution
 
+<img width="523" height="296" alt="image" src="https://github.com/user-attachments/assets/977b53e2-2e17-43dc-ab2a-5ec3e61d07ec" />
+
 Instead of one giant system doing everything, we **decouple**:
 
 **Old way:**
@@ -157,6 +159,7 @@ Sanity (Content Layer)
          ↓ (API)
 Next.js (Presentation Layer)
 ```
+<img width="1940" height="1160" alt="image" src="https://github.com/user-attachments/assets/a48221f6-82bf-4e92-8a45-7d4bf929a2a9" />
 
 **Headless CMS** responsibilities:
 
