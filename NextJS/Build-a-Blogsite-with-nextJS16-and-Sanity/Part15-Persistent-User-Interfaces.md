@@ -1,6 +1,6 @@
 # GreyMatter Journal
 
-## Part 15 — Layouts, Navigation, and Persistent UI: Understanding Application Shells and UI Trees
+# Part 15 — Layouts, Navigation, and Persistent UI: Understanding Application Shells, Layout Trees, and Modern Web Architecture
 
 > **Goal of this lesson:** Build a professional navigation system while developing a deep understanding of why modern web applications are architected as persistent user interface trees rather than collections of independent pages.
 
@@ -8,167 +8,171 @@
 
 # The Great Shift in Web Architecture
 
-For most of the history of the web, websites were built as collections of separate documents.
+To understand why the Next.js App Router exists, we need to understand one of the largest architectural shifts in the history of web development.
 
-When a user navigated from one page to another, the browser would destroy everything and load an entirely new document.
+For most of the history of the web, websites were built as collections of documents.
 
-```text
-Request Page A
-      ↓
-Render Page A
-      ↓
-Destroy Page A
-      ↓
-Request Page B
-      ↓
-Render Page B
-```
-
-This model worked well for documents.
-
-It works poorly for applications.
-
-Modern applications feel different because they follow a completely different architectural model.
-
-Instead of rebuilding the entire interface on every navigation, they preserve most of the application and replace only the parts that actually changed.
+When a user clicked a link, the browser performed a complete replacement:
 
 ```text
-Persistent Application Shell
-              +
-       Dynamic Content
+Request Document A
+        ↓
+Render Document A
+        ↓
+Destroy Document A
+        ↓
+Request Document B
+        ↓
+Render Document B
 ```
 
-This is one of the foundational ideas behind the Next.js App Router.
+This model was perfectly reasonable because early websites were primarily documents:
+
+* Articles
+* News pages
+* Product pages
+* Documentation
+* Search results
+
+The browser was essentially a document viewer.
 
 ---
 
-# Applications Are Not Collections of Pages
+# Documents Versus Applications
 
-Consider applications you use every day.
+Modern software, however, is not primarily document-oriented.
 
-### YouTube
+Consider applications you use every day:
 
-```text
-Header
-   +
-Sidebar
-   +
-Video Player
-   +
-Comments
-```
+* YouTube
+* GitHub
+* Notion
+* Slack
+* Discord
+* Gmail
 
-When you click another video:
+These do not behave like collections of pages.
 
-```text
-Header         stays
-Sidebar        stays
-Navigation     stays
-Video          changes
-Comments        change
-```
+They behave like persistent environments.
 
----
+When you navigate inside these applications, most of the interface remains alive.
 
-### GitHub
+Only the relevant portion changes.
+
+For example, when switching YouTube videos:
 
 ```text
-Global Navigation
-        +
-Repository Header
-        +
-Current Tab Content
+Header            stays
+Sidebar           stays
+Navigation        stays
+Player            changes
+Comments          change
+Recommendations   change
 ```
 
-When moving from:
+Similarly, in GitHub:
 
 ```text
-Issues
+Global Navigation      stays
+Repository Header      stays
+Sidebar                stays
+Current Tab            changes
 ```
 
-to:
+And in Notion:
 
 ```text
-Pull Requests
+Workspace       stays
+Sidebar         stays
+Toolbar         stays
+Document        changes
 ```
 
-GitHub does not destroy the entire interface.
+This leads to one of the most important ideas in modern frontend architecture:
 
-Only part of the tree changes.
-
----
-
-### Notion
-
-```text
-Workspace
-      +
-Sidebar
-      +
-Current Document
-```
-
-The workspace persists.
-
-Only the document changes.
+> Applications are not collections of pages.
+>
+> They are collections of persistent user interfaces.
 
 ---
 
 # The Application Shell Pattern
 
-This architectural approach is called the **Application Shell Pattern**.
+This architectural style has a name:
 
-An application shell contains the persistent parts of the user interface:
+## The Application Shell Pattern
 
-```text
-Navigation
-Header
-Sidebar
-Footer
-Theme
-Global State
-Providers
-```
+An application shell contains the parts of the user interface that persist across navigations.
 
-while the content area changes dynamically.
+For example:
 
 ```text
 Application Shell
-        +
-Route Content
+
+    Header
+    Navigation
+    Sidebar
+    Footer
+    Theme
+    Providers
+    Global State
 ```
 
-GreyMatter Journal follows exactly the same pattern.
-
----
-
-# Designing the GreyMatter Journal Shell
-
-Our application shell will contain:
+while the changing portion contains:
 
 ```text
-Header
-     ↓
-Navigation
-     ↓
-Main Content
-     ↓
-Footer
+Route Content
 ```
 
 Visually:
 
 ```text
-┌─────────────────────────┐
-│      Header/Nav         │
-├─────────────────────────┤
-│                         │
-│       Content           │
-│                         │
-├─────────────────────────┤
-│        Footer           │
-└─────────────────────────┘
+Application Shell
+          +
+Dynamic Content
 ```
+
+Or:
+
+```text
+┌─────────────────────┐
+│ Header              │
+├─────────────────────┤
+│ Navigation          │
+├─────────────────────┤
+│                     │
+│ Dynamic Content     │
+│                     │
+├─────────────────────┤
+│ Footer              │
+└─────────────────────┘
+```
+
+This pattern exists almost everywhere in modern software.
+
+---
+
+# GreyMatter Journal as an Application Shell
+
+Our own application follows the same architectural pattern.
+
+```text
+GreyMatter Journal
+
+        Header
+           ↓
+      Navigation
+           ↓
+     Main Content
+           ↓
+        Footer
+```
+
+The shell remains stable.
+
+The content changes.
+
+This distinction may appear subtle, but it completely changes how applications are built.
 
 ---
 
@@ -185,7 +189,7 @@ import Link from "next/link";
 
 export default function Navigation() {
   return (
-    <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <Link
           href="/"
@@ -261,7 +265,7 @@ export default function Footer() {
 
 ---
 
-# Step 3 — Update the Root Layout
+# Step 3 — Build the Application Shell
 
 Open:
 
@@ -304,11 +308,15 @@ export default function RootLayout({
 }
 ```
 
+At first glance, this looks simple.
+
+Architecturally, however, we've just created our first application shell.
+
 ---
 
-# What Actually Happens During Navigation?
+# What Happens During Navigation?
 
-Suppose the user moves from:
+Suppose the user navigates from:
 
 ```text
 /posts/nextjs-16
@@ -320,7 +328,7 @@ to:
 /posts/react-server-components
 ```
 
-Many beginners imagine this:
+Many beginners imagine:
 
 ```text
 Destroy Everything
@@ -328,47 +336,41 @@ Destroy Everything
 Rebuild Everything
 ```
 
-But that is not what happens.
+But modern applications work differently.
 
-Instead:
-
-```text
-RootLayout
-     │
-     ├── Navigation
-     │
-     ├── Current Page
-     │
-     └── Footer
-```
-
-becomes:
+Before navigation:
 
 ```text
 RootLayout
      │
      ├── Navigation
      │
-     ├── New Page
+     ├── Article A
      │
      └── Footer
 ```
 
-Notice what changed:
+After navigation:
 
 ```text
-Navigation   → stays
-Footer       → stays
-Page         → changes
+RootLayout
+     │
+     ├── Navigation
+     │
+     ├── Article B
+     │
+     └── Footer
 ```
 
-The application shell persists.
+Only one node changed.
+
+Everything else remained alive.
 
 ---
 
-# Why `next/link` Exists
+# Why Does `next/link` Exist?
 
-You may wonder why we use:
+Many developers ask:
 
 ```tsx
 <Link href="/posts">
@@ -380,85 +382,82 @@ instead of:
 <a href="/posts">
 ```
 
-The answer is architectural.
+Why?
 
-### Traditional HTML
+Because `<a>` follows the traditional document model:
 
 ```text
-Click Link
-      ↓
+Click
+    ↓
 Browser Request
-      ↓
-Destroy Document
-      ↓
-Download New Page
-      ↓
-Render Again
+    ↓
+Destroy Current Document
+    ↓
+Download New Document
+    ↓
+Render New Document
 ```
 
----
-
-### Next.js Navigation
+Meanwhile, `next/link` follows the application model:
 
 ```text
-Click Link
-      ↓
+Click
+    ↓
 Prefetch Route
-      ↓
-Keep Layout Tree
-      ↓
+    ↓
+Preserve Layout Tree
+    ↓
 Replace Route Segment
-      ↓
+    ↓
 Update UI
 ```
 
 This provides:
 
 * Faster navigation
+* Fewer network requests
 * Less JavaScript execution
-* Reduced network traffic
-* Preserved state
-* Better user experience
+* Better caching
+* Preserved application state
+* Improved user experience
 
 ---
 
-# Persistent UI Means Persistent State
+# Persistence Is Really About State
 
-Suppose we add a theme toggle:
+Suppose we add a dark mode toggle.
 
-```text
-Dark Mode
-```
-
-If the layout remained persistent:
+With persistent layouts:
 
 ```text
-Dark Mode
+Dark Mode Enabled
         ↓
 Navigate
         ↓
-Dark Mode remains
+Dark Mode Still Enabled
 ```
 
-If the entire application reloaded:
+Without persistence:
 
 ```text
-Dark Mode
+Dark Mode Enabled
         ↓
 Navigate
         ↓
-Dark Mode lost
+Dark Mode Lost
 ```
 
-Persistence is not just about performance.
+The benefit of persistence is not merely speed.
 
-It is about preserving user context.
+It is continuity.
+
+Applications preserve context.
 
 ---
 
-# Layouts Form a Tree
+# Layouts Form Hierarchies
 
-As our application grows, our layouts become hierarchical.
+As our application grows, layouts become nested.
 
 ```text
 Root Layout
@@ -470,57 +469,57 @@ Root Layout
                       └── Article Page
 ```
 
-Every level provides additional context.
-
-For example:
+Each level contributes additional structure.
 
 ```text
 Root Layout
      =
-Global Shell
+Global Application
 
 Site Layout
      =
-Site Navigation
+Website Shell
 
 Posts Layout
      =
-Blog Navigation
+Blog Section
 
 Article Page
      =
 Actual Content
 ```
 
-This is why the App Router feels so natural.
-
-The folder structure mirrors the UI structure.
+This hierarchical structure mirrors how humans organize information.
 
 ---
 
-# The Deep Idea: Applications Are Trees of Trees
+# The Hidden Idea: Everything Is a Tree
 
-By now, we have encountered many different kinds of trees:
+At this point in our journey, we've encountered many different structures:
 
 ```text
 File System Tree
 
 Route Tree
 
-React Component Tree
-
 Layout Tree
 
-Portable Text Tree
+React Component Tree
 
 DOM Tree
+
+Content Tree
+
+Portable Text Tree
 ```
 
-These are not separate ideas.
+These are not separate concepts.
 
-Modern software is largely the art of organizing and traversing trees.
+They are manifestations of the same underlying idea.
 
-A Next.js application can be viewed as:
+Modern software engineering is largely the art of constructing, traversing, and transforming trees.
+
+A Next.js application can be described as:
 
 ```text
 Application
@@ -532,63 +531,139 @@ More specifically:
 
 ```text
 Application
-      =
+        =
 Route Tree
-           +
+            +
 Layout Tree
-           +
+            +
 Component Tree
-           +
+            +
 Content Tree
+            +
+DOM Tree
 ```
 
-This perspective explains much of modern frontend architecture.
+Understanding this observation explains why so much of modern frontend architecture feels similar.
 
 ---
 
-# Mental Model To Remember Forever
+# Why File-System Routing Feels Natural
 
-Beginners think:
+When we write:
+
+```text
+app/
+    posts/
+        [slug]/
+            page.tsx
+```
+
+we are not simply organizing files.
+
+We are constructing:
+
+```text
+Route Tree
+        ↓
+Layout Tree
+        ↓
+Component Tree
+        ↓
+UI Tree
+```
+
+The App Router works because these structures align.
+
+This alignment reduces complexity.
+
+---
+
+# The Deepest Mental Model
+
+Beginners often think:
 
 ```text
 Website
      =
-Pages
+Collection of Pages
 ```
 
-Modern engineers think:
+Professional engineers increasingly think:
 
 ```text
 Application
       =
 Persistent UI Tree
-             +
+              +
 Dynamic Data
 ```
 
-Or more fundamentally:
+Or even more fundamentally:
 
 ```text
 Application
       =
-Composition of Persistent Structures
+Composition
+      of
+      Persistent Structures
 ```
 
-The App Router is not a page system.
+This is the core insight behind the Next.js App Router.
+
+It is not a page router.
 
 It is a system for managing persistent trees.
 
 ---
 
+# Mental Model To Remember Forever
+
+Traditional thinking:
+
+```text
+Click Link
+      ↓
+Load New Page
+```
+
+Modern thinking:
+
+```text
+Click Link
+      ↓
+Update Tree
+      ↓
+Preserve State
+      ↓
+Render Difference
+```
+
+Or, at the deepest level:
+
+```text
+Modern Application
+          =
+Persistent Structure
+                    +
+Incremental Change
+```
+
+Once you understand this idea, the architecture of Next.js stops feeling magical and starts feeling inevitable.
+
+---
+
 # Up Next — Part 16: Search, Filtering, and Information Retrieval
 
-We'll implement:
+Next, we'll transform GreyMatter Journal from a publication system into an information retrieval system.
+
+We'll explore:
 
 * Full-text search
 * Category filtering
 * URL-based state
+* `searchParams`
 * GROQ queries
-* Information retrieval concepts
+* Ranking and retrieval
 * Search as data transformation
 
-This is where GreyMatter Journal begins to evolve from a publication into an information retrieval system.
+Because once applications manage information, they inevitably become search systems.
