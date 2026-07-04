@@ -10,11 +10,11 @@
 
 ---
 
-### The Most Intimidating Line in Next.js
+## The Most Intimidating Line in Next.js
 
-You've likely seen this many times:
+If you're new to Next.js and TypeScript, you've probably encountered this code:
 
-```tsx id="yz6m3n"
+```tsx
 export default function RootLayout({
   children,
 }: {
@@ -28,209 +28,361 @@ export default function RootLayout({
 }
 ```
 
-It looks complex, but it's actually **three simple ideas** combined:
+At first glance, it can feel overwhelming.
+
+Questions immediately arise:
+
+* What are the curly braces doing?
+* Why are there two sets of curly braces?
+* What is `React.ReactNode`?
+* Why is there a colon in the middle?
+* Why does everyone say TypeScript is "easy"?
+
+The good news is that this code is not complicated.
+
+It is simply **three ideas layered together**:
 
 1. JavaScript destructuring
-2. TypeScript type annotation
-3. Object shape description
+2. TypeScript type annotations
+3. Object shape contracts
 
-Let's break it down step by step.
-
----
-
-### Step 1: JavaScript Destructuring
-
-First, ignore the types entirely.
-
-```tsx id="tf5r8k"
-function RootLayout({
-  children
-}) {
-  return children;
-}
-```
-
-This is **destructuring** — a convenient way to extract values from objects.
-
-#### Without destructuring:
-
-```tsx id="w4m2qp"
-function RootLayout(
-  props
-) {
-  const children =
-    props.children;
-
-  return children;
-}
-```
-
-#### With destructuring:
-
-```tsx id="h8k7nv"
-function RootLayout({
-  children
-}) {
-  return children;
-}
-```
-
-**Both do the exact same thing.** Destructuring simply pulls `children` out into its own variable automatically.
+Once you understand these three concepts, you'll understand not only `RootLayout`, but much of modern React and Next.js.
 
 ---
 
-### Step 2: What Is a Type?
+## Step 1 — Ignore TypeScript Completely
 
-A **type** describes the **shape** of data — like a contract or blueprint.
+Let's remove all the TypeScript:
 
-Think of it like ordering food:
+```tsx
+function RootLayout(props) {
+  return props.children;
+}
+```
 
-* You say: "I want a **burger**"
-* The restaurant knows a burger must have: bun, patty, toppings
+This is ordinary JavaScript.
 
-If they give you just a bun, the contract is broken.
+The function receives an object called `props`:
 
-In TypeScript:
-
-```typescript id="j2r5qc"
+```javascript
 {
-  children:
-    React.ReactNode;
+  children: <SomeComponent />
 }
 ```
 
-This means:
+and returns its `children` property.
 
-> "The object passed to this function must have a property called `children`, and its value must be something React can render."
+Nothing magical is happening.
 
 ---
 
-### Step 3: Putting It All Together
+## Step 2 — JavaScript Destructuring
 
-Here's the full signature explained:
+JavaScript provides a feature called **destructuring**, which allows us to pull properties directly out of objects.
 
-```tsx id="n9v3xs"
+Instead of writing:
+
+```tsx
+function RootLayout(props) {
+  const children = props.children;
+
+  return children;
+}
+```
+
+we can write:
+
+```tsx
+function RootLayout({
+  children,
+}) {
+  return children;
+}
+```
+
+Both versions are identical.
+
+The second version simply says:
+
+> "Take the `children` property out of the object immediately."
+
+Think of destructuring like unpacking a package:
+
+```text
+Package
+   ↓
+Open Box
+   ↓
+Extract Item
+```
+
+Example:
+
+```javascript
+const user = {
+  name: "Sean",
+  age: 35,
+};
+
+const { name } = user;
+
+console.log(name);
+```
+
+Result:
+
+```text
+Sean
+```
+
+React components use this pattern everywhere.
+
+---
+
+## Step 3 — What Is a Type?
+
+Now let's add TypeScript.
+
+A **type** describes the shape of data.
+
+Think about ordering food at a restaurant.
+
+You order:
+
+```text
+Burger
+```
+
+The restaurant already knows what a burger contract requires:
+
+```text
+Burger
+ ├── Bun
+ ├── Patty
+ └── Toppings
+```
+
+If they give you:
+
+```text
+Bun only
+```
+
+the contract has been violated.
+
+TypeScript works exactly the same way.
+
+When we write:
+
+```typescript
+{
+  children: React.ReactNode;
+}
+```
+
+we are creating a contract that says:
+
+> "This object must contain a property called `children`, and that property must contain something React can render."
+
+---
+
+## Step 4 — Putting Everything Together
+
+Now let's revisit the original code:
+
+```tsx
 export default function RootLayout({
-  children,                    // ← Destructuring (JavaScript)
-}: {                           // ← Type annotation starts
-  children: React.ReactNode;   // ← Contract: must have children of type ReactNode
-}) {                           // ← Type annotation ends
-  // ... component body
-}
-```
-
----
-
-### Visual Breakdown
-
-| Concept           | Code Fragment                                                      | Meaning                                |
-| ----------------- | ------------------------------------------------------------------ | -------------------------------------- |
-| Destructuring     | `{ children }`                                                     | Extract `children` from props          |
-| Type Annotation   | `: { ... }`                                                        | "This object must look like..."        |
-| Property Contract | `children: React.ReactNode`                                        | `children` must be renderable by React |
-| Full Function     | `function RootLayout({ children }: { children: React.ReactNode })` | Complete contract                      |
-
----
-
-### What is `React.ReactNode`?
-
-It's React's official type for **"anything that can be rendered inside a component."**
-
-It includes:
-
-* JSX elements (`<div>`, `<h1>`)
-* Other React components
-* Strings
-* Numbers
-* Arrays of elements
-* `null`
-* `undefined`
-* React fragments (`<>...</>`)
-
-For example, all of these are valid `React.ReactNode` values:
-
-```tsx id="x5m9bt"
-<h1>Hello</h1>
-
-"Hello"
-
-42
-
-[
-  <li>A</li>,
-  <li>B</li>
-]
-
-null
-
-<>
-  <h1>Title</h1>
-  <p>Body</p>
-</>
-```
-
-This is why Next.js uses `React.ReactNode` for the `children` prop: it represents everything React is capable of rendering.
-
----
-
-### Progressive Versions (Learning Path)
-
-#### Version 1 (Plain JavaScript)
-
-```tsx id="r4p7zk"
-function RootLayout(
-  props
-) {
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    props.children
+    <html lang="en">
+      <body>{children}</body>
+    </html>
   );
 }
 ```
 
-#### Version 2 (Destructuring)
+Let's break it apart:
 
-```tsx id="k7v2fm"
-function RootLayout({
-  children,
-}) {
-  return children;
+```tsx
+export default function RootLayout(
+  {
+    children,          // JavaScript destructuring
+  }:
+  {
+    children:
+      React.ReactNode; // Type contract
+  }
+) {
+  // component body
 }
 ```
 
-#### Version 3 (With Types — Recommended)
+Reading this in plain English:
 
-```tsx id="b3m8qw"
-function RootLayout({
-  children,
-}: {
-  children:
-    React.ReactNode;
-}) {
-  return children;
-}
-```
+> This function receives an object.
+>
+> Extract the `children` property.
+>
+> The object must contain a property called `children`.
+>
+> And that property must be something React can render.
 
-The behavior never changed — we only added **clarity and safety**.
+That's all.
 
 ---
 
-### Types Are Contracts
+## Visual Breakdown
 
-Professional engineers don't think about types as:
+| Concept           | Code                        | Meaning                              |
+| ----------------- | --------------------------- | ------------------------------------ |
+| Destructuring     | `{ children }`              | Extract a property from an object    |
+| Type Annotation   | `: { ... }`                 | Describe the required object shape   |
+| Property Contract | `children: React.ReactNode` | Define the required property type    |
+| Full Function     | `function RootLayout(...)`  | Create a complete component contract |
 
-```text id="u8d4hx"
-Syntax
+---
+
+## What Is `React.ReactNode`?
+
+This is one of React's most important types.
+
+`React.ReactNode` means:
+
+> Anything React knows how to display.
+
+Examples include:
+
+### JSX
+
+```tsx
+<h1>Hello</h1>
 ```
 
-They think about types as:
+### Strings
 
-```text id="f2q9me"
+```tsx
+"Hello World"
+```
+
+### Numbers
+
+```tsx
+42
+```
+
+### Arrays
+
+```tsx
+[
+  <li>A</li>,
+  <li>B</li>,
+]
+```
+
+### Fragments
+
+```tsx
+<>
+  <h1>Title</h1>
+  <p>Content</p>
+</>
+```
+
+### Nothing
+
+```tsx
+null
+undefined
+```
+
+This is why Next.js uses:
+
+```tsx
+children: React.ReactNode
+```
+
+because `children` can literally be any renderable React content.
+
+---
+
+## Progressive Learning Path
+
+### Version 1 — Plain JavaScript
+
+```tsx
+function RootLayout(props) {
+  return props.children;
+}
+```
+
+---
+
+### Version 2 — JavaScript Destructuring
+
+```tsx
+function RootLayout({
+  children,
+}) {
+  return children;
+}
+```
+
+---
+
+### Version 3 — TypeScript Contracts
+
+```tsx
+function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
+}
+```
+
+Notice something important:
+
+```text
+Behavior never changed.
+```
+
+We only added:
+
+```text
+Documentation
+       +
+Safety
+       +
+Tooling
+```
+
+---
+
+## Types Are Contracts
+
+Beginners often think:
+
+```text
+Types
+    =
+Extra Syntax
+```
+
+Professional engineers think:
+
+```text
+Types
+    =
 Contracts
 ```
 
 For example:
 
-```typescript id="v6r3kp"
+```typescript
 type Post = {
   title: string;
   slug: string;
@@ -242,37 +394,36 @@ This doesn't create a post.
 
 Instead, it creates an agreement:
 
-```text id="p5k7xc"
+```text
 Every Post
-must have:
+must contain:
 
 title
 slug
 publishedAt
 ```
 
-If someone tries:
+If someone writes:
 
-```typescript id="m9h4rs"
+```typescript
 const post = {
-  title:
-    "Hello"
+  title: "Hello",
 };
 ```
 
-TypeScript immediately responds:
+TypeScript responds:
 
-```text id="q4v8jb"
+```text
 Contract violated.
 ```
 
 ---
 
-### Why This Matters for GreyMatter Journal
+## Why This Matters for GreyMatter Journal
 
-Later in this series, we'll create types like:
+Later in this series we'll create types such as:
 
-```typescript id="a7k2wy"
+```typescript
 type Author = {
   name: string;
   bio: string;
@@ -289,7 +440,7 @@ type Post = {
 
 These types become:
 
-```text id="z3n6qp"
+```text
 Documentation
 
 +
@@ -305,27 +456,103 @@ Autocomplete
 Refactoring Safety
 ```
 
-all at the same time.
+simultaneously.
 
 ---
 
-### Why TypeScript Exists
+## Type Contracts Eventually Become Application Contracts
 
-TypeScript is **not** about making code more complicated.
+As GreyMatter Journal grows, we'll discover that contracts exist at multiple layers:
 
-Its real purpose is to:
+```text
+React Component Contract
+            ↓
+Application Contract
+            ↓
+API Contract
+            ↓
+Content Contract
+```
+
+For example:
+
+```typescript
+type Post = {
+  title: string;
+  slug: string;
+  excerpt: string;
+};
+```
+
+defines a contract inside our Next.js application.
+
+Later, we'll create a corresponding Sanity schema:
+
+```typescript
+defineType({
+  name: "post",
+  fields: [
+    {
+      name: "title",
+      type: "string",
+    },
+    {
+      name: "slug",
+      type: "slug",
+    },
+    {
+      name: "excerpt",
+      type: "text",
+    },
+  ],
+});
+```
+
+Notice something important:
+
+```text
+TypeScript Type
+          ≈
+Sanity Schema
+```
+
+Both describe the same reality.
+
+Our architecture gradually becomes a network of contracts:
+
+```text
+Sanity Schema
+       ↓
+GROQ Query
+       ↓
+TypeScript Type
+       ↓
+React Component
+       ↓
+Rendered UI
+```
+
+One of the major themes of GreyMatter Journal is:
+
+> Modern software systems scale not because they contain more code, but because they contain better contracts.
+
+---
+
+## Why TypeScript Exists
+
+TypeScript is not designed to make code more complicated.
+
+Its real goals are:
 
 * Describe reality
 * Catch mistakes early
 * Improve developer experience
-* Make refactoring safe
-* Document data structures
-
-For example:
+* Enable safe refactoring
+* Document system behavior
 
 Without TypeScript:
 
-```text id="e5r9vk"
+```text
 Application runs
           ↓
 User clicks button
@@ -335,7 +562,7 @@ Runtime error
 
 With TypeScript:
 
-```text id="d8m2qc"
+```text
 Write code
      ↓
 Editor detects problem
@@ -345,11 +572,11 @@ Fix immediately
 
 ---
 
-### A Small Preview of Application Architecture
+## A Small Preview of System Architecture
 
-As GreyMatter Journal grows, we'll gradually introduce application-wide contracts:
+As GreyMatter Journal grows, we'll create contracts for:
 
-```text id="w9k4rp"
+```text
 Post
 
 Author
@@ -365,61 +592,63 @@ Search Result
 Metadata
 ```
 
-These contracts allow us to safely move data between:
+These contracts allow data to safely move through our system:
 
-```text id="s2v7mf"
+```text
 Sanity
     ↓
-
+GROQ
+    ↓
 Next.js
     ↓
-
 React
     ↓
-
 Browser
 ```
 
-without guessing what the data looks like.
+without developers needing to guess what the data looks like.
 
 ---
 
-### Mental Model To Remember Forever
+## Mental Model To Remember Forever
 
 When you see complex-looking TypeScript:
 
-> **Read it like English.**
+> Read it like English.
 
 For `RootLayout`:
 
-> "This function receives an object.
-> I want to extract the `children` property.
-> That object must contain a `children` property.
-> And `children` must be something React can display."
+> This function receives an object.
+>
+> Extract the `children` property.
+>
+> The object must contain a `children` property.
+>
+> And `children` must be something React can display.
 
 ---
 
-**Beginners think:**
+### Beginners think:
 
-```text id="n6r3bt"
+```text
 Types
     =
 Complicated Syntax
 ```
 
-**Professional engineers think:**
+### Professional engineers think:
 
-```text id="c8m5qx"
+```text
 Types
     =
 Contracts
 ```
 
-And contracts allow systems to scale.
+And contracts are what allow software systems to scale.
 
 ---
 
-### Up Next — Part 5: Project Anatomy
+## Up Next — Part 5: Project Anatomy
 
 We'll explore the full structure created by `create-next-app` and understand:
 
@@ -427,5 +656,5 @@ We'll explore the full structure created by `create-next-app` and understand:
 * The role of `package.json`, `next.config.ts`, `tsconfig.json`, and others
 * Which generated files matter immediately
 * Which generated files can safely wait
-* How to customize the starter for **GreyMatter Journal**
-* The clean architecture we'll follow from **Appendix B**
+* How to customize the starter for GreyMatter Journal
+* The clean architecture we'll follow from Appendix B
