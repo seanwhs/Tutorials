@@ -4,7 +4,7 @@ Appendix B is the **"Reference Implementation Appendix"**, and is split into two
 
 ```text
 Appendix B
-    ├── Part I
+    ├── **Part I**
     │     Architecture & Repository Structure
     │
     └── Part II
