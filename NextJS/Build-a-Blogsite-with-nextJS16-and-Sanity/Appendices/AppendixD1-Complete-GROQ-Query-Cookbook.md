@@ -117,3 +117,7 @@ Transform / Join
 They are about **asking meaningful questions** about your structured knowledge.
 
 GROQ lets you describe the shape of the information you want — and the system figures out how to deliver it efficiently.
+
+---
+
+**Appendix D1 Complete.**
