@@ -1,27 +1,60 @@
 # Appendix B — Part II
 
-Appendix B is the **"Reference Implementation Appendix"**, and is split into two major sections:
+# Core Source Code Reference
+
+Appendix B is the **Reference Implementation Appendix**, and is divided into two complementary sections:
 
 ```text
 Appendix B
     ├── Part I
     │     Architecture & Repository Structure
     │
-    └── **Part II**
+    └── Part II
           Core Source Code Reference
 ```
 
-# Core Source Code Reference
-
-> **Goal of this section:** Provide the canonical source code implementations for the major architectural subsystems of GreyMatter Journal. These files form the foundation of the application and illustrate how the various layers of the system work together.
+> **Goal of this section:** Provide the canonical implementation patterns for GreyMatter Journal. These examples represent the architectural baseline for a modern content-driven application built with Next.js 16, React Server Components, Sanity CMS, and production-grade engineering practices.
 
 ---
 
-# 1. Environment Variables
+# Introduction
+
+Part I described the architecture.
+
+Part II describes the implementation.
+
+The purpose of this appendix is not to provide every line of source code. Rather, it provides the foundational implementations that define the major architectural subsystems:
+
+```text
+Configuration
+        ↓
+Infrastructure
+        ↓
+Domain Models
+        ↓
+Rendering
+        ↓
+Content
+        ↓
+Caching
+        ↓
+Authentication
+        ↓
+Observability
+        ↓
+Deployment
+```
+
+Together, these components form the executable architecture of GreyMatter Journal.
+
+---
+
+# 1. Environment Configuration
 
 ## `.env.local`
 
 ```bash
+# Sanity
 NEXT_PUBLIC_SANITY_PROJECT_ID=xxxx
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
@@ -29,15 +62,63 @@ NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
 SANITY_API_READ_TOKEN=xxxx
 SANITY_WEBHOOK_SECRET=xxxx
 
+# Site
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
+# Authentication
 CLERK_SECRET_KEY=xxxx
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=xxxx
+
+# Analytics
+VERCEL_ANALYTICS_ID=xxxx
 ```
 
 ---
 
-# 2. Sanity Client
+# 2. Environment Validation
+
+## `lib/env.ts`
+
+```typescript
+function required(
+  value: string | undefined,
+  name: string,
+) {
+  if (!value) {
+    throw new Error(
+      `Missing environment variable: ${name}`,
+    );
+  }
+
+  return value;
+}
+
+export const env = {
+  sanity: {
+    projectId: required(
+      process.env
+        .NEXT_PUBLIC_SANITY_PROJECT_ID,
+      "NEXT_PUBLIC_SANITY_PROJECT_ID",
+    ),
+
+    dataset: required(
+      process.env
+        .NEXT_PUBLIC_SANITY_DATASET,
+      "NEXT_PUBLIC_SANITY_DATASET",
+    ),
+
+    apiVersion: required(
+      process.env
+        .NEXT_PUBLIC_SANITY_API_VERSION,
+      "NEXT_PUBLIC_SANITY_API_VERSION",
+    ),
+  },
+};
+```
+
+---
+
+# 3. Sanity Client Architecture
 
 ## `lib/sanity.ts`
 
@@ -46,30 +127,54 @@ import {
   createClient,
 } from "next-sanity";
 
+import { env }
+  from "./env";
+
 export const client =
   createClient({
     projectId:
-      process.env
-        .NEXT_PUBLIC_SANITY_PROJECT_ID,
+      env.sanity.projectId,
 
     dataset:
-      process.env
-        .NEXT_PUBLIC_SANITY_DATASET,
+      env.sanity.dataset,
 
     apiVersion:
-      process.env
-        .NEXT_PUBLIC_SANITY_API_VERSION,
+      env.sanity.apiVersion,
 
     useCdn: true,
 
     perspective:
       "published",
   });
+
+export const previewClient =
+  client.withConfig({
+    useCdn: false,
+
+    perspective:
+      "previewDrafts",
+
+    token:
+      process.env
+        .SANITY_API_READ_TOKEN,
+  });
+```
+
+This creates two realities:
+
+```text
+Published Reality
+         ↓
+client
+
+Draft Reality
+         ↓
+previewClient
 ```
 
 ---
 
-# 3. Sanity Image Builder
+# 4. Image Pipeline
 
 ## `lib/image.ts`
 
@@ -77,30 +182,43 @@ export const client =
 import imageUrlBuilder
   from "@sanity/image-url";
 
-import { client }
-  from "./sanity";
+import {
+  client,
+} from "./sanity";
 
 const builder =
   imageUrlBuilder(client);
 
 export function urlFor(
-  source: unknown
+  source: unknown,
 ) {
   return builder.image(source);
 }
 ```
 
+Images are not files.
+
+They are:
+
+```text
+Asset
+    +
+Metadata
+    +
+Transformation Pipeline
+```
+
 ---
 
-# 4. GROQ Queries
+# 5. GROQ Query Layer
 
 ## `lib/queries.ts`
 
 ```typescript
 export const POSTS_QUERY = `
-*[_type=="post"] | order(
-  publishedAt desc
-){
+*[_type=="post"]
+| order(publishedAt desc)
+{
   _id,
   title,
   slug,
@@ -109,7 +227,8 @@ export const POSTS_QUERY = `
 
   author->{
     name,
-    slug
+    slug,
+    image
   },
 
   categories[]->{
@@ -128,6 +247,7 @@ export const POST_QUERY = `
 ][0]{
   _id,
   title,
+  slug,
   excerpt,
   body,
   publishedAt,
@@ -139,50 +259,87 @@ export const POST_QUERY = `
   },
 
   categories[]->{
-    title
+    title,
+    slug
   },
 
   heroImage
+}
+`;
+
+export const SEARCH_QUERY = `
+*[
+  _type=="post" &&
+  (
+    title match $search ||
+    excerpt match $search
+  )
+]{
+  _id,
+  title,
+  slug,
+  excerpt
 }
 `;
 ```
 
 ---
 
-# 5. Type Definitions
+# 6. Domain Models
 
 ## `types/post.ts`
 
 ```typescript
+import {
+  PortableTextBlock,
+} from "@portabletext/types";
+
+export interface Slug {
+  current: string;
+}
+
+export interface Author {
+  name: string;
+
+  bio?: string;
+
+  image?: unknown;
+
+  slug?: Slug;
+}
+
+export interface Category {
+  title: string;
+
+  slug?: Slug;
+}
+
 export interface Post {
   _id: string;
 
   title: string;
 
+  slug: Slug;
+
   excerpt: string;
 
-  body: unknown[];
+  body?: PortableTextBlock[];
+
+  heroImage?: unknown;
 
   publishedAt: string;
 
-  slug: {
-    current: string;
-  };
+  author: Author;
 
-  author: {
-    name: string;
-    bio?: string;
-  };
-
-  categories: {
-    title: string;
-  }[];
+  categories: Category[];
 }
 ```
 
+Types represent executable contracts.
+
 ---
 
-# 6. Design Tokens
+# 7. Design Tokens
 
 ## `styles/tokens.css`
 
@@ -190,57 +347,45 @@ export interface Post {
 :root {
   --background: white;
 
-  --foreground:
-    #111827;
+  --foreground: #111827;
 
-  --muted:
-    #6b7280;
+  --muted: #6b7280;
 
-  --border:
-    #e5e7eb;
+  --border: #e5e7eb;
 
-  --accent:
-    #2563eb;
+  --accent: #2563eb;
 
-  --radius:
-    0.75rem;
+  --radius: 0.75rem;
 
-  --content-width:
-    75ch;
+  --content-width: 75ch;
 
-  --header-height:
-    4rem;
+  --header-height: 4rem;
 }
 ```
 
 ---
 
-# 7. Dark Theme
+# 8. Theme System
 
 ## `styles/themes.css`
 
 ```css
 .dark {
-  --background:
-    #0f172a;
+  --background: #0f172a;
 
-  --foreground:
-    #f8fafc;
+  --foreground: #f8fafc;
 
-  --muted:
-    #94a3b8;
+  --muted: #94a3b8;
 
-  --border:
-    #334155;
+  --border: #334155;
 
-  --accent:
-    #60a5fa;
+  --accent: #60a5fa;
 }
 ```
 
 ---
 
-# 8. Global Styles
+# 9. Global Styling
 
 ## `app/globals.css`
 
@@ -259,8 +404,7 @@ export interface Post {
 }
 
 html {
-  scroll-behavior:
-    smooth;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -275,18 +419,30 @@ body {
 
 img {
   display: block;
+
   max-width: 100%;
 }
 ```
 
 ---
 
-# 9. Root Layout
+# 10. Root Layout
 
 ## `app/layout.tsx`
 
 ```tsx
 import "./globals.css";
+
+import {
+  ClerkProvider,
+} from "@clerk/nextjs";
+
+import ThemeProvider
+  from "@/components/providers/ThemeProvider";
+
+import {
+  Analytics,
+} from "@vercel/analytics/react";
 
 export default function
 RootLayout({
@@ -296,18 +452,24 @@ RootLayout({
     React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <ThemeProvider>
+            {children}
+
+            <Analytics />
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
 ```
 
 ---
 
-# 10. Site Layout
+# 11. Site Layout
 
 ## `app/(site)/layout.tsx`
 
@@ -333,7 +495,7 @@ SiteLayout({
         className="
           mx-auto
           max-w-6xl
-          px-4
+          px-6
           py-10
         "
       >
@@ -346,73 +508,7 @@ SiteLayout({
 }
 ```
 
----
-
-# 11. Header Component
-
-## `components/layout/Header.tsx`
-
-```tsx
-import Link
-  from "next/link";
-
-import ThemeToggle
-  from "./ThemeToggle";
-
-export default function
-Header() {
-  return (
-    <header
-      className="
-        border-b
-      "
-    >
-      <div
-        className="
-          mx-auto
-          flex
-          max-w-6xl
-          items-center
-          justify-between
-          px-4
-          py-6
-        "
-      >
-        <Link
-          href="/"
-          className="
-            text-2xl
-            font-bold
-          "
-        >
-          GreyMatter Journal
-        </Link>
-
-        <nav
-          className="
-            flex
-            gap-6
-          "
-        >
-          <Link href="/">
-            Home
-          </Link>
-
-          <Link href="/posts">
-            Posts
-          </Link>
-
-          <Link href="/about">
-            About
-          </Link>
-        </nav>
-
-        <ThemeToggle />
-      </div>
-    </header>
-  );
-}
-```
+This creates a persistent UI shell.
 
 ---
 
@@ -432,25 +528,23 @@ import {
 import PostCard
   from "@/components/posts/PostCard";
 
+import {
+  Post,
+} from "@/types/post";
+
 export default async function
 HomePage() {
 
   const posts =
-    await client.fetch(
+    await client.fetch<
+      Post[]
+    >(
       POSTS_QUERY
     );
 
   return (
-    <div
-      className="
-        space-y-12
-      "
-    >
-      <section
-        className="
-          py-12
-        "
-      >
+    <div className="space-y-12">
+      <section>
         <h1
           className="
             text-5xl
@@ -459,19 +553,6 @@ HomePage() {
         >
           GreyMatter Journal
         </h1>
-
-        <p
-          className="
-            mt-4
-            text-xl
-            text-gray-600
-          "
-        >
-          Exploring
-          software engineering,
-          systems thinking,
-          and architecture.
-        </p>
       </section>
 
       <section
@@ -501,16 +582,28 @@ HomePage() {
 ## `components/posts/PostCard.tsx`
 
 ```tsx
+import Image
+  from "next/image";
+
 import Link
   from "next/link";
 
-import Image
-  from "next/image";
+import {
+  urlFor,
+} from "@/lib/image";
+
+import {
+  Post,
+} from "@/types/post";
+
+type Props = {
+  post: Post;
+};
 
 export default function
 PostCard({
   post,
-}: any) {
+}: Props) {
   return (
     <article
       className="
@@ -522,28 +615,22 @@ PostCard({
       {post.heroImage && (
         <Image
           src={
-            post.heroImage
+            urlFor(
+              post.heroImage,
+            )
+              .width(1200)
+              .height(600)
+              .url()
           }
-          alt={
-            post.title
-          }
+          alt={post.title}
           width={1200}
           height={600}
-          className="
-            h-64
-            w-full
-            object-cover
-          "
         />
       )}
 
-      <div
-        className="p-6"
-      >
+      <div className="p-6">
         <Link
-          href={
-            `/posts/${post.slug.current}`
-          }
+          href={`/posts/${post.slug.current}`}
         >
           <h2
             className="
@@ -555,12 +642,7 @@ PostCard({
           </h2>
         </Link>
 
-        <p
-          className="
-            mt-4
-            text-gray-600
-          "
-        >
+        <p>
           {post.excerpt}
         </p>
       </div>
@@ -577,16 +659,24 @@ PostCard({
 
 ```tsx
 import {
+  draftMode,
+} from "next/headers";
+
+import {
+  notFound,
+} from "next/navigation";
+
+import {
   client,
+  previewClient,
 } from "@/lib/sanity";
 
 import {
   POST_QUERY,
 } from "@/lib/queries";
 
-import {
-  notFound,
-} from "next/navigation";
+import PortableTextRenderer
+  from "@/components/portable-text/PortableTextRenderer";
 
 export default async function
 PostPage({
@@ -594,17 +684,27 @@ PostPage({
 }: {
   params:
     Promise<{
-      slug:string;
+      slug: string;
     }>;
 }) {
 
-  const { slug } =
-    await params;
+  const {
+    slug,
+  } = await params;
+
+  const {
+    isEnabled,
+  } =
+    await draftMode();
 
   const post =
-    await client.fetch(
+    await (
+      isEnabled
+        ? previewClient
+        : client
+    ).fetch(
       POST_QUERY,
-      { slug }
+      { slug },
     );
 
   if (!post) {
@@ -626,6 +726,12 @@ PostPage({
       <p>
         {post.excerpt}
       </p>
+
+      <PortableTextRenderer
+        value={
+          post.body
+        }
+      />
     </article>
   );
 }
@@ -633,20 +739,158 @@ PostPage({
 
 ---
 
-# 15. Cache Revalidation
+# 15. Portable Text Rendering
+
+## `components/portable-text/PortableTextRenderer.tsx`
+
+```tsx
+import {
+  PortableText,
+} from "@portabletext/react";
+
+const components = {
+  block: {
+    h1: ({ children }) =>
+      <h1>{children}</h1>,
+
+    h2: ({ children }) =>
+      <h2>{children}</h2>,
+
+    normal:
+      ({ children }) =>
+        <p>{children}</p>,
+  },
+
+  marks: {
+    strong:
+      ({ children }) =>
+        <strong>
+          {children}
+        </strong>,
+  },
+};
+
+export default function
+PortableTextRenderer({
+  value,
+}: {
+  value: unknown[];
+}) {
+  return (
+    <PortableText
+      value={value}
+      components={
+        components
+      }
+    />
+  );
+}
+```
+
+---
+
+# 16. Draft Mode
+
+## `app/api/draft/enable/route.ts`
+
+```typescript
+import {
+  draftMode,
+} from "next/headers";
+
+import {
+  redirect,
+} from "next/navigation";
+
+export async function
+GET(
+  request:
+    Request,
+) {
+
+  const draft =
+    await draftMode();
+
+  draft.enable();
+
+  const url =
+    new URL(
+      request.url,
+    );
+
+  const slug =
+    url.searchParams.get(
+      "slug",
+    );
+
+  redirect(
+    slug
+      ? `/posts/${slug}`
+      : "/",
+  );
+}
+```
+
+---
+
+# 17. Authentication
+
+## `app/admin/page.tsx`
+
+```tsx
+import {
+  auth,
+} from "@clerk/nextjs/server";
+
+export default async function
+AdminPage() {
+
+  const {
+    userId,
+  } =
+    await auth();
+
+  if (!userId) {
+    return (
+      <div>
+        Unauthorized
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      Admin Dashboard
+    </div>
+  );
+}
+```
+
+---
+
+# 18. Cache Revalidation
 
 ## `app/api/revalidate/route.ts`
 
 ```typescript
 import {
   revalidateTag,
+  revalidatePath,
 } from "next/cache";
 
 export async function
 POST() {
 
   revalidateTag(
-    "posts"
+    "posts",
+  );
+
+  revalidatePath(
+    "/",
+  );
+
+  revalidatePath(
+    "/posts",
   );
 
   return Response.json({
@@ -658,7 +902,32 @@ POST() {
 
 ---
 
-# 16. Theme Provider
+# 19. Structured Logging
+
+## `lib/logger.ts`
+
+```typescript
+export function log(
+  message: string,
+  metadata?: unknown,
+) {
+  console.log(
+    JSON.stringify({
+      timestamp:
+        new Date()
+          .toISOString(),
+
+      message,
+
+      metadata,
+    }),
+  );
+}
+```
+
+---
+
+# 20. Theme Provider
 
 ## `components/providers/ThemeProvider.tsx`
 
@@ -666,12 +935,9 @@ POST() {
 "use client";
 
 import {
-  createContext,
-} from "react";
-
-export const
-ThemeContext =
-  createContext(null);
+  ThemeProvider
+    as Provider,
+} from "next-themes";
 
 export default function
 ThemeProvider({
@@ -680,46 +946,61 @@ ThemeProvider({
   children:
     React.ReactNode;
 }) {
-
   return (
-    <ThemeContext.Provider
-      value={null}
+    <Provider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
     >
       {children}
-    </ThemeContext.Provider>
+    </Provider>
   );
 }
 ```
 
 ---
 
-# 17. Portable Text Renderer
+# 21. Error Recovery
 
-## `components/portable-text/PortableTextRenderer.tsx`
-
-```tsx
-import {
-  PortableText,
-} from "@portabletext/react";
-
-export default function
-PortableTextRenderer({
-  value,
-}: {
-  value: unknown[];
-}) {
-
-  return (
-    <PortableText
-      value={value}
-    />
-  );
-}
+```text
+Request
+    ↓
+loading.tsx
+    ↓
+page.tsx
+    ↓
+error.tsx
+    ↓
+not-found.tsx
+    ↓
+global-error.tsx
 ```
+
+Failures should remain localized.
 
 ---
 
-# 18. The Final System Diagram
+# 22. Cache Architecture
+
+```text
+Browser Cache
+        ↓
+Router Cache
+        ↓
+React Cache
+        ↓
+Next.js Data Cache
+        ↓
+CDN Cache
+        ↓
+Sanity CDN
+```
+
+Performance engineering is cache engineering.
+
+---
+
+# 23. System Architecture
 
 ```text
 Browser
@@ -733,6 +1014,8 @@ React Server Components
 Server Actions
     ↓
 Cache Layer
+    ↓
+Authentication
     ↓
 Sanity Content Lake
     ↓
