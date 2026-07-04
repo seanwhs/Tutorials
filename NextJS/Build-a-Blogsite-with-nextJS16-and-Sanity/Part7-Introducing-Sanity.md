@@ -9,78 +9,51 @@
 
 ---
 
-### We Have a Website — But No Real Content System
+### We Have a Website — But No Content System
 
-Right now, our site has layouts, navigation, and a homepage. But how do we actually publish articles?
-
-Hardcoding content like this quickly becomes unsustainable:
-
-```tsx
-// app/posts/my-article/page.tsx
-export default function ArticlePage() {
-  return <h1>Understanding Server Components</h1>;
-}
-```
-
-As the number of articles grows, you need authors, categories, drafts, images, SEO metadata, and editorial workflows. This is why we need a dedicated **content system**.
+Our site has layouts and navigation, but publishing articles is still manual and unsustainable.
 
 ---
 
-### Next.js Is a Rendering Engine, Not a Database
+### Next.js Is a Rendering Engine
 
 **Key Insight:**
 
-> Next.js is excellent at **displaying** content.  
+> Next.js excels at **displaying** content.  
 > It is not designed to **store and manage** content.
 
 Its responsibilities:
 - Fetch data efficiently
-- Render UI (Server Components)
+- Render UI with Server Components
 - Optimize performance and SEO
 - Handle routing and caching
-
-It should **consume** content — not own it.
 
 ---
 
 ### Traditional CMS vs Headless CMS
 
-**Traditional (e.g. WordPress):**
-One monolithic system containing editor, database, themes, and frontend.
+**Traditional CMS (e.g. WordPress):**
+One monolithic system with editor, database, themes, and frontend.
 
 **Headless CMS:**
-Only handles content creation and storage, then exposes it via APIs.
+Specializes in content creation and storage, then exposes it via APIs.
 
-**Benefits of headless:**
-- Freedom to use any frontend (Next.js, mobile apps, etc.)
+**Benefits:**
+- Freedom to use any frontend
 - Better developer experience
-- Scalable architecture
-- Future-proof content
+- Scalable and future-proof
 
 ---
 
 ### Introducing Sanity
 
-**Sanity** is a modern, developer-friendly Headless CMS built around the **Content Lake**.
+Sanity is a modern Headless CMS built around the **Content Lake** — a real-time, document-oriented content platform.
 
-**Core components:**
-
-1. **Sanity Studio** — Beautiful, customizable editor for writers and editors
-2. **Content Lake** — Real-time, document-oriented storage
-3. **GROQ** — Powerful query language for fetching content
-4. **API Layer** — Real-time and highly flexible
-
----
-
-### Content Lake vs Traditional Databases
-
-| Aspect              | Traditional DB (PostgreSQL)     | Sanity Content Lake               |
-|---------------------|----------------------------------|-----------------------------------|
-| Data Model          | Tables & Rows                    | Flexible Documents                |
-| Relationships       | Complex joins                    | Native references                 |
-| Editor Experience   | Build yourself                   | First-class Studio                |
-| Real-time           | Extra work                       | Built-in                          |
-| Media & Assets      | Manual                           | Excellent built-in support        |
+**Core pieces:**
+- **Sanity Studio** → Editor for writers
+- **Content Lake** → Flexible storage with relationships
+- **GROQ** → Powerful query language
+- **API Layer** → Real-time delivery
 
 ---
 
@@ -95,34 +68,33 @@ Content Lake
         ↓
 GROQ Queries
         ↓
-Next.js 16 (Server Components)
+Next.js 16
         ↓
 Browser
 ```
 
-**Clear separation of concerns:**
-- **Sanity** → Creates and stores content
-- **Next.js** → Fetches and renders content beautifully
+**Clear separation:**
+- Sanity → Content creation & storage
+- Next.js → Rendering & user experience
 
 ---
 
 ### Initialize Sanity
 
-In your project root (`greymatter-journal`), run:
+In your project root:
 
 ```bash
 npx sanity@latest init
 ```
 
 **Recommended choices:**
-
 - Project name: `GreyMatter Journal`
 - Create new project → Yes
 - Dataset: `production`
-- Output path: `studio` (important for structure)
+- Output path: `studio`
 - TypeScript: Yes
 
-This creates a `studio/` folder alongside your `app/` folder.
+This creates a `studio/` folder alongside your `app/`.
 
 ---
 
@@ -130,14 +102,14 @@ This creates a `studio/` folder alongside your `app/` folder.
 
 ```text
 greymatter-journal/
-├── app/           ← Reader-facing Next.js application
+├── app/           ← Reader-facing Next.js app
 ├── studio/        ← Editor-facing Sanity Studio
 ├── components/
 ├── lib/
 └── ...
 ```
 
-This separation is one of the most important architectural decisions in modern content platforms.
+This separation is a foundational architectural decision.
 
 ---
 
@@ -153,20 +125,10 @@ Blog = One big website
 Blog = Content System + Rendering System
 ```
 
-- **Sanity** owns the content and editorial experience
-- **Next.js** owns the presentation, performance, and user experience
-
-They communicate through clean APIs (GROQ).
+Sanity owns content. Next.js owns presentation.
 
 ---
 
 ### Up Next — Part 8: Exploring the Sanity Studio
 
-We’ll dive into the `studio/` folder and learn:
-- What Sanity schemas are
-- How to model content (posts, authors, categories)
-- Why content modeling is critical
-- How to run the Studio locally
-- The difference between how developers and editors think
-
-This is where we start shaping the actual content architecture of GreyMatter Journal.
+We’ll dive into schemas, content modeling, and how editors and developers think differently.
