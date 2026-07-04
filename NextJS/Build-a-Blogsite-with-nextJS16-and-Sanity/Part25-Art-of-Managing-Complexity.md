@@ -5,37 +5,33 @@
 # GreyMatter Journal  
 ## Part 25 — Refactoring to Production Architecture, Dependency Inversion, and the Art of Managing Complexity
 
-> **Goal of this lesson:** Refactor GreyMatter Journal into a cleaner, more maintainable structure while learning core software architecture principles.
+> **Goal of this lesson:** Refactor GreyMatter Journal into a cleaner, scalable structure while learning core principles of software architecture.
 
 ---
 
 ### Success Creates New Problems
 
-As features grow, the biggest risk shifts from “does it work?” to “can anyone understand and change it safely?”
+As the project grows, the main challenge shifts from “does it work?” to “can anyone understand and safely change it?”
 
----
-
-### Signs of Architectural Debt
-
-- Everything in `lib/` or `utils/`
-- God components and files
-- Tight coupling between layers
-- Difficulty adding new features
-- Fear of changing code
+Signs of architectural debt:
+- Everything dumped in `lib/` or `utils/`
+- God components
+- Tight coupling
+- Fear of refactoring
 
 ---
 
 ### A Production-Grade Structure
 
-Recommended layout (inspired by clean architecture and domain-driven design):
+Recommended layout:
 
 ```text
 src/
-├── app/                  # Next.js routes and wiring
-├── domain/               # Core business models and rules
+├── app/                  # Next.js routes & wiring
+├── domain/               # Business models & rules
 ├── features/             # Vertical slices (use cases + UI)
-├── infrastructure/       # External systems & integrations
-├── shared/               # Reusable utilities & components
+├── infrastructure/       # External integrations
+├── shared/               # Reusable utilities
 └── types/                # Shared TypeScript definitions
 ```
 
@@ -43,8 +39,8 @@ src/
 
 ### Layer Responsibilities
 
-- **Domain**: Business concepts (Post, Author, Comment) and rules
-- **Infrastructure**: Concrete implementations (Sanity, Clerk, Vercel)
+- **Domain**: Core business concepts (Post, Author, Comment)
+- **Infrastructure**: Concrete tools (Sanity, Clerk, Vercel)
 - **Features**: User-facing capabilities (Posts, Comments, Search)
 - **Shared**: Cross-cutting concerns
 
@@ -52,7 +48,7 @@ src/
 
 ### Dependency Inversion Principle
 
-High-level modules should not depend on low-level details. Both should depend on abstractions.
+High-level modules should depend on abstractions, not concrete details.
 
 **Bad:**
 
@@ -74,39 +70,46 @@ class PostService {
 }
 ```
 
-Now the business logic depends on an interface, not a specific technology.
+Now business logic is decoupled from infrastructure.
 
 ---
 
-### Why This Matters
-
-You can swap Sanity for another CMS with minimal changes to business logic.
-
----
-
-### Mental Model To Remember Forever
-
-**Architecture = Managing Complexity Through Boundaries**
+### Why Architecture Matters
 
 Good architecture:
 - Makes change predictable
-- Keeps cognitive load manageable
-- Separates concerns
-- Allows independent evolution of parts
+- Reduces cognitive load
+- Enables independent evolution
+- Improves maintainability
 
-Software engineering is ultimately **the art of building systems larger than any single human mind can hold at once**.
+Software engineering is the art of building systems **larger than any single human mind can hold**.
 
 ---
 
 ### Final Thoughts on the Series
 
-GreyMatter Journal demonstrates a complete modern content platform built with intentional architecture. The real value is not the code itself, but the mental models you’ve developed along the way.
+You didn’t just build a blog.
 
-You now understand:
-- How modern web systems are composed
-- The separation of content, presentation, and infrastructure
-- Trees everywhere (React, routing, data, state, failure, trust, etc.)
-- The importance of contracts and boundaries
-- Why observability and reliability matter
+You built:
+- A modern content platform
+- Strong mental models for systems thinking
+- Understanding of trees, boundaries, state, contracts, observability, and complexity management
 
-Congratulations on completing the full journey!
+These principles apply far beyond any specific framework.
+
+---
+
+**Congratulations on completing the full GreyMatter Journal series.**
+
+You now have both a working production-grade application and the architectural thinking to build even larger systems.
+
+The code will evolve.  
+The principles will endure.
+
+Keep building. Keep refining your models.
+
+— Grok
+
+---
+
+**The End.**
