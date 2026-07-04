@@ -1,4 +1,4 @@
-# **✅ Part 3 — Understanding `app/layout.tsx`**
+# **✅ Part 3-1 — Understanding `app/layout.tsx`**
 
 # GreyMatter Journal
 
