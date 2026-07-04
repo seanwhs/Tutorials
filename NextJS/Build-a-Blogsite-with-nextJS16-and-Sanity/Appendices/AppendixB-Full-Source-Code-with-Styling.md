@@ -1,107 +1,185 @@
-# Appendix B — Complete Source Code Structure (with Tailwind CSS Styling)
+# Appendix B — Complete Source Code Structure and Reference Architecture
 
-> **Goal of this appendix:** Provide a complete reference architecture for GreyMatter Journal, including the recommended folder structure, major source files, Tailwind CSS organization, and production-grade project layout. This appendix serves as both a companion to the tutorial series and a reference implementation for future projects.
+> **Goal of this appendix:** Provide the final reference architecture for **GreyMatter Journal**, including project structure, source organization, styling conventions, and the architectural reasoning behind each major folder. This appendix serves as both a companion to the tutorial series and a blueprint for future content-driven applications.
 
 ---
 
 # Introduction
 
-Throughout this tutorial series, we built GreyMatter Journal incrementally.
+Throughout this tutorial series, we gradually built **GreyMatter Journal**.
 
-By the end of the project, our application evolved far beyond a simple blog. It became a modern, production-grade web application featuring:
+What began as a simple blog evolved into a modern, production-grade content platform featuring:
 
 ```text
 ✓ Next.js 16 App Router
 ✓ React Server Components
+✓ Streaming & Suspense
 ✓ Server Actions
 ✓ Sanity CMS
+✓ Portable Text Rendering
+✓ Image Optimization
+✓ Draft Mode & Preview
+✓ SEO & Metadata
+✓ Error Boundaries
+✓ Loading States
+✓ Caching & Revalidation
+✓ Comments & Likes
 ✓ Authentication
-✓ Comments
-✓ Likes
-✓ Image optimization
-✓ SEO
-✓ Metadata
-✓ Caching
-✓ Draft mode
-✓ Error boundaries
-✓ Security
-✓ Analytics
-✓ Production architecture
+✓ Analytics & Observability
+✓ Production Deployment
 ```
 
-This appendix presents the final recommended project structure.
+At first glance, it may still appear to be "just a blog."
+
+Architecturally, however, it is a distributed information system consisting of multiple cooperating subsystems:
+
+```text
+Writers
+    ↓
+Sanity Studio
+    ↓
+Content Lake
+    ↓
+GROQ API
+    ↓
+Next.js Rendering Engine
+    ↓
+React Components
+    ↓
+Browser
+```
+
+This appendix presents the final recommended project structure and explains why it is organized this way.
 
 ---
 
-# Final Project Structure
+# The Final Project Structure
 
 ```text
 greymatter-journal/
 
 ├── app/
 │   ├── (site)/
+│   │   ├── layout.tsx
 │   │   ├── page.tsx
-│   │   ├── posts/
-│   │   │   ├── page.tsx
+│   │   ├── about/
+│   │   │   └── page.tsx
+│   │   ├── authors/
 │   │   │   └── [slug]/
-│   │   │       ├── page.tsx
-│   │   │       ├── loading.tsx
-│   │   │       ├── error.tsx
-│   │   │       └── not-found.tsx
-│   │   └── about/
-│   │       └── page.tsx
+│   │   │       └── page.tsx
+│   │   ├── categories/
+│   │   │   └── [slug]/
+│   │   │       └── page.tsx
+│   │   └── posts/
+│   │       ├── page.tsx
+│   │       └── [slug]/
+│   │           ├── page.tsx
+│   │           ├── loading.tsx
+│   │           ├── error.tsx
+│   │           └── not-found.tsx
 │   │
 │   ├── api/
 │   │   ├── comments/
 │   │   ├── likes/
+│   │   ├── draft/
 │   │   └── revalidate/
-│   │
-│   ├── admin/
 │   │
 │   ├── globals.css
 │   ├── layout.tsx
+│   ├── loading.tsx
+│   ├── error.tsx
 │   └── not-found.tsx
-│
-├── components/
-│   ├── layout/
-│   ├── posts/
-│   ├── comments/
-│   ├── ui/
-│   └── providers/
-│
-├── lib/
-│   ├── sanity.ts
-│   ├── image.ts
-│   ├── auth.ts
-│   ├── cache.ts
-│   ├── logger.ts
-│   └── analytics.ts
 │
 ├── actions/
 │   ├── comments.ts
 │   ├── likes.ts
 │   └── posts.ts
 │
+├── components/
+│   ├── comments/
+│   ├── layout/
+│   ├── portable-text/
+│   ├── posts/
+│   ├── ui/
+│   └── providers/
+│
 ├── hooks/
 │
-├── types/
+├── lib/
+│   ├── analytics.ts
+│   ├── auth.ts
+│   ├── cache.ts
+│   ├── image.ts
+│   ├── logger.ts
+│   ├── queries.ts
+│   ├── sanity.ts
+│   └── utils.ts
 │
 ├── public/
+│
+├── types/
+│   ├── author.ts
+│   ├── category.ts
+│   ├── comment.ts
+│   ├── post.ts
+│   └── index.ts
 │
 ├── studio/
 │
 ├── middleware.ts
 ├── next.config.ts
-├── tailwind.config.ts
+├── tsconfig.json
 ├── postcss.config.js
 └── package.json
 ```
 
 ---
 
-# Required Dependencies
+# Understanding the Structure
 
-Install all dependencies:
+Professional engineers do not organize folders randomly.
+
+Each directory has a specific responsibility.
+
+```text
+app/
+    =
+Application Shell
+    +
+Routes
+    +
+Layouts
+
+components/
+    =
+Reusable UI
+
+lib/
+    =
+Infrastructure
+    +
+External Systems
+
+actions/
+    =
+Server-side Mutations
+
+types/
+    =
+Application Contracts
+
+studio/
+    =
+Content Management System
+```
+
+This separation keeps the application maintainable as it grows.
+
+---
+
+# Recommended Dependencies
+
+Core dependencies:
 
 ```bash
 npm install \
@@ -111,10 +189,9 @@ react-dom \
 sanity \
 next-sanity \
 @sanity/image-url \
+@portabletext/react \
 @sanity/vision \
 @sanity/icons \
-tailwindcss \
-@tailwindcss/postcss \
 zod \
 clsx \
 tailwind-merge
@@ -125,60 +202,48 @@ Optional:
 ```bash
 npm install \
 @clerk/nextjs \
-@vercel/analytics
+@vercel/analytics \
+@vercel/speed-insights
+```
+
+Development dependencies:
+
+```bash
+npm install -D \
+typescript \
+tailwindcss \
+@tailwindcss/postcss \
+eslint \
+eslint-config-next
 ```
 
 ---
 
-# Tailwind Configuration
+# Tailwind CSS in Next.js 16
 
-Create:
+With modern versions of Next.js and Tailwind, configuration is intentionally minimal.
+
+Most projects no longer need extensive theme configuration.
+
+Our styling philosophy is:
 
 ```text
-tailwind.config.ts
-```
-
-```typescript
-import type { Config } from "tailwindcss";
-
-export default {
-  content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-
-  theme: {
-    extend: {
-      colors: {
-        primary: "#111827",
-        secondary: "#6b7280",
-        accent: "#2563eb",
-      },
-
-      maxWidth: {
-        prose: "75ch",
-      },
-    },
-  },
-
-  plugins: [],
-} satisfies Config;
+Simple
+Minimal
+Readable
+Composable
 ```
 
 ---
 
 # Global Styles
 
-Create:
-
-```text
-app/globals.css
-```
-
 ```css
 @import "tailwindcss";
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -187,12 +252,31 @@ html {
 }
 
 body {
-  background: white;
-  color: #111827;
+  min-height: 100vh;
+}
+
+img {
+  display: block;
+  max-width: 100%;
 }
 
 .prose {
   max-width: 75ch;
+}
+```
+
+As the application grows, we may add:
+
+```css
+pre {
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+code {
+  font-family:
+    "JetBrains Mono",
+    monospace;
 }
 ```
 
@@ -210,13 +294,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white text-gray-900">
+      <body>
         {children}
       </body>
     </html>
   );
 }
 ```
+
+Remember:
+
+```text
+Root Layout
+        =
+Application Shell
+```
+
+It persists across every route in the application.
 
 ---
 
@@ -244,6 +338,18 @@ export default function SiteLayout({
   );
 }
 ```
+
+This gives us:
+
+```text
+Persistent Header
+        +
+Persistent Footer
+        +
+Dynamic Content Area
+```
+
+which is the foundation of modern application architecture.
 
 ---
 
@@ -283,7 +389,7 @@ export default function Header() {
 ```tsx
 export default function Footer() {
   return (
-    <footer className="border-t mt-16">
+    <footer className="mt-16 border-t">
       <div className="mx-auto max-w-6xl px-4 py-8">
 
         <p className="text-sm text-gray-500">
@@ -308,7 +414,7 @@ export default async function HomePage() {
   const posts = await getPosts();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
 
       <section className="py-12">
 
@@ -318,20 +424,19 @@ export default async function HomePage() {
 
         <p className="mt-4 text-xl text-gray-600">
           Exploring software engineering,
-          systems thinking, and architecture.
+          systems thinking,
+          and architecture.
         </p>
 
       </section>
 
       <section className="grid gap-8">
-
         {posts.map((post) => (
           <PostCard
             key={post._id}
             post={post}
           />
         ))}
-
       </section>
 
     </div>
@@ -341,7 +446,7 @@ export default async function HomePage() {
 
 ---
 
-# Post Card Component
+# Post Card
 
 ```tsx
 import Image from "next/image";
@@ -365,12 +470,12 @@ export default function PostCard({
 
       <div className="p-6">
 
-        <Link href={`/posts/${post.slug.current}`}>
-
+        <Link
+          href={`/posts/${post.slug.current}`}
+        >
           <h2 className="text-2xl font-bold">
             {post.title}
           </h2>
-
         </Link>
 
         <p className="mt-4 text-gray-600">
@@ -378,7 +483,6 @@ export default function PostCard({
         </p>
 
       </div>
-
     </article>
   );
 }
@@ -386,7 +490,7 @@ export default function PostCard({
 
 ---
 
-# Article Page
+# Dynamic Article Page
 
 ```tsx
 export default async function PostPage({
@@ -396,7 +500,8 @@ export default async function PostPage({
     slug: string;
   }>;
 }) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
   const post =
     await getPostBySlug(slug);
@@ -404,13 +509,9 @@ export default async function PostPage({
   return (
     <article className="prose mx-auto">
 
-      <h1>
-        {post.title}
-      </h1>
+      <h1>{post.title}</h1>
 
-      <p>
-        {post.excerpt}
-      </p>
+      <p>{post.excerpt}</p>
 
       <PortableText
         value={post.body}
@@ -433,13 +534,13 @@ export default function CommentForm() {
     <form className="space-y-4">
 
       <input
+        placeholder="Name"
         className="
           w-full
           rounded-lg
           border
           p-3
         "
-        placeholder="Name"
       />
 
       <textarea
@@ -485,9 +586,7 @@ export default function LikeButton() {
   return (
     <button
       onClick={() =>
-        setLikes(
-          likes + 1
-        )
+        setLikes(likes + 1)
       }
       className="
         rounded-lg
@@ -514,7 +613,6 @@ export default function Error({
   reset,
 }: {
   error: Error;
-
   reset: () => void;
 }) {
   return (
@@ -579,14 +677,14 @@ export default function NotFound() {
 
 # Design Philosophy
 
-GreyMatter Journal intentionally uses:
+GreyMatter Journal intentionally prioritizes:
 
 ```text
-Minimal
-Readable
-Content-focused
-Responsive
-Accessible
+Readability
+Maintainability
+Accessibility
+Performance
+Simplicity
 ```
 
 rather than:
@@ -595,18 +693,17 @@ rather than:
 Heavy animations
 Complex interactions
 Visual effects
+Over-engineered interfaces
 ```
 
-The goal is to maximize:
+The goal is to maximize the reading experience.
+
+Because ultimately:
 
 ```text
-Readability
-
-Maintainability
-
-Performance
-
-Accessibility
+Content
+     >
+Decoration
 ```
 
 ---
@@ -615,39 +712,25 @@ Accessibility
 
 ```text
 Browser
-    │
-    ▼
-
+    ↓
 React Components
-    │
-    ▼
-
+    ↓
 Next.js App Router
-    │
-    ▼
-
-Server Components
-    │
-    ▼
-
+    ↓
+React Server Components
+    ↓
 Server Actions
-    │
-    ▼
-
-Sanity CMS
-    │
-    ▼
-
+    ↓
+Sanity Content Lake
+    ↓
 CDN
-    │
-    ▼
-
+    ↓
 Storage
 ```
 
 ---
 
-# Mental Model To Remember Forever
+# The Most Important Mental Model
 
 Beginners think:
 
@@ -665,27 +748,21 @@ Source Code
 Blueprint
 ```
 
-The actual application consists of:
+The real application consists of:
 
 ```text
 Code
-
-+
+    +
 Data
-
-+
+    +
 Infrastructure
-
-+
-Deployment
-
-+
+    +
 Caching
-
-+
+    +
+Deployment
+    +
 Observability
-
-+
+    +
 Human Understanding
 ```
 
@@ -693,4 +770,6 @@ GreyMatter Journal may appear to be a blog.
 
 In reality, it is a production-grade distributed information system built using modern web engineering principles.
 
-A future **Appendix C** could cover **"Complete Sanity Studio Source Code and Schema Definitions"**, which would nicely complement this appendix.
+This appendix is not merely a folder reference.
+
+It is a reminder that architecture is ultimately about organizing complexity so that both humans and systems can evolve safely over time.
