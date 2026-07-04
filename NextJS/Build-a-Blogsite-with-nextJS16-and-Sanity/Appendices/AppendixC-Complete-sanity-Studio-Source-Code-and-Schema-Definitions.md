@@ -313,3 +313,7 @@ Next.js gives you:
 - Developer experience
 
 Together, they form a complete modern content platform.
+
+---
+
+**Appendix C Complete.**
