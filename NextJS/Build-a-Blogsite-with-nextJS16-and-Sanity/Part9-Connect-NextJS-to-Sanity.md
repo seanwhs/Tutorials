@@ -37,45 +37,31 @@ Content Lake
 
 ### Step 1: Install the Official Integration
 
-From the project root:
-
 ```bash
 npm install next-sanity
 ```
 
-`next-sanity` provides helpful utilities and the official client for connecting Next.js and Sanity.
+`next-sanity` provides the official client and utilities.
 
 ---
 
 ### Step 2: Environment Variables
 
-Create a file called `.env.local` in the root:
+Create `.env.local`:
 
 ```bash
-NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id_here
+NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-07-04
 ```
 
-**Where to find your Project ID:**
-1. Go to [manage.sanity.io](https://manage.sanity.io)
-2. Select your project
-3. Go to **API** section
-
-> Variables starting with `NEXT_PUBLIC_` are exposed to the browser. Others stay server-only.
+Find your Project ID in [Sanity Manage](https://manage.sanity.io).
 
 ---
 
 ### Step 3: Create the Sanity Client
 
-Create the folder and file:
-
-```bash
-mkdir -p lib
-touch lib/sanity.ts
-```
-
-Add this code to `lib/sanity.ts`:
+Create `lib/sanity.ts`:
 
 ```typescript
 import { createClient } from "next-sanity";
@@ -84,11 +70,11 @@ export const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION,
-  useCdn: process.env.NODE_ENV === "production", // Use CDN in production
+  useCdn: process.env.NODE_ENV === "production",
 });
 ```
 
-This client acts as a **translator** between Next.js and Sanity.
+This client acts as a translator between Next.js and Sanity.
 
 ---
 
@@ -105,7 +91,7 @@ export default async function TestPage() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">Sanity Test</h1>
-      <pre className="bg-gray-100 p-6 overflow-auto">
+      <pre className="bg-gray-900 text-gray-100 p-6 rounded-xl overflow-auto">
         {JSON.stringify(posts, null, 2)}
       </pre>
     </div>
@@ -113,19 +99,17 @@ export default async function TestPage() {
 }
 ```
 
-Visit `http://localhost:3000/test`. If everything is set up correctly, you’ll see an empty array (since we haven’t added content yet).
+Visit `http://localhost:3000/test` — you should see an empty array.
 
 ---
 
-### Understanding GROQ Basics
+### GROQ Basics
 
-GROQ is Sanity’s query language. Examples:
+- `*[_type == "post"]` — Get all posts
+- `*[_type == "post"][0]` — Get first post
+- `author->name` — Follow references
 
-- `*[_type == "post"]` → Get all posts
-- `*[_type == "post"][0]` → Get the first post
-- `*[_type == "author"]` → Get all authors
-
-It’s designed to fetch exactly the data you need — very efficiently.
+GROQ lets you fetch exactly the data you need.
 
 ---
 
@@ -141,16 +125,10 @@ Rendering System (Next.js)
 User Interface (Browser)
 ```
 
-The **Sanity Client** is the bridge. Environment variables keep configuration clean and secure.
+The Sanity Client is the bridge.
 
 ---
 
 ### Up Next — Part 10: Creating Real Content
 
-We’ll:
-- Create authors and categories in Sanity Studio
-- Write our first blog post with rich text and images
-- Query and display that content in Next.js
-- See the full content flow from editor to reader
-
-This is where GreyMatter Journal comes alive.
+We’ll create authors, categories, and posts in Studio, then query and display them.
