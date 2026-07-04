@@ -4,7 +4,7 @@
 
 ## Part 20 — Authentication, Sessions, Cookies, and the Architecture of Trust
 
-> **Goal of this lesson:** Implement authentication and protected areas while learning one of the deepest problems in software engineering: how distributed systems establish and maintain trust.
+> **Goal of this lesson:** Implement authentication and protected areas while learning one of the deepest problems in software engineering: how distributed systems establish, maintain, and revoke trust.
 
 ---
 
@@ -20,19 +20,15 @@ Server
 
 The server receives a request.
 
-But immediately, a question arises:
+Immediately, one question determines everything that follows:
 
 > Who sent this request?
 
-Unfortunately, the web was not designed with identity built in.
+Unfortunately, the web was never designed to answer that question.
 
-HTTP is fundamentally:
+The fundamental protocol underlying the web—HTTP—is **stateless**.
 
-```text
-Stateless
-```
-
-Each request exists independently.
+This means that every request is independent.
 
 For example:
 
@@ -48,15 +44,66 @@ GET /settings
 
 To the server, these are simply four unrelated messages.
 
-This creates one of the central problems of web architecture:
+The server has no built-in memory of:
 
-> How does a server remember who you are?
+* who you are
+* what you previously did
+* whether you logged in
+* what permissions you possess
+
+This creates one of the central problems of modern web architecture:
+
+> How does a distributed system establish and maintain trust across multiple independent requests?
+
+---
+
+# The Web Is a Distributed System
+
+Many beginners imagine a website like this:
+
+```text
+Browser
+      ↔
+Server
+```
+
+In reality, modern applications look more like this:
+
+```text
+Browser
+      ↓
+CDN
+      ↓
+Load Balancer
+      ↓
+Application Server
+      ↓
+Authentication Service
+      ↓
+Database
+      ↓
+Cache
+      ↓
+Third-Party APIs
+```
+
+At every boundary, a question appears:
+
+```text
+Who are you?
+
+Can I trust you?
+
+What are you allowed to do?
+```
+
+Authentication is fundamentally the engineering of trust across distributed systems.
 
 ---
 
 # The Architecture of Trust
 
-Most beginners think authentication works like this:
+Beginners often think authentication works like this:
 
 ```text
 Username
@@ -66,7 +113,7 @@ Password
 Login
 ```
 
-Professional engineers think:
+Professional engineers think about something much deeper:
 
 ```text
 Identity
@@ -76,11 +123,11 @@ Verification
 Trust
        ↓
 Authorization
+       ↓
+Access
 ```
 
-Authentication systems are fundamentally systems for managing trust.
-
-Every request asks:
+Every request in every modern application asks four questions:
 
 ```text
 Who are you?
@@ -89,16 +136,22 @@ Can I verify that?
 
 What are you allowed to do?
 
-How confident am I?
+How certain am I?
 ```
+
+Authentication systems exist to answer these questions safely.
 
 ---
 
 # Authentication vs Authorization
 
-These concepts are often confused.
+These concepts are frequently confused.
 
-### Authentication
+They solve different problems.
+
+---
+
+## Authentication
 
 Authentication answers:
 
@@ -107,12 +160,18 @@ Authentication answers:
 Example:
 
 ```text
-I am Sean.
+User:
+Sean Wong
+
+Identity:
+Verified
 ```
+
+Authentication establishes identity.
 
 ---
 
-### Authorization
+## Authorization
 
 Authorization answers:
 
@@ -123,12 +182,18 @@ Example:
 ```text
 Sean
     ↓
+Can read articles
+
 Can edit posts
 
-Cannot delete users
-
 Cannot modify billing
+
+Cannot delete users
 ```
+
+Authorization establishes permissions.
+
+---
 
 A useful mental model:
 
@@ -142,27 +207,37 @@ Authorization
 Permission
 ```
 
+Or even more simply:
+
+```text
+Who are you?
+
+vs
+
+What can you do?
+```
+
 ---
 
 # Why HTTP Is Stateless
 
 Suppose you log in.
 
-Request 1:
+Request #1:
 
-```text
+```http
 POST /login
 ```
 
-The server responds:
+Server:
 
 ```text
-Welcome.
+Welcome Sean.
 ```
 
 Now you visit:
 
-```text
+```http
 GET /dashboard
 ```
 
@@ -172,7 +247,9 @@ The problem is:
 The server forgot who you are.
 ```
 
-Because HTTP works like this:
+Why?
+
+Because HTTP fundamentally works like this:
 
 ```text
 Request
@@ -182,44 +259,107 @@ Response
 Connection destroyed
 ```
 
+Then:
+
+```text
+New Request
+      ↓
+New Response
+      ↓
+Connection destroyed
+```
+
+Every request starts from zero.
+
 There is no memory.
+
+---
+
+# The Session Problem
+
+Imagine a restaurant.
+
+You arrive.
+
+The waiter says:
+
+```text
+Welcome Sean.
+Here is table #42.
+```
+
+Later you ask for dessert.
+
+You don't reintroduce yourself.
+
+Instead you say:
+
+```text
+I'm table #42.
+```
+
+The waiter remembers everything.
+
+Sessions work exactly the same way.
 
 ---
 
 # Sessions
 
-To solve this problem, we introduce:
-
-```text
-Sessions
-```
-
 A session is simply:
 
 ```text
-Temporary server memory
+Temporary identity storage
 ```
 
-Example:
+For example:
 
 ```text
 Session ID:
-abc123
+abc123xyz
 ```
 
 stored as:
 
 ```text
-Server Memory
+Session Store
 
-abc123
-      ↓
+abc123xyz
+        ↓
+User:
 Sean
-      ↓
-Role: Editor
+
+Role:
+Editor
+
+Permissions:
+Publish Articles
 ```
 
-The server now remembers who you are.
+Now the server can reconstruct your identity.
+
+---
+
+Visually:
+
+```text
+Login
+      ↓
+
+Create Session
+      ↓
+
+Store Identity
+      ↓
+
+Return Session ID
+      ↓
+
+Future Requests
+      ↓
+
+Restore Identity
+```
 
 ---
 
@@ -230,7 +370,7 @@ But another problem appears.
 How does the browser remember:
 
 ```text
-abc123
+abc123xyz
 ```
 
 between requests?
@@ -241,27 +381,29 @@ The answer is:
 Cookies
 ```
 
-The server sends:
+The server responds:
 
 ```http
 Set-Cookie:
-session=abc123
+session=abc123xyz
 ```
 
 The browser stores:
 
 ```text
-session=abc123
+session=abc123xyz
 ```
 
 Then automatically sends:
 
 ```http
 Cookie:
-session=abc123
+session=abc123xyz
 ```
 
 on every future request.
+
+---
 
 Visually:
 
@@ -270,24 +412,26 @@ Browser
       ↓
 Login
       ↓
-Cookie Stored
+Receive Cookie
       ↓
-Future Requests
+Store Cookie
       ↓
-Cookie Sent
+Future Request
+      ↓
+Send Cookie
       ↓
 Identity Restored
 ```
 
 ---
 
-# Authentication Is State Transfer
+# Authentication Is Really State Transfer
 
 At a deeper level:
 
 ```text
 Authentication
-          =
+           =
 Secure State Transfer
 ```
 
@@ -306,9 +450,11 @@ while preventing attackers from:
 ```text
 Reading
 
+Forging
+
 Modifying
 
-Forging
+Replaying
 
 Stealing
 ```
@@ -317,7 +463,85 @@ that identity.
 
 ---
 
-# Why Use Clerk?
+# Cookies Are Trust Tokens
+
+A cookie is not merely:
+
+```text
+Text stored in browser
+```
+
+It is more accurately:
+
+```text
+Proof of trust
+```
+
+For example:
+
+```text
+session=abc123
+```
+
+really means:
+
+> The server previously verified this user and issued a temporary trust token.
+
+Thus:
+
+```text
+Cookie
+       =
+Portable Trust
+```
+
+---
+
+# Why Not Store Passwords?
+
+A common beginner question is:
+
+> Why don't websites simply store my password?
+
+Because passwords should never be recoverable.
+
+Instead:
+
+```text
+Password
+      ↓
+Hash Function
+      ↓
+Irreversible Value
+      ↓
+Database
+```
+
+Example:
+
+```text
+password123
+```
+
+becomes:
+
+```text
+8f434346648...
+```
+
+The server stores only the hash.
+
+This means:
+
+```text
+Database stolen
+        ↓
+Passwords still protected
+```
+
+---
+
+# Authentication Is Hard
 
 Could we build authentication ourselves?
 
@@ -327,12 +551,54 @@ Should we?
 
 Usually not.
 
-Authentication systems require handling:
+Real authentication systems require handling:
 
 ```text
-Passwords
+Password hashing
 
-Hashing
+Session management
+
+Cookies
+
+OAuth
+
+Social login
+
+MFA
+
+Email verification
+
+Password recovery
+
+Rate limiting
+
+Bot detection
+
+CSRF protection
+
+Session revocation
+
+Account recovery
+
+Audit logging
+```
+
+This is why many companies outsource authentication.
+
+---
+
+# Why Use Clerk?
+
+For GreyMatter Journal, we'll use:
+
+Clerk
+
+Clerk provides:
+
+```text
+Authentication
+
+Authorization
 
 Sessions
 
@@ -342,20 +608,16 @@ OAuth
 
 MFA
 
-CSRF
+Security
 
-JWTs
-
-Bot Protection
-
-Rate Limiting
-
-Email Verification
-
-Password Recovery
+UI Components
 ```
 
-Professional teams often outsource this complexity.
+out of the box.
+
+You can learn more at:
+
+[Clerk Documentation](https://clerk.com/docs?utm_source=chatgpt.com)
 
 ---
 
@@ -378,7 +640,7 @@ CLERK_SECRET_KEY=sk_...
 
 ---
 
-# Middleware
+# Middleware: Identity at the Edge
 
 Create:
 
@@ -400,7 +662,7 @@ export const config = {
 };
 ```
 
-This inserts identity processing into the request pipeline.
+This inserts authentication into the request pipeline.
 
 Conceptually:
 
@@ -409,14 +671,18 @@ Browser Request
          ↓
 Middleware
          ↓
-Identity Check
+Cookie Validation
+         ↓
+Identity Resolution
+         ↓
+Authorization
          ↓
 Route
 ```
 
 ---
 
-# Add the Provider
+# Adding the Provider
 
 Update:
 
@@ -451,11 +717,11 @@ export default function RootLayout({
 }
 ```
 
-This makes identity available throughout the application.
+This creates an identity context for the entire application.
 
 ---
 
-# Create a Sign-In Page
+# Creating a Sign-In Page
 
 Create:
 
@@ -473,23 +739,25 @@ export default function SignInPage() {
 }
 ```
 
-Clerk provides:
+Clerk now provides:
 
 ```text
-UI
+Sign In
 
-Validation
+Sign Up
 
 Sessions
 
-Cookies
+Recovery
 
 Security
 
-Recovery
+MFA
+
+Account Management
 ```
 
-out of the box.
+without us implementing any of it.
 
 ---
 
@@ -527,37 +795,46 @@ export default async function AdminPage() {
 }
 ```
 
-The server performs:
+Internally:
 
 ```text
 Request
       ↓
+
 Cookie
       ↓
+
 Session
       ↓
+
 Identity
       ↓
+
 Authorization
       ↓
-Page
+
+Render Page
 ```
 
 ---
 
 # Trust Boundaries
 
-One of the most important concepts in software engineering is:
+One of the deepest concepts in software engineering is:
 
 ```text
 Trust Boundary
 ```
 
-A trust boundary exists whenever information crosses between systems.
+A trust boundary exists whenever information crosses systems.
 
 Examples:
 
 ```text
+User
+      ↓
+Browser
+
 Browser
       ↓
 Server
@@ -566,16 +843,16 @@ Server
       ↓
 Database
 
-User
-      ↓
-API
-
-External Service
-      ↓
 Application
+      ↓
+Third-Party API
+
+Service
+      ↓
+Service
 ```
 
-At every boundary, we ask:
+At every boundary we ask:
 
 ```text
 Can this information
@@ -584,9 +861,40 @@ be trusted?
 
 ---
 
-# The Principle of Least Privilege
+# Zero Trust Thinking
 
-Professional systems follow:
+Modern systems increasingly follow a principle called:
+
+```text
+Zero Trust
+```
+
+The idea is simple:
+
+> Trust nothing.
+>
+> Verify everything.
+
+Instead of:
+
+```text
+Internal Network
+       =
+Trusted
+```
+
+we assume:
+
+```text
+Every request
+must prove itself.
+```
+
+---
+
+# Principle of Least Privilege
+
+Professional systems also follow:
 
 ```text
 Least Privilege
@@ -594,38 +902,34 @@ Least Privilege
 
 Meaning:
 
-```text
-Give every user
-only the permissions
-they absolutely require.
-```
+> Grant only the minimum permissions necessary.
 
 Example:
 
 ```text
 Reader
-     ↓
+      ↓
 Read Articles
 
 Author
-     ↓
+      ↓
 Write Articles
 
 Editor
-     ↓
+      ↓
 Publish Articles
 
 Administrator
-     ↓
+      ↓
 Manage System
 ```
 
-This limits the damage caused by:
+This limits damage caused by:
 
 ```text
 Bugs
 
-Mistakes
+Human error
 
 Compromised accounts
 
@@ -634,7 +938,7 @@ Attackers
 
 ---
 
-# Authentication Is Everywhere
+# Authentication Exists Everywhere
 
 The same architectural pattern appears throughout software:
 
@@ -645,18 +949,20 @@ GitHub Permissions
 
 Google Accounts
 
-Banking Systems
-
 Enterprise SSO
+
+OAuth
 
 API Keys
 
-OAuth
+Banking Systems
+
+Cloud Platforms
 ```
 
-All of them solve the same problem:
+All solve the same problem:
 
-> How can one system trust another system?
+> How can one distributed system trust another?
 
 ---
 
@@ -667,7 +973,7 @@ Beginners think:
 ```text
 Authentication
         =
-Login Page
+Login Screen
 ```
 
 Professional engineers think:
@@ -675,19 +981,19 @@ Professional engineers think:
 ```text
 Authentication
         =
-Trust Management
+Trust Engineering
 ```
 
-More generally:
+More broadly:
 
 ```text
 Software Architecture
             =
-Managing Trust
+Managing State
             +
 Managing Failure
             +
-Managing Complexity
+Managing Trust
 ```
 
 Authentication is not merely a feature.
@@ -696,15 +1002,18 @@ It is one of the foundational mechanisms that allows distributed systems to coop
 
 ---
 
-# Up Next — Part 21: Comments, Likes, and User-Generated Content
+# Up Next — Part 21: Comments, Likes, Mutations, and Shared State
 
 We'll explore:
 
-* Mutations
 * User-generated content
+* Database mutations
 * Optimistic updates
 * Event-driven systems
+* Shared state
 * Consistency models
-* Interactive application architecture
+* Real-time interactions
 
-and discover that modern applications are fundamentally systems for coordinating shared state.
+and discover one of the deepest truths of modern applications:
+
+> Building software is often less about managing data and more about coordinating reality between multiple participants.
