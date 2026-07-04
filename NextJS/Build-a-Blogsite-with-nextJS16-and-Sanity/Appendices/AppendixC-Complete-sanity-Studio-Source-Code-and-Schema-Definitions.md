@@ -1,149 +1,60 @@
+# **✅ Appendix C — Complete Sanity Studio Source Code and Schema Definitions**
+
+---
+
 # Appendix C — Complete Sanity Studio Source Code and Schema Definitions
 
-> **Goal of this appendix:** Build the complete Sanity Studio powering GreyMatter Journal while learning how headless CMS systems model content, relationships, editorial workflows, and structured information.
+> **Goal of this appendix:** Provide the full Sanity Studio implementation for GreyMatter Journal, including schemas, structure, and configuration, while explaining how headless CMS systems model content, relationships, and editorial workflows.
 
 ---
 
-# Introduction
+### Introduction
 
-Throughout this tutorial series, we treated Sanity as a "database for content."
+Sanity is not just a database — it is a **structured content operating system**.
 
-This description is partially true.
+It separates:
+- **Content creation** (Studio)
+- **Content storage** (Content Lake)
+- **Content delivery** (GROQ + APIs)
 
-However, Sanity is actually:
-
-```text
-A structured content operating system.
-```
-
-Unlike traditional CMS platforms, Sanity separates:
-
-```text
-Content
-     ≠
-Presentation
-```
-
-This means:
-
-```text
-Authors create content.
-
-Developers build experiences.
-
-Both evolve independently.
-```
+This separation enables rich editorial experiences while giving developers full control over presentation.
 
 ---
 
-# Our Final Content Model
-
-GreyMatter Journal contains:
-
-```text
-Author
-    │
-    ├── Profile
-    └── Social Links
-
-Category
-    │
-    └── Metadata
-
-Post
-    │
-    ├── Author
-    ├── Categories
-    ├── Body
-    ├── Images
-    ├── SEO
-    └── Publishing Data
-
-Comment
-    │
-    ├── Author
-    └── Post
-```
-
----
-
-# Studio Folder Structure
+### Final Studio Folder Structure
 
 ```text
 studio/
-
 ├── sanity.config.ts
 ├── schemaTypes/
-│
+│   └── index.ts
 ├── schemas/
 │   ├── author.ts
 │   ├── category.ts
 │   ├── post.ts
 │   ├── comment.ts
 │   └── blockContent.ts
-│
 ├── structure/
 │   └── structure.ts
-│
-└── plugins/
+└── plugins/ (optional)
 ```
 
 ---
 
-# Installing Studio
-
-Inside your project root:
-
-```bash
-npx sanity@latest init
-```
-
-Choose:
-
-```text
-Project:
-Create New
-
-Dataset:
-production
-
-Output Path:
-studio
-
-Language:
-TypeScript
-```
-
----
-
-# Studio Configuration
-
-Create:
-
-```text
-studio/sanity.config.ts
-```
+### 1. Studio Configuration (`sanity.config.ts`)
 
 ```typescript
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
-
 import { schemaTypes } from "./schemaTypes";
 
 export default defineConfig({
   name: "default",
-
   title: "GreyMatter Journal",
-
-  projectId:
-    process.env
-      .NEXT_PUBLIC_SANITY_PROJECT_ID,
-
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
   dataset: "production",
 
-  plugins: [
-    structureTool(),
-  ],
+  plugins: [structureTool()],
 
   schema: {
     types: schemaTypes,
@@ -153,13 +64,7 @@ export default defineConfig({
 
 ---
 
-# Schema Registration
-
-Create:
-
-```text
-schemaTypes/index.ts
-```
+### 2. Schema Registration (`schemaTypes/index.ts`)
 
 ```typescript
 import post from "../schemas/post";
@@ -179,80 +84,47 @@ export const schemaTypes = [
 
 ---
 
-# Author Schema
-
-Create:
-
-```text
-schemas/author.ts
-```
+### 3. Author Schema (`schemas/author.ts`)
 
 ```typescript
-import {
-  defineField,
-  defineType,
-} from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "author",
-
-  title: "Authors",
-
+  title: "Author",
   type: "document",
-
   fields: [
     defineField({
       name: "name",
-
       title: "Name",
-
       type: "string",
-
-      validation: Rule =>
-        Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
-
     defineField({
       name: "slug",
-
       title: "Slug",
-
       type: "slug",
-
-      options: {
-        source: "name",
-      },
+      options: { source: "name" },
     }),
-
     defineField({
       name: "bio",
-
       title: "Biography",
-
       type: "text",
     }),
-
     defineField({
       name: "image",
-
       title: "Profile Image",
-
       type: "image",
+      options: { hotspot: true },
     }),
-
     defineField({
       name: "twitter",
-
       title: "Twitter",
-
       type: "url",
     }),
-
     defineField({
       name: "github",
-
       title: "GitHub",
-
       type: "url",
     }),
   ],
@@ -261,50 +133,31 @@ export default defineType({
 
 ---
 
-# Category Schema
-
-Create:
-
-```text
-schemas/category.ts
-```
+### 4. Category Schema (`schemas/category.ts`)
 
 ```typescript
-import {
-  defineField,
-  defineType,
-} from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "category",
-
-  title: "Categories",
-
+  title: "Category",
   type: "document",
-
   fields: [
     defineField({
       name: "title",
-
+      title: "Title",
       type: "string",
-
-      validation: Rule =>
-        Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
-
     defineField({
       name: "slug",
-
+      title: "Slug",
       type: "slug",
-
-      options: {
-        source: "title",
-      },
+      options: { source: "title" },
     }),
-
     defineField({
       name: "description",
-
+      title: "Description",
       type: "text",
     }),
   ],
@@ -313,29 +166,18 @@ export default defineType({
 
 ---
 
-# Portable Text
-
-Create:
-
-```text
-schemas/blockContent.ts
-```
+### 5. Block Content (Portable Text) (`schemas/blockContent.ts`)
 
 ```typescript
 export default {
   name: "blockContent",
-
   title: "Block Content",
-
   type: "array",
-
   of: [
-    {
-      type: "block",
-    },
-
+    { type: "block" },
     {
       type: "image",
+      options: { hotspot: true },
     },
   ],
 };
@@ -343,123 +185,66 @@ export default {
 
 ---
 
-# Post Schema
-
-Create:
-
-```text
-schemas/post.ts
-```
+### 6. Post Schema (`schemas/post.ts`)
 
 ```typescript
-import {
-  defineField,
-  defineType,
-} from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "post",
-
-  title: "Posts",
-
+  title: "Post",
   type: "document",
-
   fields: [
-
     defineField({
       name: "title",
-
+      title: "Title",
       type: "string",
-
-      validation: Rule =>
-        Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
-
     defineField({
       name: "slug",
-
+      title: "Slug",
       type: "slug",
-
-      options: {
-        source: "title",
-      },
+      options: { source: "title" },
     }),
-
     defineField({
       name: "excerpt",
-
+      title: "Excerpt",
       type: "text",
     }),
-
     defineField({
       name: "heroImage",
-
+      title: "Hero Image",
       type: "image",
+      options: { hotspot: true },
     }),
-
     defineField({
       name: "author",
-
+      title: "Author",
       type: "reference",
-
-      to: [
-        {
-          type: "author",
-        },
-      ],
+      to: [{ type: "author" }],
     }),
-
     defineField({
       name: "categories",
-
+      title: "Categories",
       type: "array",
-
-      of: [
-        {
-          type: "reference",
-
-          to: [
-            {
-              type:
-                "category",
-            },
-          ],
-        },
-      ],
+      of: [{ type: "reference", to: [{ type: "category" }] }],
     }),
-
     defineField({
       name: "body",
-
-      type:
-        "blockContent",
+      title: "Body",
+      type: "blockContent",
     }),
-
     defineField({
       name: "publishedAt",
-
+      title: "Published At",
       type: "datetime",
     }),
-
     defineField({
-      name: "featured",
-
-      type: "boolean",
-
-      initialValue: false,
-    }),
-
-    defineField({
-      name: "seoTitle",
-
-      type: "string",
-    }),
-
-    defineField({
-      name:
-        "seoDescription",
-
-      type: "text",
+      name: "likes",
+      title: "Likes",
+      type: "number",
+      initialValue: 0,
     }),
   ],
 });
@@ -467,65 +252,28 @@ export default defineType({
 
 ---
 
-# Comment Schema
-
-Create:
-
-```text
-schemas/comment.ts
-```
+### 7. Comment Schema (`schemas/comment.ts`)
 
 ```typescript
-import {
-  defineField,
-  defineType,
-} from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "comment",
-
-  title: "Comments",
-
+  title: "Comment",
   type: "document",
-
   fields: [
-
-    defineField({
-      name: "author",
-
-      type: "string",
-    }),
-
-    defineField({
-      name: "email",
-
-      type: "string",
-    }),
-
-    defineField({
-      name: "content",
-
-      type: "text",
-    }),
-
+    defineField({ name: "author", type: "string" }),
+    defineField({ name: "email", type: "string" }),
+    defineField({ name: "content", type: "text" }),
     defineField({
       name: "approved",
-
       type: "boolean",
-
       initialValue: false,
     }),
-
     defineField({
       name: "post",
-
       type: "reference",
-
-      to: [
-        {
-          type: "post",
-        },
-      ],
+      to: [{ type: "post" }],
     }),
   ],
 });
@@ -533,270 +281,35 @@ export default defineType({
 
 ---
 
-# Why References Matter
-
-Suppose we write:
-
-```text
-John Smith
-```
-
-inside every article.
-
-Problem:
-
-```text
-John changes name.
-```
-
-Now:
-
-```text
-100 articles
-must change.
-```
-
-Instead:
-
-```text
-Post
-   │
-   ▼
-Author
-```
-
-Diagram:
-
-```text
-Post A
-     │
-
-Post B
-     │
-
-Post C
-     │
-
-     ▼
-
-Author
-```
-
-This is called:
-
-```text
-Normalization.
-```
-
----
-
-# Custom Studio Structure
-
-Create:
-
-```text
-structure/structure.ts
-```
+### 8. Custom Studio Structure (`structure/structure.ts`)
 
 ```typescript
-import { StructureBuilder }
-from "sanity/structure";
+import { StructureBuilder } from "sanity/structure";
 
-export const structure = (
-  S: StructureBuilder
-) =>
+export const structure = (S: StructureBuilder) =>
   S.list()
-    .title(
-      "GreyMatter Journal"
-    )
+    .title("GreyMatter Journal")
     .items([
-
-      S.documentTypeListItem(
-        "post"
-      ),
-
-      S.documentTypeListItem(
-        "author"
-      ),
-
-      S.documentTypeListItem(
-        "category"
-      ),
-
-      S.documentTypeListItem(
-        "comment"
-      ),
+      S.documentTypeListItem("post"),
+      S.documentTypeListItem("author"),
+      S.documentTypeListItem("category"),
+      S.documentTypeListItem("comment"),
     ]);
 ```
 
 ---
 
-# Drafts And Publishing
+### Final Thoughts
 
-Sanity automatically supports:
+Sanity gives you:
+- Rich content modeling
+- Powerful relationships
+- Editorial workflows
+- Structured data (Portable Text)
 
-```text
-Draft
-     │
-     ▼
-Review
-     │
-     ▼
-Publish
-```
+Next.js gives you:
+- Beautiful rendering
+- Performance
+- Developer experience
 
-This allows editors to:
-
-```text
-Write
-
-Edit
-
-Preview
-
-Approve
-
-Publish
-```
-
-without affecting production.
-
----
-
-# Why Portable Text Exists
-
-Traditional CMS systems store:
-
-```html
-<h1>Hello</h1>
-
-<p>World</p>
-```
-
-Sanity stores:
-
-```json
-{
-  "_type": "block",
-  "children": [
-    {
-      "text":
-        "Hello"
-    }
-  ]
-}
-```
-
-Why?
-
-Because:
-
-```text
-Content
-      ≠
-HTML
-```
-
-The same content can render as:
-
-```text
-Website
-
-Mobile App
-
-PDF
-
-Email
-
-API
-
-AI Context
-```
-
----
-
-# The Hidden Architecture
-
-When an author writes an article:
-
-```text
-Editor
-    │
-    ▼
-
-Sanity Studio
-    │
-    ▼
-
-Structured Content
-    │
-    ▼
-
-Content Lake
-    │
-    ▼
-
-API
-    │
-    ▼
-
-Next.js
-    │
-    ▼
-
-React
-    │
-    ▼
-
-Browser
-```
-
-What appears to be:
-
-```text
-A CMS
-```
-
-is actually:
-
-```text
-A distributed
-structured
-information system.
-```
-
----
-
-# Mental Model To Remember Forever
-
-Beginners think:
-
-```text
-CMS
-   =
-Website Builder
-```
-
-Professional engineers think:
-
-```text
-CMS
-   =
-Structured
-Knowledge
-Repository
-```
-
-Sanity does not store:
-
-```text
-Pages.
-```
-
-It stores:
-
-```text
-Meaning.
-```
-
-And that distinction is what enables modern headless architectures.
+Together, they form a complete modern content platform.
