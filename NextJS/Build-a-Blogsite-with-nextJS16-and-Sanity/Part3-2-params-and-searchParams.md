@@ -724,25 +724,70 @@ More importantly:
 
 It is about translating user intent into structured data that React can render.
 
+However, once we understand that the router provides structured information, another question immediately appears:
+
+> If the router knows which page we're rendering, how does Next.js know what metadata to generate?
+
+For example:
+
+```text
+/posts/react-server-components
+```
+
+should ideally produce:
+
+```html
+<title>
+  React Server Components
+</title>
+
+<meta
+  name="description"
+  content="An introduction to React Server Components..."
+/>
+```
+
+while:
+
+```text
+/posts/nextjs-app-router
+```
+
+should produce:
+
+```html
+<title>
+  Understanding the Next.js App Router
+</title>
+```
+
+But where does this metadata come from?
+
+How does Next.js generate different `<title>` tags for different pages?
+
+And why does metadata generation participate in the same server-rendering pipeline as the page itself?
+
+These questions lead us to one of the most important ideas in modern web applications:
+
+> User interfaces are not the only thing applications render.
+
+They also render metadata, documents, previews, social cards, and machine-readable descriptions of reality.
+
 ---
 
-# Up Next — Part 4: Understanding TypeScript Through `RootLayout`
+# Up Next — Part 3-3: Understanding `generateMetadata()`
 
-Next, we'll finally decode this syntax:
+Next, we'll explore how Next.js generates metadata dynamically using:
 
 ```tsx
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-})
+export async function generateMetadata()
 ```
 
 You'll learn:
 
-* JavaScript object destructuring
-* Function parameter destructuring
-* Type annotations
-* `React.ReactNode`
-* TypeScript contracts
-* Why TypeScript is fundamentally about describing reality, not adding complexity
+* Why metadata is part of the rendering pipeline
+* Static versus dynamic metadata
+* How `params` flow into metadata generation
+* SEO, Open Graph, and social previews
+* Why metadata is really a second user interface
+* How modern applications render both for humans and machines
