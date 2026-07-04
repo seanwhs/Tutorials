@@ -1,14 +1,16 @@
-# Part 2 — Understanding the App Router: Why Modern Web Applications Are Not Collections of Pages
+# **Part 2 — Understanding the App Router**
 
-> **Goal of this lesson:** Build a correct mental model of the **Next.js App Router**: why folders become routes, what `page.tsx` and `layout.tsx` actually represent, and why modern applications are persistent **UI trees** instead of disconnected pages. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
+# GreyMatter Journal
 
-***
+## Part 2 — Understanding the App Router: Why Modern Web Applications Are Not Collections of Pages
+
+> **Goal of this lesson:** Understand the **Next.js App Router**, learn why folders become routes, discover the roles of `page.tsx` and `layout.tsx`, understand Route Groups, and develop the mental model that modern web applications are built as **persistent UI trees and architectural systems**, not collections of disconnected pages.
+
+---
 
 # The Biggest Mental Shift in Next.js
 
-Most developers start web development with a **page‑centric** worldview.
-
-A website looks like a collection of files:
+Most developers begin learning web development by thinking about websites as collections of pages:
 
 ```text
 home.html
@@ -17,78 +19,53 @@ blog.html
 contact.html
 ```
 
-Clicking a link traditionally meant:
+Navigation works like this:
 
 ```text
-Destroy old page
-        ↓
-Request new page
-        ↓
-Load everything again
-        ↓
-Render entire page
+Current Page
+      ↓
+Destroy Everything
+      ↓
+Request New Page
+      ↓
+Rebuild Everything
 ```
 
-This model worked well for document‑style websites.
+This model worked well for traditional websites.
 
-But modern applications behave differently.
+Modern applications do not work this way.
 
-Think about tools you use every day:
+Consider applications you use every day:
 
-- Gmail  
-- Notion  
-- GitHub  
-- Linear  
-- Slack  
-- Discord  
+* Gmail
+* GitHub
+* Notion
+* Slack
+* Discord
+* Linear
 
-When you navigate between screens, the entire application does not disappear and reload. Most of the interface remains stable—only certain regions change. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
-
-# What Actually Changes?
-
-Consider GitHub:
+When you navigate between screens:
 
 ```text
-GitHub
-├── Header
-├── Left Navigation
-├── Repository Navigation
-└── Content Area
-```
+What stays?
 
-When you click:
-
-```text
-Issues
-    ↓
-Pull Requests
-    ↓
-Actions
-```
+✓ Navigation
+✓ Sidebar
+✓ User session
+✓ Theme
+✓ Application state
+✓ Layout
 
 What changes?
 
-```text
-✓ Content Area
+✓ Main content
 ```
 
-What remains?
+The application feels continuous.
 
-```text
-✓ Header
-✓ Navigation
-✓ User Session
-✓ Theme
-✓ Application State
-```
+This is the fundamental idea behind the App Router.
 
-The application feels continuous and “alive.” Only one branch of the UI tree updates. [en.nextjs](https://en.nextjs.im/docs/app)
-
-This is the fundamental insight behind the **App Router**. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
+---
 
 # Traditional Websites vs Modern Applications
 
@@ -98,50 +75,44 @@ This is the fundamental insight behind the **App Router**. [en.nextjs](https://e
 | Entire page replaced | UI tree updated     |
 | State lost           | State preserved     |
 | Duplicate layouts    | Shared layouts      |
-| Slower navigation    | Instant navigation  |
+| Slower               | Faster              |
 | Page-oriented        | Component-oriented  |
 
-Traditional sites redraw the world on every navigation; modern apps surgically update the parts of the interface that actually changed. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-***
+---
 
 # The App Router Philosophy
 
-The App Router changes the core question from:
+The App Router changes the question from:
 
-> “Which **page** should I load?”
+> "Which page should I show?"
 
 to:
 
-> “Which **parts of the interface** actually need to change?”
-
-That sounds subtle, but architecturally it changes everything.
+> "Which parts of the interface actually need to change?"
 
 Instead of thinking:
 
 ```text
-Website
-    =
-Pages
+Application
+        =
+Collection of Pages
 ```
 
 we begin thinking:
 
 ```text
 Application
-    =
+        =
 Persistent UI Tree
 ```
 
-Next.js App Router is designed around this persistent tree: stable shells (layouts) plus changing leaves (pages and child components). [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
+This single mental model explains most of modern React and Next.js architecture.
 
-***
+---
 
-# What Is the App Router?
+# The File System Becomes the Router
 
-The App Router is a **file‑system–based router** for React. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-Your folders become your URLs.
+In the App Router, folders define URLs.
 
 For example:
 
@@ -158,11 +129,13 @@ automatically becomes:
 
 ```text
 /
- /about
- /posts
+/about
+/posts
 ```
 
-No explicit route configuration is required. The folder structure itself **is** the routing system. [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
+No router configuration is required.
+
+The folder structure itself becomes the routing system.
 
 This concept is called:
 
@@ -170,63 +143,251 @@ This concept is called:
 File-System Routing
 ```
 
-You design the URL space by designing the `app/` tree.
+---
 
-***
+# But Wait — Do All Folders Become URLs?
 
-# Folders Become Routes
+Beginners naturally assume:
 
-Consider:
+```text
+Folder
+      =
+URL
+```
+
+This is mostly true.
+
+However, professional applications require folders that exist purely for organization.
+
+This introduces one of the most important concepts in modern Next.js:
+
+# Route Groups
+
+Route Groups are folders wrapped in parentheses:
+
+```text
+(site)
+(auth)
+(admin)
+(dashboard)
+```
+
+For example:
+
+```text
+app/
+├── (site)/
+│   ├── page.tsx
+│   └── about/
+│
+├── (auth)/
+│   └── login/
+│
+└── layout.tsx
+```
+
+The resulting URLs are:
+
+```text
+/
+/about
+/login
+```
+
+Notice:
+
+```text
+(site)
+(auth)
+```
+
+never appear in the URL.
+
+---
+
+# Why Do Route Groups Exist?
+
+Because software architecture exists for humans.
+
+Consider this structure:
 
 ```text
 app/
 ├── page.tsx
 ├── about/
-│   └── page.tsx
 ├── posts/
-│   ├── page.tsx
-│   └── [slug]/
-│       └── page.tsx
+├── login/
+├── register/
+├── dashboard/
+├── settings/
+└── analytics/
 ```
 
-This produces:
+After a year, this becomes difficult to understand.
 
-| File                        | URL                    |
-| --------------------------- | ---------------------- |
-| `app/page.tsx`              | `/`                    |
-| `app/about/page.tsx`        | `/about`               |
-| `app/posts/page.tsx`        | `/posts`               |
-| `app/posts/[slug]/page.tsx` | `/posts/my-first-post` |
+Instead:
 
-Each folder in `app/` is a segment of the URL; each `page.tsx` in that folder is the renderable content for that segment. [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
+```text
+app/
 
-***
+├── (site)/
+│   ├── page.tsx
+│   ├── about/
+│   └── posts/
+
+├── (auth)/
+│   ├── login/
+│   └── register/
+
+├── (dashboard)/
+│   ├── analytics/
+│   └── settings/
+```
+
+Now the folder structure communicates the architecture.
+
+```text
+Public Website
+        ↓
+Authentication
+        ↓
+Dashboard
+```
+
+Software architecture is ultimately about organizing human understanding.
+
+---
+
+# GreyMatter Journal Uses Route Groups
+
+Throughout this tutorial series, we will organize our application using the following structure:
+
+```text
+app/
+
+├── layout.tsx
+├── globals.css
+├── loading.tsx
+├── error.tsx
+└── not-found.tsx
+
+└── (site)/
+    ├── layout.tsx
+    ├── page.tsx
+
+    ├── about/
+    ├── authors/
+    ├── categories/
+
+    └── posts/
+        └── [slug]/
+```
+
+This gives us multiple architectural layers.
+
+---
+
+# The Root Layout
+
+```text
+app/layout.tsx
+```
+
+Responsible for:
+
+```text
+✓ HTML document
+✓ Body
+✓ Fonts
+✓ Global styles
+✓ Providers
+✓ Theme system
+✓ Metadata
+```
+
+---
+
+# The Site Layout
+
+```text
+app/(site)/layout.tsx
+```
+
+Responsible for:
+
+```text
+✓ Header
+✓ Footer
+✓ Navigation
+✓ Container
+✓ Site-wide UI
+```
+
+---
+
+# Visualizing the Application Tree
+
+Our application eventually looks like this:
+
+```text
+Root Layout
+     │
+     ├── HTML
+     ├── BODY
+     ├── Theme Provider
+     ├── Analytics Provider
+     │
+     └── Site Layout
+              │
+              ├── Header
+              ├── Navigation
+              ├── Main Content
+              └── Footer
+```
+
+When the user navigates:
+
+```text
+/posts/react
+
+        ↓
+
+/posts/nextjs
+```
+
+Only this portion changes:
+
+```text
+Main Content
+```
+
+Everything else stays alive.
+
+---
 
 # Dynamic Routes
 
-Sometimes we don’t know the URL values ahead of time.
+Most applications have URLs that are not known beforehand.
 
-For example:
+Examples:
 
 ```text
 /posts/react-hooks
-/posts/nextjs-app-router
 /posts/system-design
+/posts/nextjs-16
 ```
 
-Creating a file per post would be impossible and brittle.
-
-Instead, we create a **dynamic segment**:
+We define these using square brackets:
 
 ```text
 app/posts/[slug]/page.tsx
 ```
 
-The square brackets tell Next.js:
+This tells Next.js:
 
-> “Match any value here and expose it as a route parameter.” [nextjs](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes)
+> Match any value here.
 
-***
+---
 
 # Understanding `[slug]`
 
@@ -244,9 +405,9 @@ Next.js automatically provides:
 }
 ```
 
-to your page component as part of the `params` prop. [nextjs](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes)
+to our page component.
 
-In modern Next.js (15+), route parameters are **asynchronous**, so your page component looks like this:
+In modern Next.js:
 
 ```tsx
 export default async function PostPage({
@@ -256,74 +417,70 @@ export default async function PostPage({
     slug: string;
   }>;
 }) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
-  return <h1>{slug}</h1>;
+  return (
+    <h1>{slug}</h1>
+  );
 }
 ```
 
-The important pieces:
-
-- The component is `async`.
-- `params` is a `Promise`.
-- You `await` it to read the slug. [zenn](https://zenn.dev/divsawa/articles/20251211_nextjs1516-dynamic-routing)
-
-***
+---
 
 # Why Is `params` a Promise?
 
-This surprises almost everyone learning modern Next.js.
-
-Older versions worked like this:
+In older versions of Next.js:
 
 ```typescript
 params.slug
 ```
 
-Modern Next.js 15+ works like this:
+In modern Next.js:
 
 ```typescript
-const { slug } = await params;
+await params
 ```
 
-Why the change?
+Why?
 
-Because the App Router leans on modern React features:
+Because Next.js now supports:
 
-- streaming  
-- concurrent rendering  
-- partial page generation  
-- asynchronous Server Components  
+```text
+✓ Streaming
+✓ Concurrent Rendering
+✓ Partial Rendering
+✓ Server Components
+✓ Suspense
+```
 
-By making `params` async, Next.js can:
-
-- start rendering parts of the UI **before** all data and parameters are fully resolved,
-- stream HTML to the browser as chunks,
-- coordinate data fetching and route resolution in a single async pipeline. [joodi.medium](https://joodi.medium.com/why-params-became-a-promise-in-next-js-15-07813d39936b)
+This allows Next.js to begin rendering immediately while other information is still loading.
 
 Think of it like a restaurant:
 
 ```text
-Old system:
-Wait for entire meal
-        ↓
-Serve everything
+Old System
 
-New system:
-Serve appetizers
+Prepare Entire Meal
         ↓
-Prepare remaining dishes
+Serve Everything
+
+New System
+
+Serve Available Food
         ↓
-Serve continuously
+Continue Cooking
+        ↓
+Serve Remaining Food
 ```
 
-Next.js serves “appetizers” (already resolvable UI) as soon as possible while it finishes preparing the rest. This creates faster, more responsive applications. [joodi.medium](https://joodi.medium.com/why-params-became-a-promise-in-next-js-15-07813d39936b)
+This creates faster applications.
 
-***
+---
 
 # Understanding `Promise<T>`
 
-Many beginners get confused by this syntax:
+Many beginners find this syntax confusing:
 
 ```typescript
 Promise<{
@@ -343,21 +500,25 @@ are called:
 TypeScript Generics
 ```
 
-Generics are templates for types—like labels for boxes.
+Generics are templates for types.
 
-***
+Think of them as labels on boxes.
 
-## Analogy: Labeled Boxes
+---
+
+# The Box Analogy
 
 Imagine three boxes:
 
 ```text
 Promise<string>
+
 Promise<number>
+
 Promise<{ slug: string }>
 ```
 
-Each box contains different data:
+When the box opens:
 
 ```text
 Promise<string>
@@ -368,16 +529,17 @@ Promise<number>
         ↓
         42
 
-Promise<{ slug: string }>
+Promise<{ slug:string }>
         ↓
+
 {
-  slug: "react"
+   slug: "react"
 }
 ```
 
 The generic tells TypeScript:
 
-> “When I open this box (when the Promise resolves), what shape of data should I expect?”
+> "What do I expect to find inside this container?"
 
 Without the generic:
 
@@ -385,36 +547,34 @@ Without the generic:
 Promise
 ```
 
-TypeScript has no idea what’s inside.
+TypeScript cannot help us.
 
 With the generic:
 
 ```typescript
-Promise<{ slug: string }>
+Promise<{ slug:string }>
 ```
 
-TypeScript can provide:
+we gain:
 
-- autocomplete  
-- error checking  
-- type validation  
-- code navigation  
+```text
+✓ Autocomplete
+✓ Error checking
+✓ Type safety
+✓ Documentation
+```
 
-This matters a lot in larger codebases: the router and your components stay type‑safe even as the app grows. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-***
+---
 
 # Catch-All Routes
 
-Sometimes a route contains **many** segments.
-
-For example:
+Sometimes a route contains multiple segments:
 
 ```text
 /docs/react/hooks/useEffect
 ```
 
-We can capture all segments using a **catch‑all segment**:
+We use:
 
 ```text
 app/docs/[...slug]/page.tsx
@@ -422,49 +582,31 @@ app/docs/[...slug]/page.tsx
 
 Example:
 
-```tsx
-export default async function DocsPage({
-  params,
-}: {
-  params: Promise<{
-    slug: string[];
-  }>;
-}) {
-  const { slug } = await params;
-
-  return (
-    <pre>
-      {JSON.stringify(slug)}
-    </pre>
-  );
+```typescript
+{
+  slug: [
+    "react",
+    "hooks",
+    "useEffect"
+  ]
 }
 ```
 
-Result for `/docs/react/hooks/useEffect`:
-
-```text
-[
-  "react",
-  "hooks",
-  "useEffect"
-]
-```
-
-Now you can map these segments to sections in your docs system, content lookup paths, or structured navigation models. [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
-
-***
+---
 
 # Optional Catch-All Routes
 
-Sometimes the route may contain **zero or more** segments:
+Sometimes we allow zero or more segments:
 
 ```text
 /docs
+
 /docs/react
+
 /docs/react/hooks
 ```
 
-We use an **optional catch‑all**:
+We use:
 
 ```text
 [[...slug]]
@@ -472,374 +614,129 @@ We use an **optional catch‑all**:
 
 Example:
 
-```text
-app/docs/[[...slug]]/page.tsx
+```typescript
+slug === undefined
+
+slug === ["react"]
+
+slug === [
+  "react",
+  "hooks"
+]
 ```
 
-Possible values of `slug`:
+---
 
-```text
-undefined
+# The Real Power: Nested Layouts
 
-["react"]
-
-["react", "hooks"]
-```
-
-This pattern is ideal for hierarchies like docs, categories, or filters, where deeper segments refine the view but the root route is still valid. [nextjs](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes)
-
-***
-
-# Route Groups
-
-Folders wrapped in parentheses:
-
-```text
-(site)
-(admin)
-(auth)
-```
-
-do **not** affect the URL. [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
-
-Example:
+Layouts can exist anywhere:
 
 ```text
 app/
-└── (site)/
-    └── about/
-        └── page.tsx
-```
 
-still produces:
-
-```text
-/about
-```
-
-Route groups exist purely for **organization and layout composition**, not for browsers:
-
-- They let you structure large apps (public site vs admin vs auth).
-- They let you share different layouts with the same URL space (e.g. different shells for logged‑in vs logged‑out). [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
-
-Think of them as folders for humans, not for URLs.
-
-***
-
-# `page.tsx` — The Content Region
-
-Every route segment requires a **page** file.
-
-```tsx
-export default function HomePage() {
-  return (
-    <div>
-      <h1>GreyMatter Journal</h1>
-
-      <p>
-        Exploring software engineering
-        and systems thinking.
-      </p>
-    </div>
-  );
-}
-```
-
-Think of:
-
-```text
-page.tsx
-        =
-Current Screen (for this segment)
-```
-
-It does **not** own `<html>` or `<body>`; it owns the portion of the UI that should change when the route changes. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
-
-# `layout.tsx` — The Persistent Shell
-
-Layouts are the **long‑lived shells** around your pages. They remain mounted while you navigate through child routes. [en.nextjs](https://en.nextjs.im/docs/app)
-
-```tsx
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>
-        <nav>Navigation</nav>
-
-        {children}
-
-        <footer>Footer</footer>
-      </body>
-    </html>
-  );
-}
-```
-
-Think of:
-
-```text
-layout.tsx
-        =
-Application Shell
-```
-
-It defines:
-
-- document structure (`<html>`, `<body>`)
-- global providers (theme, auth, query clients)
-- navigation and chrome (header, sidebar, footer) [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-Because layouts persist, you should keep them focused on **stable UI and providers**, not ephemeral page‑specific state. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-***
-
-# What Is `children`?
-
-Another concept that confuses beginners is:
-
-```tsx
-{children}
-```
-
-The `children` prop means:
-
-> “Insert whatever page (or nested layout) is currently active **here**.”
-
-Visualize:
-
-```text
-Layout
-   ↓
-
-Header
-
-{children}
-
-Footer
-```
-
-If the current page is:
-
-```text
-/about
-```
-
-Then Next.js produces:
-
-```text
-Header
-
-About Page
-
-Footer
-```
-
-If the user navigates to:
-
-```text
-/posts
-```
-
-Next.js produces:
-
-```text
-Header
-
-Posts Page
-
-Footer
-```
-
-The layout never disappears. Only the content region (the part represented by `children`) changes. [en.nextjs](https://en.nextjs.im/docs/app)
-
-This is the core of the “persistent UI tree” idea.
-
-***
-
-# Understanding `React.ReactNode`
-
-You will often see:
-
-```typescript
-children: React.ReactNode
-```
-
-This simply means:
-
-> “Anything React knows how to display.”
-
-Examples include:
-
-```typescript
-<string>
-<number>
-<div>
-<Component />
-arrays
-fragments
-```
-
-Think of:
-
-```text
-ReactNode
-        =
-Anything renderable
-```
-
-Typing `children` as `React.ReactNode` ensures your layouts can host arbitrary React UI trees: pages, nested layouts, shared components, and more. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
-
-# Understanding `globals.css`
-
-Another important file is:
-
-```text
-app/globals.css
-```
-
-This file defines the **visual foundation** of your application.
-
-Think of the three core files:
-
-```text
-page.tsx
-        =
-Page Content
-
-layout.tsx
-        =
-Application Structure
-
-globals.css
-        =
-Visual Language
-```
-
-Example:
-
-```css
-@import "tailwindcss";
-
-:root {
-  --background: white;
-  --foreground: #171717;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Inter, sans-serif;
-}
-```
-
-This introduces several important concepts:
-
-- global styling  
-- design tokens  
-- CSS variables  
-- typography systems  
-- theming  
-- design systems  
-
-Together, `layout.tsx` and `globals.css` give you a consistent, persistent look and feel while pages and components change inside the shell. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
-
-# Nested Layouts
-
-Layouts can exist **anywhere** in the `app/` tree. [nextjs](https://nextjs.org/docs/13/app/building-your-application/routing/defining-routes)
-
-```text
-app/
 ├── layout.tsx
-│
-└── posts/
+
+└── (site)/
     ├── layout.tsx
-    └── [slug]/
-        └── page.tsx
+
+    └── posts/
+        ├── layout.tsx
+
+        └── [slug]/
+            └── page.tsx
 ```
 
 Visualized:
 
 ```text
 Root Layout
-    │
-    ├── Header
-    │
-    └── Posts Layout
-            │
-            ├── Sidebar
-            │
-            └── Current Post
+      │
+      └── Site Layout
+               │
+               └── Posts Layout
+                        │
+                        └── Current Article
 ```
 
 When navigating between posts:
 
 ```text
-✓ Header remains
-✓ Sidebar remains
-✓ State remains
-✓ Only post content changes
+✓ Root Layout survives
+✓ Site Layout survives
+✓ Posts Layout survives
+✓ Only article content changes
 ```
 
-This creates:
-
-- better performance  
-- preserved state in shared sections  
-- less JavaScript execution  
-- smoother user experiences  
-
-Senior‑level takeaway: use nested layouts to scope providers and shell UI to specific feature areas, reducing duplication and clarifying boundaries. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
-
-***
-
-# GreyMatter Journal Architecture
-
-Our final structure will look like:
+This gives us:
 
 ```text
-app/
-├── (site)/
-│   ├── page.tsx
-│   ├── about/
-│   └── posts/
-│       └── [slug]/
-│
-├── globals.css
-└── layout.tsx
+✓ Preserved state
+✓ Faster rendering
+✓ Better performance
+✓ Better user experience
 ```
 
-This gives us a clear hierarchy:
+---
+
+# Understanding `globals.css`
+
+Another file created by Next.js is:
 
 ```text
-Global Application Shell
-            ↓
-Site Layout
-            ↓
-Feature Layouts
-            ↓
-Page Components
-            ↓
-Child Components
+app/globals.css
 ```
 
-Each level has a specific responsibility:
+This is not simply a CSS file.
 
-- **Global shell**: document, base providers, top‑level navigation.  
-- **Site layout**: site‑wide chrome for public pages.  
-- **Feature layouts**: local shells for posts, docs, etc.  
-- **Pages**: route‑specific screens.  
-- **Child components**: reusable UI pieces inside screens. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
+It becomes the foundation of our design system.
 
-***
+Think of our application architecture:
+
+```text
+page.tsx
+        =
+Content
+
+layout.tsx
+        =
+Structure
+
+globals.css
+        =
+Visual Language
+```
+
+Throughout GreyMatter Journal, we will gradually evolve:
+
+```text
+globals.css
+
+        ↓
+
+Design Tokens
+
+        ↓
+
+Themes
+
+        ↓
+
+Typography
+
+        ↓
+
+Dark Mode
+
+        ↓
+
+Component Styling
+
+        ↓
+
+Design System
+```
+
+---
 
 # The Mental Model To Remember Forever
 
@@ -851,48 +748,45 @@ Next.js
 Pages
 ```
 
+Intermediate developers think:
+
+```text
+Next.js
+        =
+Routes
+```
+
 Professional engineers think:
 
 ```text
 Next.js
         =
-Persistent UI Tree
+Persistent UI Trees
 
-            ↓
+                +
+Architectural Boundaries
 
-Application Shell
-
-            ↓
-
-Nested Layouts
-
-            ↓
-
-Current Page
-
-            ↓
-
-Child Components
+                +
+System Organization
 ```
 
-Modern web applications are not collections of pages. They are **living user interfaces** where stable pieces remain mounted while only the changing pieces update.
+Modern applications are not collections of pages.
 
-That single mental model explains almost everything in the App Router:
+They are systems of persistent user interfaces organized to help both computers and humans manage complexity.
 
-- why folders become routes,  
-- why layouts exist and persist,  
-- why `params` can be a `Promise`,  
-- and why performance and UX improve when you update only the necessary branches of the UI tree. [en.nextjs](https://en.nextjs.im/docs/app)
-
-***
+---
 
 # Up Next — Part 3: Understanding `app/layout.tsx`
 
-In the next lesson, we will explore:
+In the next lesson, we'll explore:
 
-- why every Next.js application requires a root layout  
-- how `<html>` and `<body>` work in App Router  
-- what `React.ReactNode` really means in practice  
-- how providers plug into layouts  
-- how themes and fonts integrate with the shell  
-- and how modern applications build **persistent application shells** that feel instant and continuous. [dev](https://dev.to/prateekshaweb/nextjs-app-router-for-beginners-pages-layouts-and-navigation-4kd)
+* why every application needs a root layout
+* how `<html>` and `<body>` work
+* what `React.ReactNode` really means
+* providers
+* themes
+* fonts
+* metadata
+* application shells
+* persistent user interfaces
+* the foundations of modern web architecture
