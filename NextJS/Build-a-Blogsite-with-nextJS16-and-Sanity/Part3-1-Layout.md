@@ -682,25 +682,77 @@ Modern web applications are not collections of pages.
 
 They are persistent, composable, hierarchical user interfaces designed to manage complexity over time.
 
+But if layouts are containers for pages, a new question immediately appears:
+
+> How does a page know *which* content to display?
+
+For example:
+
+```text
+/posts/react-server-components
+
+/posts/nextjs-app-router
+
+/posts/typescript-for-beginners
+```
+
+All of these URLs render the same file:
+
+```text
+app/posts/[slug]/page.tsx
+```
+
+Yet somehow Next.js knows:
+
+```text
+slug = "react-server-components"
+
+slug = "nextjs-app-router"
+
+slug = "typescript-for-beginners"
+```
+
+Similarly, when a user searches:
+
+```text
+/search?q=react
+```
+
+Next.js somehow knows:
+
+```text
+q = "react"
+```
+
+Where does this information come from?
+
+How does it arrive inside our page?
+
+And why does modern Next.js treat these values as asynchronous?
+
+These questions lead us to one of the most important ideas in the App Router:
+
+> Pages do not simply render UI.
+
+They receive information from the routing system.
+
 ---
 
-# Up Next — Part 4: Understanding TypeScript Through `RootLayout`
+# Up Next — Part 3-2: Understanding `params` and `searchParams`
 
-Next, we'll finally decode this syntax:
+Next, we'll explore how the App Router passes information into your components through:
 
 ```tsx
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-})
+params
+
+searchParams
 ```
 
 You'll learn:
 
-* JavaScript object destructuring
-* Function parameter destructuring
-* Type annotations
-* `React.ReactNode`
-* TypeScript contracts
-* Why TypeScript is fundamentally about describing reality, not adding complexity
+* Dynamic routes (`[slug]`)
+* URL search parameters (`?q=react`)
+* Why `params` is now asynchronous
+* Why routing is actually data flow
+* How pages become functions of URL state
+* Why modern applications are fundamentally URL-driven systems
