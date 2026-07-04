@@ -6,33 +6,59 @@
 
 ## Part 12 — Building Dynamic Article Pages: Routes, Parameters, and Tree Traversal
 
-> **Goal of this lesson:** Create individual article pages using dynamic routes and understand how Next.js routing really works.
+> **Goal of this lesson:** Build individual article pages using dynamic routes, understand how Next.js routing really works, and learn why routing in modern applications is fundamentally a problem of tree traversal.
 
 ---
 
-### From List to Detail View
+## From Collections to Individual Resources
 
-Our homepage now shows a list of posts.
+Our homepage now displays a collection of articles.
 
-Clicking a title should take readers to the full article.
+The next step is allowing readers to navigate from a list of posts to an individual article page.
 
-```text id="h5r8qp"
+```text
 Homepage
     ↓
-Post List
+List of Posts
     ↓
-Individual Article
+Individual Post
 ```
 
-This transition—from collections to individual resources—is one of the fundamental patterns of web applications.
+This pattern appears everywhere in software:
+
+```text
+Products
+    ↓
+Product Detail
+
+Users
+    ↓
+User Profile
+
+Movies
+    ↓
+Movie Detail
+
+Articles
+    ↓
+Article Page
+```
+
+What changes is the data.
+
+The architectural pattern remains the same.
 
 ---
 
-### Step 1: Update PostCard Links
+## Step 1 — Update the Post Links
 
-Make sure your `PostCard` links to the correct dynamic route:
+Our `PostCard` component already displays the post title.
 
-```tsx id="p4m7ws"
+Now we'll make each title clickable.
+
+```tsx
+import Link from "next/link";
+
 <Link
   href={`/posts/${post.slug.current}`}
   className="hover:underline"
@@ -41,35 +67,96 @@ Make sure your `PostCard` links to the correct dynamic route:
 </Link>
 ```
 
-When rendered, this becomes:
+If a post has the slug:
 
-```text id="z9k3vt"
+```text
+understanding-react-server-components
+```
+
+the generated URL becomes:
+
+```text
 /posts/understanding-react-server-components
 ```
 
-or:
+Similarly:
 
-```text id="w2f6rm"
+```text
+why-nextjs-matters
+```
+
+becomes:
+
+```text
 /posts/why-nextjs-matters
 ```
 
+This URL structure is important because URLs become part of your application's public API.
+
+Good URLs should be:
+
+* Readable
+* Predictable
+* Stable
+* SEO-friendly
+
 ---
 
-### Step 2: Create the Dynamic Route
+## Step 2 — Create the Dynamic Route
 
-Create the folder structure:
+Create the route folder:
 
-```bash id="u8p2nx"
-mkdir -p app/posts/[slug]
+```bash
+mkdir -p app/'(site)'/posts/[slug]
 ```
 
-Then create:
+Our application structure now becomes:
 
-```text id="g4r7kc"
-app/posts/[slug]/page.tsx
+```text
+app/
+├── layout.tsx
+├── globals.css
+└── (site)/
+    ├── page.tsx
+    └── posts/
+        ├── page.tsx
+        └── [slug]/
+            └── page.tsx
 ```
 
-```tsx id="n3v8qm"
+Notice something important:
+
+```text
+(site)
+```
+
+does not appear in the URL.
+
+The route:
+
+```text
+app/(site)/posts/[slug]/page.tsx
+```
+
+still produces:
+
+```text
+/posts/my-article
+```
+
+This is because route groups exist purely for organization.
+
+---
+
+## Step 3 — Create the Article Page
+
+Create:
+
+```text
+app/(site)/posts/[slug]/page.tsx
+```
+
+```tsx
 import { client } from "@/lib/sanity";
 import { POST_QUERY } from "@/lib/queries";
 import { notFound } from "next/navigation";
@@ -81,14 +168,12 @@ export default async function PostPage({
     slug: string;
   }>;
 }) {
-  const { slug } =
-    await params;
+  const { slug } = await params;
 
-  const post =
-    await client.fetch(
-      POST_QUERY,
-      { slug }
-    );
+  const post = await client.fetch(
+    POST_QUERY,
+    { slug }
+  );
 
   if (!post) {
     notFound();
@@ -108,22 +193,15 @@ export default async function PostPage({
 
           <span>•</span>
 
-          <time
-            dateTime={
-              post.publishedAt
-            }
-          >
+          <time dateTime={post.publishedAt}>
             {new Date(
               post.publishedAt
             ).toLocaleDateString(
               "en-US",
               {
-                year:
-                  "numeric",
-                month:
-                  "long",
-                day:
-                  "numeric",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               }
             )}
           </time>
@@ -135,7 +213,7 @@ export default async function PostPage({
           {post.excerpt}
         </p>
 
-        {/* Body rendered in Part 13 */}
+        {/* Portable Text in Part 13 */}
       </div>
     </article>
   );
@@ -144,17 +222,16 @@ export default async function PostPage({
 
 ---
 
-### Step 3: Add the Single Post Query
+## Step 4 — Create the Post Query
 
 Update:
 
-```text id="r7m4wy"
+```text
 lib/queries.ts
 ```
 
-```typescript id="k2p9vx"
-export const
-  POST_QUERY = `
+```typescript
+export const POST_QUERY = `
   *[
     _type == "post" &&
     slug.current == $slug
@@ -176,64 +253,111 @@ export const
 `;
 ```
 
+Let's understand what's happening.
+
+```groq
+slug.current == $slug
+```
+
+means:
+
+> Find the post whose slug matches the value passed from the URL.
+
+If the URL is:
+
+```text
+/posts/why-nextjs-matters
+```
+
+then:
+
+```text
+$slug
+       =
+why-nextjs-matters
+```
+
 ---
 
-### How Dynamic Routes Work
+## How Dynamic Routes Work
 
 The folder:
 
-```text id="f9q3rm"
+```text
 [slug]
 ```
 
 tells Next.js:
 
-* This URL segment is dynamic
-* Capture its value
-* Pass it to the page component
+```text
+This segment of the URL
+is not fixed.
+```
 
-For example:
+Instead:
 
-```text id="d6k8wp"
-/posts/understanding-react-server-components
+```text
+Capture whatever appears here
+and provide it to the page.
+```
+
+Example:
+
+```text
+/posts/react-server-components
+```
+
+produces:
+
+```typescript
+{
+  slug:
+    "react-server-components"
+}
+```
+
+Likewise:
+
+```text
+/posts/why-nextjs-matters
 ```
 
 becomes:
 
-```typescript id="m4v7qy"
-params = {
+```typescript
+{
   slug:
-    "understanding-react-server-components"
-};
+    "why-nextjs-matters"
+}
 ```
 
 ---
 
-### Dynamic Segments Are Variables
+## Dynamic Segments Are Variables
 
-Think of:
+You can mentally translate:
 
-```text id="q2r5nb"
+```text
 posts/[slug]
 ```
 
-as:
+into:
 
-```text id="s8k4mp"
+```text
 posts/{variable}
 ```
 
 or:
 
-```text id="z5p7rc"
+```text
 /posts/:slug
 ```
 
-from other frameworks.
+if you've used other frameworks.
 
 Examples:
 
-| URL                              | Value of `slug`             |
+| URL                              | Captured Value              |
 | -------------------------------- | --------------------------- |
 | `/posts/hello-world`             | `"hello-world"`             |
 | `/posts/nextjs-16`               | `"nextjs-16"`               |
@@ -241,37 +365,36 @@ Examples:
 
 ---
 
-### How Next.js Finds the Route
+## How Next.js Finds the Route
 
-Suppose the browser requests:
+Suppose a reader visits:
 
-```text id="t4m9qy"
+```text
 /posts/understanding-react-server-components
 ```
 
-Next.js walks the `app/` directory:
+Next.js walks the application tree:
 
-```text id="y7p2vk"
+```text
 app/
-├── page.tsx
-├── about/
-├── posts/
-│   ├── page.tsx
-│   └── [slug]/
-│       └── page.tsx
+├── layout.tsx
+└── (site)/
+    └── posts/
+        └── [slug]/
+            └── page.tsx
 ```
 
-The routing engine performs something similar to:
+Internally, the router performs something conceptually similar to:
 
-```text id="e3r6wf"
-Look for "posts"
+```text
+Find "posts"
          ↓
 Found
          ↓
-Look for
+Find
 "understanding-react-server-components"
          ↓
-No exact match
+No exact folder exists
          ↓
 Found [slug]
          ↓
@@ -282,33 +405,25 @@ Render page.tsx
 
 ---
 
-### Routing Is Tree Traversal
+## Routing Is Really Tree Traversal
 
-One of the deepest ideas in the App Router is that routing is fundamentally a tree traversal problem.
+One of the deepest ideas in the App Router is this:
 
-```text id="j5v8xp"
-URL
-  ↓
-Segment
-  ↓
-Folder
-  ↓
-Segment
-  ↓
-Folder
-  ↓
-Page
+```text
+Routing
+      =
+Tree Traversal
 ```
 
-Example:
+The browser URL:
 
-```text id="u2m7qc"
+```text
 /posts/react/hooks
 ```
 
 becomes:
 
-```text id="p8k4vy"
+```text
 app
  ↓
 posts
@@ -318,9 +433,11 @@ react
 hooks
 ```
 
-This is why the App Router feels so natural:
+This explains why file-system routing feels so natural.
 
-```text id="c4q9rm"
+Your application architecture becomes:
+
+```text
 Folder Structure
          =
 Application Structure
@@ -328,64 +445,120 @@ Application Structure
 
 ---
 
-### Why `params` Is a Promise
+## Dynamic Routes and Persistent UI
 
-In Next.js 16, route parameters are asynchronous:
+Remember what we learned in Part 2:
 
-```tsx id="v6r2wn"
-export default async function Page({
-  params,
-}: {
-  params:
-    Promise<{
-      slug: string;
-    }>;
-}) {
-  const { slug } =
-    await params;
+Modern applications are not collections of pages.
+
+They are persistent UI trees.
+
+When navigating from:
+
+```text
+/posts/why-nextjs-matters
+```
+
+to:
+
+```text
+/posts/react-server-components
+```
+
+Next.js does not destroy the entire application.
+
+Instead:
+
+```text
+Root Layout
+       ↓
+Site Layout
+       ↓
+Posts Layout
+       ↓
+Article Page
+```
+
+only the article page changes.
+
+Everything else remains mounted.
+
+This provides:
+
+* Faster navigation
+* Less JavaScript execution
+* Preserved state
+* Better user experience
+
+This is one of the major reasons modern applications feel "native."
+
+---
+
+## Why Is `params` a Promise?
+
+You may have noticed:
+
+```tsx
+params: Promise<{
+  slug: string;
+}>
+```
+
+instead of:
+
+```tsx
+params: {
+  slug: string;
 }
 ```
 
-This allows Next.js to integrate routing with:
+In Next.js 16, route parameters are asynchronous.
 
-* Streaming
+```tsx
+const { slug } =
+  await params;
+```
+
+This enables integration with:
+
 * React Server Components
+* Streaming
 * Suspense
 * Partial rendering
 * Future rendering optimizations
 
-Although it may look unusual at first, treating route data as asynchronous enables a more flexible rendering pipeline.
+Although it initially feels strange, asynchronous routing gives Next.js a much more flexible rendering pipeline.
 
 ---
 
-### Styling Long-Form Content
+## Styling Long-Form Content
 
-Our article page uses:
+Our article page currently uses:
 
-```tsx id="b9m4qx"
+```tsx
 className="
   prose
   prose-lg
 "
 ```
 
-Soon, we'll extend our global typography system in:
+As GreyMatter Journal evolves, we'll gradually build our typography system inside:
 
-```text id="a3p7kv"
+```text
 app/globals.css
 ```
 
 For example:
 
-```css id="w5r8nm"
+```css
 .prose {
   max-width: 70ch;
 }
 ```
 
-Later we'll add:
+Later we'll extend this further:
 
-```css id="n7q2xp"
+```css
 pre {
   overflow-x: auto;
   padding: 1rem;
@@ -398,15 +571,55 @@ code {
 }
 ```
 
-This helps create the clean, highly readable experience that defines GreyMatter Journal.
+This typography layer is one of the key ingredients behind highly readable technical publications.
 
 ---
 
-### Mental Model To Remember Forever
+## A Preview of Static Generation
+
+Later in this series, we'll optimize article pages using:
+
+```tsx
+export async function generateStaticParams() {
+  const slugs =
+    await client.fetch(`
+      *[_type == "post"]{
+        "slug": slug.current
+      }
+    `);
+
+  return slugs;
+}
+```
+
+This allows Next.js to:
+
+```text
+Build Time
+      ↓
+Generate HTML
+      ↓
+Deploy to CDN
+      ↓
+Serve Globally
+```
+
+For content-heavy websites like blogs, this provides:
+
+* Better SEO
+* Faster page loads
+* Lower infrastructure costs
+* Greater reliability
+
+We'll explore this in depth when we study rendering strategies and caching.
+
+---
+
+## Mental Model To Remember Forever
 
 **Traditional thinking:**
 
-```text id="m8k5rw"
+```text
 URL
    ↓
 Page
@@ -414,7 +627,7 @@ Page
 
 **Modern thinking:**
 
-```text id="h4q7yp"
+```text
 URL
    ↓
 Route Parameters
@@ -426,9 +639,9 @@ React Tree
 UI
 ```
 
-And underneath it all:
+And underneath everything:
 
-```text id="r2v9kc"
+```text
 Routing
      =
 Tree Traversal
@@ -436,12 +649,14 @@ Tree Traversal
 
 ---
 
-### Up Next — Part 13: Rendering Portable Text
+## Up Next — Part 13: Rendering Portable Text
 
-We'll tackle rich content rendering:
+We'll finally tackle rich content rendering:
 
 * What Portable Text actually is
-* Building a custom Portable Text renderer
-* Handling headings, paragraphs, lists, images, and code blocks
+* Why structured content is superior to HTML
+* Building custom Portable Text renderers
+* Rendering headings, lists, images, and code blocks
 * Extending our typography system in `globals.css`
-* Why structured content is superior to raw HTML
+
+This is where GreyMatter Journal begins to feel like a real publishing platform.
