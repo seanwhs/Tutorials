@@ -65,19 +65,54 @@ It uses the **file system** as the router — a concept called **file-system rou
 
 ---
 
-### Folders = Routes
+## Folders = Routes
 
-In the `app/` directory:
+In the `app/` directory, folders define your application's URL structure:
 
-| File / Folder Structure                    | Resulting URL          |
-|-------------------------------------------|------------------------|
-| `app/page.tsx`                            | `/` (homepage)         |
-| `app/about/page.tsx`                      | `/about`               |
-| `app/posts/page.tsx`                      | `/posts`               |
-| `app/posts/[slug]/page.tsx`               | `/posts/my-first-post` |
-| `app/admin/(dashboard)/page.tsx`          | `/admin` (route group) |
+| File / Folder Structure              | Resulting URL                              | Route Type                      |
+| ------------------------------------ | ------------------------------------------ | ------------------------------- |
+| `app/page.tsx`                       | `/`                                        | Static route                    |
+| `app/about/page.tsx`                 | `/about`                                   | Static route                    |
+| `app/posts/page.tsx`                 | `/posts`                                   | Static route                    |
+| `app/posts/[slug]/page.tsx`          | `/posts/my-first-post`                     | Dynamic route                   |
+| `app/posts/[slug]/comments/page.tsx` | `/posts/my-first-post/comments`            | Nested dynamic route            |
+| `app/category/[category]/page.tsx`   | `/category/react`                          | Dynamic route                   |
+| `app/docs/[...slug]/page.tsx`        | `/docs/getting-started/install`            | Catch-all route                 |
+| `app/docs/[[...slug]]/page.tsx`      | `/docs` or `/docs/getting-started/install` | Optional catch-all route        |
+| `app/admin/(dashboard)/page.tsx`     | `/admin`                                   | Route group (organization only) |
 
-**Route groups** (folders wrapped in parentheses) like `(site)` do **not** affect the URL — they are used for organization (as shown in **Appendix B**).
+### Dynamic Route Syntax
+
+Next.js uses square brackets to define dynamic route segments:
+
+* **`[slug]`** — Matches a single dynamic segment.
+
+  ```text
+  app/posts/[slug]/page.tsx
+                    ↓
+          /posts/my-first-post
+  ```
+
+* **`[...slug]`** — Matches one or more segments (catch-all route).
+
+  ```text
+  app/docs/[...slug]/page.tsx
+                    ↓
+          /docs/react/hooks/useEffect
+  ```
+
+* **`[[...slug]]`** — Matches zero or more segments (optional catch-all route).
+
+  ```text
+  app/docs/[[...slug]]/page.tsx
+                    ↓
+          /docs
+          /docs/react
+          /docs/react/hooks
+  ```
+
+> **Important:** Route groups (folders wrapped in parentheses), such as `(site)` or `(dashboard)`, do **not** affect the URL structure. They exist purely for organizing your application architecture and layouts.
+
 
 ---
 
