@@ -715,3 +715,26 @@ That question powers:
 * Incremental Static Regeneration
 * Edge Computing
 * Modern web architecture itself
+
+---
+
+# Up Next — Part 4: Understanding TypeScript Through `RootLayout`
+
+Next, we'll finally decode this syntax:
+
+```tsx
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+})
+```
+
+You'll learn:
+
+* JavaScript object destructuring
+* Function parameter destructuring
+* Type annotations
+* `React.ReactNode`
+* TypeScript contracts
+* Why TypeScript is fundamentally about describing reality, not adding complexity
