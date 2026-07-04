@@ -22,20 +22,17 @@ cd studio
 npm run dev
 ```
 
-Open: `http://localhost:3333`
+Open `http://localhost:3333`
 
-You’ll see the three content types we defined: **Posts**, **Authors**, and **Categories**.
+You’ll see **Posts**, **Authors**, and **Categories**.
 
 ---
 
 ### 1. Create an Author
 
-Go to **Authors** → **Create new**
-
 - **Name**: Sean Wong
-- **Slug**: (auto-generated)
-- **Biography**: Write a short bio
-- **Avatar**: Upload an image (optional)
+- **Biography**: Short bio
+- **Avatar**: Upload image (optional)
 
 **Publish**
 
@@ -43,54 +40,46 @@ Go to **Authors** → **Create new**
 
 ### 2. Create Categories
 
-Create a few categories:
-
-- **Architecture** – Software design and systems thinking
-- **Web Development** – Modern frontend and frameworks
-- **AI Engineering** – Building intelligent systems
+- **Architecture** – Systems design
+- **Web Development** – Modern frontend
+- **AI Engineering** – Intelligent systems
 
 ---
 
 ### 3. Create Your First Post
 
-Go to **Posts** → **Create new**
-
-Fill in:
-
 - **Title**: Understanding React Server Components
-- **Slug**: (generate from title)
-- **Excerpt**: A clear, beginner-friendly introduction...
-- **Cover Image**: Upload one
-- **Author**: Select "Sean Wong"
-- **Categories**: Select multiple
-- **Published At**: Choose today's date
+- **Slug**: Auto-generated
+- **Excerpt**: Beginner-friendly introduction...
+- **Hero Image**: Upload one
+- **Author**: Sean Wong
+- **Categories**: Multiple
+- **Published At**: Today
 
 ---
 
-### Writing in Portable Text
+### Writing with Portable Text
 
-In the **Body** field, write content using the rich text editor. You can add:
+In the **Body** field, use the rich text editor to add headings, paragraphs, lists, etc.
 
-- Headings
-- Paragraphs
-- Lists
-- Blockquotes, etc.
-
-**Publish** the post.
+**Publish**
 
 ---
 
 ### What Sanity Actually Stores
 
-Sanity doesn’t store HTML. It stores **structured data** (Portable Text for rich content + references for relationships).
+Sanity stores **structured data**:
 
-This is extremely powerful because the same content can be rendered on websites, mobile apps, RSS feeds, newsletters, etc.
+- Portable Text for rich content
+- References for relationships
+
+This allows the same content to be used across websites, apps, RSS, etc.
 
 ---
 
-### Query the Content from Next.js
+### Query the Content
 
-Update or create `app/test/page.tsx`:
+Update `app/test/page.tsx`:
 
 ```tsx
 import { client } from "@/lib/sanity";
@@ -122,16 +111,14 @@ export default async function TestPage() {
 }
 ```
 
-Visit `http://localhost:3000/test` — you should see your post with resolved author and categories.
-
 ---
 
 ### Key Concepts
 
-- **Documents**: Individual pieces of content (Post, Author, Category)
-- **References** (`_ref`): Links between documents (no data duplication)
-- **Portable Text**: Structured rich text instead of HTML
-- **GROQ Projections**: Fetch exactly the fields you need
+- **Documents**: Individual pieces of content
+- **References** (`_ref`): Links between documents (no duplication)
+- **Portable Text**: Structured rich text (AST)
+- **GROQ Projections**: Fetch exactly what you need
 
 ---
 
@@ -140,16 +127,10 @@ Visit `http://localhost:3000/test` — you should see your post with resolved au
 > A blog post is not an HTML page.  
 > It is a **document** with **relationships** and **structured data**.
 
-The frontend’s job is to transform that data into beautiful UI.
+The frontend transforms that data into UI.
 
 ---
 
 ### Up Next — Part 11: Building the Homepage
 
-We’ll:
-- Create a proper homepage that lists posts
-- Learn how to render lists in Server Components
-- Style cards with Tailwind
-- Prepare for dynamic routes (`[slug]`)
-
-This is where GreyMatter Journal starts looking like a real publication.
+We’ll create a list of posts, style cards, and prepare for dynamic routes.
