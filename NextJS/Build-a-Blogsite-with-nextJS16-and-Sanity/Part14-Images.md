@@ -1,24 +1,28 @@
-# **✅ Part 14 — Images in Modern Web Applications**
+# **Part 14 — Images in Modern Web Applications**
 
 # GreyMatter Journal
 
-## Part 14 — Images: Asset Pipelines, CDNs, and `next/image`
+## Part 14 — Images: Asset Pipelines, Distributed Systems, and the Architecture of Modern Media Delivery
 
-> **Goal of this lesson:** Understand how modern web applications handle images using Sanity and Next.js, and learn why images are fundamentally distributed assets processed through transformation pipelines.
+> **Goal of this lesson:** Understand how modern web applications handle images using Sanity and Next.js, and discover why images are no longer simple files, but distributed assets processed through global transformation pipelines.
 
 ---
 
-# Images Are Harder Than They Look
+# The Great Lie of Web Development
 
-At first glance, displaying an image appears trivial:
+One of the first things every web developer learns is this:
 
 ```html
 <img src="photo.jpg" />
 ```
 
-This worked reasonably well in the early days of the web.
+This creates a dangerous illusion.
 
-However, modern applications face a very different reality.
+It suggests that images are simple.
+
+For many years, that illusion was mostly acceptable. Websites were smaller, screens were simpler, and users expected pages to load slowly.
+
+But modern web applications live in a very different world.
 
 Consider a single image uploaded by an editor:
 
@@ -26,17 +30,20 @@ Consider a single image uploaded by an editor:
 hero-photo.jpg
 ```
 
-Questions immediately arise:
+Immediately, dozens of questions emerge:
 
-* Is the user on mobile or desktop?
-* Is the screen Retina or standard density?
-* Should we serve JPEG, WebP, or AVIF?
-* Should we crop or resize?
-* Should we lazy load?
-* Should we cache globally?
+* Is the visitor using a phone or a desktop?
+* Is the screen standard density or Retina?
+* Should we deliver JPEG, WebP, or AVIF?
+* Should the image be resized?
+* Should it be cropped?
+* Should it be compressed?
+* Should it be lazy loaded?
 * Which CDN edge location should serve it?
+* Has this version already been cached?
+* How do we preserve visual quality while reducing bandwidth?
 
-Suddenly:
+Suddenly, something profound becomes apparent:
 
 ```text
 Image
@@ -53,50 +60,111 @@ Asset
     +
 Metadata
     +
-Transformation Pipeline
+Transformation Rules
     +
-CDN Delivery
+Caching Strategy
+    +
+Global Distribution Network
 ```
+
+Modern image handling is not a frontend problem.
+
+It is a distributed systems problem.
+
+---
+
+# Images Are One of the Hardest Problems on the Web
+
+Text is easy.
+
+A blog post containing:
+
+```text
+Hello World
+```
+
+is:
+
+```text
+11 bytes
+```
+
+An image, however, might be:
+
+```text
+5 MB
+10 MB
+20 MB
+```
+
+And unlike text:
+
+```text
+The same image
+must exist in many forms.
+```
+
+For example:
+
+```text
+Original
+     ↓
+Desktop Version
+     ↓
+Tablet Version
+     ↓
+Mobile Version
+     ↓
+Retina Version
+     ↓
+Thumbnail Version
+     ↓
+Preview Version
+```
+
+This is why modern image systems rarely store or serve images directly.
+
+Instead, they build image pipelines.
 
 ---
 
 # The Modern Image Pipeline
 
-Modern web applications rarely serve original images directly.
+When an editor uploads an image, the browser rarely receives that original file.
 
-Instead, they use an asset pipeline:
+Instead, the image travels through an entire processing pipeline:
 
 ```text
 Editor Upload
        ↓
 Asset Storage
        ↓
-Image Metadata
+Metadata Extraction
        ↓
-Transformation Service
+Transformation Engine
        ↓
-CDN Cache
+CDN Distribution
        ↓
 Browser Optimization
        ↓
 User
 ```
 
-This is precisely what Sanity and Next.js provide together.
+This is exactly what happens when Sanity and Next.js work together.
 
 ---
 
-# Step 1 — Add Images to Our Schemas
+# Step 1 — Extend Our Content Model
 
-Let's begin by extending our content model.
+Let's begin by teaching our content model that posts have images.
 
-Update:
+Open:
 
 ```text
 studio/schemaTypes/post.ts
 ```
 
-Add a featured image:
+Add:
 
 ```typescript
 defineField({
@@ -109,41 +177,7 @@ defineField({
 });
 ```
 
-The `hotspot` option is extremely important.
-
-It allows editors to specify:
-
-```text
-The important part
-of the image.
-```
-
-For example:
-
-```text
-Landscape Photo
-
- -------------------
-|                   |
-|      PERSON       |
-|                   |
- -------------------
-
-       ↑
-    Hotspot
-```
-
-When the image is cropped responsively, Sanity attempts to preserve this focal point.
-
----
-
-Update:
-
-```text
-studio/schemaTypes/author.ts
-```
-
-Add profile images:
+Similarly, add profile images to authors:
 
 ```typescript
 defineField({
@@ -156,25 +190,61 @@ defineField({
 });
 ```
 
-After updating the schemas:
+---
 
-```bash
-npm run dev
+# Why Is `hotspot` Important?
+
+Suppose an editor uploads:
+
+```text
+ -------------------------
+|                         |
+|        PERSON           |
+|                         |
+ -------------------------
 ```
 
-inside the Studio project and publish the changes.
+The editor knows the important part of the image is:
+
+```text
+PERSON
+```
+
+Without additional information, a cropping algorithm might do this:
+
+```text
+ -------------------------
+|                         |
+|                         |
+ -------------------------
+```
+
+The subject disappears.
+
+The `hotspot` feature allows editors to communicate intent:
+
+```text
+This region matters.
+Protect it.
+```
+
+Modern image systems are not merely storing pixels.
+
+They are storing meaning.
 
 ---
 
 # What Does Sanity Actually Store?
 
-Many beginners assume Sanity stores:
+Many beginners imagine that Sanity stores this:
 
 ```text
+post
+    ↓
 photo.jpg
 ```
 
-It doesn't.
+But that's not what happens.
 
 Instead, Sanity stores something closer to:
 
@@ -182,30 +252,41 @@ Instead, Sanity stores something closer to:
 {
   "_type": "image",
   "asset": {
-    "_ref":
-      "image-abc123-2400x1600-jpg"
+    "_ref": "image-abc123-2400x1600-jpg"
   }
 }
 ```
 
-Notice:
+Notice something surprising:
 
 ```text
-No actual image exists
-inside your document.
+The image itself
+is not inside the document.
 ```
 
-Instead, the document contains:
+Instead:
 
 ```text
+Document
+      ↓
 Reference
-        ↓
+      ↓
 Asset Store
 ```
 
-This is another example of one of our recurring architectural themes:
+This should feel familiar.
 
-> Everything becomes a graph of relationships.
+Throughout modern software engineering, we repeatedly discover the same pattern:
+
+```text
+Systems
+       =
+Objects
+       +
+Relationships
+```
+
+Content management systems are no different.
 
 ---
 
@@ -217,7 +298,9 @@ Install Sanity's image URL builder:
 npm install @sanity/image-url
 ```
 
-This package allows us to construct image transformation requests.
+This package doesn't manipulate images.
+
+Instead, it constructs image transformation requests.
 
 ---
 
@@ -246,7 +329,7 @@ export function urlFor(
 }
 ```
 
-This helper creates a fluent API:
+This helper gives us a fluent API:
 
 ```typescript
 urlFor(post.mainImage)
@@ -255,9 +338,13 @@ urlFor(post.mainImage)
   .url();
 ```
 
+At first glance, this appears to resize an image.
+
+It doesn't.
+
 ---
 
-# What Is Really Happening?
+# What Is Actually Happening?
 
 Consider:
 
@@ -268,9 +355,7 @@ urlFor(post.mainImage)
   .url();
 ```
 
-This does not resize the image.
-
-Instead, it generates a URL:
+This simply produces a URL:
 
 ```text
 https://cdn.sanity.io/...
@@ -278,16 +363,20 @@ https://cdn.sanity.io/...
     &h=450
 ```
 
-When requested:
+The real work happens later:
 
 ```text
 Browser
       ↓
 Sanity CDN
       ↓
-Resize Image
+Fetch Original Asset
       ↓
-Compress Image
+Resize
+      ↓
+Crop
+      ↓
+Compress
       ↓
 Convert Format
       ↓
@@ -296,15 +385,33 @@ Cache Result
 Return Response
 ```
 
-This process is called:
+This architecture is called:
 
 ```text
 On-demand image transformation.
 ```
 
+Rather than storing every possible image size:
+
+```text
+photo-small.jpg
+photo-medium.jpg
+photo-large.jpg
+photo-mobile.jpg
+photo-retina.jpg
+```
+
+we store:
+
+```text
+One original image
+```
+
+and generate everything else dynamically.
+
 ---
 
-# Step 4 — Configure Next.js
+# Step 4 — Teach Next.js to Trust Sanity
 
 Open:
 
@@ -335,42 +442,36 @@ const nextConfig:
 export default nextConfig;
 ```
 
-This tells Next.js:
+Why?
 
-> These external image sources are trusted.
+Because Next.js intentionally distrusts external image sources.
 
-Without this configuration, Next.js blocks external images.
+This is a security feature.
+
+By configuring `remotePatterns`, we're telling Next.js:
+
+> Images from this domain are trusted.
 
 ---
 
-# Step 5 — Update Our Queries
+# Step 5 — Extend Our Queries
 
-Update:
-
-```text
-lib/queries.ts
-```
-
-Add the featured image:
+Update our GROQ query:
 
 ```groq
 mainImage,
-```
 
-Add author images:
-
-```groq
 author->{
-    name,
-    image
+  name,
+  image
 }
 ```
 
-Our query now returns:
+Now our application receives:
 
 ```text
 Post
-     ↓
+    ↓
 Title
 Slug
 Excerpt
@@ -380,9 +481,30 @@ Author Image
 Categories
 ```
 
+Notice something important:
+
+```text
+UI components
+never fetch images directly.
+```
+
+Instead:
+
+```text
+Content
+      ↓
+Query
+      ↓
+Data Model
+      ↓
+Component
+      ↓
+Rendered UI
+```
+
 ---
 
-# Step 6 — Render Images in Post Cards
+# Step 6 — Render Images
 
 Open:
 
@@ -431,59 +553,60 @@ Then render:
 
 ---
 
-# Why Use `next/image`?
+# Why Not Just Use `<img>`?
 
-Many beginners ask:
+This is one of the best beginner questions.
 
-> Why not just use `<img>`?
-
-Traditional HTML:
+Traditional HTML gives us:
 
 ```html
 <img src="image.jpg" />
 ```
 
-provides:
+Which essentially means:
 
 ```text
-✓ Display image
+Show image.
 ```
 
-`next/image` provides:
+The `next/image` component provides much more:
 
 ```text
-✓ Lazy loading
-✓ Responsive sizing
-✓ Automatic optimization
+✓ Automatic lazy loading
 ✓ Layout stability
-✓ Blur placeholders
-✓ CDN integration
-✓ Modern image formats
+✓ Responsive sizing
 ✓ Browser optimization
+✓ CDN integration
+✓ Modern formats
+✓ Performance optimization
+✓ Reduced bandwidth
+✓ Better Core Web Vitals
 ```
 
-In modern applications:
+In modern web engineering:
 
 ```text
-Image rendering
-       =
+Rendering images
+        =
 Performance engineering
 ```
 
 ---
 
-# Hero Images
+# Hero Images Are Different
 
-On article pages, we often want the main image to load immediately.
+Not every image should be lazy loaded.
 
-Example:
+Consider an article hero image:
 
 ```tsx
 <Image
-  src={urlFor(post.mainImage)
-    .width(1600)
-    .height(900)
-    .url()}
+  src={
+    urlFor(post.mainImage)
+      .width(1600)
+      .height(900)
+      .url()
+  }
   alt={post.title}
   width={1600}
   height={900}
@@ -496,7 +619,7 @@ Example:
 />
 ```
 
-Notice:
+The important property here is:
 
 ```tsx
 priority
@@ -505,22 +628,24 @@ priority
 This tells Next.js:
 
 ```text
-Load immediately.
+This image is critical.
 
-Do not lazy load.
+Load it immediately.
 ```
 
-Use this only for:
+Use `priority` sparingly:
 
 * Hero images
 * Above-the-fold content
 * Largest Contentful Paint elements
 
+Everything else should remain lazy.
+
 ---
 
-# The Full Image Pipeline
+# The Complete Image Architecture
 
-Our final image architecture becomes:
+Our image pipeline now looks like this:
 
 ```text
 Editor Upload
@@ -529,15 +654,18 @@ Sanity Asset Store
        ↓
 Asset Reference
        ↓
-Portable Content
+Document Database
        ↓
 GROQ Query
+       ↓
+Server Component
        ↓
 Image Builder
        ↓
 Sanity CDN
        ↓
 Resize
+Crop
 Compress
 Convert
 Cache
@@ -547,59 +675,25 @@ next/image
 Browser
 ```
 
-Notice that nowhere do we manually:
+Notice what we never manually do:
 
-* Resize images
-* Compress images
-* Convert formats
-* Generate thumbnails
-* Create mobile versions
+```text
+✗ Resize images
+✗ Generate thumbnails
+✗ Create mobile versions
+✗ Compress assets
+✗ Convert formats
+✗ Build responsive variants
+✗ Manage CDN caches
+```
 
-The system does this automatically.
+The platform does this for us.
 
 ---
 
 # Images Are Distributed Systems
 
-One of the biggest lessons in modern web engineering is:
-
-```text
-Images
-      ≠
-Files
-```
-
-Instead:
-
-```text
-Images
-      =
-Distributed Systems
-```
-
-They involve:
-
-```text
-Storage
-    +
-Metadata
-    +
-Transformation
-    +
-Caching
-    +
-CDNs
-    +
-Rendering
-    +
-Performance Optimization
-```
-
-This is why image optimization remains one of the hardest problems in web development.
-
----
-
-# Mental Model To Remember Forever
+One of the most important realizations in modern web development is this:
 
 Traditional thinking:
 
@@ -614,6 +708,56 @@ Modern thinking:
 ```text
 Image
      =
+Distributed System
+```
+
+Because every image involves:
+
+```text
+Storage
+     +
+Metadata
+     +
+Transformation
+     +
+Caching
+     +
+Global Distribution
+     +
+Optimization
+     +
+Rendering
+     +
+Performance Engineering
+```
+
+This is why image optimization remains one of the most challenging areas of frontend engineering.
+
+---
+
+# The Deepest Mental Model
+
+Beginners think:
+
+```text
+Image
+     =
+Picture
+```
+
+Intermediate developers think:
+
+```text
+Image
+     =
+File
+```
+
+Professional engineers think:
+
+```text
+Image
+     =
 Asset
      +
 Metadata
@@ -623,29 +767,31 @@ Transformation Pipeline
 Distributed Delivery Network
 ```
 
-Or more fundamentally:
+Or even more fundamentally:
 
 ```text
-Original Asset
-         ↓
+Original Reality
+          ↓
+Digital Asset
+          ↓
 Transformation
-         ↓
+          ↓
 Optimization
-         ↓
-Caching
-         ↓
-Delivery
-         ↓
+          ↓
+Distribution
+          ↓
+Rendering
+          ↓
 User Experience
 ```
 
-Modern web performance is largely the art of transforming data efficiently.
+Modern web performance is largely the art of transforming information efficiently.
 
 ---
 
 # Up Next — Part 15: Navigation, Route Groups, and Layout Composition
 
-We'll return to one of the most important ideas in the App Router:
+Next, we'll return to one of the deepest ideas in the App Router:
 
 * Route groups
 * Nested layouts
@@ -653,6 +799,6 @@ We'll return to one of the most important ideas in the App Router:
 * Persistent UI trees
 * Shared state
 * Application shells
-* Why modern applications are fundamentally hierarchical systems
+* Hierarchical rendering systems
 
-This is where GreyMatter Journal begins to feel like a true application rather than a collection of pages.
+This is where GreyMatter Journal finally begins to feel less like a website and more like a modern application architecture.
