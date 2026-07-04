@@ -117,17 +117,13 @@ The App Router treats your application as a tree of user interfaces.
 Instead of:
 
 ```text
-Website
-    =
-Pages
+Website = Pages
 ```
 
 Next.js thinks:
 
 ```text
-Application
-       =
-Persistent UI Tree
+Application = Persistent UI Tree
 ```
 
 For example:
@@ -181,9 +177,7 @@ File-System Routing
 In other words:
 
 ```text
-Folders
-        =
-URLs
+Folders = URLs
 ```
 
 For example:
