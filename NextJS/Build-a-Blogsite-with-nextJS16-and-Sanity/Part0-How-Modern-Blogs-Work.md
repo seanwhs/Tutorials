@@ -174,6 +174,9 @@ It **does not** render HTML or handle routing — that’s the frontend’s job.
 
 ### Sanity & The Content Lake
 
+<img width="1440" height="1004" alt="image" src="https://github.com/user-attachments/assets/11f8da66-68c8-436a-8088-4cefa05ef754" />
+
+
 Sanity is a modern Headless CMS built around the **Content Lake** — a real-time, document-oriented, queryable content platform.
 
 Unlike traditional databases (rows & columns), the Content Lake stores rich, structured **documents** that can reference each other:
