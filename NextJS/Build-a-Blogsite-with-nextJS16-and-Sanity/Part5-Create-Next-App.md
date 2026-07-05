@@ -17,17 +17,11 @@ Instead, we've built mental models.
 We've learned:
 
 ```text
-Root Layout
-        =
-Application Operating System
+Root Layout = Application Operating System
 
-Router
-        =
-Data Transformation Engine
+Router = Data Transformation Engine
 
-Types
-        =
-Contracts
+Types = Contracts
 ```
 
 Now it's finally time to create GreyMatter Journal.
@@ -132,9 +126,7 @@ Maintainability
 We've already learned:
 
 ```text
-Types
-        =
-Contracts
+Types = Contracts
 ```
 
 As GreyMatter Journal grows, TypeScript will help us describe reality accurately.
@@ -549,23 +541,12 @@ You should see the default Next.js homepage.
 This confirms that:
 
 ```text
-Compiler
-        ✓
-
-Runtime
-        ✓
-
-Bundler
-        ✓
-
-React
-        ✓
-
-Next.js
-        ✓
-
-Development Server
-        ✓
+Compiler ✓
+Runtime  ✓
+Bundler  ✓
+React    ✓
+Next.js  ✓
+Development Server ✓
 ```
 
 Everything is working.
@@ -640,17 +621,13 @@ You have successfully operated an entire software engineering platform.
 Beginners think:
 
 ```text
-create-next-app
-        =
-Create Website
+create-next-app = Create Website
 ```
 
 Professional engineers think:
 
 ```text
-create-next-app
-        =
-Create
+create-next-app = Create
 
 Development Platform
 
