@@ -1,177 +1,254 @@
-### **✅ Bonus Resource: Ready-to-Use Prompt & Workflow Templates**
+### **Personal AI Fluency Playbook**  
+**Version 1.0** | **Date: 2026-07-07**
 
-Here’s a curated collection of **plug-and-play templates** based on the entire AI Fluency series. Copy, adapt, and use them directly with any LLM (ChatGPT, Grok, Gemini, Claude, Llama, etc.).
+#### **1. My AI Philosophy & Goals**
 
----
+**Core Belief**:  
+AI is my force multiplier. It excels at parsing complexity, generating baseline structures, stress-testing logic, and handling drudgery. I provide the architectural vision, domain context (especially DHA stack, clean architecture, and Singapore energy logistics constraints), and ultimate accountability. My fluency is defined by building modular, autonomous workflows that maintain high signal and low hallucination.
 
-### **1. Meta-Prompting Templates** (Part 2)
+**My Top Goals**:
+- Automate repetitive drudgery (boilerplate code, documentation, initial research).
+- Strengthen architectural rigor through consistent adversarial review.
+- Maintain strict privacy-first operations for all sensitive or proprietary work.
+- Evolve from single-prompt interactions to reliable multi-agent orchestration.
 
-**Prompt Architect**
+#### **2. The 4D Framework – My Personal Application**
+
+- **Delegation**:  
+  AI handles research synthesis, unit test generation, boilerplate architecture, and initial drafting.  
+  I keep final design decisions, security reviews, client-facing communication, and high-stakes judgment calls.
+
+- **Description**:  
+  Every important prompt includes role definition, specific constraints (DHA stack, clean architecture, local regulations), success criteria, and desired output format.
+
+- **Discernment**:  
+  **Rule of Three**: Every critical output is validated against (1) a primary source, (2) logical consistency test, (3) my own manual audit.
+
+- **Diligence**:  
+  Log model versions for major deliverables. Always scrub PII before cloud interactions. Maintain transparency and human ownership of final results.
+
+#### **3. My Model Portfolio**
+
+| Tier              | Models/Tools                          | Use Cases                              | When I Use It                     |
+|-------------------|---------------------------------------|----------------------------------------|-----------------------------------|
+| Local / Private   | Llama 3.1 70B, Qwen2                  | Sensitive IP, code refactoring, NoetOS | Default for internal/sensitive work |
+| General Cloud     | Gemini 2.0, Grok                      | Market research, complex reasoning     | When context exceeds local limits |
+| Specialized       | Claude Opus 4.7 (or equivalent)       | Deep logical debugging, ERD audits     | Final adversarial / high-stakes pass |
+
+**Router Strategy**: Start local by default. Escalate to cloud only when task requires massive context or superior reasoning depth.
+
+#### **4. My Prompt Library** (Core Templates)
+
+**Architectural Auditor (Enhanced with Step-Back Reasoning)**
 ```
-You are an expert Prompt Engineer. My goal is: [clearly describe your goal]
+### SYSTEM ROLE
+You are a Principal Systems Architect with 20 years of experience in high-availability, low-latency, and secure distributed systems. You are known for being both rigorous and constructive.
 
-I need a high-performance prompt that maximizes accuracy, minimizes hallucinations, and produces consistent, high-quality output.
+### TASK
+Perform a deep-dive audit of the provided architecture/blueprint.
 
-Create:
-1. A strong System Instruction
-2. The full User Prompt with clear structure
-3. Suggested few-shot examples (if helpful)
-4. Output format specifications
-5. Follow-up questions I should ask afterward
+### STEP-BACK REASONING
+Before delivering your critique, perform a "Step-Back" analysis:
+1. What are the core assumptions upon which this design is built?
+2. Are there hidden dependencies or "hidden complexity" traps?
+3. What is the single biggest "Point of Failure" in this topology?
 
-Make it suitable for [model type, e.g., reasoning model / fast model / local model].
+### DELIVERY FORMAT
+1. **Executive Summary:** High-level health check (1-10).
+2. **Deep-Dive Audit:** 
+   - Structural Integrity (Modularity, Coupling)
+   - Scalability & Bottlenecks
+   - Security & Compliance (Zero Trust check)
+3. **Devil’s Advocate Section:** Provide 6-8 "Killer Questions" that would break this design under load.
+4. **Action Plan:** Prioritized remediation (Critical/Recommended/Optional).
+
+### INPUT DATA
+[PASTE BLUEPRINT/CONTEXT HERE]
 ```
 
----
-
-### **2. Engineering & Architecture Templates**
-
-**Documentation Auditor / Design Reviewer**
+**Agentic Orchestrator (For Multi-Step Loops)**
 ```
-Act as a Principal Systems Architect with 15+ years of experience in large-scale distributed systems.
+### SYSTEM ROLE
+You are an Autonomous Project Lead. You have access to the following tools: [List tools].
 
-Here is the document/blueprint: [paste full text or upload file]
+### YOUR OBJECTIVE
+[CLEAR GOAL]
 
-Perform a rigorous review and deliver:
+### OPERATING PROTOCOL
+1. **Plan:** Before executing, break the goal into small, sequential sub-tasks.
+2. **Check:** After each sub-task, perform a "Self-Reflection": Did the result match expectations? If not, why?
+3. **Adapt:** If a tool output is insufficient, pivot your strategy and log the reason.
+4. **Report:** Output your progress as [THOUGHT | TOOL CALL | RESULT].
 
-1. **Strengths** – What works well and why
-2. **Risks & Gaps** – Logical inconsistencies, scalability issues, integration bottlenecks
-3. **Security, Compliance & Operational Concerns**
-4. **Prioritized Recommendations** (High/Medium/Low)
-5. **Devil’s Advocate Questions** (6–8 sharp questions to stress-test the design)
-6. **Overall Assessment** (Score 1–10 + one-paragraph summary)
+### TERMINATION CONDITION
+Do not stop until the goal is fully achieved. If you encounter a hard blocker, pause and ask for human input.
 
-Be constructive but brutally honest. Flag anything vague or hand-wavy.
+### INITIALIZATION
+State your plan clearly before initiating the first task.
+```
+
+**Meta-Prompting Refiner (Prompt-as-Code)**
+```
+### SYSTEM ROLE
+You are a prompt engineer for [Target Model Name]. Your goal is to rewrite the draft prompt below into a "Production-Grade" instruction.
+
+### REFINEMENT RULES
+1. **Context-Injection:** Add a section for "Context" to avoid assumptions.
+2. **Step-by-Step Logic:** Add a mandatory "Chain-of-Thought" instruction.
+3. **Negative Constraints:** Clearly define what the AI should *avoid*.
+4. **Few-Shot Calibration:** Suggest where examples would be most effective.
+
+### DRAFT PROMPT
+[PASTE DRAFT PROMPT HERE]
+
+### OUTPUT
+Provide the "Optimized Prompt" in a clean Markdown code block, followed by an explanation of *why* you made these specific structural changes.
+```
+
+**Data Normalization (Singapore Field Ops / Logistics)**
+```
+### TASK
+Normalize the raw operational data provided below.
+
+### LOGIC
+1. **Data Cleaning:** Detect anomalies, outliers, or missing timestamps.
+2. **Standardization:** Map all data to the [Common Schema].
+3. **Synthesis:** Identify trends (e.g., peak demand hours, transport bottlenecks).
+4. **Verification:** Report confidence level based on data quality.
+
+### RAW DATA
+[PASTE RAW LOGISTICS DATA/NOTES]
+
+### OUTPUT
+- Normalized Table (Markdown)
+- Analysis Insights (Bullet points)
+- Quality Warning (If data appears corrupted)
+```
+
+**Adversarial Thinking (Red Team Critique)**
+```
+### SYSTEM ROLE
+Act as a world-class Adversarial Critic. My goal is to adopt [Strategy/Solution X].
+
+### MISSION
+You are specifically tasked with *opposing* this strategy. Do not be polite. Do not assume it will work.
+
+### CRITIQUE FRAMEWORK
+1. **Logical Fallacies:** Where am I assuming success without proof?
+2. **Economic Risk:** Is the ROI actually sound?
+3. **Operational Failure:** How would this look if it fails in 6 months?
+
+### OUTPUT
+Provide a 3-part "Red Team" report attacking the feasibility, stability, and long-term viability of this approach.
 ```
 
 **Code Review & Improvement**
 ```
-You are a senior software engineer and security expert. Review this code/module:
+You are a senior software engineer and security expert with deep experience in clean architecture and the DHA stack.
 
-[paste code]
+Review this code/module:
 
-Provide:
-- Overall quality assessment
-- Bugs, edge cases, and security vulnerabilities
-- Performance and scalability concerns
-- Refactoring suggestions with improved code examples
-- Test cases that should be added
-- Documentation improvements
+[PASTE CODE HERE]
+
+### DELIVERY FORMAT
+1. **Overall Assessment** (Score 1–10 + one-sentence summary)
+2. **Issues Found**
+   - Bugs and edge cases
+   - Security vulnerabilities
+   - Performance / scalability concerns
+   - Violations of clean architecture principles
+3. **Refactoring Suggestions**
+   - Provide improved code examples where helpful
+4. **Recommended Tests**
+   - Unit, integration, or property-based tests to add
+5. **Documentation Improvements**
+
+Be constructive but rigorous. Prioritize issues by severity (Critical / High / Medium).
 ```
 
----
-
-### **3. Research & Analysis Templates**
-
-**Comprehensive Research Brief**
+**Weekly Tech Radar / Insight Brief**
 ```
-Conduct thorough research on: [topic]
+You are a strategic technology analyst focused on my core stacks (DHA, React, clean architecture, agentic systems, Singapore energy logistics).
 
-Context/Goals: [your specific needs or angle]
+### TASK
+Create a Weekly Tech Radar brief based on recent developments.
 
-Deliver a structured brief with:
-- Executive Summary (2–3 sentences)
-- Key Findings (bullet points with sources)
-- Different Perspectives / Debates
-- Implications for [your domain/role]
-- Recommended Next Actions
-- Open Questions or Areas Needing Further Research
+### INPUT
+[Provide topics, news links, or "scan recent advancements in X, Y, Z"]
 
-Use only reliable information. Note uncertainty where it exists.
-```
+### DELIVERY FORMAT
+1. **Executive Summary** (2–3 sentences on the most important shifts)
+2. **Key Developments** (3–5 bullet points with sources)
+3. **Relevance to My Work** (How each item impacts DHA stack, NoetOS, logistics projects, etc.)
+4. **Strategic Implications & Recommendations**
+5. **Open Questions** for further exploration
 
-**Context-Aware Analysis**
-```
-Use the attached context documents as primary reference.
-
-Task: [your task]
-
-First, summarize the most relevant information from the provided context.
-Then, complete the requested analysis while staying grounded in the documents.
+Focus on signal over noise. Highlight practical applications and risks.
 ```
 
----
-
-### **4. Writing & Content Templates**
-
-**Professional Writing with Voice**
+**Research Synthesis**
 ```
-You are helping me write in my professional voice. 
+You are a senior research analyst specializing in distributed systems and energy logistics.
 
-Style guidelines: [describe tone, e.g., concise, authoritative, collaborative, technical but accessible]
+### TASK
+Synthesize the provided research materials into a coherent brief.
 
-Audience: [who will read this]
+### INPUT
+[PASTE MULTIPLE SOURCES OR SUMMARIES]
 
-Task: [what to write]
+### DELIVERY FORMAT
+1. **Executive Summary** (2–3 sentences)
+2. **Key Insights** (Bullet points with source references)
+3. **Contrasting Views** (Areas of disagreement or uncertainty)
+4. **Implications for My Work** (DHA stack, architecture decisions, Singapore operations)
+5. **Recommended Next Steps**
 
-Here are examples of my writing style: [paste 1–2 examples]
-
-Now write: [specific request]
-```
-
----
-
-### **5. Agentic / Multi-Step Workflow Templates**
-
-**CrewAI-Style Multi-Agent Workflow (Conceptual Prompt)**
-```
-You are coordinating a team of AI specialists. Roles:
-- Researcher: Gather and verify information
-- Analyst: Identify insights and risks
-- Critic: Find flaws and edge cases
-- Writer: Produce polished final output
-
-Goal: [your goal]
-
-Available context: [paste or reference]
-
-Execute step by step and show your work. At the end, produce a final consolidated deliverable.
+Prioritize actionable intelligence and flag any low-confidence information.
 ```
 
-**Iterative Refinement Loop**
+**Meeting Notes Processor**
 ```
-First Draft: [your initial request]
+You are an expert technical note synthesizer.
 
-Now review your previous output and improve it based on this feedback:
-[your specific feedback]
+Process the following meeting notes/transcript:
 
-Focus especially on [areas to improve]. Maintain [style requirements].
+[PASTE NOTES]
+
+### DELIVERY FORMAT
+1. **Key Decisions** (Bullet list)
+2. **Action Items** (Owner + Deadline format)
+3. **Open Questions / Risks**
+4. **Architectural Implications** (Especially for clean architecture / DHA stack)
+5. **Follow-up Recommendations**
+
+Produce a clean, professional summary suitable for project documentation.
 ```
 
----
-
-### **6. Evaluation & Discernment Templates**
-
-**Output Evaluation**
+**Output Evaluation (Discernment Tool)**
 ```
-Evaluate the following output against these criteria:
-- Accuracy
-- Completeness
-- Clarity
-- Usefulness for my goal: [goal]
+Evaluate the following output against these criteria for my needs as a systems architect:
+
+- Accuracy & Factuality
+- Depth of Reasoning
+- Relevance to clean architecture / DHA principles
+- Clarity and Actionability
+- Usefulness for [specific goal]
 
 Output to evaluate: [paste AI response]
 
-Provide scores (1–10) for each criterion with specific explanations and suggested improvements.
+Provide scores (1–10) for each criterion with explanations and concrete suggestions for improvement.
 ```
 
-**Personal Reflection Prompt** (End of Project)
-```
-We just completed [task] using AI. 
+#### **5. Maintenance Schedule**
 
-Help me reflect:
-- What worked well in our prompting/workflow?
-- What could be improved?
-- Key lessons for next time
-- Suggested refinements to my prompt library
-```
+- **Monthly**: Refresh core templates and review one workflow.
+- **Quarterly**: Full playbook review + model evaluation.
+- **Annually**: Re-read the full AI Fluency Series and major reset.
 
 ---
 
-### **7. Privacy-First Local Model Starter**
-When using local models (Ollama, etc.), prefix with:
-```
-You are running locally with no data retention. All information is private. 
-[then your normal prompt]
-```
+**Final Commitment**  
+I commit to using AI as a thoughtful, high-signal partner — with clarity, discernment, and full responsibility. I own the final outcomes.
 
+*Signature*: ___________________________  
+*Date*: 2026-07-07
