@@ -1,12 +1,6 @@
-### AI Fluency Series: Part 2 – Advanced Techniques and Workflows
+### **AI Fluency Series: Part 2 – Advanced Techniques: From Prompting to Mastery**
 
-Here’s a deep-dive into the first expanded installment, blending your suggestions on **Tool-use vs Thinking-use**, **Context Management**, and **Meta-Prompting**.
-
----
-
-**AI Fluency Series – Part 2: From Prompting to Mastery – Advanced Techniques, Context Hygiene, and Meta-Prompting**
-
-In Part 1, we covered the foundations: what LLMs excel at, the 4D Framework (Delegation, Description, Discernment, Diligence), and the iteration mindset. Now we move into higher-leverage practices that separate casual users from power users.
+In Part 1, we covered the foundations: what LLMs excel at, the 4D Framework, and the iteration mindset. Now we move into higher-leverage practices that separate casual users from power users.
 
 #### 1. Tool-Use vs Thinking-Use: Two Distinct Modes of Collaboration
 
@@ -15,10 +9,10 @@ Effective AI partners treat models differently depending on the goal:
 - **Tool-Use** (Execution & Augmentation)  
   Use the LLM to *do* work: generate code, draft documents, analyze data, create summaries, or automate repetitive tasks.  
   Best for: speed, scale, and handling volume.  
-  Models like GPT-4o, Gemini 1.5/2.0 (with large context), Grok, or local Llama 3.1/Mistral excel here, especially when connected to tools.
+  Models like GPT-4o, Gemini 2.0, Grok, or local Llama 3.1/Mistral excel here.
 
 - **Thinking-Use** (Reasoning & Challenge)  
-  Use the LLM as a intellectual sparring partner to stress-test ideas, uncover blind spots, or deepen your own reasoning.  
+  Use the LLM as an intellectual sparring partner to stress-test ideas, uncover blind spots, or deepen your own reasoning.  
   This is where **Adversarial Prompting** and the **Rubber Ducking Paradigm** shine.
 
 **Adversarial Prompting Example**:
@@ -30,31 +24,21 @@ Ask me 5–8 sharp questions that would expose weaknesses in this design.
 
 This shifts the model from “helper” to “challenger,” dramatically improving **Discernment**.
 
-**Rubber Ducking Upgrade**:
-Instead of just explaining code to the AI, ask it to:
-- “Explain why this approach might fail in production.”
-- “Walk through this function as if you were debugging it at 3 AM with a deadline.”
-
 #### 2. Context Management (Context Hygiene)
 
-As context windows grow (Gemini and some open-source setups now handle millions of tokens), the bottleneck moves from “how much” to “how well” you prepare information.
+As context windows grow (some models now handle millions of tokens), the bottleneck moves from “how much” to “how well” you prepare information.
 
 **Best Practices for Context Packages**:
-- **Curate ruthlessly**: Strip boilerplate, old versions, and noise. Provide clean, high-signal documents.
-- **Layer summaries**: Start with an executive summary or key facts, then attach detailed references.
-- **Use structured formats**: JSON, Markdown tables, or clear headings help the model parse faster.
-- **Chunk strategically**: For very large projects, break into logical modules and reference them conversationally.
+- Curate ruthlessly: Strip boilerplate and noise. Provide clean, high-signal documents.
+- Layer summaries: Start with an executive summary, then attach details.
+- Use structured formats: JSON, clean Markdown tables, or clear headings.
+- For developers: **Data Normalization** matters — ensure uploaded data is in standardized formats (CSV, clean Markdown, or well-structured code) as models reason significantly better with consistent input.
 
-**Practical Workflow**:
-1. Prepare a “Context Brief” file.
-2. Upload it with: “Use the attached context brief as primary reference. Ignore unrelated details.”
-3. For codebases: Use tools like Continue.dev (with local models) or open-source agents to let the AI explore repositories intelligently.
-
-Good context hygiene turns a good response into an excellent, grounded one.
+**Pro Tip**: On platforms that support it, use **System Prompt Injection** to set a persistent “Context Brief” or project memory. This gives the AI long-term context for that conversation or project without repeating it every time.
 
 #### 3. Meta-Prompting: Let AI Help You Prompt Better
 
-One of the highest-ROI habits is using an LLM to architect prompts for other (or the same) models.
+One of the highest-ROI habits is using an LLM to architect prompts for other tasks.
 
 **Prompt Architect Workflow**:
 ```
@@ -65,17 +49,17 @@ I want a prompt that maximizes accuracy, minimizes hallucinations, and produces 
 Help me craft:
 - A strong system instruction
 - Few-shot examples if useful
-- Clear evaluation criteria for the model
+- Clear evaluation criteria
 - Suggested follow-up questions I should ask afterward
 ```
 
-You can iterate on the meta-prompt itself. This is especially powerful when combined with open-source local models (via Ollama + LangChain/CrewAI) for privacy-sensitive work.
+This technique is especially powerful with local models (via Ollama + LangChain/CrewAI) for privacy-sensitive work.
 
 #### Recommended First Delegation: The Documentation Auditor
 
-As you suggested, this is an outstanding starter task for engineering and architecture work.
+This is an outstanding starter task for engineers and architects.
 
-**Sample Prompt for Documentation Auditor**:
+**Sample Prompt**:
 ```
 Act as a Principal Systems Architect with 15+ years of experience across distributed systems and enterprise environments.
 
@@ -92,5 +76,10 @@ Perform a thorough review and produce:
 Be constructive but rigorous. Flag anything that feels hand-wavy.
 ```
 
-Run this across different models (e.g., a strong reasoning model for critique + a fast one for initial drafting) and compare outputs using the evaluation method from Part 1.
+Run this across different models and compare outputs using the evaluation method from Part 1.
 
+---
+
+Now that you have mastered advanced prompting, context hygiene, and meta-architecting, the next step is automating this entire cycle — turning these prompts into autonomous, repeatable workflows.
+
+**Next in this series: Part 3 – Building Personal AI Workflows and Open-Source Agents.**
