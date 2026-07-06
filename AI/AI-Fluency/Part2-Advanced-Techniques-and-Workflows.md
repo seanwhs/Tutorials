@@ -94,16 +94,3 @@ Be constructive but rigorous. Flag anything that feels hand-wavy.
 
 Run this across different models (e.g., a strong reasoning model for critique + a fast one for initial drafting) and compare outputs using the evaluation method from Part 1.
 
----
-
-### What’s Next?
-
-This Part 2 focuses on practical elevation. Would you like me to expand into **Part 3** next? Possible directions:
-- Building Personal AI Workflows & Open-Source Agents (LangChain, CrewAI, local setups)
-- Evaluating Models for Specific Use Cases (Engineering, Writing, Research)
-- Ethical Guardrails and Responsible Scaling of AI Use
-- Real-World Case Studies (e.g., turning architecture blueprints into production plans)
-
-Let me know your preference, or share a specific document/workflow you’d like to turn into an example. I’m ready to keep building the series. 
-
-What did you think of this installment, and where should we go next?
