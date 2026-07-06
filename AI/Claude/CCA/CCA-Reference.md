@@ -132,7 +132,3 @@ When answering exam questions, filter your choices through this pipeline:
 * **Stateless:** An environment where the agent has no memory of the past (perfect for objective reviews).
 
 **Final Reminder:** The CCAF exam is about **System Design.** Do not look for "smarter" ways to talk to the AI. Look for more robust ways to **constrain** the AI.
-
----
-
-*If you are currently preparing, I recommend creating a "practice environment" in a local folder using `claude-code` where you purposefully write a broken `claude.md` file and observe how the agent deviates—the errors you see here will be exactly the scenarios represented in the exam's multiple-choice questions.*
