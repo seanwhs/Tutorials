@@ -1,4 +1,4 @@
-# **Mastering AI Fluency Part 1: How to Collaborate Effectively with Any Large Language Model**
+### AI Fluency Series: Part 1: How to Collaborate Effectively with Any Large Language Model
 
 Large Language Models (LLMs) have evolved from simple chatbots into powerful collaborators that can automate routine tasks, augment creative work, and accelerate complex problem-solving. Whether you're using ChatGPT, Grok, Gemini, Mistral, Llama-based models, or others, the real value comes not from the model itself but from *how* you work with it. This guide (and potential series) focuses on building **AI Fluency**—the ability to partner effectively with AI across your professional and personal projects.
 
