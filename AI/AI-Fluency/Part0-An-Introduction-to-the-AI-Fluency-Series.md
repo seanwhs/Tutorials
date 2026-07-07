@@ -1,5 +1,8 @@
-### **Mastering the AI-Human Partnership: An Introduction to the AI Fluency Series**
+# Mastering the AI-Human Partnership
+**Author:** Sean Wong  
+**Date:** July 2026
 
+> *Note from the author: I wrote this series to document my own transition from using AI as a helper to using it as a force-multiplier in my work as an architect...*
 We have entered a new era of work. Large Language Models (LLMs) have evolved from novelty chatbots into sophisticated collaborators capable of writing production-grade code, stress-testing complex architectural blueprints, synthesizing massive datasets, and orchestrating multi-step autonomous workflows.
 
 But here is the central truth: **The tool does not define the outcome — the collaborator does.**
