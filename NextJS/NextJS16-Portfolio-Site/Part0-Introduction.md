@@ -38,10 +38,18 @@ A complete, beginner-friendly, code-heavy tutorial series that takes you from an
 17. Conclusion
 
 ## Appendices (Canonical Set — Use These)
-- **Appendix A: Full Reference Codebase** — split across 8 notes (config/env/Sanity setup, layout components, UI components, home components, page routes ×3, and API/sitemap/robots/OG routes)
+- **Appendix A: Full Codebase Reference** — split across 8 notes, all titled "Portfolio Tutorial - Appendix A: Full Codebase Reference (N of 8)":
+  - (1 of 8): Project setup, .env.local, next.config.ts, sanity.config.ts, sanity/client.ts, sanity/image.ts, sanity/fetch.ts, sanity/types.ts, sanity/queries.ts, schemaTypes/index.ts, Studio route files
+  - (2 of 8): ThemeProvider, ThemeToggle, Navbar, Footer
+  - (3 of 8): Container, ProjectCard, BlogCard, SkillBadge, RichText, ExperienceItem
+  - (4 of 8): Hero, FeaturedProjects, AboutSnippet, ContactForm
+  - (5 of 8): Root layout, lib/metadata.ts, globals.css, site layout, homepage route
+  - (6 of 8): Projects & blog pages (listing + detail)
+  - (7 of 8): About page, contact page
+  - (8 of 8): Revalidation API route, sitemap.ts, robots.ts, OG image routes, full folder structure
 - **Appendix B: Complete Sanity Schema Reference**
 - **Appendix C: Environment Variables Reference**
 - **Appendix D: Troubleshooting Guide**
 - **Appendix E: Further Resources & Next Steps**
 
-> Note: a set of duplicate/redundant Appendix A and Appendix E notes was accidentally created earlier and marked "DEPRECATED DUPLICATE" — ignore any note titled that way.
+> Note: a set of duplicate/redundant Appendix A and Appendix E notes exists, marked "DEPRECATED DUPLICATE" — safe to ignore.
