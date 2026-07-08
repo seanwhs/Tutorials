@@ -78,4 +78,4 @@ Move on to Part 1: Setting Up Your Computer.
 
 ---
 
-Ready for **Part 1: Setting Up Your Computer** whenever you want to continue — just ask.
+Ready for **Part 1: Setting Up Your Computer** ?
