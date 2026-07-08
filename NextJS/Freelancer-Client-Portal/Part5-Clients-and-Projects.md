@@ -249,10 +249,6 @@ export type AppRouter = typeof appRouter;
 - [ ] Webhook creates User rows on sign up
 - [ ] `client` and `project` routers registered, no type errors
 
-Here's **Part 5 (continued): Admin UI for Clients and Projects** in full:
-
----
-
 # Part 5 (continued): Admin UI for Clients and Projects
 
 Continues directly from Part 5. Build after the routers are in place.
