@@ -132,4 +132,4 @@ Open VS Code manually now, press Cmd+Shift+P (Mac) or Ctrl+Shift+P (Windows), ty
 
 ---
 
-Ready for **Part 2: Your First Next.js Project** whenever you want — just say "continue."
+Ready for **Part 2: Your First Next.js Project** ?
