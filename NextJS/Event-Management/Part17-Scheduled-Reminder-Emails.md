@@ -1,7 +1,3 @@
-# **Part 17: Scheduled Reminder Emails via Inngest Cron**:
-
----
-
 # Part 17: Scheduled Reminder Emails via Inngest Cron
 
 The second background job type: runs on a schedule (cron), not in reaction to an event. No route params here — nothing new Next.js 16-wise.
