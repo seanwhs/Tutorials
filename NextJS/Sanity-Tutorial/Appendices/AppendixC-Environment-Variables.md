@@ -1,5 +1,5 @@
 # Sanity Mastery - Appendix C: Env Vars and Config Reference
-[System: Empty message content sanitised to satisfy protocol]
+
 # Appendix C: Environment Variables & Config Reference
 
 ## Full `.env.local` Reference Table
