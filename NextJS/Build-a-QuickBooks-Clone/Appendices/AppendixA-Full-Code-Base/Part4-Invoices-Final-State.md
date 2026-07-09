@@ -1,4 +1,3 @@
-[System: Empty message content sanitised to satisfy protocol]
 # Appendix A Part 4: Invoices, Final State
 
 ## src/app/dashboard/invoices/actions.ts (FINAL state — includes ledger posting + Inngest event)
