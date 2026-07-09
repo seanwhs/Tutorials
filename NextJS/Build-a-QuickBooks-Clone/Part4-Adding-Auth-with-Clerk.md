@@ -1,8 +1,10 @@
 ## Part 4: Adding Login with Clerk
 
-**Goal:** create a Clerk account, install Clerk into qb-clone, get real sign-up/sign-in working, and protect a page.
+Goal: create a Clerk account, install Clerk into qb-clone, get real sign-up/sign-in working, and protect a page.
 
-**Prerequisite:** Parts 1-3 completed.
+Prerequisite: Parts 1-3 completed.
+
+**Next.js 16 note:** older Clerk tutorials tell you to create `middleware.ts`. In Next.js 16, this file has been renamed to **`proxy.ts`** (same job: code that runs before a request reaches your pages; `middleware.ts` still works with a deprecation warning, but this course uses the current name throughout). Since our project uses the `src/` directory, ours lives at `src/proxy.ts`.
 
 ---
 
@@ -105,9 +107,9 @@ export default function Home() {
 
 Save, check http://localhost:3000. Click **Sign Up**, use a real email you can check, complete the verification code flow, and finish sign-up. You should land back on the page showing "You are signed in!" and your avatar.
 
-### 6. Protect a page with middleware
+### 6. Protect a page with proxy.ts (Next.js 16's renamed middleware)
 
-Create a new file `src/middleware.ts` (directly inside `src/`, NOT inside `src/app/`). Type exactly:
+Create a new file `src/proxy.ts` (directly inside `src/`, NOT inside `src/app/`). Type exactly:
 
 ```ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
@@ -127,6 +129,8 @@ export const config = {
   ],
 };
 ```
+
+Note the file is named `proxy.ts`, but the function you import and call is still named `clerkMiddleware` — Clerk kept its own API name the same even though Next.js renamed the file/concept on their end. Do not also create a `src/middleware.ts` file — having both will cause confusing double-execution or Next.js picking the wrong one.
 
 Create a new folder `src/app/dashboard/`, and inside it a file `page.tsx`:
 
@@ -151,7 +155,7 @@ Test: while signed in, visit http://localhost:3000/dashboard — you should see 
 
 ```
 git add .
-git commit -m "Add Clerk authentication with a protected dashboard page"
+git commit -m "Add Clerk authentication with a protected dashboard page (proxy.ts)"
 ```
 
 ---
@@ -161,7 +165,7 @@ git commit -m "Add Clerk authentication with a protected dashboard page"
 - [ ] Clerk account and application created
 - [ ] `.env.local` has both keys, and `git status` does NOT list it as a tracked/changed file
 - [ ] Homepage shows correct Sign In/Up or avatar UI depending on login state
-- [ ] `/dashboard` redirects to sign-in when logged out, and shows the welcome message when logged in
+- [ ] `src/proxy.ts` exists (not `src/middleware.ts`) and `/dashboard` redirects to sign-in when logged out, and shows the welcome message when logged in
 
 ---
 
@@ -177,7 +181,7 @@ Your `.env.local` values weren't picked up. Double-check there are no quotes aro
 Check spam/junk folder first. Confirm you're testing against the correct email inbox. Clerk's development instance does rate-limit slightly — wait a minute and try "resend code" if the option appears.
 
 **`/dashboard` doesn't redirect when logged out — it just shows the page anyway**
-Confirm `middleware.ts` is located at `src/middleware.ts`, NOT `src/app/middleware.ts` — this is a common misplacement and Next.js will silently ignore it in the wrong location. Restart the dev server after moving/creating it.
+Confirm the file is located at exactly `src/proxy.ts`, NOT `src/app/proxy.ts` and NOT `src/middleware.ts` — this is a common misplacement/naming mix-up and Next.js will silently ignore a file in the wrong location or with the old name in some setups (though `middleware.ts` alone still works, mixing both is what causes real problems). Restart the dev server after creating or moving it.
 
 **`currentUser()` returns null even though you're logged in**
 Confirm the file is an `async` function (`export default async function DashboardPage()`) and that you used `await currentUser()`, not just `currentUser()`.
@@ -185,9 +189,8 @@ Confirm the file is an `async` function (`export default async function Dashboar
 **TypeScript error on `user?.firstName`**
 Confirm you're using the optional chaining `?.` exactly as shown — `user` can legitimately be null if Clerk hasn't loaded yet server-side in edge cases, and the `?.` protects against that.
 
-**Middleware "matcher" causes some pages (like images) to stop loading**
+**Proxy's "matcher" causes some pages (like images) to stop loading**
 The regex above is intentionally broad to skip static files. If you added your own static assets with an unusual file extension, add that extension into the matcher's exclusion list, following the same pattern as the others already listed.
 
----
-
-Ready for **Part 5: Organizations = Companies** ?
+**"clerkMiddleware() was not run" or auth-related errors even though proxy.ts looks correct**
+Double-check there isn't also a leftover `src/middleware.ts` file from following an older tutorial or an earlier attempt — having both `proxy.ts` and `middleware.ts` in the same project causes exactly this kind of confusing behavior. Delete `middleware.ts` if it exists and keep only `proxy.ts`.
