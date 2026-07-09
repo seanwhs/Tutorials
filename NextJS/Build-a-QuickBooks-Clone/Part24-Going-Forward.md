@@ -12,11 +12,11 @@ Across 23 parts, you built: authentication and multi-tenant organizations (Clerk
 
 **a. Recurring billing / subscriptions polish** — You built a basic recurring invoice generator in Part 20. A fuller version would support weekly/quarterly/annual schedules (not just monthly), automatic price changes, and pausing/canceling a subscription mid-cycle.
 
-**b. Stripe for customer payments** — Right now, Part 15's payments are manually recorded (someone tells the app "the customer paid"). A real product would let customers pay invoices online directly via a Stripe-hosted checkout link, with a webhook (same pattern as Clerk's webhook in Part 9/23) automatically calling your recordCustomerPayment logic when Stripe confirms a successful charge.
+**b. Stripe for customer payments** — Right now, Part 15's payments are manually recorded (someone tells the app "the customer paid"). A real product would let customers pay invoices online directly via a Stripe-hosted checkout link, with a webhook (same pattern as Clerk's webhook in Part 9/23) automatically calling your `recordCustomerPayment` logic when Stripe confirms a successful charge.
 
 **c. Role-based permissions** — Part 5 mentioned Clerk's organization roles (Admin/Member) but we never built custom permission checks. A real next step: define roles like Owner, Accountant, Bookkeeper, Employee, and gate specific actions (e.g., only Owner/Accountant can view reports or delete a journal entry) using Clerk's `has({ permission: "..." })` checks in your Server Actions and middleware.
 
-**d. Bank reconciliation** — A formal process of comparing your recorded transactions against your real bank statement for a period, marking things "reconciled," and flagging discrepancies. Builds directly on Part 21's bank_transactions table.
+**d. Bank reconciliation** — A formal process of comparing your recorded transactions against your real bank statement for a period, marking things "reconciled," and flagging discrepancies. Builds directly on Part 21's `bank_transactions` table.
 
 **e. Multi-currency support** — If you want this app to serve businesses outside a single currency, you'd add a currency field to transactions/accounts and exchange-rate handling. Meaningful added complexity — a good project once everything else feels solid.
 
@@ -33,7 +33,7 @@ Across 23 parts, you built: authentication and multi-tenant organizations (Clerk
 
 ### 4. Good engineering habits to build in now, before the project grows further
 
-- **Automated tests around the ledger engine specifically** — postJournalEntry (Part 10) is the single highest-value thing to have real automated tests for (balanced entries succeed, unbalanced ones throw, single-line entries are rejected). We tested this manually throughout the course; formalizing it into a real test suite (e.g. with Vitest) pays off enormously as the codebase grows.
+- **Automated tests around the ledger engine specifically** — `postJournalEntry` (Part 10) is the single highest-value thing to have real automated tests for (balanced entries succeed, unbalanced ones throw, single-line entries are rejected). We tested this manually throughout the course; formalizing it into a real test suite (e.g. with Vitest) pays off enormously as the codebase grows and you're less likely to manually re-verify every time you touch related code.
 - **Splitting environments properly** — separate Clerk apps and Neon database branches for development vs. production (mentioned as optional in Part 23) becomes much more important the moment real user data is involved.
 - **Monitoring and error tracking** — once deployed for real users, consider a tool like Sentry to catch and alert on production errors you won't be watching your terminal for.
 - **Rate limiting and abuse prevention** — especially once file uploads (Part 21's CSV import) and public-facing forms are live on the internet.
@@ -50,8 +50,13 @@ You've now internalized the actual hard part of building an accounting system �
 
 This series exists as a set of saved notes (the INDEX note plus Parts 1-24) specifically so you can return to any part, at any time, in any future conversation, to review a concept, debug something that broke, or pick up a Phase 2/3 feature using the same step-by-step approach. Nothing here needs to be memorized — it's meant to be a reference you build from, indefinitely.
 
-**Congratulations on completing the course — and on everything you built along the way.**
+**Congratulations on completing the course — and on everything you built along the way.** 🎉
 
 ---
 
-That's the entire 24-part tutorial series, start to finish. You now have every part available on request, along with the RAG-friendly consolidated files (00-07 + Appendix A) and the accounting/bookkeeping domain primers (Appendices B-H) we built earlier. If time permits, I might develop Phase 2 feature next — like editing/voiding via reversal entries, or Stripe payments.
+That's the entire 25-part series (Parts 0–24), fully delivered start to finish! You've now got:
+- A complete, working double-entry accounting SaaS app
+- Every part's full code, checkpoints, and troubleshooting available to revisit anytime
+- A clear roadmap for Phase 2/3 features if you want to keep building
+- An Appendix A (full codebase reference) and an accounting/bookkeeping primer (Appendices B–H) for deeper reference
+
