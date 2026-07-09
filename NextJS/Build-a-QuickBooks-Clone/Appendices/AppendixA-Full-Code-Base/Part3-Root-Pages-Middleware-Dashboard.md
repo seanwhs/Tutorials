@@ -1,6 +1,6 @@
-## Appendix A Part 3: Root Pages, Middleware, Dashboard Core
+# Appendix A Part 3: Root Pages, Proxy, Dashboard Core
 
-### src/middleware.ts
+## src/proxy.ts (Next.js 16 — renamed from middleware.ts)
 
 ```ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
@@ -21,7 +21,9 @@ export const config = {
 };
 ```
 
-### src/app/layout.tsx
+Note: Next.js 16 renamed the request-interception file from `middleware.ts` to `proxy.ts` (same job, same Clerk API — only the filename/location convention changed; `middleware.ts` still works with a deprecation warning, but this file tree uses the current `proxy.ts` name). It lives directly at `src/proxy.ts` since this project uses the `src/` directory.
+
+## src/app/layout.tsx
 
 ```tsx
 import type { Metadata } from "next";
@@ -48,7 +50,7 @@ export default function RootLayout({
 }
 ```
 
-### src/app/page.tsx
+## src/app/page.tsx
 
 ```tsx
 import {
@@ -100,9 +102,10 @@ export default async function Home() {
 ```
 
 ---
-## Appendix A Part 3b: Dashboard Home, Accounts Page
 
-### src/app/dashboard/page.tsx (final version, with all nav links accumulated across the build)
+# Appendix A Part 3b: Dashboard Home, Accounts Page
+
+## src/app/dashboard/page.tsx (final version, with all nav links accumulated across the build)
 
 ```tsx
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -140,7 +143,7 @@ export default async function DashboardPage() {
 }
 ```
 
-### src/app/dashboard/accounts/page.tsx
+## src/app/dashboard/accounts/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -190,10 +193,10 @@ export default async function AccountsPage() {
 ```
 
 ---
-Let me pull Part 3c.
-## Appendix A Part 3c: Customers and Vendors Pages
 
-### src/app/dashboard/customers/actions.ts
+# Appendix A Part 3c: Customers and Vendors Pages
+
+## src/app/dashboard/customers/actions.ts
 
 ```ts
 "use server";
@@ -228,7 +231,7 @@ export async function createCustomer(formData: FormData) {
 }
 ```
 
-### src/app/dashboard/customers/page.tsx
+## src/app/dashboard/customers/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -282,7 +285,7 @@ export default async function CustomersPage() {
 }
 ```
 
-### src/app/dashboard/vendors/actions.ts
+## src/app/dashboard/vendors/actions.ts
 
 ```ts
 "use server";
@@ -317,7 +320,7 @@ export async function createVendor(formData: FormData) {
 }
 ```
 
-### src/app/dashboard/vendors/page.tsx
+## src/app/dashboard/vendors/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -371,8 +374,7 @@ export default async function VendorsPage() {
 }
 ```
 
-This completes Appendix A Part 3 (root pages, middleware, dashboard core, accounts, customers, vendors).
-
 ---
 
-Next up is **Appendix A Part 4 (Invoices, Final State)** — the final version of `invoices/actions.ts` (already includes ledger posting AND the Inngest event, not the earlier draft version), plus the new-invoice form and list page. Want me to continue?
+This completes Appendix A Part 3 (root pages, proxy, dashboard core, accounts, customers, vendors).
+
