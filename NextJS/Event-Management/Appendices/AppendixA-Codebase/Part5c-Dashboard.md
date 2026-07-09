@@ -1,7 +1,3 @@
-# **Appendix A Part 5c: Dashboard and My-RSVPs Pages**:
-
----
-
 # Appendix A Part 5c: Dashboard and My-RSVPs Pages
 
 Both dynamic routes below type `params` as `Promise<{ id: string }>` and await it.
