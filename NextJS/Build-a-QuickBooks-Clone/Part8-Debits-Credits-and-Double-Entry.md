@@ -1,8 +1,8 @@
 ## Part 8: Debits, Credits and Double-Entry Accounting for Programmers
 
-**Goal:** understand, with worked examples, the accounting concept our entire app is built around, before writing any of the code that enforces it. No code today — this is the most important non-code part in the whole course.
+Goal: understand, with worked examples, the accounting concept our entire app is built around, before writing any of the code that enforces it. No code today — this is the most important non-code part in the whole course.
 
-**Prerequisite:** Parts 1-7 completed.
+Prerequisite: Parts 1-7 completed.
 
 ---
 
@@ -109,7 +109,3 @@ This is accrual accounting (section 6/7) — income is recognized when it's earn
 
 **"I don't understand why we need BOTH a Balance Sheet and a P&L if they're both derived from the same journal_lines"**
 They answer different questions over different scopes: P&L = performance over a period (a range of dates); Balance Sheet = position at a single instant (one date). You'll see this distinction very concretely once we build both reports in Parts 16-17.
-
----
-
-Ready for **Part 9: Building the Chart of Accounts** ?
