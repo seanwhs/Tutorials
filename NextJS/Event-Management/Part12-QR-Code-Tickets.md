@@ -1,7 +1,3 @@
-# **Part 12: QR Code Ticket Generation**:
-
----
-
 # Part 12: QR Code Ticket Generation
 
 Generate real, scannable QR codes entirely server-side using the `qrcode` package — no external API, no cost. Continues editing the same `/my-rsvps/[id]` route from Part 11.
