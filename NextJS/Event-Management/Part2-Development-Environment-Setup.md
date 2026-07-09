@@ -1,7 +1,3 @@
-# **Part 2: Development Environment Setup**:
-
----
-
 # Part 2: Development Environment Setup
 
 Goal: get every tool installed and every free account created, so Parts 3+ are pure building with no interruptions.
