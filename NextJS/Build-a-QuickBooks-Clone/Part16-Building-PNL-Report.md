@@ -1,8 +1,8 @@
 ## Part 16: Building the Profit & Loss Report
 
-**Goal:** build the first real report — a Profit & Loss statement (also called an Income Statement) — computed entirely from journal_lines over a date range. This is where the discipline of always posting through postJournalEntry (Parts 10, 13, 14, 15) pays off visibly: the report requires almost no special-case logic, just correct aggregation.
+Goal of this part: build the first real report — a Profit & Loss statement (also called an Income Statement) — computed entirely from `journal_lines` over a date range. This is where the discipline of always posting through `postJournalEntry` (Parts 10, 13, 14, 15) pays off visibly: the report requires almost no special-case logic, just correct aggregation.
 
-**Prerequisite:** Parts 1-15 completed.
+Prerequisite: Parts 1-15 completed.
 
 ---
 
@@ -22,7 +22,7 @@ This is the exact same pattern as the manual SQL query you ran at the end of Par
 
 ### 3. Write the report query
 
-Create src/lib/reports/profit-and-loss.ts:
+Create `src/lib/reports/profit-and-loss.ts`:
 
 ```ts
 import { db } from "@/lib/db";
@@ -96,13 +96,13 @@ The comment in step 3 flags a real, common bug: if you filter by date using a no
 )
 ```
 
-Now an account with no activity in the given range still appears in the results (with totalDebitCents/totalCreditCents both 0, thanks to COALESCE), rather than disappearing from the report — which matters because a real P&L should show all income/expense accounts an org has used at some point, with $0 for ones with no activity this period, not silently omit them.
+Now an account with no activity in the given range still appears in the results (with `totalDebitCents`/`totalCreditCents` both 0, thanks to COALESCE), rather than disappearing from the report — which matters because a real P&L should show all income/expense accounts an org has used at some point, with $0 for ones with no activity this period, not silently omit them.
 
 This kind of subtlety — LEFT JOIN filtering conditions belonging in ON versus WHERE — is a genuinely common source of report bugs in any system, not just accounting ones. Good to have hit it here, in a safe learning context, rather than in a real report later.
 
 ### 5. Build the report page
 
-Create src/app/dashboard/reports/profit-and-loss/page.tsx. It should accept startDate and endDate as URL search params (so the date range is bookmarkable/shareable), default to the current month if none provided, call getProfitAndLoss, and render a simple report layout:
+Create `src/app/dashboard/reports/profit-and-loss/page.tsx`. It should accept `startDate` and `endDate` as URL search params (so the date range is bookmarkable/shareable), default to the current month if none provided, call `getProfitAndLoss`, and render a simple report layout:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -178,17 +178,17 @@ export default async function ProfitAndLossPage({
 }
 ```
 
-Notice searchParams is how a Server Component reads the current URL's query string (e.g. ?start=2025-01-01&end=2025-01-31) — a plain HTML form with GET (the default) naturally produces URLs like this without any JavaScript, which is why the date-picker form above needs no action/Server Action at all, just default browser behavior.
+Notice `searchParams` is how a Server Component reads the current URL's query string (e.g. `?start=2025-01-01&end=2025-01-31`) — a plain HTML form with GET (the default) naturally produces URLs like this without any JavaScript, which is why the date-picker form above needs no `action`/Server Action at all, just default browser behavior.
 
 ### 6. Test it
 
-Visit /dashboard/reports/profit-and-loss. You should see your Sales/Service Income accounts (from invoices you sent in Part 13) and your Expense accounts (from bills in Part 14), with correct totals, and a net profit/loss figure. Try changing the date range to something before you created any transactions — you should see all accounts listed with $0 balances, confirming the LEFT JOIN fix from step 4 is working (rather than an empty report).
+Visit `/dashboard/reports/profit-and-loss`. You should see your Sales/Service Income accounts (from invoices you sent in Part 13) and your Expense accounts (from bills in Part 14), with correct totals, and a net profit/loss figure. Try changing the date range to something before you created any transactions — you should see all accounts listed with $0 balances, confirming the LEFT JOIN fix from step 4 is working (rather than an empty report).
 
 Cross-check one number by hand: pick one Income account, and manually verify its total against your invoices — e.g. if you sent two invoices whose income both hit "Service Income" for $500 and $300, the P&L should show Service Income at $800 for a range covering both.
 
 ### 7. Add a report link to the dashboard
 
-Add a "Reports" or "Profit & Loss" link to src/app/dashboard/page.tsx alongside your other nav links.
+Add a "Reports" or "Profit & Loss" link to `src/app/dashboard/page.tsx` alongside your other nav links.
 
 ### 8. Commit your progress
 
@@ -199,9 +199,9 @@ git commit -m "Add Profit and Loss report computed from journal_lines with date 
 
 ---
 
-### Checkpoint
+### Checkpoint — confirm before moving on
 
-- [ ] getProfitAndLoss correctly sums income (credits - debits) and expenses (debits - credits) per account
+- [ ] `getProfitAndLoss` correctly sums income (credits - debits) and expenses (debits - credits) per account
 - [ ] The date range filter is in the JOIN's ON clause, not a WHERE clause, so zero-activity accounts still show with $0 rather than disappearing
 - [ ] The report page reads start/end from URL search params and defaults sensibly to the current month
 - [ ] You manually cross-checked at least one account's total against real invoices/bills you created
@@ -212,26 +212,29 @@ git commit -m "Add Profit and Loss report computed from journal_lines with date 
 ### Troubleshooting
 
 **Report page shows a blank Income and Expenses section, even though you have invoices/bills**
-Almost always means the date range filter is still in a WHERE clause instead of the JOIN's ON clause (step 4). Double check your leftJoin for journalEntries has the date conditions (gte/lte) inside its second argument (the `and(...)` block), not in a separate `.where(...)` call.
+Almost always means the date range filter is still in a WHERE clause instead of the JOIN's ON clause (step 4). Double check your `leftJoin` for `journalEntries` has the date conditions (`gte`/`lte`) inside its second argument (the `and(...)` block), not in a separate `.where(...)` call.
 
 **Error: "Cannot read properties of undefined (reading 'totalDebitCents')" or similar**
-This usually means the sql template import is missing or misspelled. Confirm you have `import { and, eq, gte, lte, inArray } from "drizzle-orm";` AND a separate `import { sql } from "drizzle-orm";` line (or combined into one import statement) at the top of profit-and-loss.ts.
+This usually means the `sql` template import is missing or misspelled. Confirm you have `import { and, eq, gte, lte, inArray } from "drizzle-orm";` AND a separate `import { sql } from "drizzle-orm";` line (or combined into one import statement) at the top of `profit-and-loss.ts`.
 
 **Numbers look right but are off by exactly a factor of 100**
-This means you forgot to divide by 100 somewhere when displaying (dollars vs cents confusion). Check that formatCents divides by 100 before calling toLocaleString, and that you're not accidentally double-converting anywhere.
+This means you forgot to divide by 100 somewhere when displaying (dollars vs cents confusion). Check that `formatCents` divides by 100 before calling `toLocaleString`, and that you're not accidentally double-converting anywhere.
 
 **The date picker form reloads the page but the numbers never change**
-Confirm your form does NOT have an action or onSubmit handler pointing at a Server Action — it should be a plain form relying on default GET behavior, which naturally updates the URL's query string (?start=...&end=...) and triggers Next.js to re-render the page with new searchParams.
+Confirm your form does NOT have an `action` or `onSubmit` handler pointing at a Server Action — it should be a plain form relying on default GET behavior, which naturally updates the URL's query string (`?start=...&end=...`) and triggers Next.js to re-render the page with new `searchParams`.
 
 **TypeScript error: "Property 'start' does not exist on type..."**
-Confirm the page's function signature exactly matches: `searchParams: Promise<{ start?: string; end?: string }>` and that you `await searchParams` before destructuring — both the Promise wrapper and the await are required in this version of Next.js.
+Confirm the page's function signature exactly matches: `searchParams: Promise<{ start?: string; end?: string }>` and that you `await searchParams` before destructuring — both the Promise wrapper and the await are required in Next.js 16.
 
 **Total Income and Total Expenses show correct numbers, but Net Profit/Loss is wrong**
-Check the sign: netProfitCents should be totalIncomeCents minus totalExpenseCents (not the reverse), and the JSX ternary checking `report.netProfitCents >= 0 ? "Profit" : "Loss"` should use Math.abs() when displaying so a loss doesn't show as a confusing negative currency value.
+Check the sign: `netProfitCents` should be `totalIncomeCents` minus `totalExpenseCents` (not the reverse), and the JSX ternary checking `report.netProfitCents >= 0 ? "Profit" : "Loss"` should use `Math.abs()` when displaying so a loss doesn't show as a confusing negative currency value.
 
 **Report shows accounts with $0 balance that you don't expect to see, like unused expense categories from Part 9's seed**
 This is expected and correct behavior after the ON-clause fix — all income/expense accounts an org has ever had (even with zero activity) will show, deliberately, so nothing is silently hidden. If you'd rather hide zero-balance rows, that's a reasonable customization: add a `.filter(r => r.balanceCents !== 0)` before rendering, but note real accounting software typically still shows all accounts for auditability.
 
 ---
 
-Ready to continue with **Part 17: Building the Balance Sheet** — the second core report, a snapshot as of a single date rather than a range?
+✅ **Part 16 is now complete in full**, including its Troubleshooting Addendum content merged in above.
+
+### What's next
+Part 17: Building the Balance Sheet — the second core report, but a snapshot AS OF a single date rather than a range, showing Assets, Liabilities, and Equity — and proving the fundamental accounting equation (Assets = Liabilities + Equity) always holds, live, from your own data.
