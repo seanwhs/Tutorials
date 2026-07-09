@@ -1,7 +1,3 @@
-# **Part 8b: Event Creation UI (Server Actions and Forms)**:
-
----
-
 # Part 8b: Event Creation UI (Server Actions and Forms)
 
 Server Actions work identically to prior Next.js versions — nothing here touches route `params`, so no new async considerations.
