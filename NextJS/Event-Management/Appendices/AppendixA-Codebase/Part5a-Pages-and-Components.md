@@ -1,8 +1,4 @@
-# **Appendix A Part 5a: Pages and Components**:
-
----
-
-# Appendix A Part 5: Pages and Components
+# Appendix A Part 5a: Pages and Components
 
 Client components below receive plain props, never route `params` directly — no async-params handling needed here (that applies to Server Component pages in 5b/5c/5d).
 
