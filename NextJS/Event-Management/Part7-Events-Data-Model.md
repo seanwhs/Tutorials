@@ -1,7 +1,3 @@
-# **Part 7: Building the Data Model, Migrations, and Clerk User Sync**:
-
----
-
 # Part 7: Building the Data Model, Migrations, and Clerk User Sync
 
 The webhook route below uses `headers()` from `next/headers`, async in Next.js 16 — must be awaited.
