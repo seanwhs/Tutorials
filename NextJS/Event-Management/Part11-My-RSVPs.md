@@ -1,7 +1,3 @@
-# **Part 11: Attendee Dashboard (My RSVPs)**:
-
----
-
 # Part 11: Attendee Dashboard (My RSVPs)
 
 A page listing every event the attendee has RSVPed to, using Drizzle's relational query API. Introduces another dynamic `[id]` route (ticket page) — `params` awaited as usual.
