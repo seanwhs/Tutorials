@@ -1,14 +1,14 @@
 ## Part 2: Your First Next.js Project
 
-**Goal:** create a real working Next.js project, understand file-based routing, and make your first live edit.
+Goal: create a real working Next.js 16 project, understand file-based routing, and make your first live edit.
 
-**Prerequisite:** Part 1 completed.
+Prerequisite: Part 1 completed (Node.js 20.9+ / 22 LTS installed and verified).
 
 ---
 
 ### 1. What is a framework?
 
-Next.js is a framework built on React that gives you file-based routing, server components, API routes, and built-in optimization, so you don't build all the plumbing of a website by hand.
+Next.js is a framework built on React that gives you file-based routing, server components, API routes, and built-in optimization, so you don't build all the plumbing of a website by hand. This course uses **Next.js 16**, which defaults to **Turbopack** (a much faster Rust-based bundler) and requires all dynamic request data (`params`, `searchParams`, `cookies()`, `headers()`) to be read asynchronously — you'll see this pattern starting in Part 12.
 
 ### 2. Create your project
 
@@ -41,7 +41,7 @@ Would you like to use Turbopack for `next dev`?  Yes
 Would you like to customize the import alias?  No
 ```
 
-This takes a minute or two.
+This takes a minute or two, and scaffolds Next.js 16 with React 19, Turbopack, and Tailwind CSS v4 (CSS-first configuration — no `tailwind.config.js` file, just an `@import "tailwindcss";` line at the top of `globals.css`).
 
 ### 3. Open the project
 
@@ -59,10 +59,10 @@ npm run dev
 
 Expected output:
 ```
-  ▲ Next.js 15.x.x
+  ▲ Next.js 16.x.x
   - Local:        http://localhost:3000
 
- ✓ Ready in 1200ms
+ ✓ Ready in 900ms
 ```
 
 Open http://localhost:3000 in your browser — you should see the default Next.js welcome page.
@@ -99,7 +99,7 @@ export default function AboutPage() {
 }
 ```
 
-Save, then visit http://localhost:3000/about — your new page should appear immediately with no restart needed.
+Save, then visit http://localhost:3000/about — your new page should appear immediately with no restart needed (Turbopack recompiles almost instantly).
 
 ### 7. Edit the homepage
 
@@ -169,6 +169,5 @@ Make sure the file is named exactly `page.tsx` (not `.js` or `.jsx`) and that VS
 **`git commit` says "Please tell me who you are"**
 You skipped the one-time Git setup from Part 1. Run the two `git config --global` commands from Part 1's step 3, then commit again.
 
----
-
-Ready for **Part 3: Understanding Our Toolbox** ? 
+**`npm run dev` prints an error about Node.js version, or `create-next-app` refuses to run**
+Next.js 16 requires Node.js 20.9+. Run `node -v` — if it's below v20.9, revisit Part 1 and reinstall Node.js from nodejs.org (the current LTS), then close and reopen your terminal completely before trying again.
