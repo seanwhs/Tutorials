@@ -1,6 +1,6 @@
-## Appendix A Part 5: Payments Actions
+# Appendix A Part 5: Payments Actions
 
-### src/app/dashboard/payments/actions.ts (both functions, full file)
+## src/app/dashboard/payments/actions.ts (both functions, full file)
 
 ```ts
 "use server";
@@ -136,9 +136,11 @@ export async function recordBillPayment(formData: FormData) {
 ```
 
 ---
-## Appendix A Part 5b: Profit and Loss + Balance Sheet Pages
 
-### src/app/dashboard/reports/profit-and-loss/page.tsx
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 5b: Profit and Loss + Balance Sheet Pages
+
+## src/app/dashboard/reports/profit-and-loss/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -214,7 +216,7 @@ export default async function ProfitAndLossPage({
 }
 ```
 
-### src/app/dashboard/reports/balance-sheet/page.tsx
+## src/app/dashboard/reports/balance-sheet/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -288,9 +290,11 @@ export default async function BalanceSheetPage({
 ```
 
 ---
-## Appendix A Part 5c: AR Aging and AP Aging Pages
 
-### src/app/dashboard/reports/ar-aging/page.tsx
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 5c: AR Aging and AP Aging Pages
+
+## src/app/dashboard/reports/ar-aging/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -359,7 +363,7 @@ export default async function ArAgingPage({
 }
 ```
 
-### src/app/dashboard/reports/ap-aging/page.tsx
+## src/app/dashboard/reports/ap-aging/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -428,8 +432,7 @@ export default async function ApAgingPage({
 }
 ```
 
-This completes Appendix A Part 5 (Payments actions and all four report pages).
-
 ---
 
-Next up is **Appendix A Part 6 (Bank Import and API Routes)** — the final part of this appendix, covering `bank-import/actions.ts`, `bank-import/page.tsx`, and both API routes (Inngest + Clerk webhook). 
+This completes Appendix A Part 5 (Payments actions and all four report pages).
+
