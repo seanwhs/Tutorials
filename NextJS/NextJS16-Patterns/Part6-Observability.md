@@ -1,4 +1,4 @@
-## Part 6: Observability and Structured Logging (Bonus)
+## Part 6: Observability and Structured Logging
 
 **Anti-Pattern:** Scattered, unstructured `console.log`/`console.error` calls with no correlation between a user-reported bug and the server log that explains it — unqueryable free text, leftover debug logs shipping to prod.
 
