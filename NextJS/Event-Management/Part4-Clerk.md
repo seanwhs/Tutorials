@@ -1,7 +1,3 @@
-# **Part 4: Clerk Authentication Integration**:
-
----
-
 # Part 4: Clerk Authentication Integration
 
 Clerk's Next.js SDK is fully compatible with Next.js 16; its server helpers (`auth()`, `currentUser()`) are async and must be awaited.
