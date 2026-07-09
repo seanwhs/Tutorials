@@ -44,4 +44,4 @@ export async function getOrCreateCurrentUser() {
 }
 ```
 
-This part continues directly in **Part 8b: Event Creation UI (Server Actions and Forms)** — say "next" to continue.
+This part continues directly in **Part 8b: Event Creation UI (Server Actions and Forms)** 
