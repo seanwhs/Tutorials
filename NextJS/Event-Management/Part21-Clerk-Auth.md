@@ -1,7 +1,3 @@
-# **Part 21: Authorization and Roles with Clerk**:
-
----
-
 # Part 21: Authorization and Roles with Clerk
 
 Centralizes the scattered `event.organizerId !== user.id` checks and adds a lightweight admin role. Touches `/dashboard/[id]` and `/dashboard/[id]/checkin` (unchanged `params` handling) plus a new static `/admin` route (no params).
