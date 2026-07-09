@@ -1,161 +1,269 @@
-# Part 1: Introduction & Architecture
+# Part 2: Environment Setup (Next.js 16, TypeScript, Tailwind v4, shadcn/ui)
 
-## Welcome
+> **TARGET VERSIONS:** This series targets **Next.js 16** (App Router, React 19, Turbopack as the default bundler). Next.js 16 requires **Node.js 20.9+** — Node 22 LTS is recommended; Node 18 is end-of-life and will not work. `create-next-app` now scaffolds **Tailwind CSS v4** (CSS-first configuration — no `tailwind.config.js` by default). One breaking change from older tutorials you may find online: **`params` and `searchParams` in Page components and Route Handlers are `Promise`-based and must be `await`-ed** — every code sample in this series already uses the correct pattern (established in Parts 7 and 8). Database is **Neon serverless Postgres** (Part 3), not Supabase.
 
-This is a step-by-step, beginner-friendly, code-heavy tutorial series for building a **SGX Stock Analytics Dashboard for Retail Investors** — a real, deployable SaaS-style app that pulls live and historical data for Singapore Exchange (SGX) stocks like DBS (D05.SI), SingTel (Z74.SI), and CapitaLand Integrated Commercial Trust (C38U.SI), and layers on the kind of analytics an SG retail investor actually cares about: dividends, REIT metrics, CPF/SRS DCA planning, sector heatmaps, and AI-generated plain-English summaries.
+## Concept
 
-By the end of this series you will have:
+Before touching any stock data, we need a solid project scaffold: a Next.js 16 App Router project, TypeScript, Tailwind CSS v4, and shadcn/ui for pre-built accessible components (so our UI looks like "Bloomberg Terminal lite" without hand-rolling every button and card).
 
-- A working Next.js 16 App Router application
-- A Postgres database (via **Neon**, a serverless Postgres provider) storing stocks, prices, dividends, watchlists
-- Live SGX quote + historical price ingestion (yahoo-finance2 primary, Finnhub fallback)
-- Redis caching (Upstash) so you don't hit rate limits
-- Candlestick/line/volume charts with 1D–5Y ranges (TradingView Lightweight Charts v5)
-- A key metrics panel (P/E, Dividend Yield, Market Cap, 52W Hi/Lo)
-- RSI and MACD technical indicators
-- A dividend tracker with ex-div dates and a DCA calculator
-- A sector heatmap
-- A "best trading times" backtesting engine
-- AI-generated summaries using **free** LLM models only, with a model-selector abstraction
-- A REIT-focused tab (DPU, NAV, Gearing Ratio, Occupancy)
-- A CPF/SRS portfolio DCA simulator
-- News + sentiment analysis
-- User accounts, watchlists, and price alerts (email via Vercel Cron)
-- A full deployment to Vercel, all on free tiers
+## Step 0: Verify your Node.js version
 
-We will build this exactly the way you'd build it as a professional: **concept first, then schema, then server logic, then UI, then a checkpoint** to verify it works — every part, no exceptions.
-
-> This series assumes you're comfortable with basic JavaScript/TypeScript and have Node.js installed. Everything else — Next.js, Prisma, Tailwind, Redis, chart libraries — is taught from scratch.
-
-## Why this project is a great portfolio piece
-
-This project proves you can:
-- Build a full-stack app (frontend + backend + DB)
-- Integrate multiple third-party APIs and handle their quirks/rate limits
-- Process and transform financial time-series data
-- Build domain-specific features (REITs, CPF/SRS) that show you understand the Singapore market specifically — this is what makes it stand out in an SG job interview versus a generic "stock tracker" clone
-- Use modern AI tooling (Vercel AI SDK) responsibly, with cost-consciousness (free models only)
-
-## Why Neon for Postgres
-
-We use **Neon** (a serverless Postgres provider) rather than a bundled backend-as-a-service platform, because:
-- This project only ever touches Postgres through Prisma — no bundled auth, storage, or realtime features are needed (auth is handled by Clerk, Part 18).
-- Neon is a focused product: true scale-to-zero compute, fast resume from idle, and built-in connection pooling designed specifically for serverless environments like Vercel's.
-- Neon integrates tightly with Vercel (Vercel's own managed Postgres offering is built on Neon).
-- Neon's free tier doesn't require a manual dashboard restart after a period of inactivity, which matters for an infrequently-visited portfolio project.
-- Database branching (instant copy-on-write branches) is a nice bonus if you ever want a separate database per Vercel preview deployment — not required for this tutorial, but available if you explore it later.
-
-## High-Level Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                           Browser (Client)                        │
-│  Next.js App Router pages/components (React Server + Client)      │
-│  - Chart components (Lightweight Charts, Recharts)                │
-│  - Dashboard, REIT tab, Watchlist, Backtest UI                    │
-└───────────────┬────────────────────────────────────────────────────┘
-                │ fetch() to same-origin API routes
-┌───────────────▼────────────────────────────────────────────────────┐
-│                   Next.js API Routes / Route Handlers              │
-│  /api/stocks/[ticker]/quote                                       │
-│  /api/stocks/[ticker]/history                                     │
-│  /api/stocks/[ticker]/dividends                                   │
-│  /api/stocks/[ticker]/ai-summary                                  │
-│  /api/watchlist  /api/alerts  /api/backtest  /api/sentiment        │
-└───────┬───────────────────┬───────────────────┬────────────────────┘
-        │                   │                   │
-┌───────▼────────┐  ┌───────▼────────┐  ┌───────▼─────────────────┐
-│ Upstash Redis   │  │ Prisma ORM     │  │ External APIs           │
-│ (cache 15 min)  │  │ → Neon Postgres│  │ - yahoo-finance2 (npm)   │
-│                 │  │ Stock, Price,  │  │ - Finnhub (fallback)     │
-│                 │  │ Dividend,      │  │ - SGX StockFacts (scrape)│
-│                 │  │ Watchlist, User│  │ - Straits Times RSS      │
-└─────────────────┘  └────────────────┘  └──────────────────────────┘
-                            │
-                    ┌───────▼─────────────┐
-                    │ Vercel AI SDK        │
-                    │ Free model selector: │
-                    │ Groq Llama 3.1 free  │
-                    │ Google Gemini Flash  │
-                    │ OpenRouter free tier │
-                    └───────────────────────┘
-                            │
-                    ┌───────▼─────────────┐
-                    │ Vercel Cron          │
-                    │ (price alert emails, │
-                    │  nightly data sync)  │
-                    └───────────────────────┘
+```bash
+node -v
 ```
 
-## Data flow, in plain English
+This must print `v20.9.0` or higher (ideally `v22.x`). If it doesn't, install the current LTS from nodejs.org (or via `nvm install --lts`) before continuing — Next.js 16 will refuse to run on older Node versions.
 
-1. A user opens `/stock/D05.SI`.
-2. The page's server component calls our internal API route, which first checks **Upstash Redis** for a cached quote/history.
-3. If cached data is fresh (< 15 min old), we return it immediately — this keeps us within free API rate limits.
-4. If not cached, we call **yahoo-finance2** (no API key needed, generous limits) to get quote + historical OHLCV data. If that fails, we fall back to **Finnhub** free tier.
-5. Fresh data is written to **Neon Postgres** (via Prisma) for permanent historical storage, and to Redis for short-term caching.
-6. The client renders candlestick charts, metrics panel, indicators — all computed from this data.
-7. For the AI Summary feature, we assemble a small structured prompt (price change, P/E, dividend yield, recent headline) and send it to a **free** LLM (Groq/Gemini/OpenRouter — user-selectable in code) via the Vercel AI SDK, and stream back a natural-language summary.
-8. Vercel Cron jobs run nightly to refresh dividend calendars and periodically (during SGX trading hours) to check watchlist alert prices, emailing users when triggered.
+## Step 1: Create the project
 
-## Why these tools specifically
+```bash
+npx create-next-app@latest sgx-dashboard
+```
 
-| Concern | Choice | Why |
-|---|---|---|
-| Framework | Next.js 16 App Router | Server + client components in one framework, API routes built-in, first-class Vercel deployment |
-| Database | Neon serverless Postgres (free tier) | Scale-to-zero, fast resume, built-in pooling, tight Vercel integration, no bundled features we don't need |
-| ORM | Prisma | Type-safe queries, easy migrations, great DX for beginners |
-| Charts | TradingView Lightweight Charts v5 | Purpose-built for candlestick/OHLC financial charts, free, lightweight, used by real trading platforms |
-| Secondary charts | Recharts | Easier for simple bar/heatmap/line visualizations (sector heatmap, DPU trends) |
-| Caching | Upstash Redis (free tier) | Serverless-friendly (REST-based), generous free tier, avoids hitting API rate limits |
-| Data source | yahoo-finance2 (npm) | Free, no API key, covers `.SI` SGX tickers, good enough for a portfolio project |
-| Fallback data source | Finnhub free tier | Real API key + rate limits teach you to build resilient fallback logic |
-| Auth | Clerk (free tier) | Fast to integrate, handles sessions/JWTs, free for small user counts |
-| AI | Vercel AI SDK + free models only | Teaches the modern AI SDK pattern without any cost; model-selector abstraction shown in Part 14 |
-| Hosting | Vercel free (Hobby) tier | Cron jobs, edge functions, zero-cost deployment |
+When prompted, choose:
+```
+Would you like to use TypeScript?  Yes
+Would you like to use ESLint?      Yes
+Would you like to use Tailwind CSS? Yes
+Would you like to use `src/` directory? Yes
+Would you like to use App Router?  Yes
+Would you like to use Turbopack?   Yes (default in Next.js 16)
+Would you like to customize the default import alias (@/*)? Yes (keep default)
+```
 
-## A note on ".SI" tickers and free data
+```bash
+cd sgx-dashboard
+```
 
-SGX-listed stocks on Yahoo Finance and most data providers use a `.SI` suffix, e.g.:
-- `D05.SI` = DBS Group Holdings
-- `O39.SI` = OCBC Bank
-- `U11.SI` = UOB
-- `Z74.SI` = Singtel
-- `C38U.SI` = CapitaLand Integrated Commercial Trust (a REIT)
-- `A17U.SI` = CapitaLand Ascendas REIT (a REIT)
-- `ES3.SI` = SPDR STI ETF (tracks the Straits Times Index)
+This scaffolds Next.js 16 with React 19, Turbopack, and Tailwind v4.
 
-We will use these as our running examples throughout the series. `yahoo-finance2` supports `.SI` tickers out of the box with no extra configuration — this is what makes it perfect for free prototyping. Finnhub's free tier also supports many SGX symbols (format may differ slightly — we cover normalization in Part 5).
+## Step 2: Install all dependencies up front
 
-## What you need before starting
+We install everything now so no later part is interrupted by a missing-package error:
 
-- **Node.js 20.9+ installed** (Next.js 16 requires this; Node 22 LTS recommended; Node 18 is end-of-life and will NOT work)
-- A free GitHub account (for deployment)
-- A free Vercel account
-- A free Neon account (for Postgres)
-- A free Upstash account
-- A free Clerk account
-- A free Finnhub account (just for the fallback/Part 5 — optional but recommended)
-- A free Groq and/or Google AI Studio (Gemini) account for AI summaries (Part 14)
-- A code editor (VS Code recommended)
+```bash
+npm install prisma @prisma/client
+npm install @neondatabase/serverless
+npm install @upstash/redis @upstash/ratelimit
+npm install yahoo-finance2
+npm install lightweight-charts recharts
+npm install ai @ai-sdk/google @ai-sdk/groq @ai-sdk/openai
+npm install @clerk/nextjs
+npm install date-fns
+npm install zod
+npm install rss-parser
+npm install resend
+npm install cheerio
+npm install -D tsx vitest
+```
 
-No credit card is required for any of the above at the free tiers we use.
+Quick rundown of what each does:
+- `prisma` / `@prisma/client` — our ORM and database toolkit
+- `@neondatabase/serverless` — Neon's serverless driver, used later if we want edge-compatible/HTTP-based queries; standard Prisma + `pg`-style connection also works fine over Neon's pooled connection string, but installing this now keeps the option open with no extra step later
+- `@upstash/redis` — REST-based Redis client, works great in serverless functions; `@upstash/ratelimit` — request throttling (Part 20)
+- `yahoo-finance2` — free stock data (no API key)
+- `lightweight-charts` — TradingView's free charting library, **v5** (we use the v5 `addSeries` API in Part 8)
+- `recharts` — simpler charts for heatmaps/bar charts
+- `ai`, `@ai-sdk/google`, `@ai-sdk/groq` — Vercel AI SDK + free-tier providers (Gemini, Groq); `@ai-sdk/openai` — OpenAI-compatible client used for OpenRouter's free models (Part 14)
+- `@clerk/nextjs` — authentication
+- `date-fns` — date manipulation (ex-dividend dates, DCA schedules)
+- `zod` — schema validation for API inputs
+- `rss-parser` — parsing Straits Times / news RSS feeds (Part 17)
+- `resend` — free-tier transactional email for price alerts (Part 19)
+- `cheerio` — HTML parsing for the SGX StockFacts REIT scraper (Part 15)
+- `tsx` (dev) — run TypeScript scripts directly (seed + test scripts); `vitest` (dev) — unit tests (Part 20)
 
-## Series structure recap
+## Step 3: Set up shadcn/ui
 
-Every part will follow this format:
-1. **Concept** — what we're building and why
-2. **Schema** — any database changes needed (if applicable)
-3. **Server logic** — API routes, data fetching, business logic
-4. **UI** — the React components
-5. **Checkpoint** — a concrete way to verify it works before moving to the next part
+```bash
+npx shadcn@latest init
+```
 
-## Checkpoint for Part 1
+Recommended answers:
+```
+Style: New York
+Base color: Slate
+CSS variables: Yes
+```
 
-There's no code yet — this part is purely conceptual. Before moving to Part 2, make sure you:
-- [ ] Understand the high-level architecture diagram above
-- [ ] Have Node.js 20.9+ installed (`node -v` to check — should print v20.9 or higher, ideally v22.x)
-- [ ] Have created (or are ready to create) free accounts: GitHub, Vercel, Neon, Upstash, Clerk, Finnhub, Groq/Google AI Studio
-- [ ] Understand why this series uses Neon rather than Supabase (see "Why Neon for Postgres" above)
+shadcn's current CLI fully supports Tailwind v4 and will wire itself into your CSS-first config automatically.
 
-Once you're ready, move on to **Part 2: Environment Setup**, where we scaffold the actual Next.js project.
+Then install the components we'll use throughout the series:
+
+```bash
+npx shadcn@latest add button card table tabs badge input select dialog dropdown-menu skeleton tooltip separator sonner command
+```
+
+This gives us a consistent, professional component library (`sonner` = toast notifications, `command` = the Cmd+K command bar we build in Part 22).
+
+## Step 4: Project folder structure
+
+Create this structure inside `src/`:
+
+```
+src/
+  app/
+    (dashboard)/
+      page.tsx                      # home / market overview
+      stock/[ticker]/page.tsx       # individual stock page
+      reits/page.tsx                # REIT focus tab
+      simulator/page.tsx            # CPF/SRS simulator
+      watchlist/page.tsx            # user watchlist
+    api/
+      stocks/[ticker]/quote/route.ts
+      stocks/[ticker]/history/route.ts
+      stocks/[ticker]/dividends/route.ts
+      stocks/[ticker]/indicators/route.ts
+      stocks/[ticker]/dca/route.ts
+      stocks/[ticker]/reit/route.ts
+      stocks/[ticker]/ai-summary/route.ts
+      stocks/search/route.ts
+      sectors/heatmap/route.ts
+      backtest/route.ts
+      news/[ticker]/route.ts
+      simulator/cpf-srs/route.ts
+      watchlist/route.ts
+      watchlist/[ticker]/route.ts
+      alerts/check/route.ts
+      cron/nightly-refresh/route.ts
+    layout.tsx
+    globals.css
+    error.tsx
+    not-found.tsx
+  components/
+    charts/
+    metrics/
+    indicators/
+    dividends/
+    heatmap/
+    backtest/
+    ai/
+    reits/
+    simulator/
+    news/
+    watchlist/
+    layout/
+    ui/                             # shadcn generated components live here
+  lib/
+    prisma.ts
+    redis.ts
+    rate-limit.ts
+    api-error.ts
+    email.ts
+    format.ts
+    heatmap-color.ts
+    dca-calculator.ts
+    cpf-srs-constants.ts
+    cpf-srs-simulator.ts
+    reit-metrics.ts
+    reit-refresh.ts
+    stock-service.ts
+    tickers.ts
+    data-sources/
+      yahoo.ts
+      finnhub.ts
+      sgx-stockfacts.ts
+      index.ts
+    ai/
+      models.ts
+      summarize.ts
+      prompts.ts
+    indicators/
+      rsi.ts
+      macd.ts
+    backtest/
+      strategies.ts
+      engine.ts
+    news/
+      rss-fetcher.ts
+      sentiment.ts
+    hooks/
+      use-quote.ts
+      use-stock-history.ts
+      use-indicators.ts
+  types/
+    stock.ts
+```
+
+We won't create every file yet — we'll create them as we need them in later parts. But go ahead and create the empty folders now so the structure feels familiar as we progress.
+
+## Step 5: Environment variables file
+
+Create `.env.local` in the project root:
+
+```bash
+# Database (Part 3) - Neon Postgres
+DATABASE_URL=""
+DIRECT_URL=""
+
+# Upstash Redis (Part 6)
+UPSTASH_REDIS_REST_URL=""
+UPSTASH_REDIS_REST_TOKEN=""
+
+# Finnhub fallback (Part 5)
+FINNHUB_API_KEY=""
+
+# Clerk (Part 18)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""
+CLERK_SECRET_KEY=""
+
+# AI - free tier providers (Part 14)
+GOOGLE_GENERATIVE_AI_API_KEY=""
+GROQ_API_KEY=""
+OPENROUTER_API_KEY=""
+
+# Email for alerts (Part 19)
+RESEND_API_KEY=""
+
+# Cron secret (Part 19)
+CRON_SECRET=""
+
+# App URL, used in alert email links (Part 19/21)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+Leave the secrets blank for now — we'll fill each one in as its corresponding part requires it. Add `.env.local` to `.gitignore` (Next.js does this by default, but double check).
+
+## Step 6: Tailwind v4 theme utilities
+
+Since we're going for a "Bloomberg Terminal lite" aesthetic (dark, data-dense, green/red for gains/losses), open `src/app/globals.css`. Tailwind v4 uses CSS-first configuration — you'll see an `@import "tailwindcss";` line at the top instead of the old `@tailwind` directives, and custom utilities are defined with the **`@utility`** directive. Add these below the import (and below shadcn's generated theme blocks):
+
+```css
+@utility text-gain {
+  color: var(--color-emerald-500);
+}
+@utility text-loss {
+  color: var(--color-red-500);
+}
+@utility bg-gain {
+  background-color: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
+}
+@utility bg-loss {
+  background-color: color-mix(in oklab, var(--color-red-500) 10%, transparent);
+}
+@utility font-mono-num {
+  font-variant-numeric: tabular-nums;
+}
+```
+
+We'll use `.text-gain` / `.text-loss` throughout the series any time we render a price change, and `.font-mono-num` on every numeric display so columns of prices align.
+
+## Step 7: Run it
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000` — you should see the default Next.js starter page, compiled by Turbopack (you'll notice it's fast).
+
+## Checkpoint
+
+- [ ] `node -v` prints v20.9+ (ideally v22.x)
+- [ ] `npm run dev` runs with no errors on Next.js 16 / Turbopack
+- [ ] shadcn/ui components installed under `src/components/ui`
+- [ ] Folder structure created under `src/`
+- [ ] `.env.local` created (empty secret values are fine for now)
+- [ ] `.gitignore` includes `.env.local`
+- [ ] `globals.css` contains the five `@utility` definitions
+
+Next: **Part 3 — Database Design (Prisma + Neon Postgres)**, where we design our full schema (Stock, Price, Dividend, Watchlist, Alert) and connect to a real Postgres database hosted on Neon.
