@@ -1,7 +1,3 @@
-# **Part 22: Testing and Error Handling Best Practices**:
-
----
-
 # Part 22: Testing and Error Handling Best Practices
 
 Graceful failures + a real automated test. No route params here — `error.tsx`/`not-found.tsx`/`useActionState` work identically under Next.js 16.
