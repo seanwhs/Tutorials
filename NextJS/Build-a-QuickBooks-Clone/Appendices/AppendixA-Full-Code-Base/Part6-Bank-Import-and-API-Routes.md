@@ -1,4 +1,3 @@
-[System: Empty message content sanitised to satisfy protocol]
 # Appendix A Part 6: Bank Import Actions and Page
 
 ## src/app/dashboard/bank-import/actions.ts
