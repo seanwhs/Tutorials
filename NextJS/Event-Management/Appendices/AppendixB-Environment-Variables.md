@@ -1,7 +1,3 @@
-# **Appendix B: Environment Variables Reference**:
-
----
-
 # Appendix B: Environment Variables Reference
 
 | Variable | Where to get it | Introduced in | Notes |
