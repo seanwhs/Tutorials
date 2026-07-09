@@ -1,7 +1,3 @@
-# **Appendix A Part 4: Inngest Functions**:
-
----
-
 # Appendix A Part 4: Inngest Functions
 
 The Clerk webhook route uses `headers()` from `next/headers`, async in Next.js 16, awaited accordingly.
