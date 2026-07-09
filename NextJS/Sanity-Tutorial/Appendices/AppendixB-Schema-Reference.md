@@ -1,5 +1,5 @@
 # Sanity Mastery - Appendix B: Full Schema Files Reference
-[System: Empty message content sanitised to satisfy protocol]
+
 # Appendix B: Full Schema Files Reference
 
 Quick-reference table of every schema type built across the series (defined in full in Part 2 and Appendix A 2/5), plus the complete `schemaTypes/index.ts` wiring.
