@@ -1,7 +1,3 @@
-# **Part 10: Free RSVP Flow (Server Actions)**:
-
----
-
 # Part 10: Free RSVP Flow (Server Actions)
 
 The heart of the app: letting a signed-in user RSVP for free.
