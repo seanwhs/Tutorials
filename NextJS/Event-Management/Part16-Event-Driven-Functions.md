@@ -1,7 +1,3 @@
-# **Part 16: RSVP Confirmation Emails with Resend and Inngest**:
-
----
-
 # Part 16: RSVP Confirmation Emails with Resend and Inngest
 
 Wires up real email sending: confirmation with QR ticket, triggered on RSVP. No route params here — nothing new Next.js 16-wise.
