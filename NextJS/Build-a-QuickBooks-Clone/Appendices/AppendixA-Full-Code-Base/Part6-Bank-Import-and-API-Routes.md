@@ -1,6 +1,7 @@
-## Appendix A Part 6: Bank Import Actions and Page
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 6: Bank Import Actions and Page
 
-### src/app/dashboard/bank-import/actions.ts
+## src/app/dashboard/bank-import/actions.ts
 
 ```ts
 "use server";
@@ -100,7 +101,7 @@ export async function categorizeBankTransaction(formData: FormData) {
 }
 ```
 
-### src/app/dashboard/bank-import/page.tsx
+## src/app/dashboard/bank-import/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -172,9 +173,10 @@ export default async function BankImportPage() {
 ```
 
 ---
-## Appendix A Part 6b: API Routes — Inngest and Clerk Webhook (FINAL)
 
-### src/app/api/inngest/route.ts (FINAL — all three functions registered)
+# Appendix A Part 6b: API Routes — Inngest and Clerk Webhook (FINAL)
+
+## src/app/api/inngest/route.ts (FINAL — all three functions registered)
 
 ```ts
 import { serve } from "inngest/next";
@@ -189,7 +191,7 @@ export const { GET, POST, PUT } = serve({
 });
 ```
 
-### src/app/api/webhooks/clerk/route.ts
+## src/app/api/webhooks/clerk/route.ts
 
 This route auto-seeds a new organization's Chart of Accounts the moment it's created in Clerk (resolves the manual-seeding-script workaround used earlier in the build, once a public URL exists after deployment). Requires `npm install svix` (Clerk uses svix under the hood for webhook signature verification) and `CLERK_WEBHOOK_SECRET` set in your environment.
 
@@ -246,14 +248,14 @@ export async function POST(req: Request) {
 }
 ```
 
+Note: `await headers()` here is the correct Next.js 16 async pattern — this route was already validated for that convention.
+
 ---
 
-This is the end of Appendix A. All files in the qb-clone project have now been shown in their final, accumulated state across every part (INDEX + 1, 1b, 1c, 2, 2b, 2c, 3, 3b, 3c, 4, 4b, 4c, 4d, 5, 5b, 5c, 6, 6b — 18 notes total).
+## 🎉 This is the end of Appendix A
+
+All files in the qb-clone project have now been shown in their final, accumulated state across the full appendix (INDEX + Parts 1, 1b, 1c, 2, 2b, 2c, 3, 3b, 3c, 4, 4b, 4c, 4d, 5, 5b, 5c, 6, 6b — 18 notes total).
 
 ### Summary: what this appendix proves
 
-If every file shown across this appendix is created exactly as written, in the folder structure shown in the INDEX note, the result is a complete, working, deployable double-entry accounting application — the same application built incrementally across the tutorial parts, just shown here as one coherent final snapshot rather than a step-by-step build history. Use the tutorial parts to understand WHY each piece exists and HOW it was built; use this appendix as the definitive reference for WHAT the final code should look like.
-
----
-
-That's the complete Appendix A, start to finish — every single file in the qb-clone project, in its final accumulated state. Between the full tutorial series (Parts 0-24) and this appendix, you now have everything needed to either build this step-by-step or reconstruct the finished app directly. 
+If every file shown across this appendix is created exactly as written, in the folder structure shown in the INDEX note, the result is a complete, working, deployable double-entry accounting application — the same application built incrementally across the 25-part tutorial series, just shown here as one coherent final snapshot rather than a step-by-step build history. Use the numbered tutorial Parts to understand WHY each piece exists and HOW it was built; use this appendix as the definitive reference for WHAT the final code should look like.
