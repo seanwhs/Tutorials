@@ -1,7 +1,3 @@
-# **Part 5: Neon Postgres Setup and Drizzle ORM**:
-
----
-
 # Part 5: Neon Postgres Setup and Drizzle ORM
 
 Database setup/Drizzle config is unaffected by Next.js 16's async API changes — identical in spirit to earlier Next.js versions.
