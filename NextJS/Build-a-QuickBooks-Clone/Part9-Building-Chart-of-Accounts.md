@@ -1,8 +1,8 @@
 ## Part 9: Building the Chart of Accounts
 
-**Goal:** extend the accounts schema, seed a default Chart of Accounts, and build a page to view it.
+Goal: extend the accounts schema, seed a default Chart of Accounts, and build a page to view it.
 
-**Prerequisite:** Parts 1-8 completed.
+Prerequisite: Parts 1-8 completed.
 
 ---
 
@@ -216,7 +216,3 @@ Confirm your `tsconfig.json` has the `@/*` path alias configured (this is set up
 
 **Table renders but columns are misaligned or the type column shows "undefined"**
 Double check the property names in the JSX (`a.code`, `a.name`, `a.type`, `a.subtype`, `a.normalBalance`) exactly match the column names as Drizzle exposes them in JavaScript/TypeScript (camelCase, e.g. `normalBalance` not `normal_balance` — Drizzle automatically converts between snake_case in the database and camelCase in your code).
-
----
-
-Ready for **Part 10: Building the Journal Entry Engine** ? This is the single most important piece of code in the entire application, so take your time with it.
