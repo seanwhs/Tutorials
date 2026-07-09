@@ -1,7 +1,3 @@
-# **Part 15: Setting Up Inngest**:
-
----
-
 # Part 15: Setting Up Inngest
 
 The event-driven background job engine powering confirmation emails (Part 16) and reminders (Part 17). Just plumbing here — no real logic yet. Inngest's SDK works identically under Next.js 16/Turbopack.
