@@ -1,8 +1,8 @@
 ## Part 13: Turning Invoices into Journal Entries
 
-**Goal:** wire invoice creation into postJournalEntry from Part 10, so every invoice produces a correct, balanced accounting entry automatically, atomically alongside the invoice itself.
+Goal: wire invoice creation into `postJournalEntry` from Part 10, so every invoice produces a correct, balanced accounting entry automatically, atomically alongside the invoice itself.
 
-**Prerequisite:** Parts 1-12 completed.
+Prerequisite: Parts 1-12 completed.
 
 ---
 
@@ -12,7 +12,7 @@ Recall Part 8's Worked Example 2: sending a $500 invoice debits Accounts Receiva
 
 ### 2. Write a helper to find accounts by subtype
 
-Create src/lib/accounting/find-account.ts:
+Create `src/lib/accounting/find-account.ts`:
 
 ```ts
 import { db } from "@/lib/db";
@@ -36,7 +36,7 @@ export async function findAccountBySubtype(orgId: string, subtype: string) {
 
 ### 3. Make postJournalEntry transaction-aware
 
-Open src/lib/accounting/post-journal-entry.ts from Part 10. Replace its entire contents with:
+Open `src/lib/accounting/post-journal-entry.ts` from Part 10. Replace its entire contents with:
 
 ```ts
 import { db } from "@/lib/db";
@@ -119,7 +119,7 @@ The only change from Part 10: it now accepts an optional second argument, `tx`. 
 
 ### 4. Update createInvoice to post a journal entry atomically
 
-Open src/app/dashboard/invoices/actions.ts. Replace its entire contents with:
+Open `src/app/dashboard/invoices/actions.ts`. Replace its entire contents with:
 
 ```ts
 "use server";
@@ -213,15 +213,15 @@ export async function createInvoice(formData: FormData) {
 }
 ```
 
-What changed from Part 12: we look up the AR and Income accounts before opening the transaction. Everything — invoice insert, invoice line inserts, and the journal entry — is wrapped in one db.transaction. Status changed from draft to sent. We pass `tx` as the second argument to postJournalEntry so it joins the same transaction.
+What changed from Part 12: we look up the AR and Income accounts before opening the transaction. Everything — invoice insert, invoice line inserts, and the journal entry — is wrapped in one `db.transaction`. Status changed from `draft` to `sent`. We pass `tx` as the second argument to `postJournalEntry` so it joins the same transaction.
 
 ### 5. Test it
 
-Create a new invoice through /dashboard/invoices/new. Check Neon's SQL Editor:
+Create a new invoice through `/dashboard/invoices/new`. Check Neon's SQL Editor:
 ```sql
 SELECT * FROM journal_entries ORDER BY created_at DESC LIMIT 1;
 ```
-Copy the id from that row, then:
+Copy the `id` from that row, then:
 ```sql
 SELECT * FROM journal_lines WHERE entry_id = 'PASTE_THE_ID_HERE';
 ```
@@ -229,7 +229,7 @@ Expected: exactly two lines, one debiting Accounts Receivable for the full invoi
 
 ### 6. Prove the safety net works at the feature level
 
-In src/app/dashboard/invoices/actions.ts, temporarily change this line:
+In `src/app/dashboard/invoices/actions.ts`, temporarily change this line:
 ```ts
 { accountId: incomeAccount.id, creditCents: totalCents },
 ```
@@ -267,26 +267,16 @@ git commit -m "Wire invoice creation to postJournalEntry atomically, posting AR 
 Your organization was not seeded with default accounts (Part 9), or you are testing against a different organization than the one you seeded. Re-run Part 9's seed script for the organization currently active in your app.
 
 **Invoice saves successfully but no journal entry appears**
-Confirm you replaced the ENTIRE actions.ts file with the version in this part, not just added the new import lines — a common mistake is keeping Part 12's old function body while adding the new imports, which silently skips the postJournalEntry call.
+Confirm you replaced the ENTIRE `actions.ts` file with the version in this part, not just added the new import lines — a common mistake is keeping Part 12's old function body while adding the new imports, which silently skips the `postJournalEntry` call.
 
 **Error: "invoiceId" is not defined, or invoice is undefined inside the transaction**
 Confirm the `.returning()` call is present immediately after `.insert(invoices).values({...})` — without it, `invoice` will be undefined, since Drizzle needs to be told explicitly to return the inserted row.
 
 **The deliberate unbalance test still saved a broken invoice**
-Double-check you edited the correct line (the credit line, not the debit line) and saved the file. Also confirm you are looking inside the db.transaction block, not some other unrelated part of the file.
+Double-check you edited the correct line (the credit line, not the debit line) and saved the file. Also confirm you are looking inside the `db.transaction` block, not some other unrelated part of the file.
 
 **TypeScript error: "Argument of type '{...}' is not assignable to parameter of type 'typeof db'"**
-This usually means the tx parameter type is being inferred incorrectly. Confirm post-journal-entry.ts's function signature matches exactly: `tx?: typeof db` as the second parameter, and that you are calling `postJournalEntry({...}, tx)` with tx as a plain second argument, not wrapped in another object.
+This usually means the `tx` parameter type is being inferred incorrectly. Confirm `post-journal-entry.ts`'s function signature matches exactly: `tx?: typeof db` as the second parameter, and that you are calling `postJournalEntry({...}, tx)` with `tx` as a plain second argument, not wrapped in another object.
 
 **Error mentions "relation actions does not exist" or similar odd path error**
-Confirm actions.ts is still in src/app/dashboard/invoices/ (same location as Part 12) — this part only edits the file's contents, it does not move it.
-
----
-
-### What's next
-
-Part 14: Bills & Expenses — the mirror image of this part, for money going out instead of coming in.
-
----
-
-Ready to continue with **Part 14**? 
+Confirm `actions.ts` is still in `src/app/dashboard/invoices/` (same location as Part 12) — this part only edits the file's contents, it does not move it.
