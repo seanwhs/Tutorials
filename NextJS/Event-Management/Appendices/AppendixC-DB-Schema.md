@@ -1,7 +1,3 @@
-# **Appendix C: Database Schema Reference**:
-
----
-
 # Appendix C: Database Schema Reference
 
 Entirely independent of Next.js version — unchanged by the regeneration.
