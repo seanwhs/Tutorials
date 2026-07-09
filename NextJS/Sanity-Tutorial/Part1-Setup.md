@@ -1,5 +1,4 @@
 # Sanity Mastery - Part 1: Project Setup — Embedding Studio in Next.js 16
-# Sanity Mastery - Part 1: Project Setup — Embedding Studio in Next.js 16
 
 ## Step 1: Scaffold Next.js 16
 
