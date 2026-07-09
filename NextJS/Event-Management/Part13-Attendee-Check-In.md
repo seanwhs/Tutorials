@@ -1,99 +1,80 @@
-# **Part 12: QR Code Ticket Generation**:
+# **Part 13: Attendee Check-In Flow**:
 
 ---
 
-# Part 12: QR Code Ticket Generation
+# Part 13: Attendee Check-In Flow
 
-Generate real, scannable QR codes entirely server-side using the `qrcode` package — no external API, no cost. Continues editing the same `/my-rsvps/[id]` route from Part 11.
+Organizer-facing scanner/manual-code check-in flow. New dynamic route `/dashboard/[id]/checkin` — `params` again awaited.
 
-## 1. What the QR code encodes
-A small JSON payload: the RSVP's `id` and `ticketCode`. At check-in (Part 13), we parse it, look up the RSVP by id, verify `ticketCode` matches — a lightweight tamper-check.
-```json
-{ "rsvpId": "b3f1...", "code": "a1b2c3d4e5f6a7b8" }
+## 1. Install QR scanning library
+```bash
+pnpm add html5-qrcode
 ```
+Free, open-source (Apache-2.0), decodes QR codes via browser camera.
 
-## 2. QR code helper
+## 2. Server action to check someone in
+
+`src/lib/actions/checkin.ts`:
 ```ts
-// src/lib/qrcode.ts
-import QRCode from "qrcode";
+"use server";
 
-export type TicketPayload = { rsvpId: string; code: string };
-
-export async function generateTicketQrDataUrl(payload: TicketPayload): Promise<string> {
-  const text = JSON.stringify(payload);
-  const dataUrl = await QRCode.toDataURL(text, {
-    errorCorrectionLevel: "M",
-    margin: 2,
-    width: 320,
-  });
-  return dataUrl;
-}
-```
-`toDataURL` renders a PNG and base64-encodes it in memory — nothing written to disk, no cost.
-
-## 3. Update ticket page to render the real QR code
-
-`src/app/my-rsvps/[id]/page.tsx` (same file, same `Promise<{ id: string }>` params):
-```tsx
 import { db } from "@/db";
-import { rsvps } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { rsvps, checkIns, events } from "@/db/schema";
 import { getOrCreateCurrentUser } from "@/lib/get-current-user";
-import { generateTicketQrDataUrl } from "@/lib/qrcode";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
-export default async function TicketPage({
-  params,
-}: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const user = await getOrCreateCurrentUser();
-  if (!user) return null;
+type CheckInResult = { ok: true; attendeeName: string; eventTitle: string } | { ok: false; message: string };
 
-  const rsvp = await db.query.rsvps.findFirst({
-    where: eq(rsvps.id, id),
-    with: { event: true, checkIn: true },
-  });
+export async function checkInByCode(rawInput: string, eventId: string): Promise<CheckInResult> {
+  const organizer = await getOrCreateCurrentUser();
+  if (!organizer) return { ok: false, message: "You must be signed in." };
 
-  if (!rsvp) notFound();
-  if (rsvp.userId !== user.id) {
-    return <main className="mx-auto max-w-2xl px-4 py-12"><p className="text-red-600">This ticket does not belong to you.</p></main>;
-  }
+  const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+  if (!event) return { ok: false, message: "Event not found." };
+  if (event.organizerId !== organizer.id) return { ok: false, message: "You do not manage this event." };
 
-  const qrDataUrl = await generateTicketQrDataUrl({ rsvpId: rsvp.id, code: rsvp.ticketCode });
+  let ticketCode = rawInput.trim();
+  let rsvpIdHint: string | null = null;
+  try {
+    const parsed = JSON.parse(rawInput);
+    if (parsed && typeof parsed.code === "string") {
+      ticketCode = parsed.code;
+      rsvpIdHint = typeof parsed.rsvpId === "string" ? parsed.rsvpId : null;
+    }
+  } catch { /* not JSON — treat as plain code */ }
 
-  return (
-    <main className="mx-auto max-w-md px-4 py-12">
-      <h1 className="text-xl font-bold text-gray-900">{rsvp.event.title}</h1>
-      <p className="mt-1 text-sm text-gray-600">{new Date(rsvp.event.startsAt).toLocaleString()}</p>
-      <p className="text-sm text-gray-600">{rsvp.event.location}</p>
-      <div className="mt-6 rounded-lg border border-gray-200 p-6 text-center">
-        {rsvp.status === "cancelled" ? (
-          <p className="text-red-600">This RSVP has been cancelled.</p>
-        ) : rsvp.checkIn ? (
-          <div>
-            <p className="font-medium text-green-700">Checked in at {new Date(rsvp.checkIn.checkedInAt).toLocaleString()}</p>
-            <img src={qrDataUrl} alt="Ticket QR code" className="mx-auto mt-4 w-64 opacity-40" />
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm text-gray-500">Show this QR code at check-in</p>
-            <img src={qrDataUrl} alt="Ticket QR code" className="mx-auto mt-4 w-64" />
-          </div>
-        )}
-        <p className="mt-4 font-mono text-sm text-gray-500">{rsvp.ticketCode}</p>
-      </div>
-    </main>
-  );
+  const rsvp = await db.query.rsvps.findFirst({ where: eq(rsvps.ticketCode, ticketCode), with: { user: true, checkIn: true } });
+
+  if (!rsvp) return { ok: false, message: "No ticket found with that code." };
+  if (rsvpIdHint && rsvp.id !== rsvpIdHint) return { ok: false, message: "Ticket code mismatch. Possible tampering." };
+  if (rsvp.eventId !== eventId) return { ok: false, message: "This ticket is for a different event." };
+  if (rsvp.status === "cancelled") return { ok: false, message: "This RSVP was cancelled." };
+  if (rsvp.checkIn) return { ok: false, message: `Already checked in at ${new Date(rsvp.checkIn.checkedInAt).toLocaleTimeString()}.` };
+
+  await db.insert(checkIns).values({ rsvpId: rsvp.id, checkedInBy: organizer.id });
+  revalidatePath(`/dashboard/${eventId}/checkin`);
+  return { ok: true, attendeeName: rsvp.user.name, eventTitle: event.title };
 }
 ```
-Uses plain `<img>` (not `next/image` — its optimizer doesn't suit base64 data URLs well for a tiny, freshly-generated image). Also fetches `checkIn: true` ahead of time (via Part 7's relation) so this file won't need revisiting once Part 13/14 add real check-ins.
+Accepts scanned JSON or manual code, validates event match/status/not-already-used, confirms caller owns the event.
+
+## 3. Check-in page + scanner component
+
+`src/app/dashboard/[id]/checkin/page.tsx` — server component, awaits `params`, verifies ownership, renders `<CheckInScanner eventId={event.id} />`.
+
+`src/components/checkin-scanner.tsx` — client component (`"use client"`), receives plain `eventId` prop (not route params, so unaffected by the async change). Dynamically `import("html5-qrcode")` inside `startScanner()` (client-only, never in server bundle). Has a "Start camera scanner" button + manual code input form, shows green/red status message. Pauses scanner 2s after a successful scan to avoid re-scanning the same code repeatedly.
+
+Note: camera requires HTTPS or `localhost` — works locally and on Vercel automatically, not over plain HTTP on a LAN IP.
 
 ## 4. Try it out
-`/my-rsvps` → "View ticket" → real scannable QR code + fallback text code. Scanning with a phone shows raw JSON (expected — Part 13 makes it functional).
+Visit `/dashboard/[id]/checkin` → start scanner or paste a ticket code from Drizzle Studio → green success → re-check same code → "Already checked in" → visit `/my-rsvps/[id]` → shows "Checked in at..." from Part 12.
 
 ## Checkpoint
-- [ ] Real QR code renders
-- [ ] Scanning shows the expected JSON payload
-- [ ] Cancelled RSVPs show "cancelled" message instead of a QR code
+- [ ] Manual code check-in works for a fresh ticket
+- [ ] Re-checking shows "already checked in," no duplicate
+- [ ] Camera scanner starts and decodes a real QR code
+- [ ] Non-organizer blocked from another organizer's check-in page
+- [ ] `params` typed `Promise<{ id: string }>`, awaited
 
-**Next: Part 13 — Attendee Check-In Flow**
+**Next: Part 14 — Organizer Check-In Dashboard and Live Stats**
