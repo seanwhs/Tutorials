@@ -1,8 +1,8 @@
 ## Part 15: Recording Payments
 
-**Goal:** record the moment cash actually moves — a customer paying an invoice, and the business paying a bill — each producing its own journal entry, and correctly updating the invoice/bill's status.
+Goal: record the moment cash actually moves — a customer paying an invoice, and the business paying a bill — each producing its own journal entry, and correctly updating the invoice/bill's status.
 
-**Prerequisite:** Parts 1-14 completed.
+Prerequisite: Parts 1-14 completed.
 
 ---
 
@@ -12,7 +12,7 @@ Right now, invoices are always created with status "sent" and bills with status 
 
 ### 2. Add the schema
 
-Open src/lib/db/schema.ts. Add these four tables at the end of the file:
+Open `src/lib/db/schema.ts`. Add these four tables at the end of the file:
 
 ```ts
 export const payments = pgTable("payments", {
@@ -66,7 +66,7 @@ export const billPaymentApplications = pgTable("bill_payment_applications", {
 });
 ```
 
-Notice the pattern: payments/bill_payments hold the actual cash event, and their "applications" tables are a join, letting one payment cover multiple invoices/bills. This course keeps the UI simple (one payment applies to exactly one invoice at a time), but the schema is ready for the fuller version as a stretch exercise.
+Notice the pattern: `payments`/`bill_payments` hold the actual cash event, and their "applications" tables are a join, letting one payment cover multiple invoices/bills. This course keeps the UI simple (one payment applies to exactly one invoice at a time), but the schema is ready for the fuller version as a stretch exercise.
 
 Run:
 ```
@@ -78,7 +78,7 @@ Confirm all four new tables exist in Neon.
 
 ### 3. Build recordCustomerPayment
 
-Create the folder src/app/dashboard/payments/ and inside it, actions.ts:
+Create the folder `src/app/dashboard/payments/` and inside it, `actions.ts`:
 
 ```ts
 "use server";
@@ -153,11 +153,11 @@ export async function recordCustomerPayment(formData: FormData) {
 }
 ```
 
-Notice several important checks before we touch the database: we re-fetch the invoice from the database (never trust a client-submitted total), confirm it really belongs to this org, and reject any payment amount greater than what is actually owed. This version supports one payment per invoice for simplicity — a fuller version would sum all prior payment_applications for this invoice to compute what is truly still owed before comparing.
+Notice several important checks before we touch the database: we re-fetch the invoice from the database (never trust a client-submitted total), confirm it really belongs to this org, and reject any payment amount greater than what is actually owed. This version supports one payment per invoice for simplicity — a fuller version would sum all prior `payment_applications` for this invoice to compute what is truly still owed before comparing.
 
 ### 4. Build recordBillPayment (the mirror)
 
-Add this second function to the same src/app/dashboard/payments/actions.ts file, below recordCustomerPayment:
+Add this second function to the same `src/app/dashboard/payments/actions.ts` file, below `recordCustomerPayment`:
 
 ```ts
 export async function recordBillPayment(formData: FormData) {
@@ -221,11 +221,11 @@ export async function recordBillPayment(formData: FormData) {
 }
 ```
 
-Notice the direction is reversed compared to recordCustomerPayment: here Accounts Payable is debited (it goes down, since we owe less) and Checking is credited (it goes down, since cash left the business).
+Notice the direction is reversed compared to `recordCustomerPayment`: here Accounts Payable is debited (it goes down, since we owe less) and Checking is credited (it goes down, since cash left the business).
 
 ### 5. Add a payment form to the invoice detail page
 
-Open src/app/dashboard/invoices/[id]/page.tsx (from Parts 12/13). Add this import at the top:
+Open `src/app/dashboard/invoices/[id]/page.tsx` (from Parts 12/13). Add this import at the top:
 
 ```tsx
 import { recordCustomerPayment } from "@/app/dashboard/payments/actions";
@@ -259,7 +259,7 @@ Then, inside the returned JSX, after the line items table and total, add a payme
 
 ### 6. Add a payment form to the bill detail page
 
-Open src/app/dashboard/bills/[id]/page.tsx (from Part 14). Add this import at the top:
+Open `src/app/dashboard/bills/[id]/page.tsx` (from Part 14). Add this import at the top:
 
 ```tsx
 import { recordBillPayment } from "@/app/dashboard/payments/actions";
@@ -299,7 +299,7 @@ Pick an existing sent invoice, open its detail page, fill in the payment form wi
 SELECT * FROM journal_entries WHERE source_type = 'payment_received' ORDER BY created_at DESC LIMIT 1;
 ```
 
-Copy the id, then:
+Copy the `id`, then:
 
 ```sql
 SELECT * FROM journal_lines WHERE entry_id = 'PASTE_THE_ID_HERE';
@@ -309,7 +309,7 @@ Expected: a debit to Checking and a credit to Accounts Receivable, both equal to
 
 Then try a partial payment on a different invoice (enter less than the full total) and confirm its status becomes "partially_paid" instead of "paid".
 
-Repeat both tests (full and partial payment) for a bill using the bill detail page's payment form, and confirm the journal entry has source_type equal to 'payment_made', debiting Accounts Payable and crediting Checking.
+Repeat both tests (full and partial payment) for a bill using the bill detail page's payment form, and confirm the journal entry has `source_type` equal to `'payment_made'`, debiting Accounts Payable and crediting Checking.
 
 ### 8. A sanity check across the whole ledger so far
 
@@ -324,7 +324,7 @@ JOIN accounts a ON a.id = jl.account_id
 WHERE a.subtype = 'bank' AND a.org_id = 'PASTE_YOUR_ORG_ID_HERE';
 ```
 
-For an Asset account like Checking, its true balance is total_debits minus total_credits (matching Part 8's normal balance table). This is exactly the calculation Part 16's Profit and Loss report and Part 17's Balance Sheet will perform automatically — you are previewing that logic manually right now.
+For an Asset account like Checking, its true balance is `total_debits` minus `total_credits` (matching Part 8's normal balance table). This is exactly the calculation Part 16's Profit and Loss report and Part 17's Balance Sheet will perform automatically — you are previewing that logic manually right now.
 
 ### 9. Commit your progress
 
@@ -349,28 +349,22 @@ git commit -m "Add customer and bill payments with journal posting and invoice/b
 ### Troubleshooting
 
 **Error: "No account found with subtype bank for this organization"**
-Your Chart of Accounts was not seeded correctly in Part 9, or the "Checking Account" row does not have subtype set to exactly "bank". Check with `SELECT * FROM accounts WHERE subtype = 'bank'` in Neon's SQL Editor.
+Your Chart of Accounts was not seeded correctly in Part 9, or the "Checking Account" row does not have `subtype` set to exactly "bank". Check with `SELECT * FROM accounts WHERE subtype = 'bank'` in Neon's SQL Editor.
 
 **Error: "Payment cannot exceed the invoice total"**
 This is expected behavior if you tried entering more than the invoice's total — it is the overpayment guard working correctly, not a bug. Enter an amount at or below the invoice total.
 
 **Payment form does not appear on the invoice or bill detail page**
-Confirm the invoice/bill's status is not already "paid" — the form is conditionally hidden once status equals "paid". Also confirm you added the import for recordCustomerPayment or recordBillPayment at the top of the file.
+Confirm the invoice/bill's status is not already "paid" — the form is conditionally hidden once status equals "paid". Also confirm you added the import for `recordCustomerPayment` or `recordBillPayment` at the top of the file.
 
 **Error: "recordCustomerPayment is not a function" or similar import error**
-Confirm the import path exactly matches where you created the file: @/app/dashboard/payments/actions. Confirm the function is exported with the `export` keyword in actions.ts.
+Confirm the import path exactly matches where you created the file: `@/app/dashboard/payments/actions`. Confirm the function is exported with the `export` keyword in `actions.ts`.
 
 **Invoice status changes but no journal entry appears in Neon**
-Confirm the postJournalEntry call is inside the same db.transaction block as the payments and paymentApplications inserts (or billPayments and billPaymentApplications for bill payments), not called after the transaction closes.
+Confirm the `postJournalEntry` call is inside the same `db.transaction` block as the `payments` and `paymentApplications` inserts (or `billPayments` and `billPaymentApplications` for bill payments), not called after the transaction closes.
 
-**Recording a second, smaller payment against an already partially_paid invoice lets you overpay in total**
-This is a known, intentionally-flagged simplification in this course version — it only checks the new payment amount against the invoice's full total, not against what remains after prior payments. Summing existing payment_applications for the invoice before comparing is the correct fix, and a good exercise once you are comfortable with the pattern.
+**Recording a second, smaller payment against an already `partially_paid` invoice lets you overpay in total**
+This is a known, intentionally-flagged simplification in this course version — it only checks the new payment amount against the invoice's full total, not against what remains after prior payments. Summing existing `payment_applications` for the invoice before comparing is the correct fix, and a good exercise once you are comfortable with the pattern.
 
 **TypeScript complains that billPayments or paymentApplications is not exported from schema**
-Confirm all four new tables from step 2 were added with the `export const` keyword, and that the file was saved before running npm run db:generate.
-
----
-
-### What's next
-
-Part 16: Building the Profit and Loss Report — the first real report, built entirely from journal_lines, showing income minus expenses over a date range. This is where the discipline of the last several parts (always posting through postJournalEntry, never computing totals ad hoc) starts paying off in a very visible way.
+Confirm all four new tables from step 2 were added with the `export const` keyword, and that the file was saved before running `npm run db:generate`.
