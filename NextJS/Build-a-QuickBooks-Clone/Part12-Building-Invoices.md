@@ -1,16 +1,14 @@
-Here's **Part 12: Building Invoices** in full, combining both notes.
-
 ## Part 12: Building Invoices
 
-**Goal:** build the invoices and invoice_lines tables, a form to create an invoice against a real customer with multiple line items, and pages to view them.
+Goal: build the `invoices` and `invoice_lines` tables, a form to create an invoice against a real customer with multiple line items, and pages to view them.
 
-**Prerequisite:** Parts 1-11 completed.
+Prerequisite: Parts 1-11 completed.
 
 ---
 
 ### 1. Add the schema
 
-Open src/lib/db/schema.ts. Add this enum near the top with your other pgEnum definitions:
+Open `src/lib/db/schema.ts`. Add this enum near the top with your other `pgEnum` definitions:
 
 ```ts
 export const invoiceStatusEnum = pgEnum("invoice_status", [
@@ -56,7 +54,7 @@ export const invoiceLines = pgTable("invoice_lines", {
 });
 ```
 
-Add `integer` and `date` to your existing import line at the top of schema.ts if they are not already there:
+Add `integer` and `date` to your existing import line at the top of `schema.ts` if they are not already there:
 
 ```ts
 import {
@@ -81,7 +79,7 @@ npm run db:migrate
 
 ### 2. Build the invoice creation Server Action
 
-Create the folder src/app/dashboard/invoices/. Inside it, create actions.ts:
+Create the folder `src/app/dashboard/invoices/`. Inside it, create `actions.ts`:
 
 ```ts
 "use server";
@@ -155,7 +153,7 @@ export async function createInvoice(formData: FormData) {
 
 ### 3. Build the invoice creation form page
 
-Create the subfolder src/app/dashboard/invoices/new/, and inside it, page.tsx:
+Create the subfolder `src/app/dashboard/invoices/new/`, and inside it, `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -221,7 +219,7 @@ If you don't have any customers yet, go to /dashboard/customers (Part 11) and ad
 
 ### 4. Build the invoice list page
 
-In the src/app/dashboard/invoices/ folder (alongside actions.ts), create page.tsx:
+In the `src/app/dashboard/invoices/` folder (alongside `actions.ts`), create `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -285,7 +283,7 @@ export default async function InvoicesPage() {
 
 ### 5. Build the invoice detail page
 
-Create the subfolder src/app/dashboard/invoices/[id]/, and inside it, page.tsx. This introduces Next.js's dynamic route segments: the square-bracket folder name `[id]` means whatever value appears in that part of the URL becomes available to your page as a prop called `params`.
+Create the subfolder `src/app/dashboard/invoices/[id]/`, and inside it, `page.tsx`. This introduces Next.js's dynamic route segments: the square-bracket folder name `[id]` means whatever value appears in that part of the URL becomes available to your page as a prop called `params`.
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -364,13 +362,13 @@ export default async function InvoiceDetailPage({
 }
 ```
 
-Notice `params` is a Promise you must `await` — this is the modern Next.js App Router convention. Notice also `invoice.orgId !== orgId` is checked before rendering, and `notFound()` is called if it fails — this stops one organization from viewing another organization's invoice just by guessing or changing the URL's id value.
+Notice `params` is a Promise you must `await` — this is the modern Next.js App Router convention (Next.js 16). Notice also `invoice.orgId !== orgId` is checked before rendering, and `notFound()` is called if it fails — this stops one organization from viewing another organization's invoice just by guessing or changing the URL's id value.
 
 ### 6. Test the whole flow
 
-Visit /dashboard/invoices/new, pick a customer, fill in an invoice number, issue date, due date, and a couple of line items, then submit. Confirm you land back on /dashboard/invoices and see it listed with the correct total. Click the invoice number to open its detail page and confirm the line items and total display correctly.
+Visit `/dashboard/invoices/new`, pick a customer, fill in an invoice number, issue date, due date, and a couple of line items, then submit. Confirm you land back on `/dashboard/invoices` and see it listed with the correct total. Click the invoice number to open its detail page and confirm the line items and total display correctly.
 
-Add a nav link: open src/app/dashboard/page.tsx and add `<Link href="/dashboard/invoices">Invoices</Link>` alongside your existing nav links.
+Add a nav link: open `src/app/dashboard/page.tsx` and add `<Link href="/dashboard/invoices">Invoices</Link>` alongside your existing nav links.
 
 ### 7. Commit your progress
 
@@ -386,37 +384,31 @@ git commit -m "Add invoices and invoice_lines with create form, list, and detail
 - [ ] invoices and invoice_lines tables exist in Neon
 - [ ] You can create an invoice against a real customer with multiple line items
 - [ ] The invoice list page shows all invoices with correct totals
-- [ ] The invoice detail page (using a dynamic [id] route) shows full line item detail
-- [ ] You understand what the [id] folder syntax does and how params gives you that value in code
-- [ ] You understand why invoice.orgId !== orgId is checked before rendering the detail page
+- [ ] The invoice detail page (using a dynamic `[id]` route) shows full line item detail
+- [ ] You understand what the `[id]` folder syntax does and how `params` gives you that value in code
+- [ ] You understand why `invoice.orgId !== orgId` is checked before rendering the detail page
 
 ---
 
 ### Troubleshooting
 
 **Customer dropdown on the new invoice page is empty**
-Go create a customer first at /dashboard/customers (Part 11) — you cannot create an invoice without at least one customer to attach it to.
+Go create a customer first at `/dashboard/customers` (Part 11) — you cannot create an invoice without at least one customer to attach it to.
 
 **Submitting the form does nothing, or an unhandled error appears**
-Check your terminal running npm run dev for the actual thrown error message. A common cause is leaving all three line item rows completely empty — the action requires at least one valid line (a description with a quantity greater than 0 and a non-negative unit price).
+Check your terminal running `npm run dev` for the actual thrown error message. A common cause is leaving all three line item rows completely empty — the action requires at least one valid line (a description with a quantity greater than 0 and a non-negative unit price).
 
 **Invoice total shows as 0.00 even though you entered line items**
 Confirm you entered a value in the "Unit Price" field for at least one row, and that the "Qty" field is greater than 0 — rows with a missing or zero quantity/price are silently skipped by the parsing loop, by design.
 
 **Clicking an invoice number on the list leads to a 404 / Not Found page**
-Confirm the folder is named exactly `[id]` (including the square brackets) inside src/app/dashboard/invoices/, and that page.tsx sits directly inside that folder.
+Confirm the folder is named exactly `[id]` (including the square brackets) inside `src/app/dashboard/invoices/`, and that `page.tsx` sits directly inside that folder.
 
 **TypeScript error: "Property 'id' does not exist on type Promise<...>" or similar around params**
-Confirm you wrote `params: Promise<{ id: string }>` in the function's type signature AND used `const { id } = await params;` inside the function body — both parts are required together in this version of Next.js.
+Confirm you wrote `params: Promise<{ id: string }>` in the function's type signature AND used `const { id } = await params;` inside the function body — both parts are required together in Next.js 16.
 
 **The invoice list shows invoices belonging to a different organization**
-Double check the `.where(eq(invoices.orgId, orgId))` clause is present in the list page's query — without it, you would see every organization's invoices mixed together, which is exactly the kind of data leak the org_id column exists to prevent.
+Double check the `.where(eq(invoices.orgId, orgId))` clause is present in the list page's query — without it, you would see every organization's invoices mixed together, which is exactly the kind of data leak the `org_id` column exists to prevent.
 
 **Error: "relation invoice_lines does not exist"**
 The migration did not run successfully. Re-run `npm run db:migrate` and check the terminal output carefully for the actual error — a common cause is a typo in the schema producing invalid SQL.
-
----
-
-### What's next
-
-Part 13: Turning Invoices into Journal Entries — the payoff for Part 10's work. We wire invoice creation into postJournalEntry, so every invoice sent automatically produces a correct, balanced accounting entry, atomically alongside the invoice's own creation.
