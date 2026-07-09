@@ -1,7 +1,3 @@
-# **Part 24: Roadmap and Phase 2 Ideas**:
-
----
-
 # Part 24: Roadmap and Phase 2 Ideas
 
 You now have a fully working, deployed, free event site, built against Next.js 16. Here's what to build next, by difficulty.
