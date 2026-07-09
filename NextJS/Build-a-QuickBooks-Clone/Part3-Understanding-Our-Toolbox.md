@@ -1,8 +1,8 @@
 ## Part 3: Understanding Our Toolbox
 
-**Goal:** understand, in plain English, what Clerk, Neon, Drizzle, and Inngest each do, before installing any of them. No code in this part.
+Goal: understand, in plain English, what Clerk, Neon, Drizzle, and Inngest each do, before installing any of them. No code in this part.
 
-**Prerequisite:** Parts 1-2 completed.
+Prerequisite: Parts 1-2 completed.
 
 ---
 
@@ -49,7 +49,3 @@ We do the "boring plumbing" (auth, database) before real features, because featu
 ### Troubleshooting
 
 No code was written this part, so there's nothing to break. If any of the five concepts above still feel unclear, that's completely normal at this stage — re-read the relevant section, or ask for it explained a different way before moving to Part 4. It's worth being solid on this before installing anything, since Parts 4-7 build directly on these ideas without re-explaining them from scratch.
-
----
-
-Ready for **Part 4: Adding Login with Clerk** ?
