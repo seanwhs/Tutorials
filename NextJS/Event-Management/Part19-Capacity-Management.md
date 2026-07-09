@@ -1,67 +1,73 @@
-# **Part 18: Email Deliverability, Idempotency, and Avoiding Duplicate Sends**:
+# **Part 19: Event Capacity, Waitlist, and Cancellations**:
 
 ---
 
-# Part 18: Email Deliverability, Idempotency, and Avoiding Duplicate Sends
+# Part 19: Event Capacity, Waitlist, and Cancellations
 
-Hardening emails against real-world issues: spam flags, duplicate sends, rate limits. No route params here.
+Upgrades the Part 10 hard-fail-at-capacity behavior into a real waitlist with automatic promotion on cancellation. Edits the same `/events/[id]` route — `params` handling unchanged.
 
-## 1. Domain verification (optional, recommended)
-`onboarding@resend.dev` works but is more spam-prone than a verified domain. If you own one:
-1. Resend dashboard → **Domains** → **Add Domain**
-2. Add DNS records (SPF, DKIM, DMARC) at your registrar — free
-3. Update `FROM_ADDRESS`:
+## 1. Support waitlisting in rsvpToEvent
+Replace the capacity check in `src/lib/actions/rsvps.ts`:
 ```ts
-const FROM_ADDRESS = "EventHub <tickets@yourdomain.com>";
+const [{ value: confirmedCount }] = await db
+  .select({ value: count() }).from(rsvps)
+  .where(and(eq(rsvps.eventId, eventId), eq(rsvps.status, "confirmed")));
+
+const isFull = confirmedCount >= event.capacity;
+const newStatus: "confirmed" | "waitlisted" = isFull ? "waitlisted" : "confirmed";
 ```
-No domain? `onboarding@resend.dev` is fine for dev and small launches.
-
-## 2. Preventing duplicate confirmation emails on retry
-Add an idempotency key so Resend itself dedupes even accidental repeat calls.
-
-`src/lib/email.ts`:
+Use `newStatus` (not hardcoded `"confirmed"`) in both the reactivate and insert branches. Only send the confirmation email when actually confirmed:
 ```ts
-export async function sendEmail(options: {
-  to: string; subject: string; html: string;
-  attachments?: { filename: string; content: string }[];
-  idempotencyKey?: string;
-}) {
-  const result = await resend.emails.send(
-    { from: FROM_ADDRESS, to: options.to, subject: options.subject, html: options.html, attachments: options.attachments },
-    options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
-  );
-  if (result.error) throw new Error(`Failed to send email: ${result.error.message}`);
-  return result;
+if (newStatus === "confirmed") {
+  await inngest.send({ name: "event/rsvp.created", data: { rsvpId } });
+}
+revalidatePath(`/events/${eventId}`);
+revalidatePath("/my-rsvps");
+return { rsvpId, status: newStatus };
+```
+
+## 2. Promote next waitlisted person on cancellation
+Update `cancelRsvp`:
+```ts
+export async function cancelRsvp(rsvpId: string) {
+  const user = await getOrCreateCurrentUser();
+  if (!user) throw new Error("You must be signed in.");
+
+  const [rsvp] = await db.select().from(rsvps).where(eq(rsvps.id, rsvpId)).limit(1);
+  if (!rsvp) throw new Error("RSVP not found.");
+  if (rsvp.userId !== user.id) throw new Error("Not your RSVP.");
+
+  const wasConfirmed = rsvp.status === "confirmed";
+  await db.update(rsvps).set({ status: "cancelled" }).where(eq(rsvps.id, rsvpId));
+
+  if (wasConfirmed) {
+    const [nextInLine] = await db
+      .select().from(rsvps)
+      .where(and(eq(rsvps.eventId, rsvp.eventId), eq(rsvps.status, "waitlisted")))
+      .orderBy(asc(rsvps.createdAt)).limit(1);
+
+    if (nextInLine) {
+      await db.update(rsvps).set({ status: "confirmed" }).where(eq(rsvps.id, nextInLine.id));
+      await inngest.send({ name: "event/rsvp.created", data: { rsvpId: nextInLine.id } });
+    }
+  }
+
+  revalidatePath(`/events/${rsvp.eventId}`);
+  revalidatePath("/my-rsvps");
 }
 ```
+Add `asc` to the `drizzle-orm` import. Reuses the same `event/rsvp.created` Inngest event for the promoted attendee — no new function needed.
 
-In `send-rsvp-confirmation.ts`, add to the `sendEmail({...})` call:
-```ts
-idempotencyKey: `rsvp-confirmation-${rsvp.id}`,
-```
+## 3. Update UI for waitlist status
+In `src/app/events/[id]/page.tsx`, the `myRsvp` lookup now also captures `waitlisted` status (not just `confirmed`). JSX branches three ways: `confirmed` (green "You're going!" + Cancel), `waitlisted` (amber "You're on the waitlist" + Leave waitlist), or no RSVP (button labeled "RSVP for free" / "Join waitlist" depending on `spotsLeft`).
 
-In `send-event-reminders.ts`:
-```ts
-idempotencyKey: `event-reminder-${evt.id}-${attendee.id}`,
-```
-
-## 3. Respect rate limits
-Resend free tier: 100/day, ~2 req/sec. Add a pause in the reminder loop:
-```ts
-for (const attendee of attendees) {
-  await sendEmail({ /* ...as before, plus idempotencyKey */ });
-  await new Promise((resolve) => setTimeout(resolve, 600));
-}
-```
-600ms pause keeps well under 2 req/sec.
-
-## 4. Exceeding the free tier
-If you hit 100/day, further sends fail until next day. Since sends live inside `step.run(...)`, Inngest retries per its `retries` config, and idempotency keys ensure no duplicates once you're back under the limit.
+## 4. Try it out
+Set capacity=1 → account A RSVPs ("You're going!") → account B RSVPs (amber waitlist message, no email yet) → cancel A → check Drizzle Studio: B is now `confirmed` → B's inbox gets the confirmation email → refresh B's page, shows "You're going!"
 
 ## Checkpoint
-- [ ] `sendEmail` accepts/forwards `idempotencyKey`
-- [ ] Both functions pass stable, unique keys
-- [ ] Reminder loop pauses between sends
-- [ ] (Optional) Domain verified, `FROM_ADDRESS` updated
+- [ ] Full event RSVP sets `waitlisted`, not a failure
+- [ ] Waitlisted attendees get no email until promoted
+- [ ] Cancelling promotes + emails the earliest waitlisted attendee
+- [ ] UI distinguishes confirmed vs waitlisted correctly
 
-**Next: Part 19 — Event Capacity, Waitlist, and Cancellations**
+**Next: Part 20 — Search, Filtering, and Pagination for Events**
