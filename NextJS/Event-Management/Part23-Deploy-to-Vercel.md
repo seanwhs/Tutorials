@@ -1,7 +1,3 @@
-# **Part 23: Deploying to Vercel for Free**:
-
----
-
 # Part 23: Deploying to Vercel for Free
 
 Deploy live for $0/month on Vercel's Hobby tier — full support for Next.js 16 + Turbopack production builds, zero special config.
