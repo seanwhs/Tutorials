@@ -1,7 +1,3 @@
-# **Part 14: Organizer Check-In Dashboard and Live Stats**:
-
----
-
 # Part 14: Organizer Check-In Dashboard and Live Stats
 
 A dashboard showing the full attendee list, checked-in status, and a live-updating count. Continues editing the same `/dashboard/[id]/checkin` route — `params` handling unchanged.
