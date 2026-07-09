@@ -1,6 +1,7 @@
-## Appendix A Part 4: Invoices, Final State
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 4: Invoices, Final State
 
-### src/app/dashboard/invoices/actions.ts (FINAL state — includes ledger posting + Inngest event)
+## src/app/dashboard/invoices/actions.ts (FINAL state — includes ledger posting + Inngest event)
 
 ```ts
 "use server";
@@ -105,7 +106,7 @@ export async function createInvoice(formData: FormData) {
 }
 ```
 
-### src/app/dashboard/invoices/new/page.tsx
+## src/app/dashboard/invoices/new/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -167,7 +168,7 @@ export default async function NewInvoicePage() {
 }
 ```
 
-### src/app/dashboard/invoices/page.tsx
+## src/app/dashboard/invoices/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -230,9 +231,11 @@ export default async function InvoicesPage() {
 ```
 
 ---
-## Appendix A Part 4b: Invoice Detail with Payment Form (Final State)
 
-### src/app/dashboard/invoices/[id]/page.tsx (FINAL state — includes the payment form)
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 4b: Invoice Detail with Payment Form, Final State
+
+## src/app/dashboard/invoices/[id]/page.tsx (FINAL state — includes the payment form added in Part 15)
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -334,13 +337,13 @@ export default async function InvoiceDetailPage({
 }
 ```
 
-This completes the Invoices folder in its final, accumulated state.
-
 ---
 
-## Appendix A Part 4c: Bills, Final State
+This completes the Invoices folder in its final, accumulated state.
 
-### src/app/dashboard/bills/actions.ts (final state)
+# Appendix A Part 4c: Bills, Final State
+
+## src/app/dashboard/bills/actions.ts (final state)
 
 ```ts
 "use server";
@@ -444,7 +447,7 @@ export async function createBill(formData: FormData) {
 }
 ```
 
-### src/app/dashboard/bills/new/page.tsx
+## src/app/dashboard/bills/new/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -521,7 +524,7 @@ export default async function NewBillPage() {
 }
 ```
 
-### src/app/dashboard/bills/page.tsx
+## src/app/dashboard/bills/page.tsx
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -585,9 +588,10 @@ export default async function BillsPage() {
 
 ---
 
-## Appendix A Part 4d: Bill Detail with Payment Form (Final State)
+[System: Empty message content sanitised to satisfy protocol]
+# Appendix A Part 4d: Bill Detail with Payment Form, Final State
 
-### src/app/dashboard/bills/[id]/page.tsx (FINAL state — includes the payment form)
+## src/app/dashboard/bills/[id]/page.tsx (FINAL state — includes the payment form added in Part 15)
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -689,8 +693,7 @@ export default async function BillDetailPage({
 }
 ```
 
-This completes Appendix A Part 4 (Invoices and Bills in full, final, accumulated state) — every file needed for the entire invoices/ and bills/ folders is now covered.
-
 ---
 
-Next up is **Appendix A Part 5 (Payments Actions and All Report Pages)** — `payments/actions.ts`, and all four report pages (P&L, Balance Sheet, AR Aging, AP Aging). Want me to continue?
+This completes Appendix A Part 4 (Invoices and Bills in full, final, accumulated state).
+
