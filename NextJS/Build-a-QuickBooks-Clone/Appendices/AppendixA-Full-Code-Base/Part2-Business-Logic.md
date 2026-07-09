@@ -1,6 +1,6 @@
-## Appendix A Part 2: DB Client, Accounting, Reports (first section)
+# Appendix A Part 2: DB Client, Accounting, Reports
 
-### src/lib/db/index.ts
+## src/lib/db/index.ts
 
 ```ts
 import { Pool, neonConfig } from "@neondatabase/serverless";
@@ -15,7 +15,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 export const db = drizzle(pool, { schema });
 ```
 
-### src/lib/db/seed-default-accounts.ts
+## src/lib/db/seed-default-accounts.ts
 
 ```ts
 import { db } from "./index";
@@ -43,7 +43,7 @@ export async function seedDefaultAccounts(orgId: string) {
 }
 ```
 
-### src/lib/accounting/post-journal-entry.ts (the core engine)
+## src/lib/accounting/post-journal-entry.ts (the core engine)
 
 ```ts
 import { db } from "@/lib/db";
@@ -122,7 +122,7 @@ export async function postJournalEntry(
 }
 ```
 
-### src/lib/accounting/find-account.ts
+## src/lib/accounting/find-account.ts
 
 ```ts
 import { db } from "@/lib/db";
@@ -144,7 +144,7 @@ export async function findAccountBySubtype(orgId: string, subtype: string) {
 }
 ```
 
-### src/lib/reports/profit-and-loss.ts
+## src/lib/reports/profit-and-loss.ts
 
 ```ts
 import { db } from "@/lib/db";
@@ -203,9 +203,9 @@ export async function getProfitAndLoss(orgId: string, startDate: string, endDate
 
 ---
 
-## Appendix A Part 2b: Balance Sheet, Aging Reports, Inngest
+# Appendix A Part 2b: Balance Sheet, Aging Reports, Inngest
 
-### src/lib/reports/balance-sheet.ts
+## src/lib/reports/balance-sheet.ts
 
 ```ts
 import { db } from "@/lib/db";
@@ -271,7 +271,7 @@ export async function getBalanceSheet(orgId: string, asOfDate: string) {
 }
 ```
 
-### src/lib/reports/ar-aging.ts
+## src/lib/reports/ar-aging.ts
 
 ```ts
 import { db } from "@/lib/db";
@@ -329,7 +329,7 @@ export async function getArAging(orgId: string, asOfDate: string) {
 }
 ```
 
-### src/lib/reports/ap-aging.ts
+## src/lib/reports/ap-aging.ts
 
 ```ts
 import { db } from "@/lib/db";
@@ -387,7 +387,7 @@ export async function getApAging(orgId: string, asOfDate: string) {
 }
 ```
 
-### src/lib/inngest/client.ts
+## src/lib/inngest/client.ts
 
 ```ts
 import { Inngest } from "inngest";
@@ -395,7 +395,7 @@ import { Inngest } from "inngest";
 export const inngest = new Inngest({ id: "qb-clone" });
 ```
 
-### src/lib/inngest/functions/send-invoice-email.ts
+## src/lib/inngest/functions/send-invoice-email.ts
 
 ```ts
 import { inngest } from "@/lib/inngest/client";
@@ -444,9 +444,9 @@ export const sendInvoiceEmail = inngest.createFunction(
 
 ---
 
-## Appendix A Part 2c: Remaining Inngest Functions
+# Appendix A Part 2c: Remaining Inngest Functions
 
-### src/lib/inngest/functions/send-overdue-reminders.ts
+## src/lib/inngest/functions/send-overdue-reminders.ts
 
 ```ts
 import { inngest } from "@/lib/inngest/client";
@@ -484,7 +484,7 @@ export const sendOverdueReminders = inngest.createFunction(
 );
 ```
 
-### src/lib/inngest/functions/generate-recurring-invoices.ts
+## src/lib/inngest/functions/generate-recurring-invoices.ts
 
 ```ts
 import { inngest } from "@/lib/inngest/client";
@@ -571,8 +571,7 @@ export const generateRecurringInvoices = inngest.createFunction(
 );
 ```
 
-This is the end of the `src/lib/` business logic layer. All files in `src/lib/db/`, `src/lib/accounting/`, `src/lib/reports/`, and `src/lib/inngest/` have now been shown in full across Appendix A Parts 1b, 1c, 2, 2b, and 2c.
-
 ---
 
-Next up is **Appendix A Part 3 (Root Pages, Middleware, Dashboard Core)** — `layout.tsx`, `middleware.ts`, the homepage, and the dashboard's core pages (accounts, customers, vendors). 
+This is the end of the `src/lib/` business logic layer. All files in `src/lib/db/`, `src/lib/accounting/`, `src/lib/reports/`, and `src/lib/inngest/` have now been shown in full across Appendix A Parts 1b, 1c, 2, 2b, and 2c.
+
