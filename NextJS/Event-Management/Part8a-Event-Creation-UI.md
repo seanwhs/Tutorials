@@ -1,8 +1,4 @@
-# **Part 8a: Event Creation UI (Organizer Dashboard)**:
-
----
-
-# Part 8: Event Creation UI (Organizer Dashboard)
+# Part 8a: Event Creation UI (Organizer Dashboard)
 
 Any signed-in user can create an event. Whoever creates it becomes its organizer, with a dashboard to manage it.
 
