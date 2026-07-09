@@ -1,7 +1,3 @@
-# **Appendix A Part 3b: Server Actions (continued)**:
-
----
-
 # Appendix A Part 3b: Server Actions (continued)
 
 ## src/lib/actions/events.ts
