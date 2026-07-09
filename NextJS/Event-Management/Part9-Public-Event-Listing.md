@@ -1,7 +1,3 @@
-# **Part 9: Public Event Listing and Detail Pages**:
-
----
-
 # Part 9: Public Event Listing and Detail Pages
 
 Anyone — logged in or not — can browse upcoming events. Includes another dynamic `[id]` route awaiting `params`.
