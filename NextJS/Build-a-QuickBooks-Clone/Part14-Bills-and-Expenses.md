@@ -1,8 +1,8 @@
 ## Part 14: Bills and Expenses
 
-**Goal:** build bills and bill_lines (the mirror of invoices, for money owed to vendors), and wire bill creation into postJournalEntry as debit Expense / credit Accounts Payable.
+Goal: build `bills` and `bill_lines` (the mirror of invoices, for money owed to vendors), and wire bill creation into `postJournalEntry` as debit Expense / credit Accounts Payable.
 
-**Prerequisite:** Parts 1-13 completed.
+Prerequisite: Parts 1-13 completed.
 
 ---
 
@@ -17,7 +17,7 @@ An invoice is sent (you are owed money). A bill is received (you owe money). A b
 
 ### 2. Add the schema
 
-Open src/lib/db/schema.ts. Add this enum near your other enums:
+Open `src/lib/db/schema.ts`. Add this enum near your other enums:
 
 ```ts
 export const billStatusEnum = pgEnum("bill_status", [
@@ -68,11 +68,11 @@ npm run db:generate
 npm run db:migrate
 ```
 
-Confirm in Neon's dashboard that both bills and bill_lines now exist.
+Confirm in Neon's dashboard that both `bills` and `bill_lines` now exist.
 
 ### 3. Build the createBill Server Action
 
-Create the folder src/app/dashboard/bills/. Inside it, create actions.ts:
+Create the folder `src/app/dashboard/bills/`. Inside it, create `actions.ts`:
 
 ```ts
 "use server";
@@ -176,11 +176,11 @@ export async function createBill(formData: FormData) {
 }
 ```
 
-Notice the validation confirming expenseAccountId truly belongs to this org and is really type "expense" — never trust a client-submitted dropdown value.
+Notice the validation confirming `expenseAccountId` truly belongs to this org and is really type "expense" — never trust a client-submitted dropdown value.
 
 ### 4. Build the bill creation form page
 
-Create the subfolder src/app/dashboard/bills/new/, and inside it, page.tsx:
+Create the subfolder `src/app/dashboard/bills/new/`, and inside it, `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -257,11 +257,11 @@ export default async function NewBillPage() {
 }
 ```
 
-If you don't have any vendors yet, go to /dashboard/vendors (Part 11) and add one before continuing.
+If you don't have any vendors yet, go to `/dashboard/vendors` (Part 11) and add one before continuing.
 
 ### 5. Build the bill list and detail pages
 
-Create src/app/dashboard/bills/page.tsx:
+Create `src/app/dashboard/bills/page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -323,7 +323,7 @@ export default async function BillsPage() {
 }
 ```
 
-Create the subfolder src/app/dashboard/bills/[id]/, and inside it, page.tsx:
+Create the subfolder `src/app/dashboard/bills/[id]/`, and inside it, `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -402,17 +402,17 @@ export default async function BillDetailPage({
 }
 ```
 
-Notice bill.orgId !== orgId is checked before rendering, and notFound() is called if it fails — this stops one organization from viewing another organization's bill just by guessing or changing the URL's id value.
+Notice `bill.orgId !== orgId` is checked before rendering, and `notFound()` is called if it fails — this stops one organization from viewing another organization's bill just by guessing or changing the URL's id value.
 
 ### 6. Test the whole flow
 
-Visit /dashboard/bills/new, pick a vendor, choose an expense account, fill in a couple of line items, and submit. Confirm you land on the bill list with the correct total, then click into the bill to see its detail page. Check Neon's SQL Editor:
+Visit `/dashboard/bills/new`, pick a vendor, choose an expense account, fill in a couple of line items, and submit. Confirm you land on the bill list with the correct total, then click into the bill to see its detail page. Check Neon's SQL Editor:
 
 ```sql
 SELECT * FROM journal_entries WHERE source_type = 'bill' ORDER BY created_at DESC LIMIT 1;
 ```
 
-Copy the id from that row, then:
+Copy the `id` from that row, then:
 
 ```sql
 SELECT * FROM journal_lines WHERE entry_id = 'PASTE_THE_ID_HERE';
@@ -422,7 +422,7 @@ Expected: exactly two lines, one debiting your chosen expense account for the fu
 
 ### 7. Add a nav link
 
-Open src/app/dashboard/page.tsx and add a link to Bills alongside your existing links to Chart of Accounts, Customers, and Vendors:
+Open `src/app/dashboard/page.tsx` and add a link to Bills alongside your existing links to Chart of Accounts, Customers, and Vendors:
 
 ```tsx
 <nav style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
@@ -444,40 +444,34 @@ git commit -m "Add Bills with expense account selection, wired atomically to pos
 
 ### Checkpoint
 
-- [ ] bills and bill_lines tables exist in Neon
+- [ ] `bills` and `bill_lines` tables exist in Neon
 - [ ] You can create a bill against a real vendor, choosing an expense account
 - [ ] Creating a bill produces a correct journal entry: debit the chosen Expense account, credit Accounts Payable, both equal to the bill total
 - [ ] The bill list and detail pages both display correctly
 - [ ] The server action re-validates that the submitted expense account really belongs to the org and is really expense type
-- [ ] You understand why bill.orgId !== orgId is checked on the detail page before rendering
+- [ ] You understand why `bill.orgId !== orgId` is checked on the detail page before rendering
 
 ---
 
 ### Troubleshooting
 
 **Error: "Invalid expense account selected"**
-Confirm the account you picked in the dropdown actually has type "expense" in the database (check Neon's accounts table), and that it belongs to the same organization currently active in Clerk's organization switcher. If you seeded default accounts in Part 9 for a different test organization than the one you are using now, switch organizations or re-run the seed script for this one.
+Confirm the account you picked in the dropdown actually has `type "expense"` in the database (check Neon's accounts table), and that it belongs to the same organization currently active in Clerk's organization switcher. If you seeded default accounts in Part 9 for a different test organization than the one you are using now, switch organizations or re-run the seed script for this one.
 
 **Bill saves but no journal entry appears in Neon**
-Confirm the postJournalEntry call is inside the same db.transaction block as the bills and billLines inserts, using tx as the second argument, not called separately after the transaction closes.
+Confirm the `postJournalEntry` call is inside the same `db.transaction` block as the `bills` and `billLines` inserts, using `tx` as the second argument, not called separately after the transaction closes.
 
 **Vendor dropdown or Expense Account dropdown is empty**
-For vendors: go create one first at /dashboard/vendors. For expense accounts: confirm Part 9's seedDefaultAccounts ran successfully for this organization — query `SELECT * FROM accounts WHERE type = 'expense'` in Neon's SQL Editor to check.
+For vendors: go create one first at `/dashboard/vendors`. For expense accounts: confirm Part 9's `seedDefaultAccounts` ran successfully for this organization — query `SELECT * FROM accounts WHERE type = 'expense'` in Neon's SQL Editor to check.
 
 **TypeScript error mentioning "billLines" or "bills" is not exported from schema**
-Confirm you added `export const bills = pgTable(...)` and `export const billLines = pgTable(...)` with the `export` keyword present, and that the file saved before running npm run db:generate.
+Confirm you added `export const bills = pgTable(...)` and `export const billLines = pgTable(...)` with the `export` keyword present, and that the file saved before running `npm run db:generate`.
 
 **Error: "relation bill_lines does not exist" when visiting a bill's detail page**
 This means the migration did not run successfully. Re-run `npm run db:migrate` and check the terminal output for errors — a common cause is a typo in the schema that produced invalid SQL in the generated migration file.
 
 **Clicking a bill number on the list page leads to a 404 / Not Found page**
-Confirm the folder is named exactly `[id]` (including the square brackets) inside src/app/dashboard/bills/, and that page.tsx is directly inside that folder, not inside a further subfolder.
+Confirm the folder is named exactly `[id]` (including the square brackets) inside `src/app/dashboard/bills/`, and that `page.tsx` is directly inside that folder, not inside a further subfolder.
 
 **The bill list shows bills belonging to a different organization**
-Double check the `.where(eq(bills.orgId, orgId))` clause is present on the query in page.tsx — without it, the list would show every organization's bills, which is exactly the kind of data leak the org_id column exists to prevent.
-
----
-
-### What's next
-
-Part 15: Recording Payments — now that money owed to us (invoices/AR) and money we owe (bills/AP) are both tracked correctly, we build the entries for when cash actually moves: recording a customer payment against an invoice, and recording a bill payment to a vendor.
+Double check the `.where(eq(bills.orgId, orgId))` clause is present on the query in `page.tsx` — without it, the list would show every organization's bills, which is exactly the kind of data leak the `org_id` column exists to prevent.
