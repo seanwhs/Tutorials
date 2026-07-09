@@ -1,7 +1,3 @@
-# **Appendix A Part 3a: Lib and Server Actions**:
-
----
-
 # Appendix A Part 3: Lib and Server Actions
 
 `getOrCreateCurrentUser` calls Clerk's `auth()`/`currentUser()`, both async in Next.js 16, awaited accordingly.
