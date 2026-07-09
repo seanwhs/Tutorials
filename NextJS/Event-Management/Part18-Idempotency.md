@@ -1,7 +1,3 @@
-# **Part 18: Email Deliverability, Idempotency, and Avoiding Duplicate Sends**:
-
----
-
 # Part 18: Email Deliverability, Idempotency, and Avoiding Duplicate Sends
 
 Hardening emails against real-world issues: spam flags, duplicate sends, rate limits. No route params here.
