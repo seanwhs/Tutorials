@@ -1,8 +1,8 @@
 ## Part 6: Getting a Free Database with Neon
 
-**Goal:** create a free Neon Postgres database, understand the connection string, and add credentials to the project.
+Goal: create a free Neon Postgres database, understand the connection string, and add credentials to the project.
 
-**Prerequisite:** Parts 1-5 completed.
+Prerequisite: Parts 1-5 completed.
 
 ---
 
@@ -97,7 +97,3 @@ Either works for Next.js's env loading, but be consistent — the examples in th
 
 **Scratch test's `DROP TABLE` gives "table does not exist"**
 This means the earlier `CREATE TABLE` line didn't actually run (maybe you ran statements out of order, or one at a time and skipped the CREATE). Re-run all four lines together in one query execution, top to bottom.
-
----
-
-Ready for **Part 7: Talking to the Database with Drizzle ORM** ?
