@@ -1,7 +1,3 @@
-# **Part 19: Event Capacity, Waitlist, and Cancellations**:
-
----
-
 # Part 19: Event Capacity, Waitlist, and Cancellations
 
 Upgrades the Part 10 hard-fail-at-capacity behavior into a real waitlist with automatic promotion on cancellation. Edits the same `/events/[id]` route — `params` handling unchanged.
