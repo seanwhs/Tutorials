@@ -1,7 +1,3 @@
-# **Appendix A Part 2: Database Layer**:
-
----
-
 # Appendix A Part 2: Database Layer
 
 Unaffected by the Next.js 16 upgrade — no dynamic APIs involved.
