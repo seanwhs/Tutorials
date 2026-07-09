@@ -1,7 +1,3 @@
-# **Appendix A Part 5b: Pages (continued)**:
-
----
-
 # Appendix A Part 5b: Pages (continued)
 
 Every dynamic route below types `params`/`searchParams` as `Promise<{...}>` and awaits — Next.js 16 requirements.
