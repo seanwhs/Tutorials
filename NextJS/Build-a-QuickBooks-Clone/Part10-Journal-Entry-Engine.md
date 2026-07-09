@@ -1,16 +1,14 @@
 ## Part 10: Building the Journal Entry Engine
 
-**Goal:** build the journal_entries and journal_lines tables, and write postJournalEntry — a function that only ever saves a transaction if debits equal credits, wrapped in a real database transaction.
+Goal: build the `journal_entries` and `journal_lines` tables, and write `postJournalEntry` — a function that only ever saves a transaction if debits equal credits, wrapped in a real database transaction.
 
-**Prerequisite:** Parts 1-9 completed.
-
-This is the single most important piece of code in the entire application — everything from here forward routes through it. Take your time.
+Prerequisite: Parts 1-9 completed.
 
 ---
 
 ### 1. Add the schema
 
-Open src/lib/db/schema.ts. Replace its ENTIRE contents with the following (adds journal_entries and journal_lines):
+Open `src/lib/db/schema.ts`. Replace its ENTIRE contents with the following (adds `journal_entries` and `journal_lines`):
 
 ```ts
 import {
@@ -109,11 +107,11 @@ Run:
 npm run db:generate
 npm run db:migrate
 ```
-Expected: a migration creating journal_entries and journal_lines, plus two new enum types, applied successfully. Confirm both tables appear in Neon's dashboard.
+Expected: a migration creating `journal_entries` and `journal_lines`, plus two new enum types, applied successfully. Confirm both tables appear in Neon's dashboard.
 
 ### 2. Write the posting function
 
-Create the folder src/lib/accounting/. Inside it, create post-journal-entry.ts:
+Create the folder `src/lib/accounting/`. Inside it, create `post-journal-entry.ts`:
 
 ```ts
 import { db } from "@/lib/db";
@@ -192,11 +190,9 @@ export async function postJournalEntry(
 }
 ```
 
-Notice `tx?: typeof db` as an optional second parameter: if provided, this function joins the caller's existing transaction instead of always opening its own — this is how later features (Part 13) combine "create an invoice" and "post its journal entry" into one atomic all-or-nothing operation.
-
 ### 3. Write a manual test
 
-Create src/lib/accounting/test-post.ts:
+Create `src/lib/accounting/test-post.ts`:
 
 ```ts
 import { db } from "@/lib/db";
@@ -233,7 +229,7 @@ async function main() {
 main();
 ```
 
-Replace PASTE_YOUR_REAL_ORG_ID_HERE with your real org ID. Run:
+Replace `PASTE_YOUR_REAL_ORG_ID_HERE` with your real org ID. Run:
 ```
 npx tsx src/lib/accounting/test-post.ts
 ```
@@ -252,7 +248,7 @@ SELECT * FROM journal_lines;
 ```
 You should see exactly ONE entry (the balanced one) with exactly two lines — the failed unbalanced attempt saved nothing.
 
-Delete src/lib/accounting/test-post.ts once done, or leave it — it's harmless.
+Delete `src/lib/accounting/test-post.ts` once done, or leave it — it's harmless.
 
 ### 4. Commit
 
@@ -265,10 +261,10 @@ git commit -m "Add journal_entries/journal_lines tables and postJournalEntry eng
 
 ### Checkpoint
 
-- [ ] journal_entries and journal_lines tables exist in Neon
-- [ ] postJournalEntry rejects entries with fewer than 2 lines
-- [ ] postJournalEntry rejects entries where debits != credits, with a clear thrown error
-- [ ] A balanced entry saves successfully using a real db.transaction
+- [ ] `journal_entries` and `journal_lines` tables exist in Neon
+- [ ] `postJournalEntry` rejects entries with fewer than 2 lines
+- [ ] `postJournalEntry` rejects entries where debits != credits, with a clear thrown error
+- [ ] A balanced entry saves successfully using a real `db.transaction`
 - [ ] You manually tested both a balanced and an unbalanced entry
 
 ---
@@ -276,23 +272,19 @@ git commit -m "Add journal_entries/journal_lines tables and postJournalEntry eng
 ### Troubleshooting
 
 **"Cannot find module './post-journal-entry'" or similar in test-post.ts**
-Confirm both files are in the same folder, src/lib/accounting/, and that post-journal-entry.ts is spelled with hyphens exactly as shown (not underscores or camelCase).
+Confirm both files are in the same folder, `src/lib/accounting/`, and that `post-journal-entry.ts` is spelled with hyphens exactly as shown (not underscores or camelCase).
 
 **Error: "invalid input value for enum journal_source_type"**
-Check the sourceType value you're passing matches exactly one of the enum's lowercase values (manual, invoice, bill, payment_received, payment_made, opening_balance, bank_transaction, reversal) — a common typo is "Manual" with a capital M, which will fail.
+Check the `sourceType` value you're passing matches exactly one of the enum's lowercase values (`manual`, `invoice`, `bill`, `payment_received`, `payment_made`, `opening_balance`, `bank_transaction`, `reversal`) — a common typo is "Manual" with a capital M, which will fail.
 
 **Error mentioning "bigint" or numbers being too large/small**
-The debitCents/creditCents columns use { mode: "number" } which is fine for normal amounts but can lose precision on extremely large numbers (billions of cents). For this course's scale, this is a non-issue — just be aware it exists if you ever see odd rounding on very large test amounts.
+The `debitCents`/`creditCents` columns use `{ mode: "number" }` which is fine for normal amounts but can lose precision on extremely large numbers (billions of cents). For this course's scale, this is a non-issue — just be aware it exists if you ever see odd rounding on very large test amounts.
 
 **The unbalanced test still saved a row instead of throwing**
-Double-check you actually changed the amount in test-post.ts and saved the file before re-running — a very common mistake is editing but forgetting to save, then re-running the old cached version mentally (Node.js always reads the current file on disk when you run tsx, so this really would mean the edit didn't save).
+Double-check you actually changed the amount in `test-post.ts` and saved the file before re-running — a very common mistake is editing but forgetting to save, then re-running the old cached version mentally (Node.js always reads the current file on disk when you run `tsx`, so this really would mean the edit didn't save).
 
 **"relation journal_entries does not exist" when running the test**
-Migrations weren't applied. Re-run npm run db:migrate and confirm it completes with no errors before trying the test script again.
+Migrations weren't applied. Re-run `npm run db:migrate` and confirm it completes with no errors before trying the test script again.
 
 **Both accounts (checking/equity) come back as undefined in test-post.ts**
-Confirm MY_ORG_ID matches an org that actually has seeded accounts (Part 9) — and confirm the account codes 1000 and 3000 exist for that org exactly as seeded. Query manually in Neon's SQL Editor to double check: SELECT code, name FROM accounts WHERE org_id = 'your-org-id';
-
----
-
-Ready for **Part 11: Customers & Vendors** ? We're now moving from foundational engine-building into real user-facing features.
+Confirm `MY_ORG_ID` matches an org that actually has seeded accounts (Part 9) — and confirm the account codes `1000` and `3000` exist for that org exactly as seeded. Query manually in Neon's SQL Editor to double check: `SELECT code, name FROM accounts WHERE org_id = 'your-org-id';`
