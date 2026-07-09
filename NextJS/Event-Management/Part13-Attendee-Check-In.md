@@ -1,7 +1,3 @@
-# **Part 13: Attendee Check-In Flow**:
-
----
-
 # Part 13: Attendee Check-In Flow
 
 Organizer-facing scanner/manual-code check-in flow. New dynamic route `/dashboard/[id]/checkin` — `params` again awaited.
