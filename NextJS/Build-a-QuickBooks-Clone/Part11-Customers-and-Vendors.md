@@ -1,14 +1,14 @@
 ## Part 11: Customers & Vendors
 
-**Goal:** build our first user-facing CRUD feature using Server Actions, for both Customers and Vendors.
+Goal: build our first user-facing CRUD feature using Server Actions, for both Customers and Vendors.
 
-**Prerequisite:** Parts 1-10 completed.
+Prerequisite: Parts 1-10 completed.
 
 ---
 
 ### 1. Add the schema
 
-Open src/lib/db/schema.ts. Add these two tables at the end of the file (keep everything already there):
+Open `src/lib/db/schema.ts`. Add these two tables at the end of the file (keep everything already there):
 
 ```ts
 export const customers = pgTable("customers", {
@@ -50,7 +50,7 @@ npm run db:migrate
 
 ### 2. Create the customers Server Action
 
-Create the folder src/app/dashboard/customers/. Inside it, create actions.ts:
+Create the folder `src/app/dashboard/customers/`. Inside it, create `actions.ts`:
 
 ```ts
 "use server";
@@ -87,7 +87,7 @@ export async function createCustomer(formData: FormData) {
 
 ### 3. Build the customer list + form page
 
-In the same folder, create page.tsx:
+In the same folder, create `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -145,7 +145,7 @@ Visit http://localhost:3000/dashboard/customers, add a couple of test customers,
 
 ### 4. Repeat the exact same pattern for Vendors
 
-Create the folder src/app/dashboard/vendors/. Inside it, create actions.ts:
+Create the folder `src/app/dashboard/vendors/`. Inside it, create `actions.ts`:
 
 ```ts
 "use server";
@@ -180,7 +180,7 @@ export async function createVendor(formData: FormData) {
 }
 ```
 
-And page.tsx:
+And `page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -236,7 +236,7 @@ export default async function VendorsPage() {
 
 ### 5. Add navigation
 
-Open src/app/dashboard/page.tsx. Add this import at the top:
+Open `src/app/dashboard/page.tsx`. Add this import at the top:
 ```tsx
 import Link from "next/link";
 ```
@@ -276,17 +276,13 @@ Check your terminal running npm run dev for a red error message — a thrown Err
 Confirm `revalidatePath("/dashboard/customers")` is present and spelled correctly before the redirect line — without it, Next.js may show a cached version of the list.
 
 **Error: "orgId is possibly null" (TypeScript)**
-This is why we check `if (!orgId) throw new Error(...)` at the top of the action, and `if (!orgId) redirect("/")` at the top of the page — both narrow the type so TypeScript knows orgId is a real string afterward. If you see this error, confirm you added those exact guard lines before using orgId anywhere else in the function.
+This is why we check `if (!orgId) throw new Error(...)` at the top of the action, and `if (!orgId) redirect("/")` at the top of the page — both narrow the type so TypeScript knows `orgId` is a real string afterward. If you see this error, confirm you added those exact guard lines before using `orgId` anywhere else in the function.
 
 **Both Customers and Vendors pages show the SAME data**
-This usually means you copy-pasted actions.ts or page.tsx for vendors but forgot to change `customers` to `vendors` in one or more places (the import, the table name in the query, the variable names). Re-check every occurrence carefully.
+This usually means you copy-pasted `actions.ts` or `page.tsx` for vendors but forgot to change `customers` to `vendors` in one or more places (the import, the table name in the query, the variable names). Re-check every occurrence carefully.
 
 **Form submits but shows a blank page or a Next.js redirect error in the console**
-This is often harmless — `redirect()` inside a Server Action works by throwing a special internal signal that Next.js catches; some browser extensions or dev tools can misreport this in the console as an "error" when it's actually expected behavior. Confirm the actual page navigation happened correctly (URL bar shows /dashboard/customers) before assuming something's broken.
+This is often harmless — `redirect()` inside a Server Action works by throwing a special internal signal that Next.js catches; some browser extensions or dev tools can misreport this in the console as an "error" when it's actually expected behavior. Confirm the actual page navigation happened correctly (URL bar shows `/dashboard/customers`) before assuming something's broken.
 
 **"Module not found: Can't resolve './actions'"**
-Confirm actions.ts and page.tsx are in the exact same folder (src/app/dashboard/customers/ or .../vendors/), and that the import in page.tsx says `from "./actions"` with the correct relative path.
-
----
-
-Ready for **Part 12: Building Invoices** ? This is the first feature with real accounting consequences.
+Confirm `actions.ts` and `page.tsx` are in the exact same folder (`src/app/dashboard/customers/` or `.../vendors/`), and that the import in `page.tsx` says `from "./actions"` with the correct relative path.
