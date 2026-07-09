@@ -1,7 +1,3 @@
-# **Appendix A Part 5d: My-RSVPs and Admin Pages** (final piece of Appendix A):
-
----
-
 # Appendix A Part 5d: My-RSVPs and Admin Pages
 
 `/my-rsvps/[id]` types `params` as `Promise<{ id: string }>`, awaited. `/my-rsvps` and `/admin` are static — no params.
