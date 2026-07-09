@@ -1,7 +1,3 @@
-# **Part 20: Search, Filtering, and Pagination for Events**:
-
----
-
 # Part 20: Search, Filtering, and Pagination for Events
 
 First use of `searchParams` — exactly like `params`, it's a **Promise in Next.js 16** and must be awaited.
