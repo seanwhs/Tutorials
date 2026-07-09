@@ -14,6 +14,10 @@ Each part follows the same two-beat pattern:
 - **Part 2: Flow & Positioning** — Normal Document Flow, Flexbox, Grid, and how `flex`/`justify-between`/`grid-cols-3` map 1:1 to raw CSS properties.
 - **Part 3: The Styling System** — The Cascade, specificity wars, why Tailwind's utility classes are "atomic," and how `tailwind-merge` resolves conflicting classes at runtime.
 - **Part 4: The Component Model** — Global CSS vs component-scoped styling, why we extract components, and building a full responsive, semantic, accessible UI component from scratch.
+- **Part 5: Data & the Network** — Raw HTTP request/response, forms without JavaScript, and how Server Actions (`'use server'`), `useActionState`, and Server Component `fetch()` caching automate and progressively enhance those fundamentals.
+- **Part 6: Routing & Navigation** — The browser's URL bar, full-page navigation, and nested HTML shells, and how the App Router's file-system routing, `<Link>` client-side transitions, and nested `layout.tsx` files automate them.
+- **Part 7: State & Interactivity** — The DOM's native stateful elements (`details`, checkboxes), manual DOM mutation vs. `useState`, why `'use client'` marks the server/client boundary, and controlled vs. uncontrolled inputs.
+- **Part 8: Images & Performance** — Native `img`/`srcset`/`sizes`/`loading="lazy"`, render-blocking `<script>` vs `defer`/`async`, `@font-face` layout shift, and how `next/image`, `next/script`, and `next/font` automate each.
 
 ### Prerequisites
 - Node.js 20.9+ or 22 LTS
