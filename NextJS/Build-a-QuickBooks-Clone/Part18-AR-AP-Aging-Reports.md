@@ -1,16 +1,16 @@
-## Part 18: AR/AP Aging Reports 
+## Part 18: AR/AP Aging Reports
 
-**Goal:** build the third core report — AR (Accounts Receivable) and AP (Accounts Payable) Aging — showing exactly which invoices/bills are still unpaid, grouped by how overdue they are. This report answers a very practical, everyday question real business owners ask constantly: "who owes me money, and who am I overdue in paying?"
+Goal of this part: build the third core report — AR (Accounts Receivable) and AP (Accounts Payable) Aging — showing exactly which invoices/bills are still unpaid, grouped by how overdue they are. This report answers a very practical, everyday question real business owners ask constantly: "who owes me money, and who am I overdue in paying?"
 
-**Prerequisite:** Parts 1-17 completed.
+Prerequisite: Parts 1-17 completed.
 
 ---
 
 ### 1. What an aging report actually shows, and why it's different from Parts 16/17
 
-The P&L (Part 16) and Balance Sheet (Part 17) are both built purely from journal_lines — pure ledger data, account balances. An aging report is different: it's built from the invoices/bills tables themselves (their status and due dates), not from journal_lines directly, because we need to know about SPECIFIC unpaid documents, not just an aggregate account balance. AR as an aggregate number tells you "customers owe you $12,000 total" — the aging report tells you "Jane owes $2,000, due 15 days ago; Tom owes $10,000, due in 5 days" — the operational detail behind the summary number.
+The P&L (Part 16) and Balance Sheet (Part 17) are both built purely from `journal_lines` — pure ledger data, account balances. An aging report is different: it's built from the invoices/bills tables themselves (their status and due dates), not from journal_lines directly, because we need to know about SPECIFIC unpaid documents, not just an aggregate account balance. AR as an aggregate number tells you "customers owe you $12,000 total" — the aging report tells you "Jane owes $2,000, due 15 days ago; Tom owes $10,000, due in 5 days" — the operational detail behind the summary number.
 
-This is a good moment to notice: not every report in a real accounting system is a pure journal_lines rollup. The rule from Part 8 ("reports should read from journal_lines") applies specifically to the FINANCIAL reports (P&L, Balance Sheet) where correctness of dollar totals is paramount. Operational reports like aging need document-level detail that the ledger alone doesn't carry (a journal entry knows AR went up by $500, but doesn't inherently know due dates or which specific invoice).
+This is a good moment to notice: not every report in a real accounting system is a pure `journal_lines` rollup. The rule from Part 8 ("reports should read from journal_lines") applies specifically to the FINANCIAL reports (P&L, Balance Sheet) where correctness of dollar totals is paramount. Operational reports like aging need document-level detail that the ledger alone doesn't carry (a journal entry knows AR went up by $500, but doesn't inherently know due dates or which specific invoice).
 
 ### 2. Aging buckets
 
@@ -25,7 +25,7 @@ For simplicity we'll use four buckets: Current, 1-30, 31-60, 61+.
 
 ### 3. Write the AR aging query
 
-Create src/lib/reports/ar-aging.ts:
+Create `src/lib/reports/ar-aging.ts`:
 
 ```ts
 import { db } from "@/lib/db";
@@ -83,17 +83,15 @@ export async function getArAging(orgId: string, asOfDate: string) {
 }
 ```
 
-Important caveat to notice, and to be honest about: this treats an invoice's totalCents as fully outstanding if its status is "sent" or "partially_paid" — it does NOT subtract out any partial payments already applied (recall Part 15's payment_applications table tracks exactly how much has been paid). For a course-accurate simplified version this is acceptable, but a real system should compute remaining balance as totalCents minus SUM(payment_applications.amountCents for this invoice). This is an excellent, very achievable stretch exercise now that you understand both tables involved.
+Important caveat to notice, and to be honest about: this treats an invoice's `totalCents` as fully outstanding if its status is "sent" or "partially_paid" — it does NOT subtract out any partial payments already applied (recall Part 15's `payment_applications` table tracks exactly how much has been paid). For a course-accurate simplified version this is acceptable, but a real system should compute remaining balance as `totalCents` minus `SUM(payment_applications.amountCents` for this invoice). This is an excellent, very achievable stretch exercise now that you understand both tables involved — try adding a subquery or a second query that sums applications per invoice and subtracts it before bucketing.
 
 ### 4. Write the AP aging query (the mirror)
 
-Create src/lib/reports/ap-aging.ts, mirroring the function above closely: query bills joined with vendors, where status is in ["open", "partially_paid"], compute days past due against each bill's dueDate, and bucket the same way. Same caveat about not netting out partial bill_payment_applications applies, and is an equally good exercise for later.
-
----
+Create `src/lib/reports/ap-aging.ts`, mirroring the function above closely: query bills joined with vendors, where status is in `["open", "partially_paid"]`, compute days past due against each bill's `dueDate`, and bucket the same way. Same caveat about not netting out partial `bill_payment_applications` applies, and is an equally good exercise for later.
 
 ### 5. Build the AR aging report page
 
-Create src/app/dashboard/reports/ar-aging/page.tsx:
+Create `src/app/dashboard/reports/ar-aging/page.tsx`:
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -164,11 +162,11 @@ export default async function ArAgingPage({
 
 ### 6. Build the AP aging report page
 
-Create src/app/dashboard/reports/ap-aging/page.tsx, mirroring the AR page above using getApAging, showing vendor name instead of customer name, and bill number instead of invoice number.
+Create `src/app/dashboard/reports/ap-aging/page.tsx`, mirroring the AR page above using `getApAging`, showing vendor name instead of customer name, and bill number instead of invoice number.
 
 ### 7. Test both reports
 
-Since your test invoices/bills from earlier parts likely have due dates already in the past or near today, you should immediately see some rows land in a "1-30" or similar bucket. If you want to see all four buckets populated realistically, go back to /dashboard/invoices/new and /dashboard/bills/new and create a few more test invoices/bills with due dates deliberately spread across different points in the past and future (e.g. one due date 45 days ago, one due 10 days ago, one due in 15 days), so you can watch them land in different buckets.
+Since your test invoices/bills from earlier parts likely have due dates already in the past or near today, you should immediately see some rows land in a "1-30" or similar bucket. If you want to see all four buckets populated realistically, go back to `/dashboard/invoices/new` and `/dashboard/bills/new` and create a few more test invoices/bills with due dates deliberately spread across different points in the past and future (e.g. one due date 45 days ago, one due 10 days ago, one due in 15 days), so you can watch them land in different buckets.
 
 Cross-check: the sum of the AR aging report's total across all buckets should roughly match your Accounts Receivable balance on the Balance Sheet (Part 17) — "roughly" because of the partial-payment caveat from step 3. This kind of cross-report sanity-checking is exactly what real bookkeepers do to catch bugs, and it's a great habit to build now.
 
@@ -185,12 +183,12 @@ git commit -m "Add AR and AP aging reports with due-date bucketing"
 
 ---
 
-### Checkpoint
+### Checkpoint — confirm before moving on
 
-- [ ] getArAging and getApAging both correctly bucket open invoices/bills by days overdue
+- [ ] `getArAging` and `getApAging` both correctly bucket open invoices/bills by days overdue
 - [ ] Both report pages display correctly with an as-of date control
-- [ ] You understand why this report reads from invoices/bills directly rather than purely from journal_lines, unlike Parts 16-17
-- [ ] You understand the partial-payment caveat (totalCents not netted against payment_applications) and could describe how you'd fix it
+- [ ] You understand why this report reads from invoices/bills directly rather than purely from `journal_lines`, unlike Parts 16-17
+- [ ] You understand the partial-payment caveat (`totalCents` not netted against `payment_applications`) and could describe how you'd fix it
 - [ ] You cross-checked the AR aging total loosely against the Balance Sheet's Accounts Receivable balance
 
 ---
@@ -198,25 +196,26 @@ git commit -m "Add AR and AP aging reports with due-date bucketing"
 ### Troubleshooting
 
 **Every invoice shows up in the "Current" bucket, even ones you expect to be overdue**
-Check the asOfDate you're testing against — if it defaults to today and your test invoices have due dates in the future, that's actually correct behavior. Go back to /dashboard/invoices/new and create a test invoice with a due date deliberately set in the past (e.g. 20 days ago) to see the aging logic actually bucket something as overdue.
+Check the `asOfDate` you're testing against — if it defaults to today and your test invoices have due dates in the future, that's actually correct behavior. Go back to `/dashboard/invoices/new` and create a test invoice with a due date deliberately set in the past (e.g. 20 days ago) to see the aging logic actually bucket something as overdue.
 
 **daysOverdue calculation seems off by one day, or by a lot**
-Confirm both dueDate and asOfDate strings are in the same format (YYYY-MM-DD) — mixing a full ISO timestamp string with a plain date string can shift the calculation due to timezone differences.
+Confirm both `dueDate` and `asOfDate` strings are in the same format (`YYYY-MM-DD`) — mixing a full ISO timestamp string with a plain date string can shift the calculation due to timezone differences. The `.toISOString().slice(0, 10)` pattern used throughout this course keeps things consistent; if you introduced a different date format anywhere in this function, that's the likely culprit.
 
 **getApAging is undefined or "not a function" when imported**
-Confirm you actually created src/lib/reports/ap-aging.ts (step 4 describes mirroring ar-aging.ts, but does not show every line — you need to write out the full function yourself, following the same structure as getArAging but querying bills/vendors and using bill-specific field names like billNumber and dueDate).
+Confirm you actually created `src/lib/reports/ap-aging.ts` (Part 18 step 4 describes mirroring `ar-aging.ts`, but does not show every line — you need to write out the full function yourself, following the same structure as `getArAging` but querying bills/vendors and using bill-specific field names like `billNumber` and `dueDate`). If you skipped writing this file expecting it to already exist, that's the issue.
 
 **Totals by bucket don't add up to what you'd expect by eyeballing the table rows**
-Confirm the `totals[r.bucket as keyof typeof totals] += r.totalCents;` line is using totalCents (already in cents) consistently, and only convert to dollars at the very last step when displaying via formatCents.
+Confirm the `totals[r.bucket as keyof typeof totals] += r.totalCents;` line is using `totalCents` (already in cents) consistently, and that you're not accidentally adding a dollar-formatted string to it elsewhere — always keep raw cent integers in your calculations, and only convert to dollars at the very last step when displaying via `formatCents`.
 
 **Cross-checking against the Balance Sheet's Accounts Receivable shows a meaningfully large mismatch, not just a small rounding difference**
-Re-read the partial-payment caveat in step 3 — if you have several partially-paid invoices, the aging report currently counts their FULL original total as outstanding rather than the true remaining balance. This is the known, flagged limitation — not a bug in your code.
+Re-read the partial-payment caveat in step 3 — if you have several partially-paid invoices, the aging report currently counts their FULL original total as outstanding rather than the true remaining balance, which can create a larger-than-expected gap versus the Balance Sheet's real AR balance (which correctly reflects actual payments applied via journal entries). This is the known, flagged limitation — not a bug in your code.
 
 **Page shows an error about invoices.dueDate or similar column not existing**
-Confirm you're referencing the exact camelCase property names Drizzle exposes in your code (dueDate, invoiceNumber, totalCents) rather than the snake_case database column names (due_date, invoice_number, total_cents).
+Confirm you're referencing the exact camelCase property names Drizzle exposes in your code (`dueDate`, `invoiceNumber`, `totalCents`) rather than the snake_case database column names (`due_date`, `invoice_number`, `total_cents`) — this mixing-up is a common typo when moving between looking at Neon's SQL Editor (snake_case) and writing TypeScript (camelCase).
 
 ---
 
-### What's next
+✅ **Part 18 is now complete in full**, including the Troubleshooting Addendum merged in above.
 
-With all three core reports built, we've completed the entire "MVP" accounting core. Part 19: Your First Background Job — we finally bring Inngest into the project, starting with something simple and satisfying: sending an invoice email in the background instead of making the user wait for it.
+### What's next
+With all three core reports built, we've completed the entire "MVP" accounting core described in our original project plan. Part 19: Your First Background Job — we finally bring Inngest into the project, starting with something simple and satisfying: sending an invoice email in the background instead of making the user wait for it.
