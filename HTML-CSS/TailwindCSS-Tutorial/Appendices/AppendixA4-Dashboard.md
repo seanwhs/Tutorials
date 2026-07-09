@@ -1,4 +1,4 @@
-# Appendix A3: Dashboard Widget Files
+# Appendix A4: Dashboard Widget Files
 
 ## A.18 `src/components/StatGrid.tsx`
 
@@ -173,7 +173,7 @@ npm install -D prettier prettier-plugin-tailwindcss eslint-plugin-tailwindcss
 npm run dev
 ```
 
-This is the complete, self-contained reference for the entire capstone project — every file needed to run PulseBoard locally is captured across Appendix A, A (continued), and A (part 3).
+This is the complete, self-contained reference for the entire capstone project — every file needed to run PulseBoard locally is captured across Appendix A, A2, A3 and A4.
 
 ---
 
