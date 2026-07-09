@@ -1,7 +1,3 @@
-# **Part 8c: Organizer Dashboard List and Detail Pages**:
-
----
-
 # Part 8c: Organizer Dashboard List and Detail Pages
 
 Introduces our first dynamic route (`[id]`) — where Next.js 16's async `params` convention really matters.
