@@ -1,7 +1,3 @@
-# **Part 3: Next.js 16 Project Setup and Structure**:
-
----
-
 # Part 3: Next.js 16 Project Setup and Structure
 
 ## 1. Scaffold the project
