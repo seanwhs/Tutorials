@@ -1,13 +1,15 @@
 ## Part 1: Setting Up Your Computer
 
-**Goal:** install every tool this course depends on, and get comfortable with the terminal. No app code yet — this is pure environment setup.
+Goal: install every tool this course depends on, and get comfortable with the terminal. No app code yet — this is pure environment setup.
+
+**Version note:** this series builds on **Next.js 16**, which requires **Node.js 20.9 or newer (Node 22 LTS recommended)**. Node 18 is end-of-life and will not run Next.js 16 — make sure you install a current version below.
 
 ---
 
-### 1. Install Node.js
+### 1. Install Node.js (20.9+ or 22 LTS)
 
 1. Go to https://nodejs.org
-2. Download the **LTS** version
+2. Download the **LTS** version (22.x at the time of writing)
 3. Run the installer, accept all defaults, restart your computer if prompted
 
 **Verify it worked.** Open a terminal:
@@ -18,12 +20,12 @@ Type exactly:
 ```
 node -v
 ```
-Expected output (your exact version may differ): `v20.11.0`
+Expected output (your exact version may differ): `v22.11.0`. Any version `v20.9.0` or higher works — if you see `v18.x` or lower, Next.js 16 will refuse to run later; reinstall from nodejs.org.
 
 ```
 npm -v
 ```
-Expected output: `10.2.4` (or similar)
+Expected output: `10.9.0` (or similar)
 
 ### 2. Install VS Code
 
@@ -50,7 +52,7 @@ No output means it worked.
 
 ### 4. Create a GitHub account
 
-Go to https://github.com, sign up, verify your email.
+1. Go to https://github.com, sign up, verify your email
 
 ### 5. Terminal basics
 
@@ -93,7 +95,7 @@ Open VS Code, click the Extensions icon (4 squares icon, left sidebar), search f
 
 ### ✅ Checkpoint
 
-- [ ] `node -v` prints a version number starting with v18 or higher
+- [ ] `node -v` prints a version number of v20.9 or higher (v22.x recommended)
 - [ ] `npm -v` prints a version number
 - [ ] `git --version` prints a version number
 - [ ] VS Code opens
@@ -106,6 +108,9 @@ Open VS Code, click the Extensions icon (4 squares icon, left sidebar), search f
 
 **`node -v` says "command not found" or "'node' is not recognized"**
 Node wasn't installed correctly, or your terminal was opened before you finished installing it. Close ALL terminal/VS Code windows completely, reopen a fresh terminal, and try again. If it still fails, reinstall Node.js from nodejs.org and restart your computer.
+
+**`node -v` prints something like `v18.x` or lower**
+That version is too old for Next.js 16 (used starting Part 2). Reinstall from nodejs.org — the installer will overwrite the older version. If you use a version manager like `nvm`, run `nvm install --lts && nvm use --lts` instead. Close and reopen your terminal afterward.
 
 **`npm -v` works but `node -v` doesn't (or vice versa)**
 This shouldn't normally happen since they install together — try reinstalling Node.js from the official installer again, choosing "Repair" if offered.
@@ -129,7 +134,3 @@ That's fine if you already created it — just `cd qb-clone-course` to enter it,
 
 **VS Code's "code ." command isn't recognized (you'll need this in Part 2)**
 Open VS Code manually now, press Cmd+Shift+P (Mac) or Ctrl+Shift+P (Windows), type "Shell Command: Install 'code' command in PATH", select it, then restart your terminal.
-
----
-
-Ready for **Part 2: Your First Next.js Project** ?
