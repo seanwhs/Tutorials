@@ -2,6 +2,8 @@
 
 Welcome. By the end of this series, you will have built — from an empty computer, assuming zero prior coding experience — a real, working, deployed accounting web application modeled on QuickBooks, with a genuine double-entry bookkeeping engine underneath it, hosted live on the internet for free. This part explains what you're about to build, why it's structured the way it is, and how to use this course day to day. This edition of the series includes complete, copy-typeable code in every part (nothing is just described in prose — you will always see the exact file contents to type) plus a Troubleshooting section at the end of every part covering the most common errors beginners hit at that exact step.
 
+**Version note:** this series targets **Next.js 16** (App Router, React 19, Turbopack as the default bundler), which requires **Node.js 20.9+ (Node 22 LTS recommended)**. A breaking change from older Next.js tutorials you may have seen elsewhere: `params` and `searchParams` (and `headers()`/`cookies()`) are `Promise`-based and must be `await`-ed everywhere. Every code sample in this series already uses the correct Next.js 16 pattern — you don't need to adapt anything.
+
 ---
 
 ### 1. What you're going to build
@@ -15,9 +17,9 @@ A multi-tenant SaaS accounting application where:
 - Bank transactions can be imported from a CSV file and categorized into the right accounts
 - The whole thing is deployed on the real internet, entirely on free hosting tiers, with automatic redeployment every time you push new code
 
-### 2. The tools you'll learn, and why each one
+### 2. The tools (latest version) you'll learn, and why each one
 
-- **Next.js** — the web framework everything is built in
+- **Next.js 16** — the web framework everything is built in
 - **Clerk** — handles user login/signup and multi-tenancy (Organizations = companies)
 - **Neon** — a free, hosted Postgres database
 - **Drizzle ORM** — type-checked TypeScript instead of raw SQL text
@@ -52,6 +54,8 @@ Every numbered part (from Part 1 onward) follows the same shape:
 4. A "Checkpoint" checklist to confirm it worked
 5. A "Troubleshooting" section covering the specific errors beginners commonly hit at that step, with the exact fix
 
+Beyond Part 24, this edition adds a reference **Appendix A: Full Codebase Reference** — the complete, final, accumulated state of every single file in the project, useful as a sanity check if something in your own project has drifted from what's expected, or as a fast way to hand the whole project to another AI assistant for help.
+
 ### 5. How to actually use this series
 
 Every part is saved as its own note titled "QB Clone Tutorial - Part N: [name]". There is an INDEX note that lists every part and tracks where you left off. Just say "continue" or ask for a specific part number at any time, in any future conversation.
@@ -62,13 +66,13 @@ Part 8 (accounting theory) and Part 10 (the journal entry engine) are worth slow
 
 ### 7. Ready?
 
-Move on to Part 1: Setting Up Your Computer.
+Move on to **Part 1: Setting Up Your Computer**.
 
 ---
 
 ### Troubleshooting (general, applies throughout the course)
 
-**"I don't know which folder my terminal is in"** — Run `pwd` (Mac) to print your current folder path. On Windows Command Prompt, run `cd` with no arguments to print it.
+**"I don't know which folder my terminal is in"** — Run `pwd` (Mac) to print your current folder path. On Windows Command Prompt, run `cd` with no arguments to print it. On Windows PowerShell, `pwd` also works.
 
 **"I typed a command and got a wall of red text"** — Don't panic. Scroll up to the FIRST red line, not the last — the first error is usually the real cause; everything after it is often just consequences of that first problem. Copy the first few lines of red text and troubleshoot that specific message.
 
@@ -76,6 +80,4 @@ Move on to Part 1: Setting Up Your Computer.
 
 **"I closed my terminal and now npm run dev isn't running anymore"** — This is expected. Every time you reopen your project, navigate back into the project folder (`cd` to it) and run `npm run dev` again to restart the local server.
 
----
-
-Ready for **Part 1: Setting Up Your Computer** ?
+**"The tutorial mentions a Next.js version and mine looks different"** — Run `npx next --version` inside your project folder. If it's 16.x, you're on the right track and every code sample in this series will apply exactly as written. If `create-next-app` installs something newer by the time you read this, the patterns taught here (async `params`/`searchParams`, Turbopack by default, Tailwind v4 CSS-first config) are very likely to still apply — Next.js's App Router conventions have been stable since version 13.
