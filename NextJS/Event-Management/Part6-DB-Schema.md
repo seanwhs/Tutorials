@@ -1,7 +1,3 @@
-# **Part 6: Database Schema Design**:
-
----
-
 # Part 6: Database Schema Design
 
 Purely conceptual — unaffected by the Next.js 16 upgrade.
