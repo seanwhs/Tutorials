@@ -1,8 +1,8 @@
 ## Part 7: Talking to the Database with Drizzle ORM
 
-**Goal:** install Drizzle, define our first schema, run our first migration against Neon, and query the database from real Next.js code.
+Goal: install Drizzle, define our first schema, run our first migration against Neon, and query the database from real Next.js code.
 
-**Prerequisite:** Parts 1-6 completed.
+Prerequisite: Parts 1-6 completed.
 
 ---
 
@@ -107,35 +107,13 @@ Open `package.json`, find the `"scripts"` section, and add these two lines insid
 npm run db:generate
 ```
 
-Expected output ends with something like: `1 tables created, 1 enum created`. A new folder `drizzle/migrations/` appears containing a file like `0000_something_random.sql`. Open it — you'll see real SQL like:
-
-```sql
-CREATE TYPE "public"."account_type" AS ENUM('asset', 'liability', 'equity', 'income', 'expense');
-CREATE TABLE "organizations" (
-	"id" text PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
-	"base_currency" text DEFAULT 'USD' NOT NULL,
-	"settings" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
-CREATE TABLE "accounts" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"org_id" text NOT NULL,
-	"code" text NOT NULL,
-	"name" text NOT NULL,
-	"type" "account_type" NOT NULL,
-	"is_active" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
-```
+Expected output ends with something like: "1 tables created, 1 enum created". A new folder `drizzle/migrations/` appears containing a file like `0000_something_random.sql`. Open it — you'll see real SQL creating the `account_type` enum, the `organizations` table, and the `accounts` table.
 
 Now apply it to your actual database:
 ```
 npm run db:migrate
 ```
-Expected output: something like `Migrations applied successfully!`
+Expected output: something like "Migrations applied successfully!"
 
 ### 6. Verify in Neon's dashboard
 
@@ -177,16 +155,7 @@ Run it:
 npx tsx src/lib/db/seed-test.ts
 ```
 
-Expected output:
-```
-Inserted: {
-  id: 'org_test_123',
-  name: 'Test Company',
-  baseCurrency: 'USD',
-  ...
-}
-All organizations: [ { id: 'org_test_123', name: 'Test Company', ... } ]
-```
+Expected output shows the inserted row, then the full organizations list containing it.
 
 Delete `src/lib/db/seed-test.ts` once confirmed. Clean up the test row via Neon's SQL Editor:
 ```sql
@@ -236,6 +205,5 @@ Delete the `drizzle/migrations` folder entirely and your local migration journal
 **TypeScript errors inside `schema.ts` about enum values**
 Confirm every enum value is a plain lowercase string in quotes, comma-separated, exactly matching the arrays shown above — a stray comma or missing quote is the most common cause.
 
----
-
-Ready for **Part 8: Debits, Credits and Double-Entry Accounting for Programmers** ?
+**Package install fails or shows peer dependency warnings mentioning Next.js/React versions**
+This project uses Next.js 16 and React 19 (from Part 2). If npm warns about peer dependencies for `drizzle-orm` or `@neondatabase/serverless`, it's almost always safe to proceed — these packages are framework-agnostic and don't depend on a specific Next.js version. If you see an actual install failure (not just a warning), run `npm install` again; a transient npm registry issue is more likely than a real incompatibility.
