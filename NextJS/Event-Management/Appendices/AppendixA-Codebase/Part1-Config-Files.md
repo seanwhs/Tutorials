@@ -1,7 +1,3 @@
-# **Appendix A Part 1: Configuration and Root Files**:
-
----
-
 # Appendix A Part 1: Configuration and Root Files
 
 Reflects Next.js 16 (Turbopack default, Node 20.9+/22 LTS) and Tailwind CSS v4 (CSS-first, no `tailwind.config.ts`).
