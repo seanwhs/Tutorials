@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 5.1
+subtitle: Observer Log & Evaluation Framework – Principles and Methodology
+description: How to observe, evaluate, and document cybersecurity tabletop exercises using objective, evidence-based techniques.
+type: appendix
+category: templates
+version: 1.0
+tags:
+- ttx
+- observer
+- evaluation
+- aar
+
+---
+
 # Appendix B — Templates Library
 
 # Part 5.1 — Observer Log & Evaluation Framework: Principles and Methodology
