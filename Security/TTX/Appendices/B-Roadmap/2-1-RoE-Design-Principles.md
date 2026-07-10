@@ -7,11 +7,10 @@ type: appendix
 category: templates
 version: 1.0
 tags:
-
-* ttx
-* roe
-* governance
-* facilitation
+- ttx
+- roe
+- governance
+- facilitation
 
 ---
 
