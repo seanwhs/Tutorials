@@ -1,3 +1,20 @@
+---
+
+title: Appendix B – Part 2.1
+subtitle: Rules of Engagement (RoE) – Foundations and Design Principles
+description: The purpose, governance, and design philosophy behind Rules of Engagement for cybersecurity tabletop exercises.
+type: appendix
+category: templates
+version: 1.0
+tags:
+
+* ttx
+* roe
+* governance
+* facilitation
+
+---
+
 # Appendix B — Templates Library
 
 # Part 2.1 — Rules of Engagement (RoE): Foundations and Design Principles
