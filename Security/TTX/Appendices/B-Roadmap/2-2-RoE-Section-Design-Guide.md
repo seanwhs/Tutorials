@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 2.2
+subtitle: Rules of Engagement (RoE) – Section-by-Section Design Guide
+description: A detailed walkthrough of every section in a cybersecurity tabletop exercise Rules of Engagement document.
+type: appendix
+category: templates
+version: 1.0
+tags:
+- ttx
+- roe
+- governance
+- facilitation
+
+---
+
 # Appendix B — Templates Library
 
 # Part 2.2 — Rules of Engagement (RoE): Section-by-Section Design Guide
