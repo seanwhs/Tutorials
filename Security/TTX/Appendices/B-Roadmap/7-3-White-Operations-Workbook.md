@@ -7,11 +7,10 @@ type: template
 category: white-cell
 version: 1.0
 tags:
-
-* ttx
-* white-cell
-* facilitator
-* operations
+- ttx
+- white-cell
+- facilitator
+- operations
 
 ---
 
