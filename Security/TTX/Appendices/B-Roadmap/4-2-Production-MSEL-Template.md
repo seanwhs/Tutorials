@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 4.2
+subtitle: Production Master Scenario Events List (MSEL) Template
+description: Production-ready Markdown template for building facilitator-controlled Master Scenario Events Lists for cybersecurity tabletop exercises.
+type: template
+category: msel
+version: 1.0
+tags:
+- ttx
+- msel
+- white-cell
+- facilitation
+
+---
+
 # Appendix B — Templates Library
 
 # Part 4.2 — Production Master Scenario Events List (MSEL) Template
