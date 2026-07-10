@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 5.2
+subtitle: Production Observer Log & Evaluation Template
+description: Production-ready observer workbook for cybersecurity tabletop exercises.
+type: template
+category: observer
+version: 1.0
+tags:
+- ttx
+- observer
+- evaluation
+- aar
+
+---
+
 # Appendix B — Templates Library
 
 # Part 5.2 — Production Observer Log & Evaluation Template
