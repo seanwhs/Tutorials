@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 7.1
+subtitle: Participant Invitation & Exercise Briefing Package
+description: Production-ready participant invitation, pre-exercise briefing, onboarding checklist, and participant handbook for cybersecurity tabletop exercises.
+type: template
+category: participant
+version: 1.0
+tags:
+- ttx
+- participant
+- onboarding
+- communications
+
+---
+
 # Appendix B — Templates Library
 
 # Part 7.1 — Participant Invitation & Exercise Briefing Package
