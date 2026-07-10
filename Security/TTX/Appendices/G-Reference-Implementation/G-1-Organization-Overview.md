@@ -1,10 +1,11 @@
----
-
+```
 title: Appendix G
 section: G.1
 subtitle: Organization Overview — ACME Manufacturing Group
-description: Business context, organizational profile, strategic priorities, and enterprise overview for Operation Red Horizon.
--------------------------------------------------------------------------------------------------------------------------------
+description: >
+  Business context, organizational profile, strategic priorities, 
+  and enterprise overview for Operation Red Horizon.
+```
 
 # G.1 Organization Overview
 
