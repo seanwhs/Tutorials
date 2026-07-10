@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 4.1
+subtitle: Master Scenario Events List (MSEL) – Design Principles and Architecture
+description: Designing, structuring, and managing the Master Scenario Events List for cybersecurity tabletop exercises.
+type: appendix
+category: templates
+version: 1.0
+tags:
+- ttx
+- msel
+- white-cell
+- facilitation
+
+---
+
 # Appendix B — Templates Library
 
 # Part 4.1 — Master Scenario Events List (MSEL): Design Principles and Architecture
