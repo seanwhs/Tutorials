@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 6.1
+subtitle: After Action Review (AAR) – Principles, Methodology, and Improvement Framework
+description: How to transform tabletop exercise observations into actionable findings, recommendations, and organizational improvements.
+type: appendix
+category: aar
+version: 1.0
+tags:
+- ttx
+- aar
+- lessons-learned
+- continuous-improvement
+
+---
+
 # Appendix B — Templates Library
 
 # Part 6.1 — After Action Review (AAR): Principles, Methodology, and Improvement Framework
