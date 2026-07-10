@@ -1,17 +1,15 @@
 ---
-
 title: Appendix B – Templates Library (Part 1)
 subtitle: Template Architecture, Standards, and Governance
 description: Design principles and organizational standards for reusable cybersecurity tabletop exercise templates.
 tags:
-- appendix
-- templates
-- tabletop-exercise
-- obsidian
-- markdown
-  type: appendix
-  version: 1.0
-
+  - appendix
+  - templates
+  - tabletop-exercise
+  - obsidian
+  - markdown
+type: appendix
+version: 1.0
 ---
 
 # Appendix B — Templates Library
