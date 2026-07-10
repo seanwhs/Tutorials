@@ -1,3 +1,18 @@
+---
+
+title: Appendix B – Part 2.3
+subtitle: Production Rules of Engagement (RoE) Template
+description: Production-ready Markdown template for cybersecurity tabletop exercises.
+type: template
+category: rules-of-engagement
+version: 1.0
+tags:
+- ttx
+- roe
+- template
+
+---
+
 # Appendix B — Templates Library
 
 # Part 2.3 — Production Rules of Engagement (RoE) Template
