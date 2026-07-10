@@ -1,7 +1,3 @@
-Here's **Git Mastery - Part 4: Deployment 101 - GitHub Pages** in full:
-
----
-
 ## Part 4: Deployment 101 — GitHub Pages
 
 **Series:** Mastering Version Control | **Prev:** Part 3 — The GitHub Workflow | **Next:** Part 5 — Time Travel & Recovery
@@ -236,5 +232,3 @@ git push
 ---
 
 **Next up:** Part 5 — the tools that let you move backward and sideways through history: `log`, `reset`, `revert`, and `stash`, plus how to recover from the mistakes every developer eventually makes.
-
-Want **Part 5** next?
