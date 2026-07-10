@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 6.2
+subtitle: Production After Action Review (AAR) Template
+description: Production-ready After Action Review template for cybersecurity tabletop exercises, including findings, recommendations, evidence mapping, and improvement roadmap.
+type: template
+category: aar
+version: 1.0
+tags:
+- ttx
+- aar
+- lessons-learned
+- continuous-improvement
+
+---
+
 # Appendix B — Templates Library
 
 # Part 6.2 — Production After Action Review (AAR) Template
