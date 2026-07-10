@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 7.2
+subtitle: Production Facilitator Checklist & Operational Runbook
+description: Comprehensive facilitator checklist and operational runbook for planning, executing, and closing cybersecurity tabletop exercises.
+type: template
+category: facilitator
+version: 1.0
+tags:
+- ttx
+- facilitator
+- white-cell
+- operations
+
+---
+
 # Appendix B — Templates Library
 
 # Part 7.2 — Production Facilitator Checklist & Operational Runbook
