@@ -6,6 +6,7 @@ subtitle: Master Scenario Events List (MSEL) – Phase 1: Weak Signals
 description: Operational MSEL for the opening phase of Operation Red Horizon.
 classification: TLP:RESTRICTED (Exercise Staff Only)
 version: 1.0
+
 ---
 
 # G.10.2 Master Scenario Events List (MSEL)
