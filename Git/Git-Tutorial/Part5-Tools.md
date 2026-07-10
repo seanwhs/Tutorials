@@ -1,7 +1,3 @@
-Here's **Git Mastery - Part 5: Time Travel & Recovery** in full:
-
----
-
 ## Part 5: Time Travel & Recovery
 
 **Series:** Mastering Version Control | **Prev:** Part 4 — Deployment 101: GitHub Pages | **Next:** Part 6 — Professional Pipelines
@@ -234,5 +230,3 @@ git log --oneline
 ---
 
 **Next up:** Part 6 — rebasing vs. merging like a senior engineer, and scaling your deployment skills from GitHub Pages to a fully automated Vercel CI/CD pipeline for dynamic apps.
-
-Want **Part 6** next?
