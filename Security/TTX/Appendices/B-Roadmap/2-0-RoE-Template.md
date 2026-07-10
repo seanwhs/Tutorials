@@ -1,6 +1,6 @@
 # Appendix B — Part 2
 
-## Rules of Engagement (RoE) Template
+## Rules of Engagement (RoE)
 
 This chapter will include:
 
