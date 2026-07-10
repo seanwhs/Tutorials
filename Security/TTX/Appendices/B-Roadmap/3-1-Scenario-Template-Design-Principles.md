@@ -1,3 +1,19 @@
+---
+
+title: Appendix B – Part 3.1
+subtitle: Scenario Template – Design Principles and Architecture
+description: How to design realistic, business-focused cybersecurity tabletop exercise scenarios.
+type: appendix
+category: templates
+version: 1.0
+tags:
+- ttx
+- scenario
+- facilitation
+- threat-modeling
+
+---
+
 # Appendix B — Templates Library
 
 # Part 3.1 — Scenario Template: Design Principles and Architecture
