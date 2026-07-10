@@ -1,3 +1,18 @@
+---
+
+title: Appendix B – Part 3.2
+subtitle: Production Scenario Template
+description: Production-ready Markdown template for designing cybersecurity tabletop exercise scenarios.
+type: template
+category: scenario
+version: 1.0
+tags:
+- ttx
+- scenario
+- template
+
+---
+
 # Appendix B — Templates Library
 
 # Part 3.2 — Production Scenario Template
