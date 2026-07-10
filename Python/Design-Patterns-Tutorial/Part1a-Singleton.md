@@ -41,6 +41,3 @@ print(config1 is config2)       # True
 settings = {"env": "production"}
 ```
 
----
-
-Reply **"next"** for **Part 1b — Factory Method**, and I'll continue delivering the rest one clean chunk at a time.
