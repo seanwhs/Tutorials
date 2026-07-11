@@ -6,8 +6,7 @@ subtitle: Cloud Breach Advanced MSEL Package
 description: Complete tabletop exercise package for cloud identity compromise scenario.
 classification: "TLP:GREEN"
 version: 1.0
-------------
-
+---
 # H.2 Cloud Breach Advanced MSEL Package
 
 ## Scenario Name
