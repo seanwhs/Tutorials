@@ -1,4 +1,4 @@
-# Documentation: Implementation Map
+# Implementation Map
 
 > *"Architecture becomes valuable when ideas can be traced to concrete implementations."*
 
