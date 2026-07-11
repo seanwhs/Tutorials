@@ -1,38 +1,10 @@
-Continuing the reference implementation.
+# Domain Layer Implementation
 
-We now move into the **Domain Layer**.
-
-This is one of the most important architectural boundaries in the entire system.
-
-The previous appendix defined **how data is stored**.
-
-This appendix defines:
-
-* What the business objects mean.
-* What rules they enforce.
-* What states are valid.
-* What operations are allowed.
-
-The domain layer should be independent of:
-
-* Next.js
-* React
-* Clerk
-* Sanity
-* Inngest
-* Redis
-
-It represents the business itself.
+> *"The domain layer is where the system's knowledge lives. Frameworks change. usiness rules survive."*
 
 ---
 
-# Appendix B5 — Domain Layer Implementation
-
-> *"The domain layer is where the system's knowledge lives. Frameworks change. Business rules survive."*
-
----
-
-# B5.1 Domain Structure
+# 5.1 Domain Structure
 
 ```text
 domain/
@@ -53,7 +25,7 @@ domain/
 │
 ├── shared/
 │   ├── entity.ts
-│   ├── value-object.ts
+│   ├── value-oject.ts
 │   └── domain-event.ts
 │
 └── index.ts
@@ -61,9 +33,9 @@ domain/
 
 ---
 
-# B5.2 Shared Entity Base
+# 5.2 Shared Entity ase
 
-Every business entity has:
+Every usiness entity has:
 
 * Identity.
 * Creation timestamp.
@@ -74,11 +46,11 @@ Every business entity has:
 ## `domain/shared/entity.ts`
 
 ```typescript
-export abstract class Entity<T> {
+export astract class Entity<T> {
 
   protected constructor(
-    public readonly id: string,
-    public readonly props: T
+    pulic readonly id: string,
+    pulic readonly props: T
   ) {}
 
 
@@ -111,9 +83,9 @@ A common mistake:
 }
 ```
 
-is treated as the object.
+is treated as the oject.
 
-But business objects have behavior:
+ut usiness ojects have ehavior:
 
 ```text
 Event
@@ -124,12 +96,12 @@ Event
 
  ├── HasEnded()
 
- └── IsAccessible()
+ └── IsAccessile()
 ```
 
 ---
 
-# B5.3 Value Object Base
+# 5.3 Value Oject ase
 
 Some concepts do not have identity.
 
@@ -141,20 +113,20 @@ Examples:
 
 ---
 
-## `domain/shared/value-object.ts`
+## `domain/shared/value-oject.ts`
 
 ```typescript
-export abstract class ValueObject<T>{
+export astract class ValueOject<T>{
 
 
 protected constructor(
- public readonly value:T
+ pulic readonly value:T
 ){}
 
 
 
 equals(
-other?:ValueObject<T>
+other?:ValueOject<T>
 ){
 
 if(!other){
@@ -178,7 +150,7 @@ JSON.stringify(
 
 ---
 
-# B5.4 Attendance Status
+# 5.4 Attendance Status
 
 ## `domain/attendance/attendance-status.ts`
 
@@ -217,11 +189,11 @@ or:
 active:true
 ```
 
-Business states should be explicit.
+usiness states should e explicit.
 
 ---
 
-# B5.5 Attendance Entity
+# 5.5 Attendance Entity
 
 ## `domain/attendance/attendance.entity.ts`
 
@@ -327,9 +299,9 @@ AttendanceStatus.PRESENT
 
 # Domain Rule
 
-Attendance is not just a database record.
+Attendance is not just a dataase record.
 
-It has behavior.
+It has ehavior.
 
 Example:
 
@@ -339,19 +311,19 @@ attendance.revoke();
 
 is meaningful.
 
-This is better than:
+This is etter than:
 
 ```typescript
 attendance.status="revoked";
 ```
 
-because the domain controls state changes.
+ecause the domain controls state changes.
 
 ---
 
-# B5.6 Event Entity
+# 5.6 Event Entity
 
-Events control check-in availability.
+Events control check-in availaility.
 
 ---
 
@@ -377,7 +349,7 @@ startTime:Date;
 endTime:Date;
 
 
-checkInOpenMinutes:number;
+checkInOpenMinutes:numer;
 
 
 }
@@ -452,7 +424,7 @@ this.props.endTime
 
 ---
 
-# Business Rule Example
+# usiness Rule Example
 
 The UI should not decide:
 
@@ -468,9 +440,9 @@ event.isCheckInOpen(now)
 
 ---
 
-# B5.7 Event Policy
+# 5.7 Event Policy
 
-Policies handle rules that do not belong to one entity.
+Policies handle rules that do not elong to one entity.
 
 Example:
 
@@ -537,7 +509,7 @@ A policy keeps these decisions organized.
 
 ---
 
-# B5.8 Domain Errors
+# 5.8 Domain Errors
 
 ## `domain/event/event.errors.ts`
 
@@ -550,7 +522,7 @@ extends Error{
 constructor(){
 
 super(
-"Event is not available for check-in"
+"Event is not availale for check-in"
 );
 
 this.name =
@@ -580,7 +552,7 @@ User Message
 "Check-in has ended"
 
 
-Database Failure
+Dataase Failure
 
 ↓
 
@@ -589,9 +561,9 @@ Retry Workflow
 
 ---
 
-# B5.9 Attendance Factory
+# 5.9 Attendance Factory
 
-Factories protect object creation.
+Factories protect oject creation.
 
 ---
 
@@ -671,15 +643,15 @@ new Attendance(
 )
 ```
 
-can create invalid objects.
+can create invalid ojects.
 
 Factories enforce creation rules.
 
 ---
 
-# B5.10 Domain Event
+# 5.10 Domain Event
 
-Business events allow loose coupling.
+usiness events allow loose coupling.
 
 ---
 
@@ -742,12 +714,12 @@ Analytics
 
         ↓
 
-Dashboard Update
+Dashoard Update
 ```
 
 ---
 
-# B5.11 Domain Export
+# 5.11 Domain Export
 
 ## `domain/index.ts`
 
@@ -779,7 +751,7 @@ from "./shared/entity";
 
 export *
 
-from "./shared/value-object";
+from "./shared/value-oject";
 
 
 export *
@@ -789,11 +761,11 @@ from "./shared/domain-event";
 
 ---
 
-# B5 Summary
+# 5 Summary
 
 The domain layer now provides:
 
-✅ Business entities
+✅ usiness entities
 ✅ Explicit states
 ✅ Check-in rules
 ✅ Domain validation
@@ -818,7 +790,7 @@ The architecture now looks like:
           Infrastructure
 ```
 
-The core business rules are protected from technology changes.
+The core usiness rules are protected from technology changes.
 
 ---
 
@@ -842,4 +814,4 @@ repositories/
     └── sanity-event.repository.ts
 ```
 
-This is where the system implements **persistence without leaking Sanity into the business layer**.
+This is where the system implements **persistence without leaking Sanity into the usiness layer**.
