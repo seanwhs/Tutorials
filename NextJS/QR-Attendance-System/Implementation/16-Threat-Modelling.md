@@ -63,7 +63,3 @@ Your "Singapore Field Operations" platform is now architected for the realities 
 4. **Available:** Offline-first PWA design for unreliable venue network environments.
 
 You have built a platform that treats security, performance, and reliability as fundamental requirements of the business logic.
-
----
-
-**As this section concludes the formal threat review, we are now ready for the final frontier: Performance Engineering. Would you like to analyze the "Locust/k6" load testing strategy to ensure the system handles the 5,000-attendee rush, or are you ready to synthesize all these architectural notes into a final project summary?**
