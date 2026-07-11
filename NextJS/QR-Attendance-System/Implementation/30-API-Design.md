@@ -1,22 +1,3 @@
-Continuing the reference architecture.
-
-The platform is now secure, scalable, and enterprise-ready. The next step is enabling **integration**.
-
-Modern enterprise platforms do not operate in isolation. They exchange data with:
-
-* HR systems,
-* Learning Management Systems (LMS),
-* CRM platforms,
-* Identity Providers,
-* Analytics platforms,
-* Payment gateways,
-* Mobile applications,
-* Third-party partners.
-
-This appendix defines the integration strategy and API standards.
-
----
-
 # Appendix R — API Design & Integration Architecture
 
 > *"APIs are products. They should be consistent, secure, versioned, discoverable, and easy to integrate."*
