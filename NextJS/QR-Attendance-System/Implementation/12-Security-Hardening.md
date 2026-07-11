@@ -1,8 +1,4 @@
-This documentation completes the Security Hardening Layer. By implementing these controls, you move from a functional application to a production-grade system that actively defends against tampering, automated abuse, and concurrency issues.
-
----
-
-# Documentation: Security Hardening Layer
+# Security Hardening Layer
 
 > *"Security is not about preventing every request. It is about ensuring that every request proves it deserves to succeed."*
 
