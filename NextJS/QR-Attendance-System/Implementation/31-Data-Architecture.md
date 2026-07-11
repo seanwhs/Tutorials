@@ -1,17 +1,3 @@
-Continuing the reference architecture.
-
-Every enterprise platform is ultimately a **data platform**.
-
-Applications, APIs, analytics, AI, reporting, and integrations all depend on having a consistent information model.
-
-Poor software can often be rewritten.
-
-Poor data architecture can persist for decades.
-
-This appendix defines the enterprise information architecture that underpins the QR Attendance Platform.
-
----
-
 # Appendix S — Data Architecture & Information Model
 
 > *"Applications come and go. Data outlives applications."*
