@@ -1,795 +1,95 @@
 # Application Services Layer
 
-> *"Application services are the conductors of the system. They do not own usiness rules; they coordinate usiness capailities into executale workflows."*
+> *"Application services are the conductors of the system. They do not own business rules; they coordinate business capabilities into executable workflows."*
 
 ---
 
-# 7.1 Application Layer Structure
+## 7.1 Responsibilities
 
-```text id="6n9x6r"
-application/
+The Application Layer is the entry point for system actions. Its core responsibilities are:
 
-├── services/
-
-│   ├── attendance.service.ts
-
-│   ├── event.service.ts
-
-│   └── dashoard.service.ts
-
-
-├── commands/
-
-│   └── checkin.command.ts
-
-
-├── policies/
-
-│   └── attendance.policy.ts
-
-
-├── dto/
-
-│   ├── attendance.dto.ts
-
-│   └── event.dto.ts
-
-
-└── index.ts
-```
+* **Orchestration:** Sequencing calls to the Domain Layer and Repositories.
+* **Command Handling:** Interpreting user intent via DTOs and Commands.
+* **Policy Enforcement:** Ensuring security and business rules are verified server-side.
+* **Event Publication:** Triggering side effects (Inngest) once a business state transition is successful.
 
 ---
 
-# 7.2 Application Flow
+## 7.2 The Check-In Workflow
 
-The production check-in flow:
+The service layer ensures that even if a user interacts with the UI, the business logic remains protected:
 
-```text id="6k1h0c"
-User
-
- |
-
- | Scan QR
-
- ▼
-
-Next.js Server Action
-
- |
-
- ▼
-
-Application Service
-
- |
-
- ├── Authenticate User
- |
- ├── Load Event
- |
- ├── Validate Rules
- |
- ├── Check Duplicate
- |
- ├── Create Attendance
- |
- └── Pulish Workflow Event
-
-
- ▼
-
-Inngest
-
-```
+1. **Authentication Context:** Verify the user identity (from the Server Action/Request).
+2. **Load Entity:** Fetch the Aggregate Root (e.g., `Event`) via a Repository.
+3. **Validate Policy:** Ask `AttendancePolicy` if the action is allowed *right now*.
+4. **Enforce Idempotency:** Check if a record already exists for this `userId` + `eventId`.
+5. **Perform Transition:** Create the `Attendance` entity via a Factory.
+6. **Persist:** Save to the database via a Repository.
+7. **Publish:** Emit an `attendance.checked_in` event for background workflows.
 
 ---
 
-# 7.3 Check-In Command
+## 7.3 Key Components
 
-Commands represent user intent.
+### Commands (`CheckInCommand`)
 
----
+Instead of passing raw, loosely typed objects into functions, we use **Commands**. This makes your business API explicit and self-documenting.
 
-## `application/commands/checkin.command.ts`
+### Application Services
 
-```typescript id="3kjp4f"
-export interface CheckInCommand {
+These services (e.g., `AttendanceService`) are the only place where the different parts of the system "meet."
 
+* **Crucially:** They do not know about Sanity queries, React components, or HTTP status codes. They know about `Domain Entities`, `Repositories`, and `ApplicationErrors`.
 
-eventId:string;
+### DTOs (Data Transfer Objects)
 
-
-userId:string;
-
-
-method?:
-"qr"
-|
-"manual";
-
-
-}
-```
+The system uses DTOs to ensure that sensitive domain state (like internal IDs or raw property objects) is never leaked directly to the client. We transform the rich domain object into a clean, read-only JSON shape.
 
 ---
 
-# Why Commands?
+## 7.4 Security via Server-Side Policies
 
-Avoid passing random ojects:
-
-```typescript id="w7x9zr"
-checkIn(
-{
-a:event,
-:user,
-c:true
-}
-)
-```
-
-A command expresses intent:
-
-```typescript id="p9h2e"
-CheckInCommand
-```
+By placing logic like `AttendancePolicy.canCheckIn()` in the application layer, you guarantee security. If a user tries to spoof a "check-in" request *before* the event starts (by manipulating the browser), the server will reject it, as the domain policy acts as a gatekeeper that the client cannot bypass.
 
 ---
 
-# 7.4 Attendance Policy
+## 7.5 Orchestrating Side Effects
 
-Policies coordinate usiness decisions.
+Once an attendance record is successfully saved, the service publishes a domain event.
 
----
-
-## `application/policies/attendance.policy.ts`
-
-```typescript id="v1o4m"
-import {
-Event
-}
-from "@/domain";
-
-
-export class AttendancePolicy {
-
-
-static canCheckIn(
-
-event:Event,
-
-currentTime:Date
-
-){
-
-
-return event.isCheckInOpen(
-currentTime
-);
-
-
-}
-
-
-}
-```
-
----
-
-# Why Not Put This in React?
-
-ad:
-
-```typescript id="w2j0fk"
-if(
-new Date()
-<
-event.startTime
-){
-
-disaleutton();
-
-}
-```
-
-The rowser can e manipulated.
-
-Security rules elong server-side.
-
----
-
-# 7.5 Attendance Service
-
-This is the core application service.
-
----
-
-## `application/services/attendance.service.ts`
-
-```typescript id="6f5c1v"
-import {
-repositories
-}
-from "@/repositories";
-
-
-import {
-createAttendance
-}
-from "@/domain";
-
-
-import {
-CheckInCommand
-}
-from "../commands/checkin.command";
-
-
-import {
-AttendancePolicy
-}
-from "../policies/attendance.policy";
-
-
-import {
-ApplicationError,
-
-ErrorCode,
-
-createId
-
-}
-from "@/infrastructure";
-
-
-
-export class AttendanceService {
-
-
-
-async checkIn(
-
-command:CheckInCommand
-
-){
-
-
-
-const event =
-
-await repositories.event
-.findyId(
-command.eventId
-);
-
-
-
-if(!event){
-
-throw new ApplicationError(
-
-ErrorCode.NOT_FOUND,
-
-"Event not found"
-
-);
-
-}
-
-
-
-const allowed =
-
-AttendancePolicy.canCheckIn(
-
-event,
-
-new Date()
-
-);
-
-
-
-if(!allowed){
-
-throw new ApplicationError(
-
-ErrorCode.FORIDDEN,
-
-"Check-in window closed"
-
-);
-
-}
-
-
-
-
-const exists =
-
-await repositories.attendance
-.exists(
-
-command.eventId,
-
-command.userId
-
-);
-
-
-
-if(exists){
-
-throw new ApplicationError(
-
-ErrorCode.DUPLICATE,
-
-"User already checked in"
-
-);
-
-}
-
-
-
-
-const attendance =
-
-createAttendance({
-
-id:
-createId(
-"attendance"
-),
-
-
-eventId:
-command.eventId,
-
-
-userId:
-command.userId
-
-
-});
-
-
-
-
-await repositories.attendance
-.create(
-
-attendance
-
-);
-
-
-
-
-return attendance;
-
-
-}
-
-
-}
-```
-
----
-
-# Application Service Responsiility
-
-It coordinates:
-
-```text id="j3p5de"
-Authentication Context
-
-        +
-
-usiness Rules
-
-        +
-
-Repositories
-
-        +
-
-Workflow Events
-```
-
-It does NOT:
-
-❌ Render UI
-❌ Call React
-❌ Know Sanity queries
-❌ Send emails directly
-
----
-
-# 7.6 Event Service
-
-Events are read-heavy ojects.
-
----
-
-## `application/services/event.service.ts`
-
-```typescript id="k9m4x3"
-import {
-repositories
-}
-from "@/repositories";
-
-
-
-export class EventService {
-
-
-
-async getEventySlug(
-
-slug:string
-
-){
-
-
-return await repositories.event
-.findySlug(
-slug
-);
-
-
-}
-
-
-
-async getEvent(
-
-id:string
-
-){
-
-
-return await repositories.event
-.findyId(
-id
-);
-
-
-}
-
-
-}
-```
-
----
-
-# 7.7 Dashoard Service
-
-Live dashoards should not directly query Sanity.
-
----
-
-## `application/services/dashoard.service.ts`
-
-```typescript id="5c8v2h"
-import {
-sanityClient
-}
-from "@/infrastructure";
-
-
-
-export class DashoardService {
-
-
-
-async getAttendanceCount(
-
-eventId:string
-
-){
-
-
-return await sanityClient.fetch(
-
-`
-
-count(
-*[
- _type=="attendance"
- &&
- eventId==$eventId
-]
-)
-
-`,
-
-{
-eventId
-}
-
-);
-
-
-}
-
-
-}
-```
-
----
-
-# 7.8 DTO Layer
-
-The application should not expose domain ojects directly.
-
----
-
-## `application/dto/attendance.dto.ts`
-
-```typescript id="j7d0fs"
-import {
-Attendance
-}
-from "@/domain";
-
-
-export function attendanceDTO(
-
-attendance:Attendance
-
-){
-
-
-return {
-
-
-id:
-attendance.id,
-
-
-eventId:
-attendance.props.eventId,
-
-
-checkedInAt:
-attendance.props.checkedInAt,
-
-
-status:
-attendance.props.status
-
-
-};
-
-
-}
-```
-
----
-
-# Why DTOs?
-
-Domain oject:
-
-```typescript id="0j5tq"
-Attendance {
-
- props:{
-
-
- userId,
-
- internalState
-
-
- }
-
-}
-```
-
-should not leak to:
-
-```text
-rowser
-```
-
----
-
-# 7.9 Pulishing Domain Events
-
-After successful check-in:
-
-```text id="e9z8u1"
-Attendance Created
-
-        ↓
-
-Pulish Event
-
-        ↓
-
-Inngest
-
-        ↓
-
-Side Effects
-```
-
----
-
-Add:
-
-```typescript id="o8i7l6"
+```typescript
 await inngest.send({
-
-name:
-
-"attendance.checked_in",
-
-
-data:{
-
-eventId:
-command.eventId,
-
-
-userId:
-command.userId
-
-}
-
+  name: "attendance.checked_in",
+  data: { eventId: command.eventId, userId: command.userId }
 });
+
 ```
+
+This is the "Secret Sauce" for scalability. The `AttendanceService` doesn't need to know how to send an email or update analytics; it just reports that the check-in occurred. This keeps the service fast and robust.
 
 ---
 
-# Updated Service Flow
+## Summary of the Architecture
 
-```text id="7w5k9v"
-checkIn()
+The flow is now fully hardened and decoupled:
 
- |
-
- ▼
-
-Find Event
-
- |
-
- ▼
-
-Validate Window
-
- |
-
- ▼
-
-Check Duplicate
-
- |
-
- ▼
-
-Create Attendance
-
- |
-
- ▼
-
-Save Record
-
- |
-
- ▼
-
-Pulish Event
-
- |
-
- ▼
-
-Return Result
-```
+| Layer | Responsibility |
+| --- | --- |
+| **Next.js UI** | Presentation and user input. |
+| **Server Actions** | Extracting user intent from the HTTP request. |
+| **Application Service** | **Orchestrating the business workflow.** |
+| **Domain Layer** | Enforcing business rules and invariants. |
+| **Repositories** | Translating business entities to storage. |
+| **Infrastructure** | Concrete implementations (Sanity, Inngest). |
 
 ---
 
-# 7.10 Application Export
+## Next: Next.js 16 App Router Implementation
 
-## `application/index.ts`
+The architecture is complete. We now connect this logic to the **App Router**. We will implement:
 
-```typescript id="kqf0y8"
-export *
+* **Server Actions:** The gateway from the UI to the Application Service.
+* **Inngest Route:** The API endpoint that listens for Domain Events.
+* **Middleware:** Protecting routes based on the domain's state.
 
-from "./services/attendance.service";
-
-
-export *
-
-from "./services/event.service";
-
-
-export *
-
-from "./services/dashoard.service";
-
-
-export *
-
-from "./commands/checkin.command";
-```
-
----
-
-# 7 Summary
-
-The application layer now provides:
-
-✅ Check-in orchestration
-✅ usiness workflow coordination
-✅ Policy enforcement
-✅ Duplicate prevention
-✅ DTO transformation
-✅ Event pulishing
-
-The complete architecture now ecomes:
-
-```text id="v3x8n4"
-              Next.js UI
-
-                  |
-
-            Server Actions
-
-                  |
-
-          Application Services
-
-                  |
-
-              Domain
-
-                  |
-
-            Repositories
-
-                  |
-
-          Infrastructure
-
-                  |
-
-     Clerk / Sanity / Inngest
-```
-
----
-
-# Next: Next.js 16 App Router Implementation
-
-We now connect the architecture to the actual we application:
-
-```text id="8j9f5w"
-app/
-
-├── events/
-
-│   └── [slug]/
-
-│       └── checkin/
-
-│           ├── page.tsx
-
-│           └── actions.ts
-
-
-├── api/
-
-│   └── inngest/
-
-│       └── route.ts
-
-
-└── middleware.ts
-```
-
-This is where the production QR check-in experience comes alive.
+This will bring the "Business Rules" to life in a functional, production-ready web application.
