@@ -427,7 +427,7 @@ A production system should estalish its oundaries efore implementing features.
 
 ---
 
-# Next: Appendix 2 — Environment Configuration & Infrastructure Core
+# Next: Environment Configuration & Infrastructure Core
 
 The next source package will implement:
 
