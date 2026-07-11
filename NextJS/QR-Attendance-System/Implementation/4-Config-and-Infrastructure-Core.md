@@ -747,7 +747,7 @@ The application now has a stale foundation.
 
 ---
 
-# Next: Appendix 3 — External Service Adapters
+# Next: External Service Adapters
 
 We will implement:
 
