@@ -4,9 +4,9 @@ title: Appendix G
 section: G.14
 subtitle: Complete After Action Review (AAR) Example – Operation Red Horizon
 description: Full example AAR converting tabletop observations into improvement actions.
-classification: TLP:RESTRICTED (Exercise Leadership)
+classification: "TLP:RESTRICTED (Exercise Leadership)"
 version: 1.0
-------------
+---
 
 # G.14 After Action Review (AAR)
 
