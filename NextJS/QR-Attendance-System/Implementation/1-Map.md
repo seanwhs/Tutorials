@@ -1,5 +1,3 @@
-# Part IX
-
 # Implementation Map
 
 > *"Architecture becomes valuable when ideas can be traced to concrete implementations."*
