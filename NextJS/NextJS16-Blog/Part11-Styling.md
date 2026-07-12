@@ -170,5 +170,3 @@ Run the dev server. Click the sun/moon toggle — the whole site should switch b
 - [ ] No flash-of-incorrect-theme on load
 - [ ] All pages (home, post, category, author) look correct in both themes
 - [ ] `globals.css` contains the `@custom-variant dark (&:where(.dark, .dark *));` line (Tailwind v4's CSS-first equivalent of `darkMode: "class"`)
-
-Next: **Part 12 — Deployment: Shipping to Vercel for Free**
