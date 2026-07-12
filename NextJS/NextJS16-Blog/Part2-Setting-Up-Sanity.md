@@ -26,19 +26,19 @@ npm install next-sanity sanity @sanity/vision
 npx sanity@latest init --env .env.local
 ```
 
-Answer:
-- Select your project **GreyMatter Journal**
-- Dataset: `production`
-- Add config files: `Y`
-- TypeScript: `Y`
-- Embedded Studio: `Y`
-- Route: `/studio` (press Enter)
+Answer the prompts:
+- Select your project → **GreyMatter Journal**
+- Dataset → `production`
+- Add configuration files? → `Y`
+- Use TypeScript? → `Y`
+- Embedded Sanity Studio? → `Y`
+- Studio route? → Press Enter (`/studio`)
 
 ---
 
 ### Step 4: Verify `.env.local`
 
-Make sure `.env.local` contains:
+Open `.env.local` and ensure it has:
 
 ```env
 NEXT_PUBLIC_SANITY_PROJECT_ID=xdajrdsx
@@ -50,45 +50,49 @@ SANITY_API_READ_TOKEN=
 
 ---
 
-### Step 5: Sanity Config Files (Updated)
+### Step 5: Fix Sanity Config Files
 
-The CLI created a `src/sanity/` folder structure. Update your main config file:
-
-**`sanity.config.ts`** (in project root):
+#### Replace the content of **`sanity.config.ts`** (in root) with this:
 
 ```ts
-'use client'
-
-/**
- * This configuration is used for the Sanity Studio mounted at /studio
- */
-
-import { visionTool } from '@sanity/vision'
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
+import { visionTool } from '@sanity/vision'
 
-import { apiVersion, dataset, projectId } from './src/sanity/env'
 import { schema } from './src/sanity/schemaTypes'
-import { structure } from './src/sanity/structure'
 
 export default defineConfig({
+  name: 'default',
+  title: 'GreyMatter Journal',
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   basePath: '/studio',
-  projectId,
-  dataset,
-
+  plugins: [structureTool(), visionTool()],
   schema,
-  plugins: [
-    structureTool({ structure }),
-    visionTool({ defaultApiVersion: apiVersion }),
-  ],
 })
 ```
 
 ---
 
-### Step 6: Studio Route
+### Step 6: Create Missing Schema Folder
 
-Your file `src/app/studio/[[...tool]]/page.tsx` should look like this:
+Create the folder and file:
+
+**`src/sanity/schemaTypes/index.ts`**
+
+```ts
+import { type SchemaTypeDefinition } from 'sanity'
+
+export const schema: { types: SchemaTypeDefinition[] } = {
+  types: [],
+}
+```
+
+---
+
+### Step 7: Studio Route
+
+Make sure **`src/app/studio/[[...tool]]/page.tsx`** contains:
 
 ```tsx
 'use client'
@@ -107,22 +111,25 @@ export default function StudioPage() {
 
 ---
 
-### Step 7: Test
+### Step 8: Test
 
 ```bash
 npm run dev
 ```
 
-Visit → **http://localhost:3000/studio**
+Go to: **http://localhost:3000/studio**
+
+You should now see the Sanity Studio without import errors.
 
 ---
 
-### Quick Checklist
+**Checkpoint ✅**
 
-- [ ] `.env.local` has correct Project ID (`xdajrdsx`)
-- [ ] `sanity.config.ts` is updated with your blog title (optional but recommended)
-- [ ] No import errors when running `npm run dev`
+- [ ] `.env.local` is correct
+- [ ] `sanity.config.ts` updated (simple version)
+- [ ] `src/sanity/schemaTypes/index.ts` created
+- [ ] Studio loads at `/studio`
 
-Would you like me to also show you the contents of the other generated files (`env.ts`, `schemaTypes/index.ts`, `structure.ts`) so you can verify them?
+---
 
-Just say the word and I’ll give you the full set.
+This version is now aligned with your actual file structure. Try these steps and let me know if you get any new errors!
