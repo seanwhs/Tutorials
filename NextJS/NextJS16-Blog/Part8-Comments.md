@@ -13,14 +13,13 @@ Your project is using `@clerk/nextjs` v7.5.17. The `SignedIn` and `SignedOut` co
 ### Step 1: Sanity Write Access
 
 1. Go to [Sanity Manage](https://www.sanity.io/manage), select your project → **API** tab → **Tokens**.
-2. Click **Add API token**, name it `blog-write-token`, and set permissions to **Editor**.
-3. Copy the token and add it to your `.env.local`:
+2. Click **Add API token**, name it `blog-write-token`, select your project, set role to **Editor**, and save.
+3. Copy the token immediately and add it to your `.env.local`:
+
 ```bash
 SANITY_API_WRITE_TOKEN=your_token_here
 
 ```
-
-
 
 ### Step 2: Create a Server-Only Write Client
 
@@ -33,7 +32,7 @@ export const writeClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: "2024-01-01",
-  useCdn: false, // Must be false for writes
+  useCdn: false, // Must be false for write operations
   token: process.env.SANITY_API_WRITE_TOKEN,
 });
 
@@ -41,8 +40,9 @@ export const writeClient = createClient({
 
 ### Step 3: Schema & Queries
 
-* **Schema:** Create `src/sanity/schemaTypes/comment.ts` (define fields for `post` reference, `userId`, `userName`, `userImageUrl`, `text`, `approved`, `createdAt`). Register it in `src/sanity/schemaTypes/index.ts`.
+* **Schema:** Create `src/sanity/schemaTypes/comment.ts` with fields for `post` (reference), `userId`, `userName`, `userImageUrl`, `text`, `approved`, and `createdAt`. Register it in `src/sanity/schemaTypes/index.ts`.
 * **Query:** Add to `src/sanity/lib/queries.ts`:
+
 ```ts
 export const COMMENTS_BY_POST_QUERY = groq`
   *[_type == "comment" && post._ref == $postId && approved == true] | order(createdAt asc) {
@@ -51,8 +51,6 @@ export const COMMENTS_BY_POST_QUERY = groq`
 `;
 
 ```
-
-
 
 ### Step 4: Server Action (`src/app/actions/comments.ts`)
 
@@ -92,8 +90,6 @@ export async function submitComment(formData: FormData) {
 
 ### Step 5: Build the Comments UI (`src/components/Comments.tsx`)
 
-Use the `<Show/>` component to handle authentication states:
-
 ```tsx
 import Image from "next/image";
 import { Show, SignInButton } from "@clerk/nextjs";
@@ -113,13 +109,13 @@ export default async function Comments({ postId, postSlug }: { postId: string, p
           <input type="hidden" name="postId" value={postId} />
           <input type="hidden" name="postSlug" value={postSlug} />
           <textarea name="text" required className="w-full border p-2" />
-          <button type="submit" className="bg-black text-white px-4 py-2 mt-2">Post</button>
+          <button type="submit" className="bg-black text-white px-4 py-2 mt-2">Post Comment</button>
         </form>
       </Show>
 
       <Show when="signed-out">
         <div className="mt-6">
-          <SignInButton mode="modal"><button className="underline">Sign in</button></SignInButton> to comment.
+          <SignInButton mode="modal"><button className="underline">Sign in</button></SignInButton> to leave a comment.
         </div>
       </Show>
     </section>
@@ -131,15 +127,22 @@ export default async function Comments({ postId, postSlug }: { postId: string, p
 ### Step 6: Final Configuration
 
 1. **Images:** Update `next.config.ts` to allow Clerk avatars:
+
 ```ts
-const nextConfig = {
-  images: { remotePatterns: [{ hostname: "img.clerk.com" }] },
+import type { NextConfig } from "next";
+const nextConfig: NextConfig = {
+  images: { 
+    remotePatterns: [
+      { protocol: "https", hostname: "cdn.sanity.io" },
+      { protocol: "https", hostname: "img.clerk.com" }
+    ] 
+  },
 };
+export default nextConfig;
 
 ```
 
-
-2. **Render:** Add `<Comments postId="{post._id}" postSlug="{post.slug.current}"/>` to your post page template.
+2. **Render:** Add `<Comments postId="{post._id}" postSlug="{post.slug.current}"/>` to your post page template in `src/app/posts/[slug]/page.tsx`.
 
 ---
 
@@ -147,7 +150,7 @@ const nextConfig = {
 
 * [ ] `SANITY_API_WRITE_TOKEN` set and server restarted.
 * [ ] `Comment` schema visible in Sanity Studio.
-* [ ] Comments render correctly and form behaves based on auth state (via `<Show/>`).
-* [ ] Clerk avatars display (requires `next.config` update).
+* [ ] Comments render and form authentication state handled via `<Show/>`.
+* [ ] Clerk avatars display successfully.
 
 **Are you ready to proceed to Part 9: Members-Only Premium Posts?**
