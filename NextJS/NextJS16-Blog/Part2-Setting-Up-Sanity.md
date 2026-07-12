@@ -38,7 +38,7 @@ npx sanity@latest init --env .env.local
 Open `.env.local` and ensure it has:
 
 ```env
-NEXT_PUBLIC_SANITY_PROJECT_ID=xdajrdsx
+NEXT_PUBLIC_SANITY_PROJECT_ID=[your-project-id-here]
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
 
