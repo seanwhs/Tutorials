@@ -4,7 +4,7 @@ We are now enforcing the `isMembersOnly` flag. By performing the check on the se
 
 ### Step 1: Secure Server-Side Gating
 
-Update `src/app/posts/[slug]/page.tsx` to handle authentication. Note that `auth()` must be awaited.
+Update `src/app/posts/[slug]/page.tsx` to handle authentication. Note that in Next.js 16, `auth()` must be awaited.
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
@@ -34,7 +34,7 @@ export default async function PostPage({ params }: PageProps) {
         )}
       </article>
 
-      {/* Optionally gate comments as well */}
+      {/* Gate comments as well to protect community discussions */}
       {canViewFullContent && (
         <Comments postId={post._id} postSlug={post.slug.current} />
       )}
@@ -46,7 +46,7 @@ export default async function PostPage({ params }: PageProps) {
 
 ### Step 2: Paywall Component
 
-Create `src/components/MembersOnlyPaywall.tsx`. Using the `not-prose` class ensures Tailwind Typography doesn't apply article styles to your CTA card.
+Create `src/components/MembersOnlyPaywall.tsx`. The `not-prose` class is critical here—it prevents the Tailwind Typography plugin from applying unwanted article styling (like line-height or margins) to your CTA card.
 
 ```tsx
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
@@ -80,6 +80,8 @@ export default function MembersOnlyPaywall() {
 
 ### Checkpoint ✅
 
-* [ ] **True Security:** `post.body` is excluded from the server-rendered HTML for non-members.
-* [ ] **Auth Pattern:** `await auth()` is correctly implemented, preventing the common "always show paywall" bug.
-* [ ] **UI:** Gated content and comments are appropriately hidden, with clear conversion paths.
+* [ ] **True Security:** `post.body` is completely excluded from the server-rendered HTML for non-members.
+* [ ] **Auth Pattern:** `await auth()` is correctly implemented, ensuring accurate session state handling.
+* [ ] **UI:** Gated content and comments are hidden, with clear conversion paths (Sign In/Up) provided for visitors.
+
+Part 9 is complete. You have now established a functional "freemium" model for your blog. 
