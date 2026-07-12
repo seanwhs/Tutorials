@@ -93,7 +93,7 @@ export interface Post {
 
 ### Step 5: Build the `PostCard` Component
 
-Create `src/components/PostCard.tsx`. Note the logic for the "Members Only" badge.
+Create `src/components/PostCard.tsx`. Note how we use `post.mainImage.alt` directly, now that the type is fully defined.
 
 ```tsx
 import Image from "next/image";
@@ -108,7 +108,7 @@ export default function PostCard({ post }: { post: Post }) {
         {post.mainImage && (
           <Image
             src={urlForImage(post.mainImage).width(600).height(400).url()}
-            alt={(post.mainImage as any).alt || post.title}
+            alt={post.mainImage.alt || post.title}
             fill
             className="object-cover transition group-hover:scale-105"
           />
@@ -179,3 +179,7 @@ export default async function HomePage() {
 * [ ] **Optimization:** Images and ISR (`revalidate = 60`) are configured.
 
 **Next:** **Part 5 — Post Detail Pages: Implementing Portable Text and Clerk Authentication.**
+
+---
+
+Are you ready to begin Part 5 and set up your dynamic post routes and authentication guards?
