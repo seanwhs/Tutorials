@@ -27,12 +27,13 @@ export const client = createClient({
 Create `src/sanity/lib/image.ts`. This helper transforms raw Sanity image objects into optimized, responsive URLs.
 
 ```ts
-import createImageUrlBuilder from "@sanity/image-url";
+import { createImageUrlBuilder } from "@sanity/image-url";
+import { type SanityImageSource } from "@sanity/image-url";
 import { client } from "./client";
 
 const builder = createImageUrlBuilder(client);
 
-export function urlForImage(source: any) {
+export function urlForImage(source: SanityImageSource) {
   return builder.image(source);
 }
 
