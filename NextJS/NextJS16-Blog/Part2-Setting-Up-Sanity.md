@@ -20,15 +20,16 @@ npx sanity@latest init --env .env.local
 
 * **Prompts:** Select your project, dataset (`production`), and when asked for the **Studio path**, enter `/studio`.
 
-### Step 3: Configure Environment Variables
+### Step 3: Configure Environment Variables & Write Token
 
-Ensure your `.env.local` contains the following:
+1. **Generate Token:** Run `npx sanity manage` to open your project dashboard in the browser. Navigate to the **API** tab, create a new token, and select **Editor** permissions.
+2. **Update `.env.local`:** Ensure your `.env.local` contains the following:
 
 ```env
 NEXT_PUBLIC_SANITY_PROJECT_ID=[your-project-id]
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2024-01-01
-SANITY_API_WRITE_TOKEN=[your-write-token-from-sanity.io]
+SANITY_API_WRITE_TOKEN=[your-token-from-sanity-dashboard]
 
 ```
 
