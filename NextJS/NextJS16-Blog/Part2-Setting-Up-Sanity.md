@@ -1,23 +1,19 @@
-**Here's the updated Part 2 with a much clearer `.env.local` setup section:**
-
----
-
 ## Blog Tutorial - Part 2: Setting Up Sanity (Account, Project, Embedded Studio)
 
 ### What is Sanity?
-Sanity is a **headless CMS** that stores your blog content in a hosted database and provides a great editing interface (Studio). We’ll embed the Studio directly inside our Next.js 16 app at `/studio`.
+Sanity is a **headless CMS** that stores your blog content in a hosted database and provides a beautiful editing interface called **Studio**. We will embed it directly inside your Next.js app at `/studio`.
 
 ---
 
 ### Step 1: Create a free Sanity account
 
 1. Go to [https://www.sanity.io/get-started](https://www.sanity.io/get-started)
-2. Sign up (GitHub is fastest)
-3. Free plan is sufficient for this tutorial.
+2. Sign up with GitHub (fastest)
+3. Free plan is more than enough.
 
 ---
 
-### Step 2: Install required packages
+### Step 2: Install Sanity packages
 
 ```bash
 npm install next-sanity sanity @sanity/vision
@@ -25,57 +21,48 @@ npm install next-sanity sanity @sanity/vision
 
 ---
 
-### Step 3: Initialize Sanity
+### Step 3: Initialize Sanity (Interactive Setup)
 
-Run this command in your project root:
+Run this command:
 
 ```bash
 npx sanity@latest init --env .env.local
 ```
 
-Follow the prompts:
-- Choose **Create new project**
-- Project name: `my-blog` (or your preferred name)
-- Use default dataset (`production`)
-- Use TypeScript: Yes
+**Answer the prompts as follows:**
 
-This command will automatically create `.env.local` with your Project ID.
+- Create a new project or select existing → **GreyMatter Journal** (or create new)
+- Dataset → `production`
+- Would you like to add configuration files…? → **`Y`**
+- Use TypeScript? → **`Y`**
+- Would you like an embedded Sanity Studio? → **`Y`**
+- What route do you want to use for the Studio? → Press **Enter** (keep `/studio`)
+
+This will automatically create `.env.local`, `sanity.config.ts`, `sanity.cli.ts`, and related files.
 
 ---
 
-### Step 4: Verify / Create `.env.local`
+### Step 4: Verify `.env.local`
 
-After initialization, open (or create) the file **`.env.local`** in your project root and make sure it contains at least these values:
+Open `.env.local` and make sure it looks similar to this:
 
 ```env
 # Sanity Configuration
-NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id_here
+NEXT_PUBLIC_SANITY_PROJECT_ID=xdajrdsx
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
 
-# Optional: Will be used later for draft content
+# Optional: Used later for draft/preview content
 SANITY_API_READ_TOKEN=
 ```
 
-**How to find your Project ID:**
-- Go to [https://sanity.io/manage](https://sanity.io/manage)
-- Click on your project → copy the **Project ID**
-
-> **Important**: Never commit `.env.local` to Git. It should already be ignored by default in Next.js projects.
+> Your `Project ID` (`xdajrdsx`) should already be filled in correctly by the CLI.
 
 ---
 
-### Step 5: Create Sanity configuration files
+### Step 5: Sanity Configuration Files
 
-Create the folder structure:
-
-```
-sanity/
-├── sanity.config.ts
-├── sanity.cli.ts
-└── schemaTypes/
-    └── index.ts
-```
+The `init` command should have created a `sanity/` folder. Check that these files exist and have the correct content:
 
 #### `sanity/sanity.config.ts`
 ```ts
@@ -86,7 +73,7 @@ import { schema } from './schemaTypes'
 
 export default defineConfig({
   name: 'default',
-  title: "Sean's Blog",
+  title: 'GreyMatter Journal',
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   plugins: [structureTool(), visionTool()],
@@ -95,32 +82,15 @@ export default defineConfig({
 })
 ```
 
-#### `sanity/sanity.cli.ts`
-```ts
-import { defineCliConfig } from 'sanity/cli'
+(You may need to update the `title` if it’s not already set to “GreyMatter Journal”.)
 
-export default defineCliConfig({
-  api: {
-    projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-    dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-  },
-})
-```
-
-#### `sanity/schemaTypes/index.ts`
-```ts
-import { type SchemaTypeDefinition } from 'sanity'
-
-export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [],
-}
-```
+The other files (`sanity.cli.ts` and `sanity/schemaTypes/index.ts`) can stay as generated for now.
 
 ---
 
-### Step 6: Create the Embedded Studio Route
+### Step 6: Create the Studio Route (if not auto-created)
 
-Create: `src/app/studio/[[...tool]]/page.tsx`
+Create the file: `src/app/studio/[[...tool]]/page.tsx`
 
 ```tsx
 'use client'
@@ -137,29 +107,28 @@ export default function StudioPage() {
 
 ---
 
-### Step 7: Test it
+### Step 7: Test It
 
 ```bash
 npm run dev
 ```
 
-Visit: **http://localhost:3000/studio**
+Go to: **http://localhost:3000/studio**
 
-Log in with your Sanity account. You should see the Studio interface.
-
----
-
-### Checkpoint ✅
-
-- [ ] `.env.local` created and contains your `NEXT_PUBLIC_SANITY_PROJECT_ID`
-- [ ] Sanity packages installed
-- [ ] Studio loads correctly at `/studio`
-- [ ] No major console errors
+You should see the Sanity Studio. Log in with the same account.
 
 ---
 
-**Next:** Part 3 — Creating Content Schemas (Post, Author, etc.)
+**Checkpoint ✅**
+
+- [ ] `.env.local` has correct `NEXT_PUBLIC_SANITY_PROJECT_ID=xdajrdsx`
+- [ ] Studio loads at `/studio`
+- [ ] No major errors in console
 
 ---
 
-This version now has a dedicated, explicit section for `.env.local`. Let me know if you want a troubleshooting section added too!
+**Next:** Part 3 — Designing Content Schemas (Post, Author, Category, Block Content)
+
+---
+
+This version is now tailored to your project. Let me know if the CLI created all the files correctly or if you need adjustments!
