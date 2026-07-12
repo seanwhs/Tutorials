@@ -73,8 +73,3 @@ All services used have generous free tiers sufficient for this entire tutorial a
 11. ✅ **Part 11** — Styling Polish: Tailwind v4 Typography, Dark Mode Toggle
 12. ✅ **Part 12** — Deployment: Shipping to Vercel for Free
 13. ✅ **Conclusion** — Recap & Where to Go Next
-
-## Appendices (all complete ✅)
-- ✅ **Appendix A** — Full Reference Codebase (Part 1 of 2: config & Sanity files; Part 2 of 2: app routes & components — two separate notes)
-- ✅ **Appendix B** — Environment Variables & Free-Tier Service Setup Checklist
-- ✅ **Appendix C** — Troubleshooting & Common Errors (includes Next.js 16 async-params pitfalls)
