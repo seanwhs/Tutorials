@@ -67,17 +67,26 @@ export const POST_QUERY = groq`
 Create `src/sanity/lib/types.ts`. This ensures type safety across your entire application.
 
 ```ts
+import { type PortableTextBlock } from "next-sanity";
+import { type SanityImageSource } from "@sanity/image-url";
+
 export interface Post {
   _id: string;
   title: string;
   slug: { current: string };
   excerpt: string;
-  mainImage: any;
+  mainImage: SanityImageSource & { alt?: string };
   publishedAt: string;
   isMembersOnly: boolean;
-  author: { name: string; image?: any };
-  categories: { title: string; slug: { current: string } }[];
-  body?: any;
+  author: { 
+    name: string; 
+    image?: SanityImageSource 
+  };
+  categories: { 
+    title: string; 
+    slug: { current: string } 
+  }[];
+  body?: PortableTextBlock[];
 }
 
 ```
@@ -99,7 +108,7 @@ export default function PostCard({ post }: { post: Post }) {
         {post.mainImage && (
           <Image
             src={urlForImage(post.mainImage).width(600).height(400).url()}
-            alt={post.mainImage.alt || post.title}
+            alt={(post.mainImage as any).alt || post.title}
             fill
             className="object-cover transition group-hover:scale-105"
           />
