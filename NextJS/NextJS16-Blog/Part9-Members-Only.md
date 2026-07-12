@@ -1,64 +1,52 @@
-## Blog Tutorial - Part 9: Members-Only Premium Posts
+## Blog Tutorial — Part 9: Members-Only Premium Posts
 
-## What we're doing
-Recall in Part 3 we added an isMembersOnly boolean to the post schema. Now we'll enforce it: signed-out visitors see a paywall preview (title, excerpt, image) but not the full body; signed-in users see everything.
+We are now enforcing the `isMembersOnly` flag. By performing the check on the server, we ensure that premium content is never sent to the client unless the user has an active session.
 
-## ⚠️ Next.js 16 change: auth() must be awaited here too
+### Step 1: Secure Server-Side Gating
 
-Just like the Server Action in Part 8, calling `auth()` directly inside our Server Component post page requires `await` in Next.js 16.
-
-## Step 1: Check auth state on the server in the post page
-
-Update src/app/posts/[slug]/page.tsx. Import auth from Clerk's server helpers:
+Update `src/app/posts/[slug]/page.tsx` to handle authentication. Note that `auth()` must be awaited.
 
 ```tsx
 import { auth } from "@clerk/nextjs/server";
-```
+import MembersOnlyPaywall from "@/components/MembersOnlyPaywall";
 
-Inside the PostPage component, after fetching post and before rendering, add:
-
-```tsx
-const { userId } = await auth();
-const canViewFullContent = !post.isMembersOnly || Boolean(userId);
-```
-
-Since this page already does `const { slug } = await params;` from Part 5, you'll now have two awaited calls near the top of the function — that's expected and fine:
-
-```tsx
 export default async function PostPage({ params }: PageProps) {
   const { slug } = await params;
   const post = await client.fetch<Post>(POST_QUERY, { slug });
+  
+  if (!post) notFound();
 
-  if (!post) {
-    notFound();
-  }
-
+  // Await the auth promise to retrieve the current user state
   const { userId } = await auth();
   const canViewFullContent = !post.isMembersOnly || Boolean(userId);
 
-  // ...rest of the component
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-16">
+      {/* ... Hero and Image rendering ... */}
+
+      <article className="prose prose-lg mt-10 max-w-none dark:prose-invert">
+        {canViewFullContent ? (
+          post.body && (
+            <PortableText value={post.body} components={portableTextComponents} />
+          )
+        ) : (
+          <MembersOnlyPaywall />
+        )}
+      </article>
+
+      {/* Optionally gate comments as well */}
+      {canViewFullContent && (
+        <Comments postId={post._id} postSlug={post.slug.current} />
+      )}
+    </main>
+  );
 }
+
 ```
 
-## Step 2: Conditionally render the body
+### Step 2: Paywall Component
 
-Replace the article block that renders PortableText with:
-
-```tsx
-<article className="prose prose-lg mt-10 max-w-none dark:prose-invert">
-  {canViewFullContent ? (
-    post.body && (
-      <PortableText value={post.body} components={portableTextComponents} />
-    )
-  ) : (
-    <MembersOnlyPaywall />
-  )}
-</article>
-```
-
-## Step 3: Build the paywall component
-
-Create src/components/MembersOnlyPaywall.tsx:
+Create `src/components/MembersOnlyPaywall.tsx`. Using the `not-prose` class ensures Tailwind Typography doesn't apply article styles to your CTA card.
 
 ```tsx
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
@@ -85,43 +73,13 @@ export default function MembersOnlyPaywall() {
     </div>
   );
 }
+
 ```
 
-Import it at the top of the post page file:
+---
 
-```tsx
-import MembersOnlyPaywall from "@/components/MembersOnlyPaywall";
-```
+### Checkpoint ✅
 
-`not-prose` tells the Tailwind Typography plugin to skip styling this block like article text, since it's a UI card, not content.
-
-## Step 4: Also hide comments behind the same gate (optional but recommended)
-
-In the post page JSX, wrap the Comments component call:
-
-```tsx
-{canViewFullContent && (
-  <Comments postId={post._id} postSlug={post.slug.current} />
-)}
-```
-
-This prevents non-members from reading discussion that might spoil the gated content.
-
-## Step 5: Important security note
-
-Because we check `await auth()` on the **server** inside the Server Component before rendering, the members-only body content (post.body) is **never sent to the browser at all** for signed-out users — this is not just a CSS trick hiding content, it is truly excluded from the HTML/JSON payload. This is one of the biggest advantages of Next.js Server Components for building paywalls, and it's unchanged in Next.js 16 — only the syntax to read `auth()` changed (now async).
-
-## Step 6: Test it
-
-1. In the Studio, edit your post (or create a new one) and check "Members Only", publish.
-2. Open the post in an incognito/private browser window (signed out) — you should see the title/image/excerpt-area but a paywall instead of the article body, and no comment box.
-3. Sign in — refresh — you should now see the full article and comments.
-
-## Checkpoint ✅
-- [ ] Signed-out users see the paywall on members-only posts
-- [ ] Signed-in users see full content
-- [ ] Regular (non-members-only) posts are unaffected and visible to everyone
-- [ ] View source / inspect network response confirms gated body content isn't leaked to signed-out users
-- [ ] `await auth()` is used (not the old synchronous `auth()` call). If you forget the `await`, destructuring `userId` off a raw Promise object gives `undefined`, which would incorrectly treat every visitor — even signed-in ones — as logged out, showing the paywall to everyone. If signed-in users unexpectedly see the paywall, this missing `await` is the first thing to check.
-
-Next: **Part 10 — SEO: Metadata, Sitemap, Robots.txt, Open Graph Images**
+* [ ] **True Security:** `post.body` is excluded from the server-rendered HTML for non-members.
+* [ ] **Auth Pattern:** `await auth()` is correctly implemented, preventing the common "always show paywall" bug.
+* [ ] **UI:** Gated content and comments are appropriately hidden, with clear conversion paths.
