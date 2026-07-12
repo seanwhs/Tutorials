@@ -1,9 +1,3 @@
-Here is the newly updated **Part 7**. I have completely rewritten the setup steps to utilize the modern **Clerk CLI workflow** you just provided. This replaces the manual dashboard configuration and lets the CLI do the heavy lifting of wrapping your layout, generating routes, and pulling environment variables.
-
-*(Note: Never paste a whole document of text into PowerShell again! Run only the commands inside the code blocks below one by one.)*
-
----
-
 ## Blog Tutorial - Part 7: Authentication (Clerk Setup via CLI, Sign In/Up, Header UI)
 
 ### What we're doing
