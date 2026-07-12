@@ -2,21 +2,16 @@
 
 ### What we're doing
 
-We will expand the blog to include:
-
-* **Dynamic Routing:** Category archive pages (`/categories/[slug]`) and Author pages (`/authors/[slug]`).
-* **Global Navigation:** A shared header that fetches categories dynamically.
-* **Infrastructure:** Updated types and queries to support these new relationships.
-* **ISR:** Maintaining our 60-second revalidation strategy.
+We are expanding the blog to include dynamic archive pages, an author biography system, and a global navigation header that fetches data directly from Sanity.
 
 ---
 
-### Step 1: Update Types and Queries
+### Step 1: Infrastructure Setup
 
-**`src/sanity/lib/types.ts`**
-Ensure your types file includes the interfaces for `Category` and `Author`:
+**File: `src/sanity/lib/types.ts**`
+*Export these interfaces to ensure type safety across your new dynamic pages.*
 
-```ts
+```typescript
 import { type PortableTextBlock } from "next-sanity";
 import { type SanityImageSource } from "@sanity/image-url";
 
@@ -50,20 +45,22 @@ export interface Author {
 
 ```
 
-**`src/sanity/lib/queries.ts`**
-Add these new exports to your existing query file:
+**File: `src/sanity/lib/queries.ts**`
+*Add these specific queries to enable dynamic filtering and navigation.*
 
-```ts
+```typescript
+import { groq } from "next-sanity";
+
+// Navigation
 export const CATEGORIES_QUERY = groq`*[_type == "category"]{title, slug}`;
 
+// Categories
 export const CATEGORY_QUERY = groq`
   *[_type == "category" && slug.current == $slug][0] { _id, title, slug, description }
 `;
-
 export const CATEGORY_SLUGS_QUERY = groq`
   *[_type == "category" && defined(slug.current)].slug.current
 `;
-
 export const POSTS_BY_CATEGORY_QUERY = groq`
   *[_type == "post" && references(*[_type=="category" && slug.current == $category]._id)] | order(publishedAt desc) {
     _id, title, slug, excerpt, mainImage, publishedAt, isMembersOnly,
@@ -72,14 +69,13 @@ export const POSTS_BY_CATEGORY_QUERY = groq`
   }
 `;
 
+// Authors
 export const AUTHOR_QUERY = groq`
   *[_type == "author" && slug.current == $slug][0] { _id, name, slug, image, bio }
 `;
-
 export const AUTHOR_SLUGS_QUERY = groq`
   *[_type == "author" && defined(slug.current)].slug.current
 `;
-
 export const POSTS_BY_AUTHOR_QUERY = groq`
   *[_type == "post" && author->slug.current == $slug] | order(publishedAt desc) {
     _id, title, slug, excerpt, mainImage, publishedAt, isMembersOnly,
@@ -92,9 +88,9 @@ export const POSTS_BY_AUTHOR_QUERY = groq`
 
 ---
 
-### Step 2: Build the Pages
+### Step 2: Implementation of Dynamic Pages
 
-**`src/app/categories/[slug]/page.tsx`**
+**File: `src/app/categories/[slug]/page.tsx**`
 
 ```tsx
 import { notFound } from "next/navigation";
@@ -137,7 +133,7 @@ export default async function CategoryPage({ params }: PageProps) {
 
 ```
 
-**`src/app/authors/[slug]/page.tsx`**
+**File: `src/app/authors/[slug]/page.tsx**`
 
 ```tsx
 import { notFound } from "next/navigation";
@@ -188,9 +184,9 @@ export default async function AuthorPage({ params }: PageProps) {
 
 ---
 
-### Step 3: Shared Header and Layout
+### Step 3: Shared Components & Layout
 
-**`src/components/Header.tsx`**
+**File: `src/components/Header.tsx**`
 
 ```tsx
 import Link from "next/link";
@@ -218,7 +214,7 @@ export default async function Header() {
 
 ```
 
-**`src/app/layout.tsx`**
+**File: `src/app/layout.tsx**`
 
 ```tsx
 import Header from "@/components/Header";
@@ -242,8 +238,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 **Checkpoint ✅**
 
 * [ ] Navigation: Header dynamically lists categories.
-* [ ] Types: All interfaces exported correctly.
-* [ ] Queries: New query exports match page requirements.
+* [ ] Types: Interfaces (`Post`, `Category`, `Author`) exported.
+* [ ] Queries: All necessary data fetches implemented.
 * [ ] Routes: Correctly handling Next.js 16 `async params`.
 
 **Are you ready to proceed to Part 7: Authentication with Clerk?**
