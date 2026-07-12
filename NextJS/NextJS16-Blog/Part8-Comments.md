@@ -1,48 +1,31 @@
-## Blog Tutorial - Part 8: Comments System (Clerk-gated, stored in Sanity)
-
-### What we're doing
-
-We'll implement a comment system where signed-in users can post comments. These will be stored as documents in Sanity, linked to both the post and the Clerk user profile. We'll use Server Actions for submission and `revalidatePath` for instant UI updates.
-
-### ⚠️ Important: Clerk v7+ Compatibility
-
-Your project is using `@clerk/nextjs` v7.5.17. The `SignedIn` and `SignedOut` components are deprecated. **You must use the `<Show/>` component** as shown below to avoid build errors.
+This is the final setup for your comments system, integrating Clerk’s user context with Sanity’s write client to enable authenticated, server-side content submission.
 
 ---
 
-### Step 1: Sanity Write Access
+## Blog Tutorial — Part 8: Comments System
 
-1. Go to [Sanity Manage](https://www.sanity.io/manage), select your project → **API** tab → **Tokens**.
-2. Click **Add API token**, name it `blog-write-token`, set role to **Editor**, and save.
-3. Add the token to your `.env.local`:
+In this part, we implement a robust comments system where signed-in users can post content. These are stored as documents in Sanity and linked to the Clerk user profile.
 
-```bash
-SANITY_API_WRITE_TOKEN=your_token_here
+### Step 1: Sanity Write Client & Schema
 
-```
+Ensure `SANITY_API_WRITE_TOKEN` (Editor role) is added to your `.env.local`. Create `src/sanity/lib/writeClient.ts`:
 
-### Step 2: Create a Server-Only Write Client
-
-Create `src/sanity/lib/writeClient.ts`:
-
-```ts
+```typescript
 import { createClient } from "next-sanity";
 
 export const writeClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: "2024-01-01",
-  useCdn: false, // Must be false for write operations
+  useCdn: false, // Required for write operations
   token: process.env.SANITY_API_WRITE_TOKEN,
 });
 
 ```
 
-### Step 3: Schema & Queries
+Define your comment schema in `src/sanity/schemaTypes/comment.ts`:
 
-Create `src/sanity/schemaTypes/comment.ts`:
-
-```ts
+```typescript
 import { defineField, defineType } from "sanity";
 import { ChatIcon } from "@sanity/icons/Chat";
 
@@ -57,28 +40,17 @@ export const comment = defineType({
     defineField({ name: "userName", type: "string" }),
     defineField({ name: "userImageUrl", type: "url" }),
     defineField({ name: "text", type: "text" }),
-    defineField({ name: "approved", type: "boolean", initialValue: true }),
     defineField({ name: "createdAt", type: "datetime" }),
   ],
 });
 
 ```
 
-* **Register:** Add `comment` to your `types` array in `src/sanity/schemaTypes/index.ts`.
-* **Query:** Add this to `src/sanity/lib/queries.ts`:
+### Step 2: Server Action for Submissions
 
-```ts
-export const COMMENTS_BY_POST_QUERY = groq`
-  *[_type == "comment" && post._ref == $postId && approved == true] | order(createdAt asc) {
-    _id, userId, userName, userImageUrl, text, createdAt
-  }
-`;
+Use a Server Action in `src/app/actions/comments.ts` to process submissions securely:
 
-```
-
-### Step 4: Server Action (`src/app/actions/comments.ts`)
-
-```ts
+```typescript
 "use server";
 
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -103,7 +75,6 @@ export async function submitComment(formData: FormData) {
     userName: user?.fullName || user?.username || "Anonymous",
     userImageUrl: user?.imageUrl || "",
     text,
-    approved: true,
     createdAt: new Date().toISOString(),
   });
 
@@ -112,7 +83,9 @@ export async function submitComment(formData: FormData) {
 
 ```
 
-### Step 5: Build the Comments UI (`src/components/Comments.tsx`)
+### Step 3: Comments UI
+
+Update `src/components/Comments.tsx` using the Clerk `<Show/>` pattern:
 
 ```tsx
 import { Show, SignInButton } from "@clerk/nextjs";
@@ -138,7 +111,7 @@ export default async function Comments({ postId, postSlug }: { postId: string, p
 
       <Show when="signed-out">
         <div className="mt-6">
-          <SignInButton mode="modal"><button className="underline">Sign in</button></SignInButton> to leave a comment.
+          <SignInButton mode="modal"><button className="underline">Sign in</button></SignInButton> to comment.
         </div>
       </Show>
     </section>
@@ -147,29 +120,12 @@ export default async function Comments({ postId, postSlug }: { postId: string, p
 
 ```
 
-### Step 6: Final Configuration
-
-1. **Next Config:** Add Clerk images to `next.config.ts`:
-
-```ts
-images: { 
-  remotePatterns: [
-    { protocol: "https", hostname: "cdn.sanity.io" },
-    { protocol: "https", hostname: "img.clerk.com" }
-  ] 
-},
-
-```
-
-2. **Render:** Add `<Comments postId="{post._id}" postSlug="{post.slug.current}"/>` to your post page template.
-
 ---
 
-**Checkpoint ✅**
+### Checkpoint ✅
 
-* [ ] `SANITY_API_WRITE_TOKEN` set and server restarted.
-* [ ] `Comment` schema registered and visible.
-* [ ] Comments render and `<Show/>` components work.
-* [ ] Avatars render successfully.
+* [ ] **Write Access:** `SANITY_API_WRITE_TOKEN` configured.
+* [ ] **Data Flow:** Server Actions correctly link Clerk identity to Sanity documents.
+* [ ] **UX:** `<Show/>` components successfully gate the interaction UI.
 
-**Ready to proceed to Part 9: Members-Only Premium Posts?**
+Part 8 is complete. Are you ready for **Part 9: Members-Only Premium Posts**?
