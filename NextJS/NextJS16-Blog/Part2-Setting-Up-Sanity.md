@@ -1,21 +1,23 @@
+**Here's the updated Part 2 with a much clearer `.env.local` setup section:**
+
+---
+
 ## Blog Tutorial - Part 2: Setting Up Sanity (Account, Project, Embedded Studio)
 
 ### What is Sanity?
-Sanity is a **headless CMS** that stores your blog content (posts, authors, images, categories) in a hosted database. It provides a beautiful editing interface called **Studio**. In this tutorial, we’ll **embed the Studio directly inside our Next.js 16 app** at `/studio`.
+Sanity is a **headless CMS** that stores your blog content in a hosted database and provides a great editing interface (Studio). We’ll embed the Studio directly inside our Next.js 16 app at `/studio`.
 
 ---
 
 ### Step 1: Create a free Sanity account
 
 1. Go to [https://www.sanity.io/get-started](https://www.sanity.io/get-started)
-2. Sign up (GitHub login is fastest)
-3. No credit card required. The free plan is more than enough for this project.
+2. Sign up (GitHub is fastest)
+3. Free plan is sufficient for this tutorial.
 
 ---
 
-### Step 2: Install Sanity packages
-
-In your project root, run:
+### Step 2: Install required packages
 
 ```bash
 npm install next-sanity sanity @sanity/vision
@@ -23,28 +25,49 @@ npm install next-sanity sanity @sanity/vision
 
 ---
 
-### Step 3: Initialize Sanity in your Next.js project
+### Step 3: Initialize Sanity
 
-Run this command:
+Run this command in your project root:
 
 ```bash
 npx sanity@latest init --env .env.local
 ```
 
-**Follow the prompts:**
-- **Select project**: `Create new project`
-- **Project name**: `my-blog` (or whatever you like)
-- **Dataset**: Use default (`production`)
-- **TypeScript**: Yes
-- **Output path**: Accept default (current folder)
+Follow the prompts:
+- Choose **Create new project**
+- Project name: `my-blog` (or your preferred name)
+- Use default dataset (`production`)
+- Use TypeScript: Yes
 
-The command will automatically create `.env.local` with your `Project ID` and other values.
+This command will automatically create `.env.local` with your Project ID.
 
 ---
 
-### Step 4: Create the Sanity folder structure
+### Step 4: Verify / Create `.env.local`
 
-Create the following folders and files:
+After initialization, open (or create) the file **`.env.local`** in your project root and make sure it contains at least these values:
+
+```env
+# Sanity Configuration
+NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id_here
+NEXT_PUBLIC_SANITY_DATASET=production
+NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
+
+# Optional: Will be used later for draft content
+SANITY_API_READ_TOKEN=
+```
+
+**How to find your Project ID:**
+- Go to [https://sanity.io/manage](https://sanity.io/manage)
+- Click on your project → copy the **Project ID**
+
+> **Important**: Never commit `.env.local` to Git. It should already be ignored by default in Next.js projects.
+
+---
+
+### Step 5: Create Sanity configuration files
+
+Create the folder structure:
 
 ```
 sanity/
@@ -84,7 +107,7 @@ export default defineCliConfig({
 })
 ```
 
-#### `sanity/schemaTypes/index.ts` (placeholder for now)
+#### `sanity/schemaTypes/index.ts`
 ```ts
 import { type SchemaTypeDefinition } from 'sanity'
 
@@ -95,10 +118,9 @@ export const schema: { types: SchemaTypeDefinition[] } = {
 
 ---
 
-### Step 5: Set up the embedded Studio route
+### Step 6: Create the Embedded Studio Route
 
-Create the file:  
-`src/app/studio/[[...tool]]/page.tsx`
+Create: `src/app/studio/[[...tool]]/page.tsx`
 
 ```tsx
 'use client'
@@ -115,50 +137,29 @@ export default function StudioPage() {
 
 ---
 
-### Step 6: Update your environment variables
-
-Open `.env.local` and make sure it looks similar to this:
-
-```env
-NEXT_PUBLIC_SANITY_PROJECT_ID=your_actual_project_id
-NEXT_PUBLIC_SANITY_DATASET=production
-NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01   # Update to current year
-```
-
-> Leave `SANITY_API_READ_TOKEN` empty for now. We'll add it later when we need draft content support.
-
-Make sure `.env.local` is listed in your `.gitignore`.
-
----
-
-### Step 7: Run and test
-
-Start your dev server:
+### Step 7: Test it
 
 ```bash
 npm run dev
 ```
 
-Go to: **http://localhost:3000/studio**
+Visit: **http://localhost:3000/studio**
 
-You should see the Sanity Studio embedded in your app. Log in with the same account you used to create the project.
+Log in with your Sanity account. You should see the Studio interface.
 
 ---
 
 ### Checkpoint ✅
 
+- [ ] `.env.local` created and contains your `NEXT_PUBLIC_SANITY_PROJECT_ID`
 - [ ] Sanity packages installed
-- [ ] `.env.local` created with your Project ID
-- [ ] Studio loads at `/studio`
-- [ ] No console errors on `/studio`
-- [ ] Folder structure follows modern conventions (`sanity/` folder)
+- [ ] Studio loads correctly at `/studio`
+- [ ] No major console errors
 
 ---
 
-**Next:** Part 3 — Designing Content: Schemas for Post, Author, Category, and Block Content
+**Next:** Part 3 — Creating Content Schemas (Post, Author, etc.)
 
 ---
 
-This version is cleaner, more reliable, follows current best practices (as of 2026), and avoids the common pitfalls that trip up most people.
-
-Would you like me to also provide a short **Troubleshooting** section at the end?
+This version now has a dedicated, explicit section for `.env.local`. Let me know if you want a troubleshooting section added too!
