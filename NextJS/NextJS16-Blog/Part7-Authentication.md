@@ -1,22 +1,24 @@
 ## Blog Tutorial - Part 7: Authentication (Clerk Setup, Sign In/Up, Header UI)
 
-## What we're doing
-We'll add user sign-up/sign-in with Clerk (free tier, up to 10,000 monthly active users), protect nothing yet globally, but wire up the UI (sign in/out buttons, user avatar) so we can build gated features (comments, members-only posts) in the next parts.
+### What we're doing
 
-## ⚠️ Next.js 16 change: auth() is now async
+We'll add user sign-up/sign-in with Clerk to enable gated features (like comments and members-only content) in upcoming steps.
 
-Clerk's server-side `auth()` helper (from `@clerk/nextjs/server`) now returns a `Promise` in versions compatible with Next.js 16, matching Next.js's own async dynamic APIs (`params`, `headers()`, `cookies()`). Anywhere we previously wrote `const { userId } = auth();` we now must write `const { userId } = await auth();`. We'll apply this in Part 9 when we gate members-only content.
+### ⚠️ Next.js 16 Note: Async Auth
 
-## Step 1: Create a free Clerk account and application
-1. Go to https://clerk.com and sign up (free, no credit card)
-2. Click "Create Application", name it "my-blog"
-3. Choose sign-in options: Email + Google (or whatever you prefer) — Email is simplest for following along
-4. After creation, Clerk shows you API keys. Copy them.
-5. Make sure you install a recent version of `@clerk/nextjs` (the one installed in Part 1) — recent releases explicitly support Next.js 16 and its async APIs.
+Clerk’s `auth()` helper is now asynchronous. While we are only setting up the UI in this part, remember for future implementation that anywhere you previously wrote `const { userId } = auth();`, you must now use `const { userId } = await auth();`.
 
-## Step 2: Add Clerk environment variables
+---
 
-Add to `.env.local` (alongside your Sanity vars from Part 2):
+### Step 1: Clerk Setup
+
+1. Go to [Clerk](https://clerk.com) and create an application named "Greymatter Journal".
+2. Enable **Email** or **Google** sign-in providers.
+3. Copy your **Publishable Key** and **Secret Key**.
+
+### Step 2: Environment Variables
+
+Add these to your `.env.local`:
 
 ```bash
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxx
@@ -24,39 +26,23 @@ CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxx
 
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+
 ```
 
-(`@clerk/nextjs` was already installed back in Part 1.)
-
-## Step 3: Wrap the app in ClerkProvider
+### Step 3: Wrap the App
 
 Update `src/app/layout.tsx`:
 
 ```tsx
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Header from "@/components/Header";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "My Blog",
-  description: "A blog built with Next.js, Tailwind CSS, Sanity, and Clerk",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={inter.className}>
+        <body>
           <Header />
           {children}
         </body>
@@ -64,11 +50,12 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
+
 ```
 
-## Step 4: Add Clerk middleware
+### Step 4: Add Middleware
 
-Create `src/middleware.ts`:
+Create `src/middleware.ts`. This protects your routes and ensures Sanity Studio remains accessible.
 
 ```ts
 import { clerkMiddleware } from "@clerk/nextjs/server";
@@ -76,59 +63,36 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 export default clerkMiddleware();
 
 export const config = {
-  matcher: [
-    "/((?!_next|studio|.*\\..*).*)",
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!_next|studio|.*\\..*).*)", "/(api|trpc)(.*)"],
 };
+
 ```
 
-Important: notice we **exclude `/studio`** from the matcher pattern — Sanity Studio manages its own auth session and we don't want Clerk middleware interfering with it. This exclusion pattern is unchanged in Next.js 16.
+### Step 5: Auth Pages
 
-## Step 5: Create sign-in and sign-up pages
-
-Create `src/app/sign-in/[[...sign-in]]/page.tsx`:
+Create `src/app/sign-in/[[...sign-in]]/page.tsx` and `src/app/sign-up/[[...sign-up]]/page.tsx`:
 
 ```tsx
+// Inside both files, replace import with either SignIn or SignUp
 import { SignIn } from "@clerk/nextjs";
 
-export default function SignInPage() {
+export default function AuthPage() {
   return (
     <main className="flex min-h-[70vh] items-center justify-center">
       <SignIn />
     </main>
   );
 }
+
 ```
 
-Create `src/app/sign-up/[[...sign-up]]/page.tsx`:
+### Step 6: Update Header UI
 
-```tsx
-import { SignUp } from "@clerk/nextjs";
-
-export default function SignUpPage() {
-  return (
-    <main className="flex min-h-[70vh] items-center justify-center">
-      <SignUp />
-    </main>
-  );
-}
-```
-
-Clerk's `<SignIn />` and `<SignUp />` components render a full, prebuilt, styled auth form — no custom form-building needed. Note: like Part 5/6's post/category/author routes, these catch-all routes (`[[...sign-in]]`, `[[...sign-up]]`) technically also receive a `params` Promise, but we never read `params` inside these files, so no `await` is needed here.
-
-## Step 6: Add auth buttons to the Header
-
-Update `src/components/Header.tsx`:
+Update `src/components/Header.tsx` to include auth controls:
 
 ```tsx
 import Link from "next/link";
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { client } from "@/sanity/lib/client";
 import { CATEGORIES_QUERY } from "@/sanity/lib/queries";
 import type { Category } from "@/sanity/lib/types";
@@ -139,17 +103,11 @@ export default async function Header() {
   return (
     <header className="border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-bold">
-          My Blog
-        </Link>
+        <Link href="/" className="text-lg font-bold">Greymatter Journal</Link>
         <div className="flex items-center gap-4">
           <nav className="flex gap-4 text-sm">
             {categories.map((cat) => (
-              <Link
-                key={cat.slug.current}
-                href={`/categories/${cat.slug.current}`}
-                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-              >
+              <Link key={cat.slug.current} href={`/categories/${cat.slug.current}`} className="text-gray-600 hover:text-gray-900">
                 {cat.title}
               </Link>
             ))}
@@ -162,33 +120,23 @@ export default async function Header() {
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
           </SignedIn>
         </div>
       </div>
     </header>
   );
 }
+
 ```
 
-`<SignedIn>` / `<SignedOut>` conditionally render children based on auth state, with no flicker on the server since Clerk hydrates this correctly with Next.js App Router. These components don't call `auth()` directly themselves so no async change is visible here — the async change only affects code where *we* call `auth()` or `currentUser()` ourselves, which starts in Part 8.
+---
 
-## Step 7: Test it
+**Checkpoint ✅**
 
-```bash
-npm run dev
-```
+* [ ] `.env.local` configured.
+* [ ] Auth modal opens via Header.
+* [ ] User authentication persists and shows avatar.
+* [ ] Sanity Studio remains accessible.
 
-- Click "Sign In" → a modal should appear with Clerk's sign-in form
-- Create an account (use a real email you can access, or a "+alias" trick like `you+test@gmail.com`)
-- After signing in, you should see your avatar (UserButton) in the header
-- Click the avatar → "Sign out" → you should return to the signed-out state
-
-## Checkpoint ✅
-- [ ] `.env.local` has Clerk keys
-- [ ] Sign In button opens a working modal
-- [ ] You can create an account and see your avatar afterward
-- [ ] Sign out works
-- [ ] `/studio` still works and is unaffected by Clerk middleware
-
-Next: **Part 8 — Comments System (Clerk-gated, stored in Sanity)**
+**Are you ready to proceed to Part 8: Comments System (Clerk-gated, stored in Sanity)?**
