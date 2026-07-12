@@ -1,7 +1,3 @@
-This is the final setup for your comments system, integrating Clerk’s user context with Sanity’s write client to enable authenticated, server-side content submission.
-
----
-
 ## Blog Tutorial — Part 8: Comments System
 
 In this part, we implement a robust comments system where signed-in users can post content. These are stored as documents in Sanity and linked to the Clerk user profile.
@@ -127,5 +123,3 @@ export default async function Comments({ postId, postSlug }: { postId: string, p
 * [ ] **Write Access:** `SANITY_API_WRITE_TOKEN` configured.
 * [ ] **Data Flow:** Server Actions correctly link Clerk identity to Sanity documents.
 * [ ] **UX:** `<Show/>` components successfully gate the interaction UI.
-
-Part 8 is complete. Are you ready for **Part 9: Members-Only Premium Posts**?
