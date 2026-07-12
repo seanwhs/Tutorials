@@ -1,103 +1,47 @@
-## Blog Tutorial - Part 2: Setting Up Sanity (Account, Project, Embedded Studio)
+## Blog Tutorial - Part 2: Setting Up Sanity
 
-### What is Sanity?
+In this part, we will embed the **Sanity Studio** directly into your Next.js project. We will also configure the API clients for reading and writing data, and ensure our middleware correctly ignores the Studio route to maintain performance.
 
-Sanity is a headless CMS. We’re embedding the Studio directly into your Next.js app at `/studio`.
-
----
-
-### Step 1: Create a free Sanity account
-
-1. Go to [https://www.sanity.io/get-started](https://www.sanity.io/get-started)
-2. Sign up (GitHub recommended).
-
----
-
-### Step 2: Install packages
+### Step 1: Install Dependencies
 
 ```bash
-npm install next-sanity sanity @sanity/vision
+npm install next-sanity sanity @sanity/vision @sanity/client @sanity/image-url @portabletext/react groq
 
 ```
 
----
+### Step 2: Initialize Sanity
 
-### Step 3: Initialize Sanity
+Run the official initializer in your root directory:
 
 ```bash
 npx sanity@latest init --env .env.local
 
 ```
 
-**Prompts:** Select your project (**GreyMatter Journal**), Dataset (`production`), Add config files (`Y`), TypeScript (`Y`), Embedded Studio (`Y`), and Studio route (`/studio`).
+* **Prompts:** Select your project, dataset (`production`), and when asked for the **Studio path**, enter `/studio`.
 
----
+### Step 3: Configure Environment Variables
 
-### Step 4: Verify `.env.local`
-
-Open `.env.local` and ensure it has:
+Ensure your `.env.local` contains the following:
 
 ```env
-NEXT_PUBLIC_SANITY_PROJECT_ID=[your-project-id-here]
+NEXT_PUBLIC_SANITY_PROJECT_ID=[your-project-id]
 NEXT_PUBLIC_SANITY_DATASET=production
-NEXT_PUBLIC_SANITY_API_VERSION=2026-01-01
-
-SANITY_API_READ_TOKEN=
-
-```
-
----
-
-### Step 5: Configure `sanity.config.ts`
-
-Replace **`sanity.config.ts`** (root) with:
-
-```ts
-import { defineConfig } from 'sanity'
-import { structureTool } from 'sanity/structure'
-import { visionTool } from '@sanity/vision'
-import { schema } from './src/sanity/schemaTypes'
-
-export default defineConfig({
-  name: 'default',
-  title: 'GreyMatter Journal',
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
-  basePath: '/studio',
-  plugins: [structureTool(), visionTool()],
-  schema,
-})
+NEXT_PUBLIC_SANITY_API_VERSION=2024-01-01
+SANITY_API_WRITE_TOKEN=[your-write-token-from-sanity.io]
 
 ```
 
----
+### Step 4: The Studio Route (Split Pattern)
 
-### Step 6: Create Schema Index
+To ensure the Studio (a Client Component) doesn't conflict with server-side metadata, we split it into two files in `src/app/studio/[[...tool]]/`:
 
-Create the folder and file: **`src/sanity/schemaTypes/index.ts`**
-
-```ts
-import { type SchemaTypeDefinition } from 'sanity'
-
-export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [],
-}
-
-```
-
----
-
-### Step 7: Configure the Studio Route (The "Split" Pattern)
-
-To avoid build errors, we must separate the Client Component (Studio) from the Server Component (Metadata).
-
-**File A: The Client Wrapper (`src/app/studio/[[...tool]]/studio-component.tsx`)**
+**`studio-component.tsx` (Client):**
 
 ```tsx
 'use client';
-
 import { NextStudio } from 'next-sanity/studio';
-import config from '../../../../sanity.config';
+import config from '../../../../sanity.config'; 
 
 export default function StudioComponent() {
   return <NextStudio config={config} />;
@@ -105,14 +49,13 @@ export default function StudioComponent() {
 
 ```
 
-**File B: The Server Page (`src/app/studio/[[...tool]]/page.tsx`)**
+**`page.tsx` (Server):**
 
 ```tsx
 import { metadata, viewport } from 'next-sanity/studio';
 import StudioComponent from './studio-component';
 
 export { metadata, viewport };
-
 export const dynamic = 'force-static';
 
 export default function StudioPage() {
@@ -121,40 +64,80 @@ export default function StudioPage() {
 
 ```
 
----
+### Step 5: Sanity Client Orchestration
 
-### Step 8: Update `next.config.ts`
+Create the following files in `src/sanity/lib/`:
 
-Ensure your configuration handles Sanity’s ESM modules correctly:
+**`client.ts` (Read-only):**
+
+```tsx
+import { createClient } from "next-sanity";
+export const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  apiVersion: "2024-01-01",
+  useCdn: process.env.NODE_ENV === "production",
+});
+
+```
+
+**`writeClient.ts` (For Comments/Auth):**
+
+```tsx
+import { createClient } from "next-sanity";
+export const writeClient = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  apiVersion: "2024-01-01",
+  useCdn: false,
+  token: process.env.SANITY_API_WRITE_TOKEN,
+});
+
+```
+
+### Step 6: Protecting Middleware
+
+Update `middleware.ts` to ensure Clerk ignores the `/studio` route completely, preventing auth redirects from breaking your admin dashboard:
+
+```tsx
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+const isPublicRoute = createRouteMatcher([
+  "/", "/sign-in(.*)", "/sign-up(.*)", "/categories(.*)", "/posts(.*)"
+]);
+
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
+  }
+});
+
+export const config = {
+  matcher: [
+    // This regex matches everything EXCEPT static files and the /studio route
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|studio).*)",
+    "/(api|trpc)(.*)",
+  ],
+};
+
+```
+
+### Step 7: Final Config Tweaks
+
+Ensure `next.config.ts` handles Sanity's ESM modules:
 
 ```ts
 import type { NextConfig } from "next";
-
 const nextConfig: NextConfig = {
-  reactCompiler: false,
   transpilePackages: ['next-sanity', 'sanity'],
 };
-
 export default nextConfig;
 
 ```
 
----
+### Checkpoint ✅
 
-### Step 9: Test
-
-```bash
-npm run dev
-
-```
-
-Navigate to **http://localhost:3000/studio**. The studio should now load perfectly.
-
----
-
-**Checkpoint ✅**
-
-* [ ] `.env.local` configured
-* [ ] `sanity.config.ts` points to `src/sanity/schemaTypes`
-* [ ] Studio route is split into two files to handle Next.js Server/Client boundaries
-* [ ] `transpilePackages` added to `next.config.ts`
+* [ ] **Studio Routing:** Successfully split into `studio-component` and `page`.
+* [ ] **Middleware:** Confirmed that `/studio` is explicitly ignored by Clerk.
+* [ ] **Clients:** Read-only (`client.ts`) and Write-enabled (`writeClient.ts`) are ready for use.
+* [ ] **Verification:** `http://localhost:3000/studio` loads without auth prompts or errors.
