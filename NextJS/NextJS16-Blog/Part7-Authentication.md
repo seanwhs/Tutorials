@@ -17,15 +17,15 @@ clerk env pull
 
 ```
 
-### Step 2: Configure the Proxy
+### Step 2: Configure the Middleware
 
-In Next.js 16, standard practice is to use `src/proxy.ts` (or `middleware.ts`) to manage request protection. This ensures all non-public routes require authentication:
+In Next.js, `src/middleware.ts` (or `src/proxy.ts` depending on your setup) manages request protection. This ensures non-public routes require authentication:
 
 ```typescript
-// src/proxy.ts
+// src/middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
+const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/categories(.*)", "/posts(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
@@ -37,50 +37,98 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
-    "/__clerk/:path*", 
   ],
 };
 
 ```
 
-### Step 3: Updated Header UI (Clerk v7+)
+### Step 3: Orchestrated Header Components
 
-The updated Header uses the `<Show/>` component to toggle authentication UI states. Update `src/components/Header.tsx`:
+To maintain clean architecture, we separate the server-side `Header` from the client-side authentication logic.
+
+**`src/components/HeaderAuth.tsx`**
+This Client Component handles the interactive state.
 
 ```tsx
+"use client";
+
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import ThemeToggle from "./ThemeToggle";
+
+export const HeaderAuth = () => {
+  return (
+    <div className="flex items-center gap-4 border-l pl-6 dark:border-gray-700">
+      <ThemeToggle />
+      <Show when="signed-out">
+        <SignInButton mode="modal">
+          <button className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-black">
+            Sign In
+          </button>
+        </SignInButton>
+      </Show>
+      <Show when="signed-in">
+        <UserButton />
+      </Show>
+    </div>
+  );
+};
+
+```
+
+**`src/components/Header.tsx`**
+The Server Component fetches data and orchestrates the layout.
+
+```tsx
 import Link from "next/link";
 import { client } from "@/sanity/lib/client";
 import { CATEGORIES_QUERY } from "@/sanity/lib/queries";
 import type { Category } from "@/sanity/lib/types";
+import { HeaderAuth } from "./HeaderAuth";
 
 export default async function Header() {
   const categories = await client.fetch<Category[]>(CATEGORIES_QUERY);
 
   return (
-    <header className="border-b px-4 py-4">
-      <nav className="mx-auto flex max-w-5xl items-center justify-between">
+    <header className="border-b border-gray-200 dark:border-gray-800">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
         <Link href="/" className="text-lg font-bold">Greymatter Journal</Link>
         <div className="flex items-center gap-6">
-          <div className="flex gap-4 text-sm">
+          <nav className="flex gap-4 text-sm">
             {categories.map((cat) => (
-              <Link key={cat.slug.current} href={`/categories/${cat.slug.current}`}>{cat.title}</Link>
+              <Link key={cat.slug.current} href={`/categories/${cat.slug.current}`} className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                {cat.title}
+              </Link>
             ))}
-          </div>
-          
-          <div className="border-l pl-4">
-            <Show when="signed-out">
-              <SignInButton mode="modal">
-                <button className="text-sm font-medium">Sign In</button>
-              </SignInButton>
-            </Show>
-            <Show when="signed-in">
-              <UserButton />
-            </Show>
-          </div>
+          </nav>
+          <HeaderAuth />
         </div>
-      </nav>
+      </div>
     </header>
+  );
+}
+
+```
+
+### Step 4: Add the Footer
+
+Maintain consistent branding and navigation links at the base of every page.
+
+**`src/components/Footer.tsx`**
+
+```tsx
+import Link from "next/link";
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-gray-200 dark:border-gray-800">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-8 text-sm text-gray-500 dark:text-gray-400">
+        <p>&copy; {new Date().getFullYear()} Greymatter Journal. All rights reserved.</p>
+        <div className="flex gap-6">
+          <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white">Privacy</Link>
+          <Link href="/terms" className="hover:text-gray-900 dark:hover:text-white">Terms</Link>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -91,6 +139,5 @@ export default async function Header() {
 ### Checkpoint ✅
 
 * [ ] **CLI Sync:** Clerk project is linked and `.env` variables are active.
-* [ ] **Proxy Config:** `src/proxy.ts` is handling protected routes correctly.
-* [ ] **UI:** Header displays appropriate auth controls based on user session state.
-
+* [ ] **Middleware:** Routes are correctly protected/public.
+* [ ] **UI:** Header and Footer are unified and properly orchestrate client/server components.
