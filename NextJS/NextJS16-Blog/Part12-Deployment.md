@@ -37,7 +37,7 @@ Your application cannot function without its API keys. You must migrate these fr
 * `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 * `CLERK_SECRET_KEY`
 * `NEXT_PUBLIC_SANITY_PROJECT_ID`
-* `SANITY_API_READ_TOKEN` (plus any others your app requires).
+* `NEXT_PUBLIC_SANITY_DATASET` (plus any others your app requires).
 
 
 3. **Trigger a Redeploy:** After saving these, go to the **Deployments** tab in the sidebar, locate your latest build, and select **"Redeploy"** to ensure the build process has access to these keys.
