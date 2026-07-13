@@ -2,7 +2,7 @@
 
 ## What we're doing
 
-In Part 1, we set up Tailwind v4's CSS-first config in `globals.css`, including a `@custom-variant dark (&:where(.dark, .dark *));` rule. This makes `dark:` utility classes respond to a `.dark` class placed on `<html>`. Now, we will implement a persistent theme toggle that handles switching this class automatically.
+In Part 1, we set up Tailwind v4's CSS-first config in `globals.css`. By adding a `@custom-variant dark (&:where(.dark, .dark *));` rule, we enabled `dark:` utility classes to respond to a `.dark` class placed on the `<html>` element. In this part, we implement a persistent theme toggle that manages this class automatically. We also ensure our architecture remains clean by properly nesting providers and respecting the Server/Client boundary.
 
 ## Step 1: Install next-themes
 
@@ -31,17 +31,25 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 
 ## Step 3: Wire it into the root layout
 
-Update `src/app/layout.tsx` to wrap your content. We add `suppressHydrationWarning` to the `<html>` tag, as `next-themes` modifies the class attribute before hydration, which would otherwise trigger a harmless warning.
+Update `src/app/layout.tsx`. To avoid hydration errors caused by `next-themes` injecting classes before React hydrates, we add `suppressHydrationWarning` to the `<html>` tag and use the `Inter` font class on the `<body>`.
+
+*Note: Ensure you have deleted any redundant `layout.tsx` files (e.g., inside `src/app/(main)`) to avoid double-rendering your Header and Footer.*
 
 ```tsx
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import "@/app/globals.css";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <body>
+        <body className={inter.className}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Header />
             <main>{children}</main>
@@ -57,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## Step 4: Build a theme toggle button
 
-Create `src/components/ThemeToggle.tsx`. Using `useSyncExternalStore` or a `mounted` check ensures the component only renders after hydration to prevent mismatches.
+Create `src/components/ThemeToggle.tsx`. The `mounted` check is vital to ensure the button only renders after hydration, preventing mismatches between server and client themes.
 
 ```tsx
 "use client";
@@ -88,7 +96,7 @@ export default function ThemeToggle() {
 
 ## Step 5: Orchestrate via HeaderAuth
 
-To keep your `Header.tsx` (Server Component) clean, we delegate all interactive elements (Auth + Theme) to `HeaderAuth.tsx` (Client Component).
+To keep `Header.tsx` (a Server Component) clean, we delegate all interactive authentication and theme logic to a new Client Component: `HeaderAuth.tsx`.
 
 **`src/components/HeaderAuth.tsx`**
 
@@ -123,7 +131,7 @@ export const HeaderAuth = () => {
 ```tsx
 import Link from "next/link";
 import { HeaderAuth } from "./HeaderAuth";
-// ... (imports remain the same)
+// ... imports
 
 export default async function Header() {
   const categories = await client.fetch<Category[]>(CATEGORIES_QUERY);
@@ -151,9 +159,12 @@ export default async function Header() {
 
 ## Step 6: Verify `globals.css`
 
-Ensure your base styles handle the theme transition:
+Ensure your base styles handle the theme transition smoothly using `transition-colors`.
 
 ```css
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
@@ -166,5 +177,6 @@ body {
 
 * [ ] Toggle switches between light/dark instantly
 * [ ] Theme persists across page refreshes
-* [ ] No hydration mismatch
+* [ ] No hydration mismatch (Fixed via `suppressHydrationWarning`)
+* [ ] Single layout (Fixed by removing redundant `layout.tsx`)
 * [ ] Server/Client boundaries respected (Header vs. HeaderAuth)
