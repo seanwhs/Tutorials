@@ -1,23 +1,21 @@
 ## Blog Tutorial — Part 12: Deployment to Vercel (Free Tier)
 
-Since you’ve already initialized your Vercel account via Google, we’ll bridge that connection to your GitHub repository. Vercel’s free tier is the industry gold standard for deploying Next.js, providing automatic SSL, a global CDN, and seamless CI/CD that triggers every time you push code to your repository.
+Since you don't have a Vercel account yet, we will walk through the entire process—from account creation to the final "live" status. Vercel’s generous free tier for personal projects is the industry standard for deploying Next.js applications, offering automatic SSL, global CDN, and seamless CI/CD integration.
 
 ---
 
-### Phase 1: Linking GitHub to Your Existing Vercel Account
+### Phase 1: Create and Link Your Account
 
-Before importing your project, Vercel needs "eyes" on your GitHub repositories.
+If you don't have an account, start here to bridge your identity to your codebase.
 
-1. **Access Settings:** Log in to your [Vercel Dashboard](https://vercel.com/dashboard), click your **profile avatar** (top-right), and select **Settings**.
-2. **Authentication:** In the sidebar menu, navigate to the **Authentication** tab.
-3. **Connect GitHub:** Locate "Login Methods" or "Connections," find **GitHub**, and click **Connect**. Follow the authorization prompts to grant Vercel access to your repositories.
-4. **Verification:** Once authorized, GitHub will appear as a connected method. You can now pull your code directly from the cloud.
+1. **Sign Up:** Go to [vercel.com](https://vercel.com) and click **"Sign Up"**. It is highly recommended to sign up using the **GitHub** account that hosts your project repository. This grants Vercel permission to watch your repository and deploy automatically.
+2. **Existing Account:** If you already signed up with Google, simply log in to your [Vercel Dashboard](https://vercel.com/dashboard), click your **profile avatar** (top-right) → **Settings** → **Authentication**. Find **GitHub** in the list and click **Connect**. This allows Vercel to "see" your repositories.
 
 ---
 
 ### Phase 2: Project Deployment
 
-Now that your account is linked, you can import your project and go live:
+Now that your accounts are linked, you can import your project and go live:
 
 1. **Import:** From your Vercel Dashboard, click **"Add New..."** and select **Project**.
 2. **Select Repository:** Your repositories will now appear under the "Import Git Repository" section. Find your blog repo and click **Import**.
@@ -67,7 +65,7 @@ If your code references `NEXT_PUBLIC_SITE_URL` for canonical links or OG images:
 
 ### Verification Checklist ✅
 
-* [ ] **Account:** Google-based Vercel account successfully linked to GitHub.
+* [ ] **Account:** Vercel account created and successfully linked to GitHub.
 * [ ] **Build:** Deployment completed (Green "Ready" status).
 * [ ] **Secrets:** All `env` variables mapped correctly in Vercel Settings.
 * [ ] **CORS:** Vercel domain whitelisted in Sanity API/CORS settings.
