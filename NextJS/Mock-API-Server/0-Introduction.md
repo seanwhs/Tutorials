@@ -1,46 +1,277 @@
-## Building the Greymatter API: A Dynamic Mock Backend for Modern Frontends
+# Building Greymatter API Server with Next.js 16
 
-If you are building a modern frontend web application—especially one leveraging the React and TanStack Query ecosystem—you have inevitably run into the data bottleneck. You have components to build and state to manage, but the production backend isn't ready yet.
+## Part 0 – Introduction
 
-The standard solution is to spin up a mock server like `json-server`. It takes thirty seconds, gives you a full REST API, and lets you get back to building. But standard mock servers have a fatal flaw: **they are too perfect.**
-
-They respond instantly, which means you forget to build loading skeletons. They never fail, so you forget to write error boundaries. And because they hold a single static state, testing how your UI handles an empty dashboard versus a heavy data payload requires you to manually stop the server, rewrite a JSON file, and start it back up.
-
-If you want to build resilient frontends, you need a backend that fights back just a little bit.
-
-Enter the **Greymatter API**.
-
-### What is the Greymatter API?
-
-The Greymatter API is a hardened, dynamic mock backend designed specifically to road-test frontend architectures. It doesn't just serve JSON; it simulates the chaos of the real world.
-
-By wrapping a standard mock engine inside a custom Node server, Greymatter injects artificial network latency, handles complex custom queries, and most importantly, allows your frontend or test suite to hot-swap the entire database on the fly without ever restarting the process.
-
-### The Architecture
-
-Instead of writing hundreds of lines of boilerplate CRUD (Create, Read, Update, Delete) logic, we are going to use a layered architectural approach. We take the automation of `json-server` and wrap it in a custom Express orchestration layer.
-
-Here is how the pieces fit together:
-
-| Layer | Component | Purpose |
-| --- | --- | --- |
-| **The Shell** | Express.js | The host environment. It manages the server lifecycle, parses incoming payloads, and mounts our custom routing. |
-| **The Interceptor** | Custom Middleware | The real-world simulator. It injects random network delays (200–700ms) and handles custom business logic before hitting the database. |
-| **The Engine** | json-server (v0.17.4) | The workhorse. It automatically generates fully functional REST endpoints for every key in our JSON dataset. |
-| **The State Manager** | Admin Endpoints | The testing superpower. Dedicated routes that allow us to upload new datasets directly into the server's memory via API calls. |
-
-By separating the API into these distinct layers, you get the rapid prototyping speed of a mock server combined with the resilience and testability of a production backend.
-
-### The Tutorial Roadmap
-
-In this multipart series, we are going to build the Greymatter API step-by-step. By the end, you will have a robust, reusable backend tool you can drop into any future engineering project.
-
-1. **Part 1: The Engine Room.** We will set up our Node environment, define our initial JSON schema, and get the foundational REST API up and running.
-2. **Part 2: Simulating the Real World.** We will build the middleware interceptor to inject artificial latency and handle advanced query filtering (like sorting by stock status).
-3. **Part 3: The Orchestrator.** We will wrap our engine in Express and build the Admin routes, unlocking the ability to hot-swap our database state programmatically.
-4. **Part 4: The Reset Button.** We will write a utility script to instantly restore our database to its pristine state after our `POST` and `DELETE` requests inevitably mutate the data.
-5. **Bonus Track: Programmatic Control.** For advanced users, we will build a dedicated class to manage the API as a spawned child process—perfect for packaging your frontend into a native Windows executable later.
-
-Stop building frontends against perfect APIs. Let's build a backend that makes your UI work for its data.
+> **Second Edition**
+>
+> Build a modern mock REST API server using **Next.js 16**, **App Router**, and **Vercel Blob Storage**.
 
 ---
+
+# Welcome
+
+Welcome to the second edition of **Building Greymatter API Server**.
+
+In this tutorial series, you will build a fully functional mock REST API server from scratch using **Next.js 16** and the **App Router** architecture.
+
+Unlike traditional mock API servers that rely on Express, JSON Server, or LowDB, Greymatter is designed as a modern serverless application that can run locally during development or be deployed directly to **Vercel** without changing the code.
+
+By the end of this series you will have built a complete API platform featuring:
+
+* Generic REST endpoints
+* Automatic CRUD operations
+* Browser-based administration dashboard
+* JSON dataset management
+* Upload and download capabilities
+* Preset datasets
+* Dataset viewer
+* Health monitoring
+* Local JSON persistence
+* Vercel Blob Storage persistence
+* Automatic environment detection
+
+Most importantly, you'll understand *why* the application is designed this way and how each component works together.
+
+---
+
+# Why Build Another Mock API Server?
+
+Frontend developers often need an API before the real backend has been completed.
+
+Typical solutions include:
+
+* JSON Server
+* Mockoon
+* Postman Mock Server
+* Beeceptor
+* Express applications
+
+While these tools are useful, they also have limitations.
+
+Many require separate installations, custom middleware, or local-only execution. Others are difficult to deploy as serverless applications.
+
+Greymatter was created to solve these problems.
+
+Instead of treating a mock API as a temporary development tool, Greymatter provides a reusable REST platform that can run both locally and in production.
+
+---
+
+# What is Greymatter?
+
+Greymatter is a lightweight REST API server built with **Next.js**.
+
+It allows you to create collections of JSON data and automatically exposes those collections as REST endpoints.
+
+For example, creating a collection named:
+
+```text
+users
+```
+
+immediately provides a REST API:
+
+```text
+GET    /api/users
+POST   /api/users
+GET    /api/users/1
+PUT    /api/users/1
+PATCH  /api/users/1
+DELETE /api/users/1
+```
+
+No additional coding is required.
+
+---
+
+# What We'll Build
+
+Throughout this series we'll construct the application layer by layer.
+
+```mermaid
+flowchart TD
+
+A["Browser"]
+
+A --> B["Dashboard"]
+
+B --> C["REST API"]
+
+C --> D["Data Layer"]
+
+D --> E["Storage"]
+
+E --> F["db.json"]
+
+E --> G["Vercel Blob"]
+```
+
+By the end of the course you'll understand every layer of this architecture.
+
+---
+
+# The Application Architecture
+
+Greymatter follows a layered architecture.
+
+```mermaid
+flowchart TD
+
+A["Presentation Layer"]
+
+A --> B["API Layer"]
+
+B --> C["Administration Layer"]
+
+C --> D["Data Layer"]
+
+D --> E["Storage Layer"]
+```
+
+Each layer has a single responsibility.
+
+This separation makes the application easier to maintain, test, and extend.
+
+---
+
+# Major Features
+
+The completed application includes the following capabilities.
+
+## Generic CRUD Engine
+
+Instead of creating one controller for every resource, Greymatter uses a single generic CRUD engine capable of serving every collection.
+
+Adding a new collection automatically creates a complete REST API.
+
+---
+
+## Browser Dashboard
+
+The dashboard allows users to:
+
+* Browse collections
+* Create collections
+* Delete collections
+* View datasets
+* Upload JSON
+* Download datasets
+* Load demo data
+* Monitor server status
+
+All operations occur through the same REST API exposed to external clients.
+
+---
+
+## Flexible Storage
+
+During development Greymatter stores data in a local JSON file.
+
+When deployed to Vercel the same code automatically switches to Vercel Blob Storage.
+
+```mermaid
+flowchart LR
+
+A["Application"]
+
+A --> B{"Production?"}
+
+B -->|No| C["db.json"]
+
+B -->|Yes| D["Vercel Blob Storage"]
+```
+
+No application code needs to change when deploying.
+
+---
+
+# Technologies Used
+
+Throughout the tutorial we'll work with:
+
+| Technology          | Purpose              |
+| ------------------- | -------------------- |
+| Next.js 16          | Full-stack framework |
+| React               | User interface       |
+| App Router          | Routing              |
+| Route Handlers      | REST API             |
+| JavaScript (ES2023) | Application code     |
+| Vercel Blob         | Cloud storage        |
+| JSON                | Data persistence     |
+| Git                 | Version control      |
+
+No prior knowledge of Next.js is required, although basic JavaScript and HTTP concepts are assumed.
+
+---
+
+# What You'll Learn
+
+By completing this tutorial you will learn how to:
+
+* Build REST APIs using Route Handlers
+* Design a generic CRUD engine
+* Build reusable data access layers
+* Persist data using JSON
+* Persist data using Vercel Blob Storage
+* Build an administration dashboard
+* Upload and download datasets
+* Design RESTful APIs
+* Deploy to Vercel
+* Structure a production-quality Next.js application
+
+---
+
+# Who Is This Tutorial For?
+
+This tutorial is intended for:
+
+* Frontend developers
+* Backend developers
+* Students learning REST APIs
+* JavaScript developers
+* Next.js beginners
+* Educators
+* Anyone interested in API design
+
+---
+
+# Source Code
+
+The completed application is available in the Greymatter API Server repository.
+
+Each part of this tutorial builds toward that final implementation.
+
+You are encouraged to compare your solution with the finished project after completing each chapter.
+
+---
+
+# Tutorial Roadmap
+
+This second edition consists of the following parts.
+
+| Part | Topic                              |
+| ---- | ---------------------------------- |
+| 0    | Introduction                       |
+| 1    | Creating the Next.js Project       |
+| 2    | Project Structure                  |
+| 3    | Building the Data Layer            |
+| 4    | Creating the Generic CRUD API      |
+| 5    | Query Parameters and Relationships |
+| 6    | Building the Administration API    |
+| 7    | Building the Dashboard             |
+| 8    | Dataset Viewer                     |
+| 9    | Uploads and Presets                |
+| 10   | Products API                       |
+| 11   | Health Monitoring                  |
+| 12   | Storage Abstraction                |
+| 13   | Deployment to Vercel               |
+| 14   | Testing                            |
+| 15   | Architecture Review                |
+| 16   | Future Improvements                |
+
+---
+
+# In the Next Part
+
+In Part 1 we'll create the project using **Next.js 16**, explore the App Router directory structure, install the required dependencies, and prepare the foundation for the Greymatter API Server.
+
+By the end of the next chapter you'll have a running Next.js application ready to evolve into a complete mock REST API platform.
