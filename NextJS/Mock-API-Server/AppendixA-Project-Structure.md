@@ -1,243 +1,381 @@
-# Appendix A – Complete Project Structure
+# Appendix A – Project Structure
 
-Throughout this tutorial we've built Greymatter incrementally, one feature at a time.
+Throughout this tutorial we've built Greymatter incrementally, evolving it from a simple local mock API into a cloud-ready Next.js application capable of running both locally and on Vercel.
 
-By the end of the project, the application has evolved into a clean, layered architecture that separates presentation, API endpoints, business logic, and persistence.
-
-This appendix provides a complete overview of the finished project and explains the purpose of each major directory.
+This appendix provides an overview of the final project structure and explains the purpose of each major directory.
 
 ---
 
 # Final Project Structure
 
-A simplified project layout is shown below.
-
 ```text
 greymatter-api-server/
 │
 ├── app/
+│   ├── admin/
+│   │   ├── collections/
+│   │   ├── empty/
+│   │   ├── list/
+│   │   ├── load-preset/
+│   │   ├── status/
+│   │   └── upload/
+│   │
 │   ├── api/
+│   │   ├── [...path]/
 │   │   ├── health/
 │   │   ├── products/
-│   │   ├── [...slug]/
-│   │   └── admin/
-│   │
-│   ├── components/
-│   │   ├── Dashboard/
-│   │   ├── DatasetViewer/
-│   │   ├── Upload/
-│   │   ├── Collections/
-│   │   └── QuickStart/
+│   │   └── users/
+│   │       └── [id]/posts/
 │   │
 │   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
+│   ├── layout.js
+│   └── page.js
+│
+├── docs/
 │
 ├── lib/
-│   ├── db.ts
-│   ├── query.ts
-│   ├── crud.ts
-│   ├── storage.ts
-│   └── utils.ts
+│   └── db.js
 │
 ├── presets/
 │
-├── public/
+├── test-data/
 │
 ├── db.json
 │
+├── README.md
 ├── package.json
-│
-└── README.md
+├── next.config.js
+└── jsconfig.json
 ```
 
-Your actual project may contain additional files, but the overall architecture remains the same.
+Although the project is relatively small, each directory has a clearly defined responsibility.
+
+---
+
+# Overall Architecture
+
+```mermaid
+flowchart TD
+
+UI["Dashboard"]
+
+Admin["Administration API"]
+
+REST["Public REST API"]
+
+Data["Data Layer (lib/db.js)"]
+
+Storage{"Storage"}
+
+Local["db.json"]
+
+Blob["Vercel Blob"]
+
+UI --> Admin
+UI --> REST
+
+REST --> Data
+Admin --> Data
+
+Data --> Storage
+
+Storage --> Local
+Storage --> Blob
+```
+
+The application is organized into four logical layers:
+
+* Presentation Layer
+* API Layer
+* Data Layer
+* Storage Layer
+
+Each layer depends only on the layer beneath it.
 
 ---
 
 # app/
 
-The **app** directory contains everything related to the Next.js application.
+The `app/` directory contains the Next.js application.
 
 It includes:
 
-* Pages
+* the dashboard
 * Route Handlers
-* React components
-* Global styles
+* application layout
+* global styling
 
-It is the application's presentation layer.
+This directory represents both the presentation layer and the HTTP API layer.
+
+---
+
+# app/page.js
+
+The application's home page.
+
+This page renders the Greymatter dashboard.
+
+The dashboard provides:
+
+* Server status
+* Quick Start guide
+* Collection browser
+* Dataset Viewer
+* Upload tools
+* Preset loader
+* Download tools
+* Empty storage controls
+
+The dashboard communicates exclusively through HTTP endpoints.
+
+It never reads or writes storage directly.
+
+---
+
+# app/layout.js
+
+Defines the root application layout shared by every page.
+
+Typical responsibilities include:
+
+* HTML shell
+* metadata
+* global styling
+* page structure
+
+---
+
+# app/globals.css
+
+Contains global styles used throughout the dashboard.
 
 ---
 
 # app/api/
 
-This directory contains every API endpoint.
+The `app/api` directory contains the **Public REST API**.
 
-```text
-app/api/
-```
+It exposes every collection as a REST resource.
 
-Responsibilities include:
-
-* REST API
-* Administration API
-* Health endpoint
-* Products endpoint
-
-These Route Handlers process HTTP requests and delegate business logic to the Data Layer.
-
----
-
-# app/api/[...slug]/
-
-This catch-all Route Handler powers the Generic CRUD Engine.
-
-Rather than creating one route for every collection, all requests pass through a single endpoint.
-
-Example requests include:
+Example endpoints include:
 
 ```text
 GET /api/users
 
 GET /api/posts
 
-DELETE /api/products/7
+GET /api/products
 ```
 
-Every request is interpreted dynamically.
+The API is responsible for:
+
+* CRUD operations
+* query processing
+* pagination
+* sorting
+* embedded resources
 
 ---
 
-# app/api/admin/
+# app/api/[...path]/
 
-Administrative operations live separately from the public REST API.
+This is Greymatter's Generic CRUD Engine.
+
+Instead of creating one Route Handler for every collection, every request is processed by this catch-all route.
 
 Examples include:
 
-* Create collections
-* Delete collections
-* Upload JSON
-* Download data
-* Load presets
-* Empty storage
+```text
+GET /api/users
 
-Separating administration from CRUD operations keeps responsibilities clear.
+GET /api/books
+
+POST /api/orders
+
+DELETE /api/products/4
+```
+
+The Route Handler determines:
+
+* collection
+* record ID
+* HTTP method
+
+at runtime.
+
+This allows Greymatter to support unlimited collections without additional routing.
+
+---
+
+# app/api/products/
+
+Provides product-specific query features.
+
+Examples include:
+
+* category filtering
+* sale filtering
+* search
+* price sorting
+
+This endpoint demonstrates how collection-specific behaviour can coexist alongside the Generic CRUD Engine.
+
+---
+
+# app/api/users/[id]/posts/
+
+Implements a nested resource.
+
+Example:
+
+```text
+GET /api/users/1/posts
+```
+
+Returns all posts belonging to a specific user.
+
+This demonstrates parent-child relationships within the API.
 
 ---
 
 # app/api/health/
 
-Provides operational information.
+Provides operational information about the server.
 
-Typical response:
+Example response:
 
 ```json
 {
   "status": "ok",
   "timestamp": "...",
   "entities": {
-    "users": 25,
-    "posts": 42
+    "users": 12,
+    "posts": 41
   }
 }
 ```
 
-The dashboard uses this endpoint to display server status.
+The dashboard uses this endpoint to determine server health.
 
 ---
 
-# app/components/
+# app/admin/
 
-The dashboard consists of reusable React components.
+The `app/admin` directory contains the Administration API.
+
+Unlike the Public REST API, these endpoints manage the application itself.
+
+Responsibilities include:
+
+* collection management
+* uploads
+* preset loading
+* storage management
+* dashboard support
+
+---
+
+# app/admin/status/
+
+Returns dashboard status information.
+
+The dashboard uses this endpoint during initialization.
+
+---
+
+# app/admin/list/
+
+Returns the list of available collections.
+
+This endpoint populates:
+
+* collection cards
+* Quick Start examples
+* Dataset Viewer
+
+---
+
+# app/admin/collections/
+
+Creates and deletes collections.
+
+Example operations include:
+
+* Create a collection
+* Delete a collection
+
+Because collections are data, creating one immediately creates a new REST endpoint.
+
+---
+
+# app/admin/upload/
+
+Imports a JSON dataset.
+
+Supported methods include:
+
+* file upload
+* pasted JSON
+
+Uploads replace the current database.
+
+---
+
+# app/admin/load-preset/
+
+Loads one of the bundled datasets stored in the `presets/` directory.
 
 Examples include:
 
-```text
-Status
+* full-demo
+* users-only
+* movies-only
 
-Collections
+---
 
-Dataset Viewer
+# app/admin/empty/
 
-Upload
+Removes every collection from storage.
 
-Quick Start
-
-Download Tools
-```
-
-Each component has a single responsibility.
+After completion the dashboard refreshes automatically.
 
 ---
 
 # lib/
 
-The **lib** directory contains the application's core business logic.
+The `lib` directory contains Greymatter's shared business logic.
 
-Unlike Route Handlers, these modules contain reusable functions that can be shared throughout the application.
+Currently the project contains a single module.
 
----
+```text
+lib/
 
-# lib/db.ts
-
-The Data Layer.
-
-Provides:
-
-```typescript
-getDb()
-
-saveDb()
-
-setDb()
+└── db.js
 ```
 
-Every read and write operation passes through these functions.
-
 ---
 
-# lib/query.ts
+# lib/db.js
 
-Implements query processing.
+This is the application's Data Layer.
 
-Supports:
+Every read and write operation passes through this module.
 
-* Sorting
-* Pagination
-* Filtering
-* Embedding related collections
+Typical operations include:
 
-The CRUD engine delegates request processing to this module.
+* `getDb()`
+* `saveDb()`
+* `setDb()`
 
----
+The rest of the application never interacts with storage directly.
 
-# lib/crud.ts
+One of the key responsibilities of `db.js` is abstracting the storage provider.
 
-Implements the Generic CRUD Engine.
+During local development it reads and writes `db.json`.
 
-Provides reusable operations such as:
+When deployed to Vercel, it transparently switches to Vercel Blob Storage.
 
-* List records
-* Get record
-* Create record
-* Update record
-* Delete record
-
-These operations work with every collection.
-
----
-
-# lib/storage.ts
-
-Contains storage-specific logic.
-
-Depending on the environment it communicates with:
-
-* Local db.json
-* Vercel Blob Storage
-
-Everything else in the application remains storage-independent.
+This abstraction allows the remainder of the application to remain unchanged regardless of where the data is stored.
 
 ---
 
@@ -245,34 +383,54 @@ Everything else in the application remains storage-independent.
 
 Contains reusable datasets.
 
-Examples:
+Current presets include:
 
 ```text
 full-demo.json
-
-blog.json
-
-ecommerce.json
+movies-only.json
+users-only.json
 ```
 
-These datasets allow developers to populate the API instantly.
+These can be loaded directly from the dashboard.
 
 ---
 
-# public/
+# test-data/
 
-Contains static assets such as:
+Contains sample datasets used for development and testing.
 
-* Images
-* Icons
-* Logos
-* Static downloads
+Current contents include:
+
+```text
+books.json
+```
+
+This directory is useful for testing uploads and validating API behaviour.
+
+---
+
+# docs/
+
+Project documentation is maintained separately from the application source.
+
+Current documentation includes:
+
+* Architecture Guide
+* API Guide
+* Deployment Guide
+* Tutorial
+* User Guide
+* Software Requirements Document
+* Testing Guide
+* Release Notes
+
+Keeping documentation together makes the repository easier to maintain.
 
 ---
 
 # db.json
 
-During local development, this file stores every collection.
+During local development this file stores the application's data.
 
 Example:
 
@@ -284,61 +442,7 @@ Example:
 }
 ```
 
-When deployed to Vercel, the same data is stored in Blob Storage instead.
-
----
-
-# package.json
-
-Defines:
-
-* Project metadata
-* Scripts
-* Dependencies
-
-Typical scripts include:
-
-```bash
-npm run dev
-
-npm run build
-
-npm run lint
-```
-
----
-
-# Architectural Layers
-
-The complete application can be viewed as five layers.
-
-```mermaid
-flowchart TD
-
-UI["Dashboard"]
-
-REST["REST API"]
-
-ADMIN["Administration API"]
-
-CRUD["Generic CRUD Engine"]
-
-DATA["Data Layer"]
-
-STORE["Storage"]
-
-UI --> REST
-UI --> ADMIN
-
-REST --> CRUD
-ADMIN --> CRUD
-
-CRUD --> DATA
-
-DATA --> STORE
-```
-
-Each layer depends only on the layer below it.
+When running on Vercel, the same logical database is stored in Vercel Blob Storage.
 
 ---
 
@@ -350,51 +454,50 @@ Every request follows the same general flow.
 sequenceDiagram
 
 participant Client
-
 participant API
-
-participant CRUD
-
 participant Data
-
 participant Storage
 
 Client->>API: HTTP Request
 
-API->>CRUD: Execute Operation
+API->>Data: getDb()
 
-CRUD->>Data: Read Database
-
-Data->>Storage: Load Data
+Data->>Storage: Load Database
 
 Storage-->>Data: Database
 
-Data-->>CRUD: Database
-
-CRUD-->>API: Result
+Data-->>API: Result
 
 API-->>Client: HTTP Response
 ```
 
-This architecture keeps components loosely coupled.
+This simple flow is used by both the Public REST API and the Administration API.
 
 ---
 
-# Key Design Decisions
+# Key Architectural Principles
 
-Greymatter's architecture is built around several principles.
+Greymatter is built around several core design principles.
 
-### Generic Design
+### Generic CRUD
 
-Collections are data.
+Collections are treated as data rather than code.
 
-Resources are never hardcoded.
+Adding a collection automatically exposes a REST endpoint.
 
 ---
 
 ### Separation of Concerns
 
-Each layer performs one responsibility.
+The application separates:
+
+* Dashboard
+* Public API
+* Administration API
+* Data Layer
+* Storage
+
+Each module has a clearly defined responsibility.
 
 ---
 
@@ -402,17 +505,15 @@ Each layer performs one responsibility.
 
 Business logic never depends on a specific storage provider.
 
----
-
-### Reusable Components
-
-Dashboard components remain independent and composable.
+Changing from `db.json` to Vercel Blob required changes only within `lib/db.js`.
 
 ---
 
 ### Serverless Ready
 
-The application runs locally and in the cloud without changing application logic.
+The application runs unchanged in both local and serverless environments.
+
+This makes Greymatter suitable for development, demonstrations, education, and cloud deployment.
 
 ---
 
@@ -420,32 +521,11 @@ The application runs locally and in the cloud without changing application logic
 
 The completed Greymatter platform consists of:
 
-* React Dashboard
-* Public REST API
-* Administration API
-* Generic CRUD Engine
-* Query Processor
-* Data Layer
-* Storage Abstraction
+* A Next.js dashboard
+* A Generic REST API
+* An Administration API
+* A reusable Data Layer
+* Dynamic collection management
+* Local and cloud storage support
 
-Each module is small, focused, and reusable.
-
-Together they create a modern mock API platform that is easy to understand, extend, and deploy.
-
----
-
-# Next Steps
-
-You now have a complete understanding of the Greymatter architecture.
-
-From here you can:
-
-* Add authentication
-* Build plugins
-* Support additional databases
-* Generate OpenAPI documentation
-* Add GraphQL
-* Implement WebSockets
-* Create your own administration tools
-
-Because the application follows a modular architecture, each enhancement can be added without significantly affecting the existing codebase.
+Although the implementation is intentionally lightweight, it demonstrates many of the architectural patterns used in larger production systems, including layered architecture, abstraction, separation of concerns, and reusable service design.
