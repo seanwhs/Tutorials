@@ -55,7 +55,7 @@ Rather than presenting only the final solution, it follows the engineering proce
 * investigating competing hypotheses
 * understanding the underlying architecture
 * evaluating multiple solutions
-* redesigning part of the application
+* redesigning Chapter of the application
 * extracting architectural principles that apply far beyond Greymatter API
 
 Although the discussion focuses on Greymatter API, the lessons are broadly applicable to modern cloud-native software.
@@ -84,18 +84,18 @@ The goal is to demonstrate how experienced engineers reason about architectural 
 
 # Appendix Overview
 
-This appendix is organized into six parts.
+This appendix is organized into six Chapters.
 
-| Part         | Focus                                                          |
+| Chapter         | Focus                                                          |
 | ------------ | -------------------------------------------------------------- |
-| **Part I**   | The journey from a local application to a cloud-native service |
-| **Part II**  | Understanding serverless computing and distributed storage     |
-| **Part III** | Investigating a production-only stale data bug                 |
-| **Part IV**  | Evaluating and testing multiple architectural solutions        |
-| **Part V**   | Refactoring the application around a simpler design            |
-| **Part VI**  | Architectural lessons and future directions                    |
+| **Chapter I**   | The journey from a local application to a cloud-native service |
+| **Chapter II**  | Understanding serverless computing and distributed storage     |
+| **Chapter III** | Investigating a production-only stale data bug                 |
+| **Chapter IV**  | Evaluating and testing multiple architectural solutions        |
+| **Chapter V**   | Refactoring the application around a simpler design            |
+| **Chapter VI**  | Architectural lessons and future directions                    |
 
-Each part builds on the previous one, gradually revealing why the final architecture differs from the original implementation.
+Each Chapter builds on the previous one, gradually revealing why the final architecture differs from the original implementation.
 
 ---
 
@@ -129,7 +129,7 @@ The evolution of Greymatter API provides an excellent example of this principle.
 
 ---
 
-# Part I — The Journey Begins
+# Chapter I — The Journey Begins
 
 The story begins not in the cloud, but on a developer's laptop.
 
