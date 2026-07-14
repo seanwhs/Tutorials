@@ -47,6 +47,7 @@ This property is known as **eventual consistency**.
 ---
 
 > **Definition**
+>
 > Eventual consistency is a consistency model in which updates are guaranteed to become visible over time, but not necessarily to every reader immediately after the write completes.
 
 ---
@@ -59,24 +60,38 @@ Everything happened inside one process.
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> Server["Next.js Server"]
-    Server --> Disk[("db.json")]
 
+Browser["Browser"]
+
+Server["Next.js Server"]
+
+Disk[("db.json")]
+
+Browser --> Server
+
+Server --> Disk
 ```
 
 The sequence looked like this.
 
 ```text
 Read file
-↓
-Modify data
-↓
-Write file
-↓
-Read file again
-↓
-Updated data returned
 
+↓
+
+Modify data
+
+↓
+
+Write file
+
+↓
+
+Read file again
+
+↓
+
+Updated data returned
 ```
 
 There were no intermediate systems.
@@ -99,10 +114,20 @@ A simplified production request might resemble this.
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> CDN["CDN"]
-    CDN --> Function["Serverless Function"]
-    Function --> Blob[("Object Storage")]
 
+Browser["Browser"]
+
+CDN["CDN"]
+
+Function["Serverless Function"]
+
+Blob[("Object Storage")]
+
+Browser --> CDN
+
+CDN --> Function
+
+Function --> Blob
 ```
 
 Now consider what happens after a write.
@@ -131,19 +156,28 @@ The production bug becomes easier to understand when viewed as a timeline.
 
 ```mermaid
 sequenceDiagram
-    participant Dashboard
-    participant Admin
-    participant Blob
 
-    Dashboard->>Admin: POST /admin/load-preset
-    Admin->>Blob: Save dataset
-    Blob-->>Admin: Save complete
-    Admin-->>Dashboard: HTTP 200 OK
-    Dashboard->>Admin: GET /admin/collections
-    Admin->>Blob: Read dataset
-    Blob-->>Admin: Previous version returned
-    Admin-->>Dashboard: Old collections rendered
+participant Dashboard
 
+participant Admin
+
+participant Blob
+
+Dashboard->>Admin: POST /admin/load-preset
+
+Admin->>Blob: Save dataset
+
+Blob-->>Admin: Save complete
+
+Admin-->>Dashboard: HTTP 200 OK
+
+Dashboard->>Admin: GET /admin/collections
+
+Admin->>Blob: Read dataset
+
+Blob-->>Admin: Previous version returned
+
+Admin-->>Dashboard: Old collections rendered
 ```
 
 Notice what is important.
@@ -166,18 +200,20 @@ The storage operation itself succeeded.
 
 ```text
 Save operation
-↓
-Success
 
+↓
+
+Success
 ```
 
 The problem occurred later.
 
 ```text
 Immediate read
-↓
-Older version observed
 
+↓
+
+Older version observed
 ```
 
 The application therefore experienced a **visibility problem**, not a **write failure**.
@@ -198,11 +234,14 @@ Unfortunately, the request sequence remained exactly the same.
 
 ```text
 Mutation
-↓
-Reload page
-↓
-GET collections
 
+↓
+
+Reload page
+
+↓
+
+GET collections
 ```
 
 A browser refresh cannot change the behavior of the underlying storage system.
@@ -240,7 +279,6 @@ If the server returned:
     "posts"
   ]
 }
-
 ```
 
 then React displayed those collections.
@@ -297,8 +335,11 @@ The application had been written for one execution model while running in anothe
 ---
 
 > **Engineering Insight**
+>
 > Many production bugs are not caused by incorrect code.
+>
 > They are caused by **correct code running under incorrect assumptions**.
+>
 > The transition from a single-process application to a distributed system often exposes those assumptions for the first time.
 
 ---
