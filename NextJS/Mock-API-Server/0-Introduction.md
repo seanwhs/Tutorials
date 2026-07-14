@@ -2,8 +2,6 @@
 
 ## Part 0 – Introduction
 
-> **Second Edition**
->
 > Build a modern mock REST API server using **Next.js 16**, **App Router**, and **Vercel Blob Storage**.
 
 ---
