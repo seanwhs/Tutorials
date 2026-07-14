@@ -1,5 +1,3 @@
-# Part I — The Journey Begins
-
 ## Chapter 1 — How Greymatter API Started
 
 Every successful software system begins with a problem to solve.
