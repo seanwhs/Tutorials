@@ -89,4 +89,60 @@ Our actual approach — verifying a buffer's binary file signature (`%PDF`, or Z
 
 ### A Genuine Middle-Ground Alternative, For Future Reference
 
-If you wanted stronger automated guarantees than our current structural tests provide, a worthwhile middle-ground technique (not implemented in this series, but a reasonable next step) is **structural snapshot testing of the intermediate representation** — rather than snapshotting the final binary file, snapshot the *React element tree* our `toPdf` produces (before it's passed to `renderToBuffer`), or the *array of Paragraph/Table objects* our `toDocx` builds (before `Packer.toBuffer`). Vitest's built-in `toMatchSnapshot()` assertion is designed exactly for this: it serializes a JavaScript value to a readable text format, saves it on first run, and fails on any future run where that structure changes unexpectedly —
+If you wanted stronger automated guarantees than our current structural tests provide, a worthwhile middle-ground technique (not implemented in this series, but a reasonable next step) is **structural snapshot testing of the intermediate representation** — rather than snapshotting the final binary file, snapshot the *React element tree* our `toPdf` produces (before it's passed to `renderToBuffer`), or the *array of Paragraph/Table objects* our `toDocx` builds (before `Packer.toBuffer`). Vitest's built-in `toMatchSnapshot()` assertion is designed exactly for this: it serializes a JavaScript value to a readable text format, saves it on first run, and fails on any future run where that structure changes unexpectedly. 
+
+Vitest's built-in `toMatchSnapshot()` assertion is designed exactly for this: it serializes a JavaScript value to a readable text format, saves it on first run, and fails on any future run where that structure changes unexpectedly — showing you a clear, human-readable diff of exactly what changed, rather than an opaque "the binary bytes differ" result. This would have caught our deliberately-reintroduced "commented out the heading case" bug from Part 8C directly, since the snapshot of the element tree would visibly show a missing heading entry, whereas our binary-signature check could not.
+
+A minimal illustration of what this would look like, if you wanted to add it as a genuine extension to Part 8C's test suite:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { parseMarkdown } from "@/lib/parseMarkdown";
+import { toDocx } from "@/lib/converters/toDocx";
+
+// A hypothetical extension: exposing toDocx's INTERMEDIATE Paragraph/Table
+// array (before Packer.toBuffer serializes it to binary) would let us
+// snapshot the actual STRUCTURE, catching silently-skipped node types
+// that our current binary-signature checks cannot.
+it("matches the expected structural snapshot for a representative document", async () => {
+  const ast = parseMarkdown("# Title\n\nA paragraph with **bold** text.");
+  const structure = buildDocxStructure(ast); // a hypothetical exported helper
+  expect(structure).toMatchSnapshot();
+});
+```
+
+The reason this wasn't built into our actual Part 8C implementation is a deliberate scope decision, not an oversight: it would have required restructuring each converter to expose an additional, separate "build the intermediate structure" function distinct from "produce the final buffer" — a genuine, worthwhile refactor, but one additional layer of indirection beyond what a first pass at testing needed to demonstrate the core testing philosophy. It's flagged here explicitly as the natural next step if you want to close the specific gap Part 8C's own tests honestly acknowledged.
+
+---
+
+## Quick Reference: When to Reach for Which Tool
+
+| Situation | Reach for |
+|---|---|
+| "Does this pure function return the right data structure?" | Vitest unit test |
+| "Does this converter produce a valid, non-empty file without throwing?" | Vitest structural/signature test |
+| "Did I silently break a node-type-handling branch?" | Vitest snapshot test (the extension above) or manual inspection |
+| "Does clicking this button in a real browser actually download a real file?" | Playwright e2e test |
+| "Does this look right to a human eye?" | Manual inspection — deliberately not automated in this series |
+
+---
+
+**Official documentation:** [vitest.dev](https://vitest.dev) and [playwright.dev](https://playwright.dev) — both projects have excellent, example-heavy documentation; Vitest's `toMatchSnapshot`/`toMatchInlineSnapshot` docs specifically are worth reading if you pursue the middle-ground extension described above.
+
+---
+
+## 🎉 The Complete Series Is Now Truly Finished
+
+With Appendices A through I now delivered in full, every single reference the ten tutorial parts pointed to — "Appendix A covers this," "see Appendix F," "Appendix G documents this exhaustively" — actually exists and can be read independently, exactly as the original blueprint promised. Here's the complete map of everything now in place:
+
+- **Parts 0–10**: the full, sequential, hands-on build of GreyMatter MConvert, from an empty folder to a tested, deployed, production application.
+- **Appendix A**: Next.js 16 fundamentals (App Router, Server/Client Components, Route Handlers vs. Server Actions, runtimes).
+- **Appendix B**: React 19's new APIs (`useActionState`, `useFormStatus`, `useOptimistic`, `use()`).
+- **Appendix C**: The unified/remark/mdast ecosystem and complete node type reference.
+- **Appendix D**: react-markdown's security model and extension points.
+- **Appendix E**: `@react-pdf/renderer`'s Yoga layout engine, full style reference, and font/performance considerations.
+- **Appendix F**: `docx`'s OOXML foundations, full object model, and known limitations.
+- **Appendix G**: `pptxgenjs`'s slide/master concepts, coordinate model, and full image/table API.
+- **Appendix H**: Tailwind's role and boundaries in this project.
+- **Appendix I**: The complete unit vs. e2e testing philosophy and snapshot-testing rationale.
+
