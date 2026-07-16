@@ -137,7 +137,7 @@ To rotate: generate a new secret, set it as `WORKER_SIGNING_SECRET`, move the ol
 
 ## 6. What's next
 
-We've now gone through Greymatter LMS's full threat model, confirmed which defenses already existed from Parts 3, 4, 6, and 7 [7][6][4][3].
+We've now gone through Greymatter LMS's full threat model, confirmed which defenses already existed from Parts 3, 4, 6, and 7.
 
 The core fix closing the gap flagged at the end of Part 4 [6] is placing the tenant check inside the `discover-workers` step itself, not just at `fetch-context`:
 
