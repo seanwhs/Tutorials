@@ -1,235 +1,227 @@
-# Architectural Proposal: Refactoring the Greymatter LMS Core Architecture
+# Architectural Proposal: Greymatter LMS — Reintroducing Sanity as a Traditional Headless CMS with a Dedicated Quizzes & Exams Module
 
 ---
 
 ## 1. Executive Summary
 
-The initial iteration of the Greymatter LMS architecture delegated runtime assessment pipelines—specifically quiz generation and grading—to external LLM microservices. While this structure initially demonstrated architectural flexibility, production scaling introduces serious operational bottlenecks:
+Greymatter LMS's current architecture was built around one central idea: every AI capability — grading, quiz generation, tutoring — runs as an independently registered **worker**, discovered at runtime through a live Sanity registry and invoked through a signed HTTP call orchestrated by Inngest [12][13]. That design is genuinely valuable when the thing being executed requires actual intelligence — grading open-ended text, generating novel questions, or intervening when a student is struggling [10].
 
-* **High Operational Expenditure:** Real-time token consumption patterns for repetitive, predictable evaluation loops create high structural costs.
+It is not valuable when the thing being executed is a deterministic comparison: "did the student pick option B, and is B the correct answer?" Today, even a plain multiple-choice quiz submitted by a student routes through the same fan-out worker execution path used for adaptive tutoring [2], and the Quiz Worker registered in Part 8 to prove fan-out capability still returns a static placeholder array rather than doing any real evaluation [2][10]. That's paying full orchestration and (eventually) LLM cost for a task with no genuine non-determinism in it.
 
+This proposal makes an explicit, named pivot away from two specific decisions in the existing architecture:
 
-* **Latency Profiles:** Relying on external third-party API availability numbers creates unacceptable user interface blocking conditions during critical synchronous operations.
-* **Non-Deterministic Grading Boundaries:** Standard LLM text parsing introduces non-zero error rates, response formatting failures, and structural hallucination vulnerabilities during multi-choice and direct evaluation tasks.
+1. **Sanity stops being the runtime Worker Registry** [4] and reverts to a traditional headless CMS role: structured course content, lessons, and quiz/exam authoring only.
+2. **Quizzes and exams stop being AI workers** entirely. A new, dedicated **Quizzes & Exams Module**, living inside `apps/web`, grades objective assessments with plain server-side JavaScript — no registration, no HMAC signing, no LLM call, zero marginal token cost.
 
-
-
-This proposal formalizes a thorough structural refactor designed to decouple core multi-tenant learning management state from the AI execution engine layer. By implementing a dedicated, deterministic **Quizzes & Exams Module** within the edge/server infrastructure layer (Next.js), re-centering **Sanity CMS** as a read-only structured content vault, and designating **Neon Postgres** as the single source of truth for runtime metrics, the system eliminates unnecessary operational expenditures while scaling non-blocking event chains via the **Inngest Workflow Engine**.
+Everything else in the existing architecture — Neon Postgres via Drizzle [6], Inngest for async side effects [5], Clerk-based tenant scoping [7], event hardening [1], and observability via `traceId` [11] — is kept, not replaced, and is explicitly extended to cover this new module rather than bypassed.
 
 ---
 
-## 2. Structural Component Realignment
+## 2. Why This Is a Pivot, Not an Extension
 
-To establish absolute separation of concerns, eliminate data orchestration redundancy, and isolate failure domains, the architectural components are mapped into specific operational boundaries:
+It would be easy to describe this as simply "adding a new module," but that undersells what's actually changing. The table below names each existing decision this proposal moves away from, and why.
+
+| Existing Greymatter Decision | What Changes | Why |
+|---|---|---|
+| Sanity is the **Registry Layer**: a live, queryable list of which AI workers exist, their `events`, `endpoint`, and `enabled` state, so adding a worker is "one Sanity edit, zero redeploys" [4] | Sanity holds **only content**: courses, lessons, quiz questions, and answer keys. No worker documents live there for quizzes. | Quizzes no longer need to be discoverable/pluggable AI capabilities — they need to be authored content with a locked-down answer key. |
+| The Quiz Worker registered in Part 8 specifically to prove multi-subscriber fan-out (`findWorkers` returning two documents for one event) [2], later slated to run real LLM-generated questions in Part 11 [10] | Quiz *grading* is removed from the worker model entirely. (Quiz *generation*, if still AI-assisted, can remain a worker — see section 6.) | Grading a fixed-answer question is a pure function, not a task requiring the Execution Layer's signing/trust boundary [3]. |
+| Every worker call is HMAC-signed request/response, verified via `signPayload`/`verifySignature`, because "anyone could stand up an HTTP endpoint... with no verification" [3][4] | The Quiz Module makes no network call at all — it's an in-process function inside the same Next.js server runtime that received the submission. | There is no separate service boundary to secure when grading logic runs in the same process as the Server Action. |
+| Inngest's four-step shape — fetch-context → discover-workers → execute-workers → persist-results — runs *before* any state exists [5] | For quizzes, state (the score) is written to Postgres **first**; Inngest is invoked only afterward, purely for side effects. | Matches how the existing chain already treats downstream events (`grading.completed → student.struggling → tutor.intervention`) as reactions to already-persisted state [2] — we're just moving that pattern earlier for this one flow. |
+
+If open-ended assessment (essays, conceptual synthesis) or AI-driven quiz *generation* should stay in the worker model, that is a deliberate hybrid — Sanity would then serve two roles, CMS content and registry — and should be named as such in engineering docs, not discovered as an implicit side effect later.
+
+---
+
+## 3. Revised Component Map
 
 ```text
-       [ Next.js Front-End Shell (apps/web) ]
+        [ Next.js Front-End Shell (apps/web) ]
                     │                  │
  1. Fetch JSON      │                  │ 3. Submit Answers
-    Course/Quiz Data│                  │    (Zero-Token Post Request)
+    Course/Quiz Data│                  │    (Zero-Token Request)
                     ▼                  ▼
       ┌────────────────────────┐  ┌────────────────────────────────────┐
-      │       SANITY CMS       │  │    DEDICATED QUIZ/EXAM MODULE      │
-      ├────────────────────────┤  │     (Next.js App / Server Layer)   │
-      │ • Structural Courses   │  ├────────────────────────────────────┤
-      │ • Lesson Markdown      │  │ • Pulls correct keys from Sanity  │
-      │ • Pre-authored Questions│ │ • Evaluates checks locally in JS   │
-      │ • Right/Wrong Keys     │  │ • Computes final exact integer score│
+      │   SANITY (Headless CMS)│  │   QUIZZES & EXAMS MODULE           │
+      ├────────────────────────┤  │        (in apps/web, no registry)  │
+      │ • Courses / Lessons    │  ├────────────────────────────────────┤
+      │ • Quiz Qs + Answer Keys│  │ • Pulls answer keys from Sanity    │
+      │ • No worker documents  │  │ • Grades locally in JS, no LLM     │
+      │ • No registry state    │  │ • Computes deterministic score     │
       └────────────────────────┘  └────────────────────────────────────┘
                                                    │
-                                                   │ 4. Persist Results & 
-                                                   │    State Write
+                                                   │ 4. Persist to Neon
                                                    ▼
                                   ┌────────────────────────────────────┐
-                                  │       NEON POSTGRES DATABASE       │
-                                  ├────────────────────────────────────┤
-                                  │ • Student Enrollments              │
-                                  │ • Raw Submissions JSON             │
-                                  │ • Calculated Math Scores           │
+                                  │     NEON POSTGRES (Drizzle)        │
+                                  │  quiz_submissions table (new),     │
+                                  │  alongside existing submissions /  │
+                                  │  worker_results tables [6]         │
                                   └────────────────────────────────────┘
                                                    │
-                                                   │ 5. Trigger Non-Blocking
-                                                   │    Post-Quiz Hooks
+                                                   │ 5. Emit validated,
+                                                   │    traced event
                                                    ▼
                                   ┌────────────────────────────────────┐
-                                  │      INNGEST WORKFLOW ENGINE       │
-                                  ├────────────────────────────────────┤
-                                  │ • Asynchronous Student Metrics     │
-                                  │ • Conditional Remediation Triggers │
-                                  │ • Certification / Passing Hooks    │
+                                  │      INNGEST (role unchanged)      │
+                                  │ Async remediation, certification,  │
+                                  │ analytics — same reactive pattern  │
+                                  │ as grading.completed today [2]     │
                                   └────────────────────────────────────┘
-
 ```
-
-### A. Content Domain: Sanity CMS
-
-Sanity moves away from dynamic worker registry metadata configurations to focus exclusively on highly optimized, structured content delivery.
-
-* **Core Responsibilities:** Storing multi-tenant course graph structural models, markdown document components, localized quiz item schemas, and corresponding evaluation keys.
-* **Security Control Assertions:** Correct answer key fields are restricted via schema-level rules. These target parameters are filtered out of public GraphQL/GROQ execution vectors and remain readable solely by authenticated server routes executing within secure environments.
-
-### B. Execution Domain: Dedicated Quiz & Exams Module
-
-A localized execution engine integrated completely within the Next.js server runtime shell.
-
-* **Core Responsibilities:** Ingesting structured user input answer payloads from client-side network pipelines, querying secure master key data targets out of Sanity, validating equality checks via standard JavaScript processing engines, and computing deterministic integer values.
-* **Financial Impact Analysis:** Drops runtime API token evaluation dependency costs down to absolute zero ($0.00) for all predictable, objective assessments.
-
-### C. State & Relational Domain: Neon Postgres (via Prisma ORM)
-
-Neon serves as the central state hub for multi-tenant isolation boundaries, persistent operational storage, and data relationship constraints.
-
-* **Core Responsibilities:** Validating student enrollment limits, logging raw user evaluation answers inside JSON data blocks, and maintaining indexed columns for precise integer scoring outputs.
-
-
-
-### D. Asynchronous Events Domain: Inngest Workflow Engine
-
-Inngest is decoupled from blocking frontend web server response cycles and high-latency third-party system dependencies.
-
-* **Core Responsibilities:** Processing event routing metrics asynchronously. Once a quiz score is written to Postgres, Inngest triggers non-blocking downstream actions, including automated certification builds, overall user analytics calculations, and targeted system remediation notification alerts.
-
-
 
 ---
 
-## 3. Implementation Details & Data Schema
+## 4. Component Responsibilities
 
-To ensure type safety and explicit structural data integrity across all environments, the relational schema transitions to Prisma ORM. The data models within `infra/db/schema.prisma` are optimized for fast multi-tenant query patterns:
+### A. Sanity — reverted to Content Domain only
 
-```prisma
-// infra/db/schema.prisma
+No worker documents, no `enabled` flags, no runtime registry queries for quizzes. Sanity's job returns to what a headless CMS is meant to do: hold structured, editable course and assessment content. Correct-answer fields remain restricted to authenticated, server-only GROQ queries — never exposed to public/client-facing queries.
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+This is a genuine reversal of the registry pattern established in Part 6, where the entire payoff was "adding a Quiz Worker means creating one new document in Sanity Studio. No code touched, no redeploy" [4]. We are explicitly giving up that pluggability for quizzes in exchange for zero latency and zero cost on a task that never needed pluggability in the first place.
 
-generator client {
-  provider = "prisma-client-js"
-}
+### B. Quizzes & Exams Module — new, deterministic, unregistered
 
-/// @section Core Learning Management System Records
-model QuizSubmission {
-  id              String   @id @default(uuid()) @db.Uuid
-  orgId           String   @map("org_id")           // Strict multi-tenant operational boundary tracking
-  studentId       String   @map("student_id")       // Reference to verified authentication account (e.g., Clerk ID)
-  quizId          String   @map("quiz_id")          // Corresponds directly to the origin Sanity document ID
-  selectedAnswers Json     @map("selected_answers") // Exact structural map of user choices: e.g., { "q1": "B", "q2": "A" }
-  finalScore      Int      @map("final_score")      // Evaluated instantly via local backend JavaScript engine
-  createdAt       DateTime @default(now()) @map("created_at")
+Lives inside `apps/web`, not the Execution Layer. It does **not** go through the six-step worker registration flow [3], does not sign requests with `signPayload`, and does not verify responses with `verifySignature` [3] — because there is no independent network hop to secure. It is a same-process function call, closer in kind to the validation logic already living in Server Actions (e.g., the `auth()` check in `submitAssignment` [7]) than to an AI worker invocation.
 
-  @@index([orgId])
-  @@index([studentId])
-  @@index([quizId])
-  @@map("quiz_submissions")
-}
+### C. Neon Postgres — kept as-is, extended not replaced
 
+We recommend continuing with **Drizzle**, not migrating to Prisma. The existing schema was deliberately built in `infra/db` as a single shared source of truth between `apps/web` and the Inngest functions [6], and a parallel ORM migration would fork that shared contract for no architectural benefit. Add one table alongside the existing `submissions` and `worker_results` tables [6]:
+
+```typescript
+// infra/db/schema.ts (extends the existing schema — not a replacement)
+export const quizSubmissions = pgTable("quiz_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: text("org_id").notNull(),        // from Clerk auth(), never client input — same discipline as existing tables [7]
+  studentId: text("student_id").notNull(),
+  quizId: text("quiz_id").notNull(),      // corresponds to the Sanity quiz document ID
+  selectedAnswers: jsonb("selected_answers").notNull(),
+  finalScore: integer("final_score").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 ```
 
-### Server Execution Orchestration Blueprint
+If there's a separate, standalone case for adopting Prisma system-wide, that should be scoped as its own migration project, not bundled silently into this proposal.
 
-Below is the programmatic implementation for the Next.js execution block, providing deterministic server grading and asynchronous event generation:
+### D. Inngest — role unchanged, only triggered at a different point in the flow
+
+Inngest continues to do exactly what it already does for `grading.completed → student.struggling → tutor.intervention` [2]: react to already-persisted state with non-blocking side effects (certification builds, remediation nudges, analytics). Two things from the existing hardening and observability work must carry over into this new flow rather than be treated as optional extras:
+
+1. **Event validation before dispatch.** Part 9's hardening work exists specifically to reject malformed events — e.g., a `student.struggling` event missing a `submissionId` — before they reach a worker [1][2]. The new `lms/quiz.submitted` event needs the same validation, not a bare, unchecked `inngest.send`.
+2. **`traceId` propagation.** Part 10 generates a `traceId` at the moment a student action occurs specifically so a single submission's full downstream effects can be traced across every function it triggers [11]. The Quiz Module must generate one at submission time and thread it through, exactly as `fetch-context`, `discover-workers`, `execute-workers`, and `persist-results` already do for assignments [11].
+
+---
+
+## 5. Server Execution Blueprint (continued)
 
 ```typescript
 // apps/web/actions/quiz-actions.ts
-import { PrismaClient } from "@prisma/client";
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/infra/db";
+import { quizSubmissions } from "@/infra/db/schema";
 import { inngest } from "@/infra/inngest/client";
-import { fetchSanityMasterKeys } from "@/infra/sanity/client";
+import { fetchSanityQuizAnswerKey } from "@/infra/sanity/client"; // content-only client, no registry queries
+import { validateEventPayload } from "@/infra/inngest/validation";  // same hardening pattern as Part 9 [1]
+import { logStep } from "@/infra/observability/logger";            // same tracing pattern as Part 10 [11]
+import { randomUUID } from "crypto";
 
-const prisma = new PrismaClient();
+export async function submitQuiz(quizId: string, answers: Record<string, string>) {
+  const { userId, orgId } = await auth();
+  if (!userId || !orgId) throw new Error("Unauthorized");
 
-interface SubmissionPayload {
-  orgId: string;
-  studentId: string;
-  quizId: string;
-  answers: Record<string, string>; // e.g., { "q_01": "B", "q_02": "D" }
-}
+  const traceId = randomUUID(); // generated at the point of student action, matching Part 10's approach [11]
 
-export async function processQuizSubmission(payload: SubmissionPayload) {
-  try {
-    // 1. Fetch secure, server-side grading criteria from Sanity CMS vault
-    const masterKeys = await fetchSanityMasterKeys(payload.quizId);
-    
-    // 2. Compute exact scores locally - consuming zero external AI tokens
-    let correctCount = 0;
-    const totalQuestions = Object.keys(masterKeys).length;
+  // 1. Fetch answer key from Sanity — content only, no registry lookup, no worker discovery [4]
+  const answerKey = await fetchSanityQuizAnswerKey(quizId);
 
-    for (const [questionId, correctAnswer] of Object.entries(masterKeys)) {
-      if (payload.answers[questionId] === correctAnswer) {
-        correctCount++;
-      }
-    }
-
-    const calculatedScore = Math.round((correctCount / totalQuestions) * 100);
-
-    // 3. Persist exact operational metrics directly to Neon Postgres via Prisma Client
-    const record = await prisma.quizSubmission.create({
-      data: {
-        orgId: payload.orgId,
-        studentId: payload.studentId,
-        quizId: payload.quizId,
-        selectedAnswers: payload.answers,
-        finalScore: calculatedScore,
-      },
-    });
-
-    // 4. Asynchronously hand off secondary side effects to the Inngest architecture
-    await inngest.send({
-      name: "lms/quiz.submitted",
-      payload: {
-        submissionId: record.id,
-        orgId: record.orgId,
-        studentId: record.studentId,
-        quizId: record.quizId,
-        finalScore: record.finalScore,
-      },
-    });
-
-    return {
-      success: true,
-      submissionId: record.id,
-      score: record.finalScore,
-    };
-  } catch (error) {
-    console.error("Critical failure executing deterministic quiz sequence:", error);
-    throw new Error("Internal Assessment Evaluation Failure");
+  // 2. Grade locally — zero tokens, zero LLM calls, no HMAC signing needed since there's no network hop [3]
+  let correct = 0;
+  const totalQuestions = Object.keys(answerKey).length;
+  for (const [questionId, correctAnswer] of Object.entries(answerKey)) {
+    if (answers[questionId] === correctAnswer) correct++;
   }
-}
+  const finalScore = Math.round((correct / totalQuestions) * 100);
 
+  // 3. Persist to Neon Postgres via Drizzle, alongside the existing schema [6]
+  const [record] = await db.insert(quizSubmissions).values({
+    orgId,
+    studentId: userId,
+    quizId,
+    selectedAnswers: answers,
+    finalScore,
+  }).returning();
+
+  await logStep(traceId, "quiz-submitted", "grade-and-persist", "success", record);
+
+  // 4. Validate the event shape before dispatch — same discipline as Part 9's hardening pass [1]
+  const event = {
+    name: "lms/quiz.submitted",
+    data: {
+      traceId,
+      submissionId: record.id,
+      orgId: record.orgId,
+      studentId: record.studentId,
+      quizId: record.quizId,
+      finalScore: record.finalScore,
+    },
+  };
+  const parsed = validateEventPayload(event);
+  if (!parsed.success) {
+    await logStep(traceId, "quiz-submitted", "validate-event", "failed", { error: parsed.error });
+    throw new Error("Malformed quiz.submitted event — refusing to dispatch");
+  }
+
+  // 5. Hand off async side effects to Inngest — same reactive pattern as grading.completed [2][5]
+  await inngest.send(parsed.data);
+  await logStep(traceId, "quiz-submitted", "dispatch-event", "success", parsed.data);
+
+  return { success: true, submissionId: record.id, score: record.finalScore, traceId };
+}
 ```
+
+The downstream Inngest function (`infra/inngest/functions/quizSubmitted.ts`) follows the exact same try/log/catch/rethrow shape already used for `assignment.submitted`'s `fetch-context`, `discover-workers`, `execute-workers`, and `persist-results` steps [11] — nothing new is invented here, the pattern is simply reused for a new event name.
 
 ---
 
-## 4. Business & Technical Benefits
+## 6. What Stays a Worker (Explicit Scope Boundary)
 
-### Absolute Operational Determinism
+To avoid ambiguity for engineers picking this up later, this proposal deliberately draws a hard line:
 
-Grading tasks move from non-deterministic LLM analysis arrays down to simple, compile-time variable evaluation layers. This completely isolates the core grading mechanism from typical production text processing failure conditions:
+| Task | Stays a Worker? | Reasoning |
+|---|---|---|
+| Multiple-choice / true-false grading | **No** — moves to Quiz Module | Pure equality check, no non-determinism [10] |
+| Exact formula / numeric answer matching | **No** — moves to Quiz Module | Same as above |
+| Open-ended / essay grading | **Yes** — stays on Grading Worker | Genuinely requires language understanding, same as today [2][10] |
+| AI-generated quiz questions (if kept) | **Yes** — stays a registered worker | Requires generative capability, still benefits from Sanity's pluggable registry [4] |
+| Tutor intervention on low scores | **Yes** — stays inline in the Orchestration Layer | Already handled this way, not as a separate worker [10] |
 
-* **Hallucination Protection:** Eliminates instances where dynamic models misinterpret structural rules or apply incorrect grading rubric conditions.
+If quiz *generation* remains AI-driven, Sanity ends up serving two roles simultaneously — CMS content and worker registry — which is fine, but should be documented as an intentional hybrid, not left for someone to infer later.
 
+---
 
-* **Format Predictability:** Bypasses reliance on strict prompt engineering techniques to ensure output JSON shapes match expectations.
+## 7. Business & Technical Benefits
 
+**Absolute Determinism for Objective Assessment**
+Grading moves from LLM inference to compile-time-simple JavaScript comparison, eliminating hallucination risk and output-format failures for the specific subset of assessments that never needed a model in the first place [10].
 
+**Elimination of UI Blocking**
+Because grading runs synchronously in the same server process handling the submission — no signed HTTP round trip to a separate worker [3] — there is no network latency, no polling, and no timeout risk during the exam-submission critical path.
 
-### Elimination of UI Blocking Conditions
+**Preserved Observability and Hardening Guarantees**
+Unlike a version of this proposal that treats the new module as a clean break from the rest of the system, this design explicitly reuses Part 9's event validation [1] and Part 10's `traceId`-based tracing [11], so this new path is queryable in `workflow_logs` exactly like every other student action, both locally and in production [9].
 
-Because the evaluation loop is calculated directly within native memory spaces on server components, client browsers experience zero processing wait times. The system eliminates asynchronous polling loops, network failure timeouts, and microservice messaging bottlenecks during critical exam grading cycles.
+**Honest Cost Table**
 
-### Strategic AI Allocation & Token Cost Management
+| Assessment Form | Compute Path | Token Cost |
+|---|---|---|
+| Multiple Choice / True-False | Quiz & Exam Module (JS) | $0.00 |
+| Exact Formula Matching | Quiz & Exam Module (JS) | $0.00 |
+| Open-Ended Conceptual Review | Grading Worker (LLM) [10] | Metered |
+| Adaptive Tutoring | Inline Orchestration Logic [10] | Metered |
 
-By offloading all predictable, rule-based operations down to standard code systems, production operational expenses drop immediately. This enables strategic reallocation of computational budgets:
+---
 
-| Assessment Form | Primary Compute Tool | Financial Token Cost |
-| --- | --- | --- |
-| **Multiple Choice Questions** | JavaScript Engine | **$0.00** |
-| **Exact Formula Matching** | JavaScript Engine | **$0.00** |
-| **Structured Core Exam Keys** | JavaScript Engine | **$0.00** |
-| **Open-Ended Conceptual Synthesis Review** | Specialized AI Worker | Metered Usage |
-| **Proactive Student Mentorship Loops** | Specialized AI Worker | Metered Usage
+## 8. Summary
 
- |
-
-This architectural adjustment balances fast response times with clean separation of concerns, ensuring Greymatter LMS scales efficiently across multi-tenant production bounds.
+This proposal is not an incremental addition to Greymatter LMS — it is a scoped reversal of two specific decisions: Sanity's role as a live worker registry [4], and quiz grading's place inside the AI Worker Execution Layer [2][3]. Everything else — Drizzle-based Postgres [6], Inngest's reactive orchestration model [2][5], Clerk-based tenant isolation [7], event validation [1], and trace-based observability [11] — is retained and extended, not discarded, so the new Quizzes & Exams Module is a first-class citizen of the existing system rather than a parallel, unmonitored path.
