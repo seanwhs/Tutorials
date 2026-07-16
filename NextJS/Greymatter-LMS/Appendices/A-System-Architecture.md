@@ -126,7 +126,7 @@ Rather than forcing the frontend to query individual tables for five disconnecte
 
 ## A.7 Conditional & Adaptive Workflows
 
-The platform shifts from a reactive structure (event $\rightarrow$ worker $\rightarrow$ stop) to an intelligent system when it leverages **conditional event chaining** [2]. Workers can emit secondary events directly into the bus, hiding complex adaptive routing logic from the frontend application [12].
+The platform shifts from a reactive structure (event to worker to stop) to an intelligent system when it leverages **conditional event chaining** [2]. Workers can emit secondary events directly into the bus, hiding complex adaptive routing logic from the frontend application [12].
 
 ```text
 [ assignment.submitted ]
@@ -203,7 +203,7 @@ The complete physical infrastructure map routes telemetry and data through highl
                         │
                         ▼
       [ Supabase Infrastructure Layer ]
-      (Bundled Authentication, DB, & RLS)
+      (Bundled Authentication, DB, and RLS)
                         │
                         ▼
          [ Inngest Workflow Engine ]
@@ -215,7 +215,7 @@ The complete physical infrastructure map routes telemetry and data through highl
       [ Distributed AI Worker Pools ]
                         │
                         ▼
-     [ Supabase Storage & Results DB ]
+     [ Supabase Storage and Results DB ]
 
 ```
 
@@ -225,7 +225,7 @@ The complete physical infrastructure map routes telemetry and data through highl
 
 If you are building the modular variant of the Greymatter LMS architecture (replacing the all-in-one Supabase stack with a decoupled, best-of-breed toolchain), use this direct mapping layout:
 
-$$\text{Supabase (DB + Auth + RLS Bundle)} \longrightarrow \begin{cases} \textbf{Clerk} & \text{(Identity \& Auth Management)} \\ \textbf{Neon Postgres} & \text{(Relational Compute \& Storage)} \\ \textbf{Drizzle ORM} & \text{(Manual org\_id Isolation Queries)} \end{cases}$$
+$$\text{Supabase (DB + Auth + RLS Bundle)} \longrightarrow \begin{cases} \textbf{Clerk} & \text{(Identity and Auth Management)} \\ \textbf{Neon Postgres} & \text{(Relational Compute and Storage)} \\ \textbf{Drizzle ORM} & \text{(Manual org\_id Isolation Queries)} \end{cases}$$
 
 Every other system tier—including the Next.js frontend, the Inngest orchestration bus, the Sanity discovery registry, and the distributed worker nodes—remains completely unaffected. The workflow environment is powered exclusively by Inngest, meaning it has no hard dependencies on your choice of database engines [9].
 
