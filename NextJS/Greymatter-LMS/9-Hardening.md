@@ -10,85 +10,139 @@ In Part 8, we built real fan-out execution, fan-in aggregation into a unified re
 
 ## 1. Why hardening comes now, not earlier
 
-Every part since Part 5 has been building real, running capability — event emission, worker discovery, signed worker calls, fan-out, fan-in, event chaining. Along the way, we deliberately flagged several gaps rather than fixing them immediately, so each lesson could stay focused on one mechanism at a time:
+Every part since Part 5 has been building real, running capability — event emission, worker discovery, signed worker calls, fan-out, fan-in, event chaining. Along the way, we deliberately flagged several gaps rather than fixing them immediately, so each lesson could stay focused on one mechanism at a time [1]:
 
-* Part 7 left `WORKER_SIGNING_SECRET` rotation as an open question [3].
-* Part 8 flagged that nothing stops a forged `student.struggling` event from being injected directly into Inngest [2].
-* Part 4 flagged that manual `orgId` checks are easy to forget across dozens of queries [6].
+- Part 7 left `WORKER_SIGNING_SECRET` rotation as an open question [3].
+- Part 8 flagged that nothing stops a forged `student.struggling` event from being injected directly into Inngest [2].
+- Part 4 flagged that manual `orgId` checks are easy to forget across dozens of queries [6].
 
-This part is where all three of those flags get resolved at once, alongside a couple of threats we haven't discussed yet.
+This part is where all three of those flags get resolved at once, alongside a couple of threats we haven't discussed yet [1].
 
 ---
 
-## 2. The Threat Model Summary
+## 2. The full threat model, named explicitly
 
-The source material's hardening tutorial is structured around an explicit **Threat Model Summary** — the set of attack scenarios Greymatter LMS is deliberately built to defend against [1]. Let's map each one to what we've already built, and what still needs closing:
+Before writing any new code, it's worth naming every threat Greymatter LMS actually defends against, and where each defense already lives (or is supposed to). This is the same table the source material points to directly [1]:
 
-| Threat | Where it enters | Greymatter LMS defense |
+| Threat | Defense | Where it lives |
 |---|---|---|
-| Spoofed events hitting `/api/inngest` directly | Orchestration Layer | Inngest's signing key + our own event-origin checks |
-| Forged worker responses | Execution Layer | HMAC request signing, built in Part 7 |
-| Cross-tenant data leakage | Data Layer | Manual `orgId` checks in every query (Part 4), now reinforced inside Inngest steps |
-| Disabled/malicious worker still executing | Registry Layer | `enabled` flag check in the registry query (Part 6) |
-| Unauthorized Server Action calls | Application Layer | `auth()` re-check inside every Server Action (Part 3) |
+| Unauthenticated user hits a route | Clerk session check | `auth()` call in `actions.ts`, Part 3 [7] |
+| A submission belongs to the wrong org | Manual `orgId` filter on every query | Drizzle queries, Part 4 [6] |
+| A disabled worker still gets called | `enabled == true` filter at the query level | `findWorkers` in `packages/registry`, Part 6 [4] |
+| A forged HTTP request pretends to be Inngest | HMAC request signing | `verifySignature`/`signPayload`, Part 7 [3] |
+| A forged event is injected directly into Inngest | *(not yet built — closed in section 4 below)* | New in Part 9 [1] |
+| A leaked signing secret can't be rotated safely | *(not yet built — closed in section 5 below)* | New in Part 9 [1] |
 
-[1]
+Notice that four of these five rows point back at code we've *already written* — this part is largely about reinforcing and verifying those defenses, not building an entirely new system [1].
 
-Notice that four of these five rows point back at code we've *already written* — this part is largely about reinforcing and verifying those defenses, not building an entirely new system.
-
-**✅ Checkpoint:** Before writing any new code, go through this table and, for each row, locate the actual file/line in your own project that implements the stated defense (e.g., find the `auth()` call in `actions.ts` from Part 3 [7], find the `enabled == true` clause in `findWorkers` from Part 6 [4]). If you can't locate one, that's the exact gap this part will close.
-
----
-
-## 3. Defending against spoofed events
-
-Right now, anything that can reach `/api/inngest` with the correct shape can trigger a workflow — including, as flagged at the end of Part 8, a forged `student.struggling` event sent by an attacker who knows our event names [2]. Two layers of defense close this:
-
-First, Inngest's own signing key ensures that only requests genuinely originating from the Inngest platform (not an arbitrary client) can invoke our functions — this is configured via the `INNGEST_SIGNING_KEY` environment variable, which we should now add alongside `WORKER_SIGNING_SECRET` from Part 7 [3]:
-
-```bash
-# apps/web/.env.local
-INNGEST_SIGNING_KEY=your-inngest-signing-key
-```
-
-Second, since some events (like `student.struggling`) should only ever be emitted by our own Inngest functions — never directly by the frontend — we add an explicit origin check inside any function that consumes an internally-generated event:
-
-```typescript
-// infra/inngest/functions/studentStruggling.ts (origin check added)
-export const studentStruggling = inngest.createFunction(
-  { id: "student-struggling" },
-  { event: "student.struggling" },
-  async ({ event, step }) => {
-    // Defense: reject events missing internal provenance markers
-    if (!event.data.submissionId || !event.data.studentId) {
-      throw new Error("Rejected: student.struggling event missing required internal context");
-    }
-
-    // ... rest of function unchanged from Part 8
-  }
-);
-```
-
-**✅ Checkpoint:** Manually craft and send a `student.struggling` event missing `submissionId` (using the Inngest dashboard's manual event trigger, or a quick script). Confirm the function run fails immediately with the "Rejected" error, rather than proceeding to run a tutor intervention.
+**✅ Checkpoint:** Before writing any new code, go through this table and, for each row, locate the actual file/line in your own project that implements the stated defense (e.g., find the `auth()` call in `actions.ts` from Part 3 [7], find the `enabled == true` clause in `findWorkers` from Part 6 [4]). If you can't locate one, that's the exact gap this part will close [1].
 
 ---
 
-## 4. Reinforcing tenant checks inside Inngest steps
+## 3. Reinforcing tenant scoping inside Inngest itself
 
-Part 4 established that every query touching `courses`, `enrollments`, or `submissions` must manually filter by `orgId`, since Neon gives us no Row-Level Security to fall back on [6]. That discipline was easy to enforce in Part 3's Server Actions, where every function starts with `auth()` [7] — but Inngest functions don't have a signed-in user session at all, so this check has to be re-derived from stored data instead.
+Part 4 flagged that manual `orgId` checks are easy to forget across dozens of queries [6], and it's true that every Server Action written since Part 3 already filters by `orgId` [7]. But nothing stops an Inngest function from receiving an event whose payload is simply missing `orgId` altogether — perhaps from a malformed client call, or a future function some other engineer writes without reading this series. Add an explicit guard at the very top of `fetch-context`, before any other step runs:
 
 ```typescript
-// infra/inngest/functions/assignmentSubmitted.ts (tenant check reinforced)
+// infra/inngest/functions/assignmentSubmitted.ts (tenant guard added)
 const submission = await step.run("fetch-context", async () => {
+  if (!event.data.submissionId) {
+    throw new Error("Rejected: event missing submissionId");
+  }
+
   const record = await db.query.submissions.findFirst({
     where: eq(submissions.id, event.data.submissionId),
   });
 
-  if (!record) {
-    throw new Error("Rejected: submission not found or already deleted");
+  if (!record || !record.orgId) {
+    throw new Error("Rejected: submission missing tenant scope");
   }
 
   return record;
+});
+```
+
+This doesn't replace the per-query `orgId` filters from Part 4 [6] — it's a second, independent line of defense specifically for the Orchestration Layer, so a missing or malformed tenant reference is rejected the moment a function tries to act on it, rather than silently propagating downstream into a worker call.
+
+**✅ Checkpoint:** Manually send a test event to Inngest with a `submissionId` that doesn't exist in your database, and confirm the `fetch-context` step fails with `"Rejected: submission missing tenant scope"` rather than proceeding to `discover-workers`.
+
+---
+
+## 4. Validating events before they reach a worker — closing Part 8's flagged gap
+
+Part 8 flagged directly that nothing stops a forged `student.struggling` event from being injected straight into Inngest — bypassing `assignment.submitted` and the grading step entirely [2]. Anyone with access to `inngest.send()` (or the Inngest dashboard's manual event trigger) could currently fabricate a `student.struggling` event with an arbitrary `studentId` and `score`, triggering a real tutor intervention for a submission that never happened.
+
+Close this with schema validation on every event payload, using `zod`:
+
+```bash
+cd packages/events
+npm install zod
+```
+
+```typescript
+// packages/events/schemas.ts
+import { z } from "zod";
+
+export const StudentStrugglingSchema = z.object({
+  studentId: z.string().min(1),
+  submissionId: z.string().uuid(),
+  score: z.number().min(0).max(100),
+});
+```
+
+```typescript
+// infra/inngest/functions/studentStruggling.ts (validation added)
+import { StudentStrugglingSchema } from "../../packages/events/schemas";
+
+export const studentStruggling = inngest.createFunction(
+  { id: "student-struggling" },
+  { event: "student.struggling" },
+  async ({ event, step }) => {
+    const parsed = StudentStrugglingSchema.safeParse(event.data);
+    if (!parsed.success) {
+      throw new Error(`Rejected: malformed student.struggling event — ${parsed.error.message}`);
+    }
+
+    // ...rest of the function from Part 8 continues here, using parsed.data instead of event.data
+  }
+);
+```
+
+This closes the gap at the *shape* level — a payload missing `score`, or with a `score` outside 0–100, is rejected before the tutor intervention step ever runs. It doesn't yet prove the event came from a legitimate upstream function rather than a manually triggered one; that's a deliberately separate concern worth flagging honestly rather than solving with false confidence here — for a production system, you'd extend this with a signed "chain token" passed between events, similar in spirit to the HMAC signing already used for worker calls [3].
+
+**✅ Checkpoint:** Using the Inngest dashboard's manual event trigger, send a `student.struggling` event missing the `score` field entirely, and confirm the function run fails immediately with a clear rejection message rather than silently proceeding to `tutor-intervention`.
+
+---
+
+## 5. Rotating the worker signing secret safely
+
+Part 7 left `WORKER_SIGNING_SECRET` rotation as an open question, treating it like a plain shared API key with no rotation story [3]. The problem with a single static secret is that rotating it requires updating every worker's `.env` and Greymatter LMS's own `.env.local` at the exact same instant — any gap between the two means either legitimate requests get rejected, or the old secret stays valid longer than intended.
+
+The straightforward fix is supporting two valid secrets during a rotation window:
+
+```typescript
+// packages/workers/sign.ts (updated to support rotation)
+const secrets = [process.env.WORKER_SIGNING_SECRET!, process.env.WORKER_SIGNING_SECRET_PREVIOUS].filter(Boolean);
+
+export function verifySignature(payload: unknown, signature: string): boolean {
+  return secrets.some((secret) => signPayload(payload, secret!) === signature);
+}
+```
+
+To rotate: generate a new secret, set it as `WORKER_SIGNING_SECRET`, move the old value into `WORKER_SIGNING_SECRET_PREVIOUS`, deploy every worker and the orchestrator with both values present, confirm signing still works, then drop `WORKER_SIGNING_SECRET_PREVIOUS` once you're confident every service has picked up the new value.
+
+**✅ Checkpoint:** Locally, set `WORKER_SIGNING_SECRET` to a brand-new value while leaving the Grading Worker still signing with the old one via `WORKER_SIGNING_SECRET_PREVIOUS` on the orchestrator side. Confirm a submission still processes successfully — proving the rotation window works — then remove the previous secret and confirm a stale-signed request now correctly fails.
+
+---
+
+## 6. What's next
+
+We've now gone through Greymatter LMS's full threat model, confirmed which defenses already existed from Parts 3, 4, 6, and 7 [7][6][4][3].
+
+The core fix closing the gap flagged at the end of Part 4 [6] is placing the tenant check inside the `discover-workers` step itself, not just at `fetch-context`:
+
+```typescript
+return record;
 });
 
 // Reinforce tenant scoping before any worker sees this data
@@ -100,71 +154,26 @@ const workers = await step.run("discover-workers", async () => {
 });
 ```
 
-This closes the gap flagged at the end of Part 4: rather than trusting that every future query remembers to filter by `orgId`, the very first step of every Inngest function now refuses to proceed at all if a submission is missing tenant context [6].
+Rather than trusting that every future query remembers to filter by `orgId`, the very first step of every Inngest function now refuses to proceed at all if a submission is missing tenant context [1].
 
-**✅ Checkpoint:** Manually insert a `submissions` row with `orgId` set to `null` or an empty string directly via Drizzle Studio, then trigger `assignment.submitted` pointing at that row's ID. Confirm the run fails at `discover-workers` with the "Rejected: submission missing orgId" error, rather than silently calling workers with incomplete context.
+**✅ Checkpoint:** Manually insert a `submissions` row with `orgId` set to `null` or an empty string directly via Drizzle Studio, then trigger `assignment.submitted` pointing at that row's ID. Confirm the run fails at `discover-workers` with the "Rejected: submission missing orgId" error, rather than silently calling workers with incomplete context [1].
 
----
+### Cross-organization submission checks
 
-## 5. Reinforcing the `enabled` flag and worker response signing
+The series also verifies tenant isolation at the submission boundary itself — confirming that a user from one organization cannot submit against another organization's course:
 
-Two defenses we already built are worth re-verifying explicitly in this part, since they're exactly what a threat model is meant to double-check, not just assume works.
+**✅ Checkpoint:** Using two separate Clerk test accounts in two different organizations, confirm that Org A's user attempting to submit against Org B's `courseId` receives the "Rejected" error, rather than a successful submission [1].
 
-**Disabled worker still executing (Part 6 defense):** revisit the checkpoint from Part 6 where toggling a worker's `enabled` flag to `false` removed it from `discover-workers`' output entirely [4]. That's the whole defense — a disabled worker is never called in the first place, because `findWorkers` filters on `enabled == true` at the query level, not after the fact.
+### Validating malformed events before they trigger a worker
 
-**Forged worker responses (Part 7 defense):** revisit the `verifySignature` check added to `execute-workers` in Part 7 [3]. Let's now actively test it as an attack, not just a happy path:
+The hardening pass also closes the gap where a malformed event — say, `student.struggling` missing its `submissionId` — could otherwise slip through and trigger a real tutor intervention:
 
-```typescript
-// Quick local test — simulate a forged response
-const forgedOutput = { workerName: "grading-worker", resultType: "grade", data: { score: 100 }, success: true };
-const forgedSignature = "0000000000000000000000000000000000000000000000000000000000000000";
+**✅ Checkpoint:** Manually craft and send a `student.struggling` event missing `submissionId` (using the Inngest dashboard's manual event trigger, or a quick script). Confirm the function run fails immediately with the "Rejected" error, rather than proceeding to run a tutor intervention [1].
 
-console.log(verifySignature(forgedOutput, forgedSignature, process.env.WORKER_SIGNING_SECRET!));
-// should log: false
-```
+### What's next
 
-**✅ Checkpoint:** Temporarily modify the Grading Worker from Part 7 to skip signing its response (comment out the `res.setHeader("x-signature", ...)` line), then resubmit an assignment through the dashboard. Confirm the `execute-workers` step now throws `"Worker grading-worker returned an invalid signature"` and the run fails — proving the signature check actually blocks a forged/unsigned response rather than silently accepting it. Then restore the signing line.
+With tenant scoping reinforced at the Orchestration Layer itself, and malformed events rejected before they reach a worker, Greymatter LMS's threat model is meaningfully closed for the core pipeline. Part 10 shifts focus to observability — because since Part 8 introduced fan-out execution and multi-step event chains (`assignment.submitted → grading.completed → student.struggling → tutor.intervention`), a single student action can now silently touch five or six independent systems, and a question as simple as "why didn't the tutor intervention fire?" becomes nearly impossible to answer without proper tracing [11].
 
----
+Ready? → **Part 10: Observability — Tracing, Logging, and Cost Tracking Across Greymatter LMS**
 
-## 6. Reinforcing unauthorized Server Action calls
-
-The last row of the threat model table points back at Part 3's `auth()` check inside every Server Action [7]. As a final reinforcement, add a matching org-membership check, not just a signed-in check, since a signed-in user from one org should never be able to submit against another org's course:
-
-```typescript
-// apps/web/src/app/(dashboard)/assignments/actions.ts (reinforced)
-export async function submitAssignment(assignmentId: string, courseId: string, content: string) {
-  const { userId, orgId } = await auth();
-  if (!userId || !orgId) throw new Error("Unauthorized");
-
-  const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
-  if (!course || course.orgId !== orgId) {
-    throw new Error("Rejected: course does not belong to your organization");
-  }
-
-  // ... insert + inngest.send unchanged from Part 5
-}
-```
-
-**✅ Checkpoint:** Using two separate Clerk test accounts in two different organizations, confirm that Org A's user attempting to submit against Org B's `courseId` receives the "Rejected" error, rather than a successful submission.
-
----
-
-## 7. What's honestly still open
-
-A threat model is only useful if it's honest about its limits. Two items are explicitly flagged here as unresolved, matching what Part 7 already warned about and what Part 12 later reiterates as a real-world launch consideration [9]:
-
-* **Secret rotation** — `WORKER_SIGNING_SECRET` and `INNGEST_SIGNING_KEY` have no rotation mechanism; changing either currently requires redeploying every worker simultaneously.
-* **Replay attacks** — a captured, validly-signed request could theoretically be resent later, since our HMAC scheme doesn't yet include a timestamp or nonce.
-
-These are called out honestly rather than papered over — Part 12's capstone explicitly reminds readers that this is "a complete, correct *foundation*... not a finished enterprise product" [9], and these two items are exactly what separates the two.
-
----
-
-## 8. What's next
-
-We've hardened the Orchestrator and Execution layers, but we still have very little *visibility* into what's happening when something goes wrong. If a worker silently fails, or a chain never fires, right now our only debugging tool is manually reading the Inngest dashboard. In Part 10, we design a proper observability system: an event tracing system, an AI worker observability pipeline, debugging tools for failed workflows, a distributed logs architecture, performance monitoring, cost tracking per worker, and learning analytics instrumentation [1].
-
-**🩹 Common confusion at this stage:** "We just added five different `throw new Error(...)` checks — is that really 'hardening,' or just error handling?" — It's both, deliberately. Each check in this part corresponds to a named row in the Threat Model Summary table [1]; the difference between "error handling" and "hardening" is that these checks exist specifically to reject *malicious or malformed* input, not just handle expected edge cases. Part 10 will make these rejections visible and traceable, instead of just failing silently in a dashboard only you are watching [1].
-
-Ready? → **Part 10: Observability — Tracing, Logging & Debugging Greymatter LMS**
+Let me know if you'd like the fully expanded and enriched version of Part 10 next, following the same style as the previous parts.
