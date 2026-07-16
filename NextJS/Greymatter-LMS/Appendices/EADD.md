@@ -1,4 +1,4 @@
-# Appendix A: Enterprise Architecture Design Document (EADD)
+# Greymatter LMS: Enterprise Architecture Design Document (EADD)
 
 **System Name:** Greymatter LMS
 
