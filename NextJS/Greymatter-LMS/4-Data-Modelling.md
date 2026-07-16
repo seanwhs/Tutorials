@@ -1,37 +1,29 @@
-# Part 4 — Data Modelling: Designing the Greymatter LMS Database
+# Part 4 — Data Modelling: Designing the Greymatter LMS Database *(Expanded & Enriched)*
 
-In Part 3, we built the Next.js 16 frontend shell — route groups, Clerk auth, a Tailwind dashboard, and a Server Action stub that stops short of any business logic. Now we build the system of record: the database itself.
+In Part 3, we built the Next.js 16 frontend shell — route groups, Clerk auth, a Tailwind dashboard, and a Server Action stub that stops short of any business logic [6]. Now we build the system of record: the database itself.
 
-**🎯 Goal of this lesson:** Design and implement the Greymatter LMS schema in Neon Postgres, using Drizzle ORM in place of Supabase, and understand exactly what we lose (and must replace) by not having Supabase's built-in Auth and Row-Level Security.
+**🎯 Goal of this lesson:** Design and implement the full Greymatter LMS schema in Neon Postgres using Drizzle ORM in place of Supabase, and understand exactly what we lose — and must replace ourselves — by not having Supabase's built-in Auth and Row-Level Security [6].
 
-**🧰 Prereqs:** Part 3 completed. You'll need a free Neon account (neon.tech) — create a project and copy your connection string before section 3.
-
----
-
-## 1. Why the database matters this much
-
-The original tutorial frames this part simply but powerfully: the database is the "memory" of the system, storing the raw data that AI workers later read from and write results back into — things like quiz generation, grading results, summaries, tutor feedback, and analytics insights [6].
-
-For Greymatter LMS, the schema needs to support the exact flow we traced in Part 1: a student submits an assignment, and multiple independent workers — a grader, a quiz generator, a tutor AI, and an analytics engine — all read that submission and write their own results back [6].
+**🧰 Prereqs:** Part 3 completed. You'll need a free Neon account (neon.tech) — create a project and copy your connection string before section 2 [6].
 
 ---
 
-## 2. What changes moving from Supabase to Neon
+## 1. Why Neon, not Supabase — what we lose and must replace
 
-The original architecture uses Supabase specifically because it bundles PostgreSQL, Auth, Row-Level Security (RLS) policies, and Realtime subscriptions together as hosted components [9]. Neon Postgres gives us only the first piece — a serverless, branchable Postgres database. That means for Greymatter LMS:
+Before writing any schema, it's worth being explicit about a tradeoff made back in Part 1. The original architecture notes use Supabase for the Data Layer, with Row-Level Security enforcing tenant isolation directly in the database [12]. Greymatter LMS uses Neon Postgres instead, which means we take on two responsibilities Supabase used to hand us for free:
 
-| What Supabase gave for free | What Greymatter LMS must do instead |
-|---|---|
-| Postgres hosting | Neon Postgres hosting (still just Postgres) |
-| Auth | Clerk (already wired up in Part 3) |
-| RLS policies enforcing tenant isolation | Manual `orgId`/`userId` checks in every query, written in our Server Actions |
-| Realtime subscriptions | Not used in this series yet — Inngest handles our "reactivity" instead |
+| Responsibility | Supabase (original) | Greymatter (Neon) |
+|---|---|---|
+| Database hosting | Supabase Postgres | Neon Postgres (serverless, branchable) |
+| Auth | Supabase Auth | Clerk |
+| Tenant isolation | Row-Level Security (RLS) policies | Enforced in application code via Drizzle ORM queries, checked against the Clerk `orgId` |
+| Client SDK | `@supabase/supabase-js` | Drizzle ORM + plain SQL via `pg` |
 
-This is a deliberate trade-off worth internalizing now: every table we create below will include an `org_id` or `user_id` column that **we** are responsible for filtering on in application code, because there's no database-level policy doing it for us automatically.
+Every time a future lesson mentions "Supabase enforces X," in Greymatter LMS that job moves to **our server code**, not the database itself [12]. This part is where we build that properly.
 
 ---
 
-## 3. Setting up Neon + Drizzle
+## 2. Setting up Neon + Drizzle
 
 ```bash
 cd infra/db
@@ -59,17 +51,17 @@ export default defineConfig({
 });
 ```
 
-**✅ Checkpoint:** Run `npx drizzle-kit studio` — it should connect to your Neon project and open a browser-based table viewer (currently empty, since we haven't defined any tables yet).
+**✅ Checkpoint:** Run `npx drizzle-kit studio` — it should connect to your Neon project and open a browser-based table viewer (currently empty, since we haven't defined any tables yet) [6].
 
 ---
 
-## 4. Defining the schema
+## 3. Designing the full schema, all at once
 
-The original data model gives us the core tables we need — courses, lessons, and the outputs workers write back [6]. Let's translate them into Drizzle, adding `org_id`/`user_id` columns everywhere since we no longer have RLS doing tenant isolation for us.
+Looking ahead, Part 12's deployment checkpoint confirms Greymatter LMS ultimately needs five core tables — `courses`, `lessons`, `enrollments`, `submissions`, `worker_results` — plus a `workflow_logs` table added later in Part 10 [9]. Rather than introducing these piecemeal, let's define all five now in one file, so nothing downstream imports a table that doesn't exist yet.
 
 ```typescript
 // infra/db/schema.ts
-import { pgTable, uuid, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const courses = pgTable("courses", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -79,58 +71,50 @@ export const courses = pgTable("courses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Lessons table, adapted from the original schema [6]
 export const lessons = pgTable("lessons", {
   id: uuid("id").primaryKey().defaultRandom(),
-  courseId: uuid("course_id").references(() => courses.id),
-  title: text("title"),
+  courseId: uuid("course_id").notNull().references(() => courses.id),
+  title: text("title").notNull(),
   content: text("content"),
-  orderIndex: integer("order_index"),
-  createdAt: timestamp("created_at").defaultNow(),
+  order: integer("order").default(0),
 });
 
 export const enrollments = pgTable("enrollments", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  courseId: uuid("course_id").references(() => courses.id),
   orgId: text("org_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  courseId: uuid("course_id").notNull().references(() => courses.id),
+  studentId: text("student_id").notNull(),
+  enrolledAt: timestamp("enrolled_at").defaultNow(),
 });
 
 export const submissions = pgTable("submissions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  courseId: uuid("course_id").references(() => courses.id),
-  assignmentId: uuid("assignment_id"),
-  userId: text("user_id").notNull(),
   orgId: text("org_id").notNull(),
-  content: text("content"),
+  studentId: text("student_id").notNull(),
+  courseId: uuid("course_id").notNull().references(() => courses.id),
+  content: text("content").notNull(),
+  status: text("status").default("submitted"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Where every worker's results land — grading, quizzes, tutor feedback, analytics [6]
 export const workerResults = pgTable("worker_results", {
   id: uuid("id").primaryKey().defaultRandom(),
-  submissionId: uuid("submission_id").references(() => submissions.id),
+  submissionId: uuid("submission_id").notNull().references(() => submissions.id),
   workerName: text("worker_name").notNull(),
-  resultType: text("result_type"), // "grading" | "quiz" | "tutor_feedback" | "analytics"
-  resultData: text("result_data"), // JSON-stringified payload
+  resultType: text("result_type").notNull(),
+  data: jsonb("data"),
+  success: boolean("success").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 ```
 
-Notice the last table, `workerResults` — this is the single destination the original architecture describes for quiz generation output, grading results, summaries, tutor feedback, and analytics insights, all written by independent workers [6].
+Note that `orgId` appears on every top-level table (`courses`, `enrollments`, `submissions`) — this is deliberate, and it's the exact column every future query must filter on, since Neon gives us no automatic Row-Level Security to fall back on [12].
 
-**✅ Checkpoint:** Run the migration:
-
-```bash
-npx drizzle-kit push
-```
-
-Then reopen `npx drizzle-kit studio` — you should now see five tables: `courses`, `lessons`, `enrollments`, `submissions`, and `worker_results`.
+**✅ Checkpoint:** Run `npx drizzle-kit push`, then reopen `npx drizzle-kit studio`. Confirm all five tables now appear, empty but real.
 
 ---
 
-## 5. Connecting Neon to the Next.js app
+## 4. Connecting Neon to the Next.js app
 
 ```bash
 cd apps/web
@@ -147,82 +131,43 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
 ```
 
-Don't forget to add `DATABASE_URL` to `apps/web/.env.local` too, pointing at the same Neon database.
+Don't forget to add `DATABASE_URL` to `apps/web/.env.local` too, pointing at the same Neon database [6].
+
+**✅ Checkpoint:** From a Server Action or a temporary test file in `apps/web`, run `db.query.courses.findMany()` and confirm it resolves without a connection error (an empty array is expected — we haven't inserted any courses yet).
 
 ---
 
-## 6. The tenant-isolation check we owe ourselves
+## 5. Enforcing tenant isolation without RLS
 
-Since Neon has no RLS, every query touching `courses`, `submissions`, or `enrollments` must manually filter by `orgId`. Let's write our first real query function, replacing the `console.log` stub from Part 3:
+Since Supabase's RLS is gone, every query touching `courses`, `enrollments`, or `submissions` must manually filter by `orgId`, matched against the signed-in user's Clerk organization [12]. For example:
 
 ```typescript
-// apps/web/src/lib/db/queries.ts
-import { db } from "./index";
-import { enrollments, courses } from "../../../../../infra/db/schema";
-import { eq, and } from "drizzle-orm";
-
-export async function getCoursesForUser(userId: string, orgId: string) {
-  return db
-    .select({ id: courses.id, title: courses.title, description: courses.description })
-    .from(courses)
-    .innerJoin(enrollments, eq(enrollments.courseId, courses.id))
-    .where(and(eq(enrollments.userId, userId), eq(courses.orgId, orgId)));
-}
-```
-
-Wire this into the courses page from Part 3:
-
-```tsx
-// src/app/(dashboard)/courses/page.tsx
+// apps/web/src/app/(dashboard)/courses/queries.ts
 import { auth } from "@clerk/nextjs/server";
-import { getCoursesForUser } from "@/lib/db/queries";
+import { db } from "@/lib/db";
+import { courses } from "../../../../../infra/db/schema";
+import { eq } from "drizzle-orm";
 
-export default async function CoursesPage() {
-  const { userId, orgId } = await auth();
-  const courses = orgId ? await getCoursesForUser(userId!, orgId) : [];
+export async function getMyCourses() {
+  const { orgId } = await auth();
+  if (!orgId) throw new Error("Unauthorized");
 
-  return (
-    <div>
-      <h2 className="mb-4 text-2xl font-bold text-slate-900">My Courses</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {courses.map((course) => (
-          <div key={course.id} className="rounded-lg border bg-white p-4 shadow-sm">
-            <h3 className="font-semibold">{course.title}</h3>
-            <p className="text-sm text-slate-500">{course.description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
-
-**✅ Checkpoint:** Manually insert a row into `courses` and a matching row into `enrollments` (via Drizzle Studio) using your real Clerk `userId`/`orgId`. Refresh `/courses` — your real data should now render instead of the hardcoded placeholder from Part 3.
-
----
-
-## 7. Previewing the worker write-back pattern
-
-We won't run real workers until Part 5–8, but here's the shape every worker will eventually use to write into `worker_results` — the same pattern the original tutorial describes as Markly grading, the quiz generator creating practice questions, Tutor AI generating feedback, and analytics updating dashboards, all off the back of one submission [6]:
-
-```typescript
-// Preview only — this will live in infra/inngest functions starting Part 5
-async function saveWorkerResult(submissionId: string, workerName: string, resultType: string, data: unknown) {
-  await db.insert(workerResults).values({
-    submissionId,
-    workerName,
-    resultType,
-    resultData: JSON.stringify(data),
+  return db.query.courses.findMany({
+    where: eq(courses.orgId, orgId),
   });
 }
 ```
 
+This pattern — re-checking `auth()` and filtering by `orgId` inside every query — is the single most important habit to build now. It's reinforced again in Part 9's threat model, which explicitly lists "cross-tenant data leakage" as a threat whose defense is "manual `orgId` checks in every query (Part 4), now reinforced inside Inngest steps" [1].
+
+**✅ Checkpoint:** Temporarily hardcode a different `orgId` in a test query and confirm it returns zero rows for your test account's courses — proving the filter is actually doing something, not just decorative.
+
 ---
 
-## 8. What's next
+## 6. What's next
 
-We now have a real, queryable Neon Postgres database, a schema covering courses, lessons, enrollments, submissions, and worker results, and a Next.js page reading live data through Drizzle with manual tenant checks standing in for Supabase's RLS. In Part 5, we build the Orchestration Layer — Inngest — and finally make `submitAssignment` do something real: emit an event that triggers actual workflow execution.
+We now have a real system of record — five tables in Neon Postgres, connected to our Next.js app, with manual tenant isolation replacing what Supabase's RLS would have given us for free. In Part 5, we build the Orchestration Layer itself and finally make our `submitAssignment` Server Action stub emit a real event — `assignment.submitted` — that Inngest can pick up and act on.
 
-**🩹 Common confusion at this stage:** "Do I really have to remember to add `orgId` filters to *every single query* by hand?" — Yes, and this is the single biggest risk area in a non-RLS setup. In Part 9 (Hardening), we'll build a small internal helper/lint pattern to make it much harder to accidentally forget this check.
+**🩹 Common confusion at this stage:** "Why define `worker_results` now if no worker exists yet?" — Because Part 5's Inngest function will need somewhere to persist results the moment it starts running, and Part 7 onward assumes this table already exists. Defining the full schema up front means every later part can `import` from `infra/db/schema` without hitting a missing-table error.
 
-Ready? → **Part 5: Inngest Workflow Engine for Greymatter LMS**
+Ready? → **Part 5: Inngest Workflow Engine — Building the Greymatter LMS Orchestration Layer**
