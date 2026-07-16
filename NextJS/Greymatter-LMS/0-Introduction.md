@@ -1,135 +1,109 @@
-# Part 0 — Introduction: The Philosophy Behind Greymatter LMS 
+# Part 0 — Introduction: The Philosophy Behind Greymatter LMS
 
-Welcome to the first lesson in the **Greymatter LMS** tutorial series — a step-by-step build of a real, production-shaped, AI-native Learning Management System. Before we write a single line of production code, we need to understand *why* Greymatter is built the way it is — otherwise Part 5 onward (events, workers, Inngest) will feel like arbitrary complexity instead of a deliberate design choice [13].
+Welcome to the first lesson in the **Greymatter LMS** tutorial series. Before we write a single line of production code, we need to understand *why* Greymatter is built the way it is — otherwise Part 5 onward (events, workers, Inngest) will feel like arbitrary complexity instead of a deliberate design choice [13].
 
-**🎯 Goal of this lesson:** Understand the core philosophy — "events, not features" — see a tiny working demo of it, and know exactly what you'll have built, and in what order, by the end of the series.
+**🎯 Goal of this lesson:** Understand the core philosophy — "events, not features" — see a tiny working demo of it, and know exactly what you'll build, and in what order, across the rest of this series.
 
-**🧰 Prereqs:** None yet. Just Node.js installed and curiosity. (Full tooling setup — pnpm, monorepo scaffolding — happens in Part 2 [8]; no accounts like Clerk/Sanity/Neon/Inngest are needed until the part that actually uses them.)
-
----
-
-## 1. Why "events, not features"
-
-Most tutorials teach you to build a feature: "add a grading button," "add a quiz page." Greymatter LMS is deliberately taught differently. The core idea is that **a submission is an event, not a function call** — and every piece of intelligence that reacts to it (a grader, a quiz generator, a tutor, an analytics engine) is an independent listener, not a branch in an `if/else` block [13].
-
-This matters because of what it *prevents*: no giant conditional deciding which AI feature to run, and no single monolithic backend service that has to be modified every time you add a new capability. Every box in the system only knows about the event bus in the middle — that's the whole point [13].
+**🧰 Prereqs:** None yet. Just Node.js installed and curiosity. (Full tooling setup happens in Part 2 [13].)
 
 ---
 
-## 2. A tiny working demo, before touching the real stack
+## 1. The problem: most LMS platforms become a "feature landfill"
 
-To feel this philosophy before any real infrastructure exists, here's the ~10-line simulation this series starts from:
+Imagine you're building a normal LMS the traditional way. A product manager asks for AI grading. So you add:
+
+* an API integration
+* a UI update
+* a database change
+* backend logic
+* orchestration logic
+* edge-case handling
+
+Then they ask for a quiz generator. You repeat all six steps. Then a tutoring assistant. Repeat again. Then analytics. Repeat again.
+
+This is called **feature explosion** — every new AI capability multiplies the amount of code, wiring, and fragile coupling in your app, until the LMS becomes what the original philosophy notes bluntly call a "feature landfill" [13]. Greymatter LMS is designed specifically to avoid this trap.
+
+---
+
+## 2. The alternative: events, not features
+
+Instead of wiring each new AI capability directly into the application, Greymatter LMS treats every meaningful action — a submission, a struggle signal, a completed grade — as an **event**. Independent workers subscribe to events they care about, react to them, and know nothing about each other. Adding a new capability later means adding a new listener, not rewiring six layers of existing code.
+
+---
+
+## 3. A tiny working demo, before touching the real stack
+
+Here's the ~10-line simulation this entire series is built on top of:
 
 ```javascript
+// demo-event.js
 function emit(event, payload) {
   listeners[event]?.forEach(worker => worker(payload));
 }
 
+function gradeSubmission({ submissionId }) {
+  console.log(`📝 Grading: ${submissionId}`);
+}
+
+function generateTutorFeedback({ submissionId }) {
+  console.log(`🧠 Generating tutor feedback for: ${submissionId}`);
+}
+
+function updateAnalytics({ studentId }) {
+  console.log(`📊 Updating analytics for: ${studentId}`);
+}
+
 const listeners = {
-  "assignment.submitted": [
-    gradeSubmission,
-    generateQuiz,
-    checkForStruggle,
-  ],
+  "assignment.submitted": [gradeSubmission, generateTutorFeedback, updateAnalytics],
 };
 
-emit("assignment.submitted", { studentId: 1, text: "My essay..." });
+// One action, three independent reactions
+emit("assignment.submitted", { submissionId: "sub_123", studentId: "stu_456" });
 ```
 
-Nothing here is "real" yet — no database, no auth, no network calls. But it already demonstrates the entire shape of the system: one event, many independent workers reacting to it, and zero coupling between them. Everything we build from Part 1 onward is this same idea, scaled into real infrastructure.
-
----
-
-## 3. What "AI-native" means for Greymatter LMS
-
-Because every capability is just a listener on an event, adding AI features later never means editing existing code — it means registering a new worker. By Part 11, you'll prove this concretely: real LLM-powered grading, quiz generation, tutor intervention, and lesson summaries all get added to a fully working LMS without touching the core Server Actions, the registry client, or the Worker SDK contract [10]. That's the payoff this philosophy is building toward — AI becomes modular, and each AI system stays independently replaceable [10].
-
----
-
-## 4. The Greymatter architecture (conceptual model)
-
-Translating the philosophy into the actual Greymatter stack, here's what we're building toward across this series:
+**✅ Checkpoint:** Run `node demo-event.js`. You should see three separate log lines fire from a *single* `emit()` call:
 
 ```text
-Clerk (Auth)
-   |
-   V
-+-----------------------------+
-|      Next.js 16 LMS        |
-|   (React 19 + Tailwind)    |
-+-----------------------------+
-   |              |
-   V              V
-Courses        Assignments
-                  |
-                  V
-          Inngest Event Bus
-                  |
-                  V
-         Worker Registry (Sanity)
-                  |
-   +---------+---------+---------+
-   |         |         |         |
-   V         V         V         V
-Grading   Quizzes   Tutors   Analytics
-                  |
-                  V
-        Neon Postgres (Results Storage)
+📝 Grading: sub_123
+🧠 Generating tutor feedback for: sub_123
+📊 Updating analytics for: stu_456
 ```
 
-Notice what *doesn't* appear in this diagram: no giant `if/else` block deciding which AI feature to run, no single monolithic backend service. Every box only knows about the event bus in the middle — that's the whole point [13].
+None of the three workers know about each other, and you could delete or add a fourth one without touching the others. That's the entire philosophy of Greymatter LMS, minus the production tooling. Everything from Part 5 onward (Inngest) is just a durable, production-grade version of this `emit()` function [13].
 
 ---
 
-## 5. The real technology stack, mapped to layers
+## 4. Why this matters for an *AI-native* LMS specifically
 
-Since this is a hands-on build, it's worth naming the actual tools behind each conceptual box now, so nothing feels unexplained when it first appears:
-
-| Layer | Technology | First appears in |
-|---|---|---|
-| Client + Application | Next.js 16 (React 19), Tailwind | Part 3 |
-| Auth | Clerk | Part 3 |
-| Data | Neon Postgres + Drizzle ORM | Part 4 |
-| Orchestration | Inngest (event bus + workflow engine) | Part 5 |
-| Registry | Sanity (worker discovery, not a CMS) | Part 6 |
-| Execution | Independently deployed AI Workers | Part 7 |
-
-Part 1 walks through *why* each of these was chosen and how strictly they're allowed to talk to one another [12].
+AI features are unusually prone to feature explosion — every new model or capability tends to arrive with its own API integration, its own edge cases, and its own failure modes. By treating grading, quiz generation, tutoring, and analytics as independent listeners on the same event rather than branches in shared code, Greymatter LMS lets AI capabilities be added, replaced, or removed without touching the LMS core. You'll see this proven concretely twice later in the series: once in Part 6, when a worker is disabled with zero code changes, and again in Part 11, when real LLM-powered workers are added with zero changes to the LMS core [10].
 
 ---
 
-## 6. What you'll actually have built, part by part
+## 5. The roadmap — what you'll build, part by part
 
-So this doesn't feel like arbitrary complexity, here's the full roadmap up front — each part builds directly on the previous one, and by Part 12 all of this is deployed and running in production:
+So this doesn't feel like abstract theory, here's the full build plan up front. Each part assumes the previous one is complete, and ends with a checkpoint before moving on:
 
-1. **Part 1 — System Architecture:** the five layers, the event bus, one request traced end-to-end [12].
-2. **Part 2 — Monorepo Setup:** scaffold the actual folder structure enforcing the boundaries from Part 1 [8].
-3. **Part 3 — App Router Foundation:** Clerk-authenticated Next.js frontend that renders UI, emits events, and never runs AI logic itself.
-4. **Part 4 — Data Modelling:** the Neon Postgres/Drizzle schema — the "memory" every worker reads from and writes back to [6].
-5. **Part 5 — Inngest:** the Orchestration Layer goes live, and `assignment.submitted` becomes a real, runnable event [5].
-6. **Part 6 — Plugin Registry:** Sanity as a live, queryable worker registry — add a feature by inserting a document, not shipping code [4].
-7. **Part 7 — Worker SDK:** a standardized, HMAC-secured contract and the formal worker registration flow [3].
-8. **Part 8 — Workflow Composition:** fan-out/fan-in execution and chained adaptive learning loops [2].
-9. **Part 9 — Hardening:** a full threat model, securing the event surface against spoofed events and forged responses [1].
-10. **Part 10 — Observability:** trace IDs, execution timelines, persistent logs, and cost tracking — no more "black box AI behavior" [11].
-11. **Part 11 — AI-Native Features:** real LLM-powered grading, quizzes, tutoring, summaries, and knowledge graph extraction — added with zero core changes [10].
-12. **Part 12 — Capstone Deployment:** every layer deployed to real infrastructure (Vercel, Neon, Inngest Cloud, Sanity, worker fleet) [9].
+1. **Part 1 — System Architecture:** design the real services, boundaries, and layers Greymatter LMS is built from, and trace one event end-to-end [12].
+2. **Part 2 — Repository & Project Foundation:** scaffold the actual monorepo — `apps/web`, shared packages, and `infra/*` — so the architectural boundaries from Part 1 are enforced by the codebase itself [8].
+3. **Part 3 — Next.js App Router Foundation:** build the first executable piece of the system — the frontend shell, route groups, and Clerk authentication [7].
+4. **Part 4 — Data Modelling:** design the Neon Postgres/Drizzle schema — the "memory" every AI worker reads from and writes results back into [6].
+5. **Part 5 — Inngest Workflow Engine:** stand up the Orchestration Layer and turn our Server Action stub into a real, event-driven function [5].
+6. **Part 6 — Plugin Registry:** replace a hardcoded worker list with a real, queryable Sanity registry [4].
+7. **Part 7 — Worker SDK:** define a standard contract every worker must implement, secure execution with request signing, and register a real, callable worker [3].
+8. **Part 8 — Inngest Deep Dive:** build real fan-out execution, fan-in aggregation, and chained events that create adaptive learning loops [2].
+9. **Part 9 — Hardening:** secure the orchestration layer and build a full threat model for Greymatter LMS's event surface [1].
+10. **Part 10 — Observability:** build tracing, distributed logging, and debugging tools so failures stop being "black box AI behavior" [11].
+11. **Part 11 — AI-Native Features:** replace every simulated worker with real AI — grading, quizzes, tutoring, summaries, and knowledge graph extraction [10].
+12. **Part 12 — Capstone Deployment:** deploy every layer to real infrastructure and map the full architecture diagram onto production [9].
 
-By the end, Greymatter LMS will have gone from this 10-line `emit()` simulation to a fully deployed, event-driven, AI-native LMS [9] — and every step along the way will be something you built yourself, in order, with a checkpoint to verify it before moving on.
+By the end, Greymatter LMS will have gone from this 10-line `emit()` simulation to a fully deployed, secure, observable, AI-native LMS — and every step along the way will be something *you* built, in order, with a working checkpoint before moving to the next.
 
 ---
 
-## 7. What's next
+## 6. What's next
 
-In the original architecture notes, the next step is described as translating this philosophy into system architecture diagrams, service boundaries, event pipeline design, worker lifecycle, and data flow between the frontend, database, event engine, and registry [13].
+We now understand the core problem (feature explosion), the alternative (events, not features), and have proven it works with a tiny runnable demo. In Part 1, we zoom out and design the **actual system architecture** for Greymatter LMS — the real services, the real boundaries, and the real flow of data through the system [12].
 
-For **Greymatter LMS**, Part 1 will do exactly that, with our actual stack:
-* System architecture diagrams (Next.js 16 ↔ Clerk ↔ Neon Postgres ↔ Inngest ↔ Sanity)
-* Service boundaries — what each piece is *allowed* and *not allowed* to do
-* The event pipeline design
-* Worker lifecycle basics
-* Data flow: how a request moves from the browser all the way to an AI worker and back
-
-**🩹 Common confusion at this stage:** "Do I need to sign up for Clerk, Sanity, Neon, or Inngest right now?" — No. Nothing in this part or Part 1 requires an account. Signups happen right before each tool is first used (Clerk and a monorepo checkpoint in Part 2/3, Neon in Part 4, Inngest in Part 5, Sanity in Part 6) [8].
+**🩹 Common confusion at this stage:** "This demo is trivial — why does the real system need Inngest, Sanity, HMAC signing, and observability at all?" — Because a toy `emit()` function doesn't survive contact with production: it can't retry a failed worker, can't discover new workers without a code change, can't verify a request wasn't forged, and can't tell you *why* something failed. Parts 5 through 10 exist to turn this simple idea into something durable enough to actually run — the payoff being real AI workers added in Part 11 with zero changes to the core [13].
 
 Ready? → **Part 1: System Architecture — Mapping Out Greymatter LMS**
