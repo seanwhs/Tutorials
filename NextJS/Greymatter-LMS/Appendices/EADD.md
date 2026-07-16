@@ -6,7 +6,7 @@
 
 **Target Core Stack:** Next.js 16 (App Router), React 19, Sanity Studio v3 (Headless CMS), Clerk Core Auth, Neon Serverless PostgreSQL, Prisma ORM, Tailwind CSS
 
-**Document Version:** 2.0.0 (Production-Ready Spec)
+**Document Version:** 1.0.0 (Production-Ready Spec)
 
 ---
 
