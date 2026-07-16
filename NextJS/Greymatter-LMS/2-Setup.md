@@ -1,4 +1,4 @@
-# Part 2 — Repository & Project Foundation: Scaffolding the Greymatter LMS Monorepo *(Revised & Expanded)*
+# Part 2 — Repository & Project Foundation: Scaffolding the Greymatter LMS Monorepo 
 
 In Part 1, we mapped out the full system architecture for Greymatter LMS — five layers, one event bus in the middle, and strict boundaries between them [12]. Now we turn that architecture into an actual folder structure, so those boundaries are enforced by the codebase itself, not just good intentions [8].
 
