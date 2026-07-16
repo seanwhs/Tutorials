@@ -1,152 +1,136 @@
 # Appendix D — External Services & Setup Reference
 
-This appendix consolidates every external service, hosted component, and setup dependency referenced throughout the Greymatter LMS series into a single checklist. Where a service was originally specified as Supabase in the source material, the Greymatter LMS adaptation (Neon + Clerk) is noted alongside it.
+This appendix consolidates every external service and hosted dependency referenced throughout the Greymatter LMS series, based strictly on what the tutorials actually build.
 
 ---
 
 ## D.1 Clerk (Authentication)
 
-**What it's for:** Identity and authentication, sitting at the very top of the architecture stack. In the original conceptual model, Clerk is literally the first box authenticated users pass through before ever reaching the LMS itself:
+**What it's for:** Identity, authentication, and organization membership. Clerk's `auth()` call confirms a student is signed in and returns their `userId` and `orgId`, which every downstream layer relies on [12].
 
-```text
-Clerk
-|
-V
-+-----------------------------+
-|        Next.js LMS         |
-+-----------------------------+
-```
-[13]
-
-**Where it's used across the series:** Every downstream layer assumes a Clerk-authenticated identity is already available — it's the entry point validated by "Server Actions (validated)" in the Defense-in-Depth chain before any request reaches the database or orchestration layers [1].
+**Where it's used across the series:**
+- Wired into the App Router in Part 3, protecting the `(dashboard)` route group via middleware while leaving `(auth)` routes public [7]
+- Every Server Action re-checks `auth()` before writing data, and this check is explicitly verified again in Part 9's hardening pass — confirming that a user from one organization cannot submit against another organization's course [1]
+- Deployed to production in Part 12, with `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` set in the Vercel dashboard [9]
 
 **Setup checklist:**
-- Create a Clerk application
-- Grab publishable + secret keys
-- Configure organization/multi-tenancy support (since every piece of data is organization-bound — see D.6 below) [1]
+- Create a Clerk account and grab your API keys before starting Part 3, section 4 [7]
+- Wire the publishable/secret keys into route middleware (`createRouteMatcher`, `clerkMiddleware`) [7]
+- For production, create or upgrade to a production-tier Clerk setup before Part 12 [9]
 
 ---
 
-## D.2 Supabase → Neon Postgres (Database)
+## D.2 Neon Postgres (Database)
 
-**What it's for:** The core academic data model — the source material specifies this as where courses, modules, lessons, enrollment, and progress tracking are stored [12]. It's described directly as "the core academic data model" [12].
+**What it's for:** The core system of record — courses, lessons, enrollments, submissions, and worker results [6].
 
 **Where it's used across the series:**
-- Core Schema Design for the entire application [6]
-- AI Artifact Tables — an optional expansion layer specifically so raw AI output doesn't get mixed with core system data [6]
-- The Defense-in-Depth chain, where this layer is responsible for RLS enforcement before Inngest ever executes anything [1]
-- The course page data flow: "Fetch course data (Supabase)" happens immediately after a user opens a course [7]
+- Schema defined in Part 4 with tables including `lessons`, `enrollments`, and `submissions`, each carrying an `orgId` column [6]
+- Since there's no Row-Level Security, every query touching `courses`, `enrollments`, or `submissions` must manually filter by `orgId`, matched against the signed-in user's Clerk organization [6]
+- The `submissions` table is what Part 5's `assignment.submitted` event reads from and writes results back into [6][5]
+- Deployed to production in Part 12, with `DATABASE_URL` set in the Vercel dashboard [9]
 
-**Greymatter LMS adaptation:** Since Neon Postgres doesn't provide built-in Row-Level Security or Auth, this checklist changes slightly for Greymatter LMS builders:
+**Setup checklist:**
 - Create a Neon project and database
-- Set up a connection string (`DATABASE_URL`)
-- Because there's no RLS layer, manually enforce the Multi-Tenant Isolation Principle — "every piece of data belongs to `organization_id`, no exceptions" [1] — in every query yourself
-- Auth responsibilities move entirely to Clerk (D.1) rather than Supabase Auth
+- Set up your `DATABASE_URL` connection string
+- Manually enforce tenant isolation via `orgId` in every query — since this replaces what RLS would otherwise provide [6]
+- Confirm `worker_results` exists early, even before a worker exists — Part 5's Inngest function needs it immediately, and Part 7 onward assumes it's already there [6]
 
 ---
 
 ## D.3 Inngest (Orchestration / Event Engine)
 
-**What it's for:** The event-driven workflow engine — the layer responsible for orchestrating AI worker execution rather than running intelligence itself [5]. The dedicated tutorial for this service is explicitly titled "Inngest, Orchestration, and AI Worker Execution" [5].
+**What it's for:** The event bus and workflow engine — the only layer allowed to decide "this event happened, go run these workers" [12][5].
 
 **Where it's used across the series:**
-- Core event-driven workflow engine setup [5]
-- Advanced orchestration: conditional/adaptive workflows [2] and multi-stage educational pipelines (grading → understanding analysis → knowledge gap detection → tutor intervention → practice generation → progress tracking) [2]
-- Powers the observability/tracing system — "each Inngest workflow generates a trace ID. Powered by Inngest" [11]
-- Referenced in the Defense-in-Depth chain as the "controlled execution" step, sitting between the database and the worker registry [1]
+- Set up in Part 5 to run the first real event-driven function, `assignment.submitted` — no account signup is required for local dev, just the CLI via `npx` [5]
+- Two pieces are deliberately left as placeholders at first — `discover-workers` (hardcoded array) and `execute-workers` (just logs) — proven out end-to-end before Part 6 and Part 7 replace them with real logic [5]
+- Extended in Part 8 with fan-out execution, fan-in aggregation (`aggregate-report`), and conditional/adaptive workflows [2]
+- Hardened in Part 9 to reject malformed events — e.g., a `student.struggling` event missing `submissionId` now fails immediately rather than proceeding [1]
+- Deployed to production in Part 12, with `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` set in the Vercel dashboard [9]
 
 **Setup checklist:**
-- Create an Inngest account/project
-- Configure event keys and signing keys
-- Set up local dev server for testing workflows before deploying
+- Install the Inngest CLI (globally or via `npx`) for local dev [5]
+- No account needed until deploying — Inngest Cloud keys are only required in Part 12 [5][9]
+- Configure event keys and signing keys before production deployment [9]
 
 ---
 
 ## D.4 Sanity (Worker Registry — not a CMS)
 
-**What it's for:** Despite being a headless CMS product, it is explicitly repurposed in this architecture:
-
-> "Powered by Sanity. Stores: AI workers, tool definitions, schemas, execution metadata. This is NOT content management. It is a runtime registry for AI capabilities." [12]
+**What it's for:** The **only** place that knows "these workers exist and listen to these events" [12]. Explicitly not used as a content management system in this architecture.
 
 **Where it's used across the series:**
-- Worker schema design — every AI tool is modeled as a Worker Document [4]
-- Capability-based extension — matching workers by capability, not just by event name [4]
-- Versioning strategy for AI tools, and a dynamic plugin marketplace model [5]
-- Input/output contract validation and safe execution contracts for third-party workers [5]
-- Referenced again at the capstone level with its role summarized simply as: "dynamic AI plug-in system" [9]
-- Appears in the Defense-in-Depth chain as "Registry (sanitized worker discovery)," positioned between Inngest and the workers themselves [1]
+- Built in Part 6 as a real alternative to a hardcoded worker array — proving that a worker can be added, disabled, or swapped as a **content edit**, with zero code changes to Inngest or the frontend [4]
+- Every worker is registered as a Sanity document with `name`, `events`, `endpoint`, and `enabled` fields — first the Grading Worker (Part 6/7) [4][3], then the Quiz Worker (Part 8), registered with the exact same document shape [2]
+- The registry client lives in `packages/registry`, with responsibilities limited to fetching workers, validating schemas, filtering by event type, and managing enable/disable state [8][4]
+- The checkpoint proving this works: toggling `enabled` to `false` on a worker document, publishing with no code touched, and confirming `discover-workers` returns an empty array — then flipping it back and confirming rediscovery [4]
 
 **Setup checklist:**
-- Create a Sanity project
-- Deploy the worker registry schema
-- Configure dataset access for both local development and production queries
+- Create a Sanity project and dataset (e.g., `production`) [4]
+- Deploy the worker document schema
+- Register each worker (name, events, endpoint, enabled) as you build it, starting in Part 6 [4]
 
 ---
 
-## D.5 Worker SDK / Third-Party AI Services
+## D.5 Worker Services (Execution Layer)
 
-**What it's for:** Not a single hosted service, but a standard SDK interface [3] that allows an entire ecosystem of independently deployed AI tools to plug into the LMS. The example ecosystem given in the source material:
-
-```text
-Nexus Marketplace
-|
-+-- Markly (grading)
-+-- TutorAI
-+-- ExamGuard
-+-- InsightAI
-```
-[3]
-
-**Where it's used across the series:** The possible ecosystem explicitly includes grading AI tools, tutoring agents, plagiarism detectors, analytics engines, and exam proctors — all plugging in via the SDK [3]. Each of these would be its own external service/deployment with its own setup requirements (API keys, hosting, etc.), separate from the core Greymatter LMS stack.
-
-**Setup checklist (per worker):**
-- Deploy the worker as its own service (any language/host)
-- Register it in the Sanity registry (D.4) as a Worker Document
-- Configure whatever third-party AI provider credentials that specific worker needs (e.g., an LLM API key)
-
----
-
-## D.6 Cross-Cutting Requirement: Multi-Tenant Isolation
-
-This isn't a service to sign up for, but a configuration requirement that touches **every** service above:
-
-> "Every piece of data belongs to `organization_id`. No exceptions." [1]
-
-When setting up Clerk (D.1), Neon (D.2), Inngest (D.3), and Sanity (D.4), confirm each one is configured to carry or respect an `organization_id` boundary — this is described as what enables safe multi-tenancy at the database layer specifically: "every table is scoped by organization" [6].
-
----
-
-## D.7 CI/CD & Production Deployment Services
-
-**What it's for:** The capstone architecture layer covering pipeline architecture and recovery planning for the whole stack once deployed [9].
+**What it's for:** Independently deployed AI workers — the only place AI logic actually lives [12]. Each worker implements a shared `WorkerInput`/`WorkerOutput` contract.
 
 **Where it's used across the series:**
-- CI/CD Pipeline Architecture — automating build/test/deploy across the monorepo [9]
-- Disaster Recovery Model — planning for failure recovery in production [9]
+- The Grading Worker is built and registered first, in Part 7, following a six-step formal registration flow: build → deploy → generate a shared `WORKER_SIGNING_SECRET` → create a Sanity document → publish → auto-discovery via `findWorkers()` [3]
+- The Quiz Worker follows the identical flow in Part 8 [2]
+- The Summary Worker is added in Part 11 as a genuinely new capability, listening to a brand-new event (`lesson.completed`) rather than `assignment.submitted` — the clearest proof that "new AI feature = new worker, no core changes" holds [10]
+- Every request/response is HMAC-signed and verified — using an `x-signature` header for the Grading and Quiz Workers, and `x-greymatter-signature` for the Summary Worker [3][10]
 
-**Setup checklist:** Not detailed further in the available source material beyond these two section headers [9] — treat this as the stage where you connect your hosting provider(s) for Next.js, your Neon production branch, Inngest Cloud, and deployed Sanity Studio into a repeatable pipeline.
+**Setup checklist (per worker):**
+- Deploy the worker as its own independent service (locally first; Vercel/Railway in Part 12) [3][9]
+- Share the same `WORKER_SIGNING_SECRET` between the orchestrator and the worker [3]
+- Register it in Sanity (D.4) as a document with `name`, `events`, `endpoint`, `enabled: true` [3][4]
+- Set the worker's own environment variables (e.g., `OPENAI_API_KEY` for the Summary Worker in Part 11) [10]
+
+---
+
+## D.6 Cross-Cutting Requirement: Tenant Isolation (`orgId`)
+
+Not a separate service, but a requirement touching Clerk, Neon, and Inngest together: every tenant-scoped table carries an `orgId` column, and every query must filter by it, since Neon provides no Row-Level Security [6]. This is checked at multiple points:
+- In every Server Action, matched against the Clerk-authenticated user's `orgId` [6]
+- Re-verified explicitly in Part 9's hardening pass — confirmed via a checkpoint using two separate Clerk test accounts in two different organizations, where Org A's user attempting to submit against Org B's `courseId` receives a "Rejected" error [1]
+
+---
+
+## D.7 Production Deployment Services
+
+**What it's for:** Taking every service above from local development to production.
+
+**Where it's used across the series:** Part 12 deploys the frontend via `vercel`, and sets every accumulated environment variable in the Vercel dashboard — forming a direct audit trail back through the series: Clerk keys (Part 3), `DATABASE_URL` (Part 4), Inngest keys (Part 5/9), and `WORKER_SIGNING_SECRET` (Part 7) [9][1][3].
+
+**Setup checklist:**
+- Production-tier (or upgraded free-tier) accounts for Vercel, Neon, Clerk, Inngest Cloud, and Sanity — each created just before it's needed [9]
+- Run `vercel` from `apps/web` [9]
+- Set all environment variables in the Vercel dashboard [9]
+- **✅ Checkpoint:** Run `vercel --prod`, visit your deployed URL, sign in with Clerk, and confirm `/courses` renders real data from Neon Postgres [9]
 
 ---
 
 ## D.8 Quick Reference Table
 
-| Service | Original Spec | Greymatter LMS Adaptation | Primary Role |
-|---|---|---|---|
-| Clerk | Clerk [13] | Unchanged | Authentication, top of the stack |
-| Database | Supabase [12] [6] | Neon Postgres | Core academic data + AI artifacts |
-| RLS / Isolation | Supabase RLS [1] | Manual `organization_id` checks | Multi-tenant safety |
-| Orchestration | Inngest [5] | Unchanged | Event bus, workflow execution, tracing |
-| Registry | Sanity [12] [4] | Unchanged | Worker discovery, capability matching |
-| Worker Ecosystem | Custom SDK [3] | Unchanged | Third-party AI tool plug-ins |
-| CI/CD & Recovery | Capstone tooling [9] | Unchanged | Production deployment |
+| Service | Introduced in | Primary Role |
+|---|---|---|
+| Clerk | Part 3 [7] | Authentication, org membership |
+| Neon Postgres | Part 4 [6] | System of record, manual tenant isolation |
+| Inngest | Part 5 [5] | Event bus, orchestration, fan-out/fan-in [2] |
+| Sanity | Part 6 [4] | Worker registry (not a CMS) |
+| Worker Services | Part 7, extended Part 8 & 11 [3][2][10] | Independently deployed AI execution |
+| Production Deployment | Part 12 [9] | Hosting every layer above |
 
 ---
 
 ## D.9 How to Use This Appendix
 
 Before starting any tutorial part that introduces a new service, check this appendix first to confirm:
-1. Do you have an account/project created for it already? (D.1–D.4)
-2. Does it need to respect the organization-scoping rule? (D.6) — nearly everything does.
-3. Is this a core hosted service, or a third-party worker you're expected to deploy yourself? (D.5)
+1. Do you already have an account/project for it? (D.1–D.4)
+2. Does this logic need to respect the `orgId` tenant-scoping rule? (D.6) — nearly everything touching Neon or Inngest does [6][1]
+3. Is this a core hosted service, or a worker you're expected to build and deploy yourself? (D.5)
 
-If a specific setup step (exact dashboard screen, exact CLI command) isn't covered here, that level of detail wasn't present in the source material reviewed for this appendix — treat D.1–D.5's checklists as a starting outline to fill in with each provider's current onboarding docs.
+If a specific setup step isn't covered here, that level of detail wasn't present in the source material — treat D.1–D.5's checklists as a starting outline to fill in with each provider's current onboarding docs.
