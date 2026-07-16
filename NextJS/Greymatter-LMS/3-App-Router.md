@@ -1,71 +1,40 @@
 # Part 3 — Next.js App Router Foundation: Building the Greymatter LMS Frontend
 
-In Part 2, we scaffolded the Greymatter LMS monorepo — a proper folder structure with strict boundaries between `apps/web`, `packages/*`, and `infra/*`. Now it's time to build the first real, executable piece of the system: the Next.js 16 frontend itself.
+Following directly from Part 2, where we scaffolded the Greymatter LMS monorepo with strict boundaries between `apps/web`, `packages/*`, and `infra/*`, this part builds the first real, executable piece of the system: the Next.js 16 frontend itself [7].
 
 **🎯 Goal of this lesson:** Stand up the App Router structure, wire in Clerk authentication, and render our first Tailwind-styled dashboard page — while respecting the strict rule that the frontend does **not** run AI, orchestrate workflows, or execute business logic [12].
 
-**🧰 Prereqs:** Part 2 completed (monorepo exists). You'll need a free Clerk account for this lesson — sign up at clerk.com and grab your API keys before starting section 4.
+**🧰 Prereqs:** Part 2 completed (monorepo exists). You'll need a free Clerk account for this lesson — sign up at clerk.com and grab your API keys before starting section 4 [7].
 
 ---
 
-## 1. What the frontend is actually responsible for
+## 1. Architectural boundaries — a reminder
 
-Before writing code, let's restate the boundary from Part 1 and Part 2, because it's the single most important rule in this lesson. The original spec is blunt about it — the Next.js app's responsibilities are:
-
-* UI rendering
-* server actions
-* authentication (via Clerk)
-* event emission
-* data fetching from the database
-
-And explicitly, it does **NOT**:
-* run AI logic
-* define workflows
-* contain worker logic [8]
-
-Everything we build in this part exists to support those five responsibilities — nothing more.
+Before writing any code, remember the rule established in Part 2: `apps/web` handles UI rendering, Server Actions, authentication (via Clerk), event emission, and data fetching from Neon Postgres — but it does **not** run AI logic, define workflows, or contain worker logic [8]. Everything in this part respects that boundary.
 
 ---
 
-## 2. Scaffolding the Next.js 16 app
+## 2. Setting up route groups
 
-Inside the monorepo, initialize the actual app:
+Inside `apps/web`, scaffold the App Router structure with route groups separating authenticated and unauthenticated areas:
 
 ```bash
-cd apps/web
-pnpm create next-app@latest . --typescript --tailwind --app --src-dir --import-alias "@/*"
+mkdir -p src/app/(auth)/sign-in/[[...sign-in]]
+mkdir -p src/app/(auth)/sign-up/[[...sign-up]]
+mkdir -p src/app/(dashboard)/courses
+mkdir -p src/app/(dashboard)/assignments
 ```
-
-When prompted, confirm you want the App Router (not Pages Router) — this matches the architecture described in the original tutorial series [7].
-
-**✅ Checkpoint:** Run `pnpm dev` from `apps/web` and visit `localhost:3000`. You should see the default Next.js welcome page with Tailwind already working.
 
 ---
 
-## 3. Route Groups Strategy
+## 3. Tailwind setup
 
-The original tutorial establishes a route groups strategy for organizing the App Router [7]. For Greymatter LMS, we'll use three route groups that map directly to who can access them:
+Install and configure Tailwind so our dashboard pages have real styling from the start:
 
 ```bash
-mkdir -p src/app/\(auth\)/sign-in src/app/\(auth\)/sign-up
-mkdir -p src/app/\(dashboard\)/courses src/app/\(dashboard\)/assignments
-mkdir -p src/app/\(marketing\)
+pnpm add -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
 ```
-
-```text
-src/app/
-  (marketing)/          # public landing page — no auth required
-    page.tsx
-  (auth)/               # sign-in / sign-up flows
-    sign-in/[[...sign-in]]/page.tsx
-    sign-up/[[...sign-up]]/page.tsx
-  (dashboard)/           # authenticated LMS core
-    courses/page.tsx
-    assignments/page.tsx
-    layout.tsx
-```
-
-Route groups (the parentheses folders) don't affect the URL — `(dashboard)/courses` still resolves to `/courses`. They exist purely to let us apply different layouts and middleware rules to different sections of the app.
 
 ---
 
@@ -137,81 +106,31 @@ export default function SignInPage() {
 }
 ```
 
-**✅ Checkpoint:** Visit `localhost:3000/courses` while signed out. You should be redirected to `/sign-in`. Sign up for a test account, and you should land back on `/courses` successfully.
+**✅ Checkpoint:** Visit `localhost:3000/courses` while signed out. You should be redirected to `/sign-in`. Sign up for a test account, and you should land back on `/courses` successfully [7].
 
 ---
 
-## 5. Building the dashboard layout (Tailwind)
+## 5. A Server Action stub — deliberately thin
 
-```tsx
-// src/app/(dashboard)/layout.tsx
-import { UserButton } from "@clerk/nextjs";
-
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex items-center justify-between border-b bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-slate-800">Greymatter LMS</h1>
-        <UserButton afterSignOutUrl="/" />
-      </header>
-      <main className="mx-auto max-w-5xl p-6">{children}</main>
-    </div>
-  );
-}
-```
-
-```tsx
-// src/app/(dashboard)/courses/page.tsx
-export default function CoursesPage() {
-  return (
-    <div>
-      <h2 className="mb-4 text-2xl font-bold text-slate-900">My Courses</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg border bg-white p-4 shadow-sm">
-          <h3 className="font-semibold">Intro to Event-Driven Systems</h3>
-          <p className="text-sm text-slate-500">4 assignments</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
-**✅ Checkpoint:** Visit `/courses` while signed in. You should see the Greymatter LMS header with your Clerk user avatar, and a single course card styled with Tailwind.
-
----
-
-## 6. Event emission layer — the frontend's real job
-
-Here's where we tie this back to Part 0 and Part 1. The frontend's *only* job related to workflows is to **emit an event** — never to execute logic itself. Let's preview the event emission layer we'll fully wire up once Inngest is set up in Part 5. For now, create the Server Action stub:
+The frontend is more than a UI layer — it's an event emitter, a workflow initiator, and a domain gateway, but one that must stay **deliberately thin** [7]. So for now, we write a Server Action stub that stops short of any real business logic — no database write, no event emission yet:
 
 ```typescript
 // src/app/(dashboard)/assignments/actions.ts
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
-
-export async function submitAssignment(assignmentId: string, content: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  // In Part 5, this becomes: await inngest.send({ name: "assignment.submitted", ... })
-  console.log("Would emit assignment.submitted event for:", { assignmentId, userId });
-
-  return { success: true };
+export async function submitAssignment(assignmentId: string, courseId: string, content: string) {
+  console.log("Submission received:", { assignmentId, courseId, content });
 }
 ```
 
-Notice what this function does **not** do: it doesn't grade anything, doesn't call an AI model, and doesn't define a workflow. That logic lives entirely in the Orchestration and Execution layers we mapped out in Part 1 — the frontend's job stops at "authenticate, then emit."
-
-**✅ Checkpoint:** Add a simple form to `assignments/page.tsx` that calls `submitAssignment`, submit it, and confirm the console log appears in your terminal (not the browser console — Server Actions run server-side).
+We'll make this real in two later steps: writing to Neon Postgres in Part 4, and emitting the `assignment.submitted` event to Inngest in Part 5 [5].
 
 ---
 
-## 7. What's next
+## 6. What's next
 
-We now have a working Next.js 16 app with route groups, Clerk authentication, a Tailwind-styled dashboard, and a Server Action stub ready to emit events. In Part 4, we build the actual system of record — the database schema — using Neon Postgres, since as the original tutorial puts it: "If events are the nervous system, the database is the memory" [6]. We'll also confront directly what changes when moving from Supabase's built-in RLS to Neon + application-level checks.
+We now have a Next.js 16 frontend shell — route groups, Clerk auth, a Tailwind dashboard, and a Server Action stub that stops short of any business logic. In Part 4, we build the system of record: the Greymatter LMS database itself, using Neon Postgres and Drizzle ORM in place of Supabase [6].
 
-**🩹 Common confusion at this stage:** "Why does `submitAssignment` check `auth()` again if middleware already protects the route?" — Middleware protects *pages*, but Server Actions can be called directly (e.g., from client-side JS), so they must **always** re-verify identity themselves. This is the first of several defense-in-depth patterns we'll expand on heavily in Part 9 (Hardening) [1].
+**🩹 Common confusion at this stage:** "Why does the Server Action just `console.log` instead of doing something real?" — Because at this point in the series we don't have a database (Part 4) or an event bus (Part 5) to connect it to yet. Building it as an empty stub now, then filling it in piece by piece, is deliberate — it lets you see exactly which line of code corresponds to which architectural layer as each one comes online.
 
-Ready? → **Part 4: Data Modelling for Greymatter LMS**
+Ready? → **Part 4: Data Modelling — Designing the Greymatter LMS Database**
