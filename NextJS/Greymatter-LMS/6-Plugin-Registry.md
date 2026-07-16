@@ -1,33 +1,29 @@
-# Part 6 — Building the Plugin Registry: The Sanity Worker System for Greymatter LMS
+# Part 6 — Building the Plugin Registry: The Sanity Worker System for Greymatter LMS 
 
-In Part 5, we built our first real Inngest function — `assignment.submitted` — but it used a hardcoded array of worker names as a placeholder for "worker discovery." Now we fix that properly by building the actual registry system.
+In Part 5, we built our first real Inngest function — `assignment.submitted` — with a working four-step pipeline: fetch context, discover workers, execute workers, persist results [5]. But one piece was deliberately faked: "discover workers" returned a hardcoded array instead of querying anything real [5]. Now we fix that properly by building the actual registry system.
 
-**🎯 Goal of this lesson:** Understand why Greymatter LMS uses Sanity as a real-time, queryable worker registry (not a CMS in the traditional sense), design the worker schema, register a real worker through Sanity Studio, and replace our hardcoded array with a live registry query.
+**🎯 Goal of this lesson:** Understand why Greymatter LMS uses Sanity as a real-time, queryable worker registry (not a CMS in the traditional sense), design the worker schema, register a real worker through Sanity Studio, and replace our hardcoded array with a live registry query [4].
 
-**🧰 Prereqs:** Part 5 completed (Inngest running locally). You'll need a free Sanity account (sanity.io) — we'll create a project in section 2.
-
----
-
-## 1. Why we need a dynamic registry at all
-
-Back in Part 0, we established that AI is not a feature bolted onto the LMS — it's a pluggable execution layer [13]. But a pluggable layer is useless if "which plugins exist" is still hardcoded somewhere in your codebase. The philosophy behind this part is explicit:
-
-> "We need a dynamic registry: not code-based, not config files, not environment variables. We need a **queryable system of record**." [13]
-
-Without this, adding a new AI worker means: `Code → Integration → Deployment` — a full release cycle every time. With a registry, it becomes: `Sanity Registry → Worker Discovery → Runtime Execution` — adding a new capability is just **inserting a document**, not modifying the system [13].
-
-This is also confirmed at the system-architecture level — Sanity's role in Greymatter LMS is described as "not content management," but rather a "runtime registry for AI capabilities" that stores workers, tool definitions, schemas, and execution metadata [12].
+**🧰 Prereqs:** Part 5 completed (Inngest running locally). You'll need a free Sanity account (sanity.io) — we'll create a project in section 2 [4].
 
 ---
 
-## 2. Setting up Sanity for Greymatter LMS
+## 1. Why a registry, not just a config file
+
+Recall the rule from Part 1: Sanity is the **only** place that knows "these workers exist and listen to these events" [12]. It would be simpler to just keep an array of workers in a TypeScript file somewhere in `infra/inngest` — but that array would live *inside* the Orchestration Layer's codebase, meaning every new worker would require a code change and a redeploy. A real registry lets us add, disable, or swap a worker as a **content edit**, with zero code changes to Inngest or the frontend — proving the "new AI feature = new worker, no core changes" promise from Part 5 concretely [5].
+
+---
+
+## 2. Creating a Sanity project
 
 ```bash
 cd infra/sanity
-pnpm dlx sanity@latest init --project-name "greymatter-lms-registry"
+pnpm dlx sanity@latest init
 ```
 
-Follow the prompts — choose "Clean project with no predefined schemas" since we're not using Sanity for content, we're using it purely as a plugin registry [4].
+Follow the prompts to create a new project (choose the "Clean project with no predefined schemas" template) and note your **Project ID** — you'll need it in section 5.
+
+**✅ Checkpoint:** Run `pnpm dlx sanity@latest dev` from `infra/sanity` and visit the local Sanity Studio URL it prints (typically `localhost:3333`). You should see an empty Studio with no document types yet [4].
 
 ---
 
@@ -70,35 +66,24 @@ export default defineConfig({
 });
 ```
 
-**✅ Checkpoint:** Run `pnpm dev` inside `infra/sanity`. Sanity Studio should open locally, showing a "Worker" document type ready to be filled in — no blog posts, no pages, just workers.
+**✅ Checkpoint:** Restart `pnpm dlx sanity@latest dev` and confirm a "Worker" document type now appears in the Studio sidebar. Click "Create new Worker" and confirm the four fields (`name`, `events`, `endpoint`, `enabled`) all render correctly [4].
 
 ---
 
-## 4. Registering your first real worker
+## 4. Registering our first real worker document
 
-Instead of writing code to add a worker, open Sanity Studio in the browser and create a new "Worker" document by hand:
+Using the Studio UI you just confirmed works, create one document:
 
-```json
-{
-  "name": "Grading Worker",
-  "enabled": true,
-  "events": ["assignment.submitted"],
-  "endpoint": "http://localhost:4000/api/grading-worker"
-}
-```
+| Field | Value |
+|---|---|
+| `name` | `Grading Worker` |
+| `events` | `["assignment.submitted"]` |
+| `endpoint` | `http://localhost:4000/api/grading-worker` |
+| `enabled` | `true` |
 
-This mirrors the exact worker shape used throughout the series — for example, "Markly Grader" registered against `assignment.submitted` with an endpoint and a capabilities list [12], and the "Quiz Generator" registered against `lesson.completed` [13]. Add a second worker too, so we have something to actually discover:
+Click **Publish**. This single document is what turns "discover workers" from a hardcoded array into a real, queryable fact.
 
-```json
-{
-  "name": "Quiz Worker",
-  "enabled": true,
-  "events": ["assignment.submitted"],
-  "endpoint": "http://localhost:4000/api/quiz-worker"
-}
-```
-
-**✅ Checkpoint:** Click "Publish" on both documents in Sanity Studio. You now have two real, queryable worker records — no code deployment required.
+**✅ Checkpoint:** In the Studio's "Vision" tab (a built-in GROQ query tester), run `*[_type == "worker"]` and confirm your Grading Worker document is returned as JSON.
 
 ---
 
@@ -133,86 +118,44 @@ export async function findWorkers(event: string) {
 
 This is our "worker discovery" query — and notice it maps exactly to the design principle from Part 5: **workers are NOT hardcoded, they come from the registry, stored in Sanity** [5].
 
+**✅ Checkpoint:** From a temporary test script (or `tsx` one-liner) inside `packages/registry`, call `findWorkers("assignment.submitted")` and confirm it returns an array containing your Grading Worker document — not an empty array, and not an error.
+
 ---
 
-## 6. Wiring the real registry into our Inngest function
+## 6. Replacing the hardcoded array in our Inngest function
 
-Now we go back and fix the placeholder from Part 5:
+Now go back to the `assignmentSubmitted` function we built in Part 5 and swap the placeholder `discover-workers` step for a real registry call:
 
 ```typescript
-// infra/inngest/functions/assignmentSubmitted.ts
-import { inngest } from "../client";
-import { db } from "../../db";
-import { submissions, workerResults } from "../../db/schema";
+// infra/inngest/functions/assignmentSubmitted.ts (discover-workers step, updated)
 import { findWorkers } from "../../../packages/registry";
-import { eq } from "drizzle-orm";
 
-export const assignmentSubmitted = inngest.createFunction(
-  { id: "assignment-submitted" },
-  { event: "assignment.submitted" },
-  async ({ event, step }) => {
-    const submission = await step.run("fetch-context", async () => {
-      return db.query.submissions.findFirst({
-        where: eq(submissions.id, event.data.submissionId),
-      });
-    });
-
-    // Real worker discovery — replaces the hardcoded array from Part 5
-    const workers = await step.run("discover-workers", async () => {
-      return findWorkers("assignment.submitted");
-    });
-
-    const results = await step.run("execute-workers", async () => {
-      return Promise.all(
-        workers.map(async (worker: any) => {
-          const response = await fetch(worker.endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ submission }),
-          });
-          return { workerName: worker.name, data: await response.json() };
-        })
-      );
-    });
-
-    await step.run("persist-results", async () => {
-      for (const result of results) {
-        await db.insert(workerResults).values({
-          submissionId: submission!.id,
-          workerName: result.workerName,
-          resultType: "unknown",
-          resultData: JSON.stringify(result.data),
-        });
-      }
-    });
-
-    return { submissionId: submission!.id, workerCount: results.length };
-  }
-);
+// Step 2: discover workers (now real!)
+const workers = await step.run("discover-workers", async () => {
+  return findWorkers("assignment.submitted");
+});
 ```
 
-**✅ Checkpoint:** Submit an assignment again through your UI. Open `localhost:8288` and confirm the `discover-workers` step now returns real data pulled from Sanity — two worker objects with real names and endpoints, not the hardcoded strings from Part 5. (The `execute-workers` step will fail right now since `localhost:4000` doesn't exist yet — that's expected. We build real worker endpoints in Part 7.)
+Everything downstream — `execute-workers` and `persist-results` — stays exactly as it was in Part 5 [5]. Only the source of the worker list changed, from a hardcoded array to a live Sanity query.
+
+**✅ Checkpoint:** Resubmit an assignment through the dashboard (built in Part 3 [7]). In the Inngest dashboard (`localhost:8288`), confirm the `discover-workers` step now shows your real Grading Worker document as its output, instead of the placeholder array from Part 5.
 
 ---
 
-## 7. Toggling a worker off — proving the point
+## 7. Proving the "content edit, not code change" promise
 
-This is the payoff moment. Go back into Sanity Studio, open the "Quiz Worker" document, and flip `enabled` to `false`. Publish it. Submit another assignment.
+This is the checkpoint that matters most in this part — not just that the registry *works*, but that it behaves the way Part 1's service boundaries promised [12].
 
-**✅ Checkpoint:** The `discover-workers` step should now return only one worker — Grading Worker. You didn't touch a single line of code, redeploy anything, or restart any service. This is exactly the principle stated back in Part 5: **"New AI feature = new worker. No core changes."** [5]
+Go back into Sanity Studio and toggle `enabled` to `false` on your Grading Worker document. Publish the change. **Do not touch any code.**
 
----
-
-## 8. What we've built
-
-To recap what this tutorial covered, matching the original summary of this stage: a Sanity-based worker registry, event → worker mapping, capability-based discovery, and the foundation for a fully dynamic AI plug-in ecosystem [4]. Compared to hardcoding, Sanity here is functioning as "a real-time, queryable plug-in registry" [4] — deliberately not used as a traditional content management system.
+**✅ Checkpoint:** Resubmit an assignment. In the Inngest dashboard, confirm the `discover-workers` step now returns an **empty array**, and no worker is called. Then flip `enabled` back to `true`, publish, and resubmit — confirm the Grading Worker is discovered again. You just disabled and re-enabled an AI capability in a production-shaped system with zero deploys — this is the exact mechanism Part 7's registration flow and Part 11's new AI workers both depend on [3].
 
 ---
 
-## 9. What's next
+## 8. What's next
 
-We now have workers being *discovered* dynamically, but the endpoints they point to don't exist yet, and there's no standard contract for what a "worker" must accept or return. In Part 7, we build the official **Worker SDK** — a standardized interface (in both TypeScript and Python) so any AI tool, written by anyone, can plug into Greymatter LMS safely and consistently [3].
+We've replaced our hardcoded worker list with a real, live Sanity registry, proven that toggling `enabled` changes runtime behavior with zero code changes, and confirmed the registry client (`packages/registry`) is a clean, standalone package other layers can depend on. There's still a gap, though: right now anyone could stand up an HTTP endpoint, register it as a worker, and Inngest would call it — with no verification that the request or response is legitimate. In Part 7, we fix this by building a **Worker SDK**: a standard input/output contract every worker must implement, plus HMAC request signing to secure execution end-to-end [3].
 
-**🩹 Common confusion at this stage:** "Why store `endpoint` as a plain URL with no auth in the schema — isn't that insecure?" — Good instinct. Right now, any worker endpoint is called with zero verification of who's calling it or whether the payload is trustworthy. We'll fix this properly in Part 7 with HMAC request signing [3], and again in Part 9 (Hardening), where we enforce that workers never access the database directly, never call other workers, and never bypass the registry [1].
+**🩹 Common confusion at this stage:** "If anyone can create a Sanity document with any `endpoint` URL, what stops a malicious or broken worker from being registered?" — Nothing yet, and that's intentional at this stage of the series so the registry mechanism itself stays simple to learn. Part 7 introduces the signed request/response contract that closes this gap [3], and Part 9's threat model explicitly revisits "disabled/malicious worker still executing" as a threat whose defense is exactly the `enabled` flag check you just tested in section 7 [1].
 
 Ready? → **Part 7: Building the Worker SDK for Greymatter LMS**
