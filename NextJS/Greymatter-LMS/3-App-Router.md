@@ -1,10 +1,10 @@
 # Part 3 — Next.js App Router Foundation: Building the Greymatter LMS Frontend 
 
-In Part 2, we scaffolded the Greymatter LMS monorepo — a proper folder structure with strict boundaries between `apps/web`, `packages/*`, and `infra/*` [8]. Now it's time to build the first real, executable piece of the system: the Next.js 16 frontend itself [7].
+In Part 2, we scaffolded a real, running Next.js 16 app with `create-next-app`, then grew the rest of the monorepo — `packages/*` and `infra/*` — around it, giving us a proper folder structure with strict boundaries between `apps/web`, shared packages, and infrastructure code [8]. Now it's time to build out that already-running app into the first real, executable piece of the system: the Greymatter LMS frontend itself [7].
 
 **🎯 Goal of this lesson:** Stand up the App Router structure, wire in Clerk authentication, and render our first Tailwind-styled dashboard page — while respecting the strict rule that the frontend does **not** run AI, orchestrate workflows, or execute business logic [12].
 
-**🧰 Prereqs:** Part 2 completed (monorepo exists). You'll need a free Clerk account for this lesson — sign up at clerk.com and grab your API keys before starting section 4 [7].
+**🧰 Prereqs:** Part 2 completed (monorepo exists, `apps/web` runs on `localhost:3000`). You'll need a free Clerk account for this lesson — sign up at clerk.com and grab your API keys before starting section 4 [7].
 
 ---
 
@@ -12,60 +12,64 @@ In Part 2, we scaffolded the Greymatter LMS monorepo — a proper folder structu
 
 Just like the original spec defines strict responsibilities for `apps/web` [8], remember the rule we set in Part 2: `apps/web` handles UI rendering, Server Actions, authentication via Clerk, event emission, and data fetching from Neon Postgres — but it does **not** run AI logic, define workflows, or contain worker logic [8]. Every section below respects that boundary. If you ever find yourself tempted to write grading logic inside a Server Action, that's the signal you've drifted outside this part's scope — that logic belongs in a worker, built starting in Part 7 [3].
 
+This restriction can feel counterintuitive at first — it would genuinely be *easier* to just call an OpenAI API directly from a Server Action right now. Resisting that urge here is exactly what keeps Part 5's Orchestration Layer, Part 6's Registry Layer, and Part 7's Execution Layer meaningful rather than redundant [5][4][3]. Every "why doesn't this just call the AI directly" moment in this part has the same answer: that call belongs several layers downstream, not here.
+
 ---
 
-## 2. Scaffolding the Next.js 16 app
+## 2. Confirming what Part 2 already gave us
 
-Inside `apps/web` (created empty back in Part 2), scaffold a real Next.js 16 project using the App Router:
+Since Part 2 already ran `create-next-app` inside `apps/web` — complete with TypeScript, Tailwind, the App Router, a `src/` directory, and the `@/*` import alias — this part doesn't scaffold anything new from scratch. Instead, open `apps/web` and confirm the baseline is intact:
 
 ```bash
 cd apps/web
-pnpm create next-app@latest . --typescript --tailwind --app --src-dir --import-alias "@/*"
+npm run dev
 ```
 
-When prompted, confirm the **App Router** (not Pages Router) — this is required for every later part, since Server Actions and route groups both depend on it.
-
-**✅ Checkpoint:** Run `pnpm dev` from `apps/web` and visit `localhost:3000`. You should see the default Next.js welcome page rendering with Tailwind already active. If Tailwind classes aren't applying, confirm `--tailwind` was included in the scaffold command above before continuing.
+**✅ Checkpoint:** Visit `localhost:3000` and confirm the default Next.js welcome page still renders. Everything in this part modifies this already-running project rather than creating a new one.
 
 ---
 
-## 3. Setting up route groups
+## 3. Structuring the App Router with route groups
 
-Now shape the App Router into the structure Greymatter LMS actually needs — separating unauthenticated auth pages from the authenticated dashboard:
+Route groups let us organize the app by *audience* (public marketing pages vs. authenticated dashboard) without that grouping affecting the URL itself — folders wrapped in parentheses are invisible to the actual route path. Inside `apps/web/src/app`, create:
 
-```bash
-mkdir -p src/app/\(auth\)/sign-in/\[\[...sign-in\]\]
-mkdir -p src/app/\(auth\)/sign-up/\[\[...sign-up\]\]
-mkdir -p src/app/\(dashboard\)/courses
-mkdir -p src/app/\(dashboard\)/assignments
+```text
+app/
+  (marketing)/
+    page.tsx           # public landing page — route: /
+  (dashboard)/
+    layout.tsx          # authenticated shell — wraps all dashboard routes
+    dashboard/
+      page.tsx           # route: /dashboard
+    courses/
+      page.tsx           # route: /courses
+  layout.tsx             # root layout — wraps everything
 ```
 
-**✅ Checkpoint:** Run `tree -L 4 src/app` (or `ls -R src/app`) and confirm you see both `(auth)` and `(dashboard)` route groups, each with their respective subfolders. Route groups in parentheses don't affect the URL — `(dashboard)/courses` still resolves to `/courses`, which matters for the middleware we write next.
+The `(marketing)` and `(dashboard)` folder names never appear in the URL — `(dashboard)/dashboard/page.tsx` still resolves to `/dashboard`. This is exactly the tool for our purpose: keeping "logged-out" and "logged-in" concerns cleanly separated in the file tree while sharing one deployment.
 
 ---
 
-## 4. Authentication Layer — Clerk
+## 4. Wiring in Clerk authentication
 
-The tutorial series is explicit and short on this point: "We use Clerk" [7]. Let's wire it in.
-
-```bash
-pnpm add @clerk/nextjs
-```
-
-Add your keys to `.env.local` — this is the first entry in what will become a growing list of environment variables accumulated across the series, all the way through deployment in Part 12 [9]:
+Install Clerk's Next.js package from inside `apps/web`:
 
 ```bash
-# apps/web/.env.local
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxx
-CLERK_SECRET_KEY=sk_test_xxxxxxxx
+npm install @clerk/nextjs
 ```
 
-Wrap the app in the provider:
+Add your Clerk keys to `apps/web/.env.local`:
+
+```text
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+```
+
+Wrap the root layout in `ClerkProvider`, so every route — marketing or dashboard — has access to auth state:
 
 ```tsx
-// src/app/layout.tsx
+// app/layout.tsx
 import { ClerkProvider } from "@clerk/nextjs";
-import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -78,82 +82,79 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-Protect the `(dashboard)` route group with middleware:
-
-```typescript
-// src/middleware.ts
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
-const isProtectedRoute = createRouteMatcher(["/courses(.*)", "/assignments(.*)"]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
-  }
-});
-
-export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
-};
-```
-
-Build the sign-in page:
+Then protect the dashboard route group specifically, so marketing pages stay public while `/dashboard` and `/courses` require sign-in:
 
 ```tsx
-// src/app/(auth)/sign-in/[[...sign-in]]/page.tsx
-import { SignIn } from "@clerk/nextjs";
+// app/(dashboard)/layout.tsx
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-export default function SignInPage() {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { userId, orgId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  return <div className="min-h-screen bg-slate-50">{children}</div>;
+}
+```
+
+Notice `orgId` is pulled out here too, not just `userId` — Greymatter LMS is multi-tenant (multiple schools/organizations sharing the same deployment), and `orgId` is what Part 4's database schema uses to keep one organization's courses and submissions invisible to another [6].
+
+**✅ Checkpoint:** Visit `/dashboard` while signed out and confirm you're redirected to `/sign-in`. Sign in, then confirm `/dashboard` renders and `/` (marketing) still loads without requiring auth.
+
+---
+
+## 5. Building the first Tailwind dashboard page
+
+Since Part 2's `create-next-app` command already included the `--tailwind` flag, no additional setup is needed — just write the page:
+
+```tsx
+// app/(dashboard)/dashboard/page.tsx
+import { auth } from "@clerk/nextjs/server";
+
+export default async function DashboardPage() {
+  const { userId, orgId } = await auth();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <SignIn />
-    </div>
+    <main className="p-8">
+      <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+      <p className="text-slate-600 mt-2">
+        Signed in as {userId}, organization {orgId ?? "none"}
+      </p>
+      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-slate-500">No courses yet — Part 4 gives us somewhere to store them.</p>
+      </div>
+    </main>
   );
 }
 ```
 
-**✅ Checkpoint:** Visit `localhost:3000/courses` while signed out. You should be redirected to `/sign-in`. Sign up for a test account, and you should land back on `/courses` successfully [7].
-
-**🩹 Common confusion at this stage:** "The matcher regex in `middleware.ts` looks intimidating — do I need to understand it fully?" — Not fully, but the important part is that it excludes static assets (`_next`, files with extensions) while still matching every page and API route. If your CSS or images stop loading after adding middleware, this is almost always the cause — double check the matcher wasn't accidentally narrowed.
+**✅ Checkpoint:** Confirm `/dashboard` shows your real Clerk `userId` and `orgId`, styled with Tailwind, not the default Next.js boilerplate.
 
 ---
 
-## 5. A first dashboard page, reading nothing real yet
+## 6. A Server Action stub — and why it stays a stub
 
-Before wiring up any data, let's confirm the `(dashboard)` route group actually renders:
+Add a Server Action that will eventually kick off the entire event-driven pipeline, but for now, deliberately does nothing more than log:
 
 ```tsx
-// src/app/(dashboard)/courses/page.tsx
-export default function CoursesPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">My Courses</h1>
-      <p className="text-slate-500">Course data will load here starting in Part 4.</p>
-    </div>
-  );
-}
-```
-
-**✅ Checkpoint:** Signed in, visit `/courses` again — you should now see "My Courses" rendered with Tailwind styling, instead of the default Next.js page.
-
----
-
-## 6. A Server Action stub — deliberately thin
-
-The frontend is more than a UI layer — it's an event emitter, a workflow initiator, and a domain gateway, but one that must stay **deliberately thin** [7]. So for now, we write a Server Action stub that stops short of any real business logic — no database write, no event emission yet:
-
-```typescript
-// src/app/(dashboard)/assignments/actions.ts
+// app/(dashboard)/courses/actions.ts
 "use server";
 
-export async function submitAssignment(assignmentId: string, courseId: string, content: string) {
-  console.log("Submission received:", { assignmentId, courseId, content });
+import { auth } from "@clerk/nextjs/server";
+
+export async function submitAssignment(submissionId: string) {
+  const { userId, orgId } = await auth();
+  if (!userId || !orgId) throw new Error("Unauthorized");
+
+  console.log("Assignment submitted:", { submissionId, userId, orgId });
+  // Part 4 gives us somewhere to store this.
+  // Part 5 makes this actually emit a real event.
 }
 ```
 
-We'll make this real in two later steps: writing to Neon Postgres in Part 4 [6], and emitting the `assignment.submitted` event to Inngest in Part 5 [5].
+This stub is intentionally incomplete — no database write, no event emission, just an auth check and a `console.log`. That's not a placeholder we forgot to finish; it's a deliberate teaching device. Right now, the only layers that exist are Client + Application and Auth. There's nowhere real to persist this submission (Part 4 [6]) and nothing that turns it into a workflow (Part 5 [5]) — so writing more here would mean either faking a database call or, worse, sneaking business logic into the Application Layer, exactly the boundary violation section 1 warned against.
 
-**✅ Checkpoint:** Wire this stub to a simple `<form action={submitAssignment}>` on the assignments page (any minimal form works), submit it, and confirm you see `Submission received: {...}` logged in your terminal — not the browser console, since this runs on the server.
+**✅ Checkpoint:** Wire a simple button in `courses/page.tsx` that calls `submitAssignment("test-123")`, click it while signed in, and confirm the console log appears in your terminal with your real `userId` and `orgId` attached.
 
 ---
 
