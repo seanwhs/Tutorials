@@ -6,7 +6,7 @@ Picking up exactly where Part 3 left off: you have a working "SQL Sandbox" plugi
 
 **The Concept:** Right now, any student could open their browser's DevTools and manually call `onComplete({ score: 100 })` without ever writing a correct SQL query — the plugin runs entirely in the browser, which is fundamentally not a trusted environment. Think of it like a self-checkout kiosk at a grocery store: the kiosk *displays* a price, but the actual charge to your card only happens after the store's backend system verifies the transaction. Similarly, we never let the browser directly write to our database. Instead, every completion must pass through a **Server Action** — a function that runs exclusively on the server — which independently re-verifies that the write is legitimate before touching the database.
 
-For high-stakes situations (like graded exams), Greymatter's architecture actually goes a step further using a **cryptographic hash verification** handshake: the server issues a single-use signed token (a "salt") when the lesson loads, and the plugin must return that exact salt back alongside its score. The server then recalculates the hash itself to confirm the score was legitimately earned, rather than spoofed [1]:
+For high-stakes situations (like graded exams), Greymatter's architecture actually goes a step further using a **cryptographic hash verification** handshake: the server issues a single-use signed token (a "salt") when the lesson loads, and the plugin must return that exact salt back alongside its score. The server then recalculates the hash itself to confirm the score was legitimately earned, rather than spoofed:
 
 ```
 1. Next.js Server ──(Generates Unique Lesson Salt)──► React Plugin Client
@@ -19,7 +19,7 @@ For high-stakes situations (like graded exams), Greymatter's architecture actual
 [Server recalculates hash to verify score was legitimately earned]
 ```
 
-For this tutorial, we'll implement the simpler, foundational defense layer that every plugin gets for free regardless of stakes: **enrollment verification inside a database transaction**. This guarantees a student can never have progress recorded for a course they were never enrolled in — a prerequisite check that must happen atomically alongside the actual progress write.
+For this tutorial, we'll implement the simpler, foundational defense layer that every plugin gets for free regardless of stakes: **enrollment verification inside a database transaction**. This guarantees a student can never have progress recorded for a course they were never enrolled in — a prerequisite check that must happen atomically alongside the actual progress write. This directly relies on the `Enrollment` model's `courseId` field and the `Progress` model's `lessonId` field, both of which are plain indexed strings referencing Sanity document IDs rather than true foreign keys into another Postgres table [1].
 
 ---
 
@@ -151,7 +151,9 @@ git commit -m "feat: add completeLesson Server Action with auth check"
 1. `tx.enrollment.findUnique(...)` — check that an `Enrollment` row exists linking this `userId` to this `courseId`.
 2. `tx.progress.upsert(...)` — if (and only if) that enrollment exists, write or update the `Progress` row.
 
-If step 1 finds no enrollment, we `throw new Error(...)` — and because we're inside `prisma.$transaction`, throwing an error automatically triggers a **rollback**: nothing gets written to the database at all, even though we never explicitly wrote "undo" logic ourselves. This is the mechanism that makes it structurally impossible for a student to accumulate progress on a course they never enrolled in, no matter what payload a malicious client sends. Note also that both the enrollment check and the progress write share the exact `userId`/`courseId`/`lessonId` shape defined back in your `User`, `Enrollment`, and `Progress` Prisma models, referenced by the `@@unique([userId, courseId])` and `@@unique([userId, lessonId])` constraints [1].
+If step 1 finds no enrollment, we `throw new Error(...)` — and because we're inside `prisma.$transaction`, throwing an error automatically triggers a **rollback**: nothing gets written to the database at all, even though we never explicitly wrote "undo" logic ourselves. This is the mechanism that makes it structurally impossible for a student to accumulate progress on a course they never enrolled in, no matter what payload a malicious client sends.
+
+Note also that both the enrollment check and the progress write share the exact `userId`/`courseId`/`lessonId` shape defined back in your `User`, `Enrollment`, and `Progress` Prisma models. Specifically, `Enrollment.userId` is a foreign key into `User.id`, while `Enrollment.courseId` is merely an indexed `VARCHAR(255)` referencing Sanity's `course._id` value rather than a real relation — and the same pattern holds for `Progress.lessonId` referencing Sanity's `lesson._id` [1]. These lookups are backed by the `@@unique([userId, courseId])` constraint on `Enrollment` and an equivalent `@@unique([userId, lessonId])` constraint on `Progress` [1].
 
 We'll revisit this exact mechanism in more depth in **Appendix C: Code Segment Breakdown** at the end of the series.
 
@@ -247,7 +249,6 @@ Open the `Enrollment` table and click **Add document**, filling in your test `us
 ```bash
 npm run dev
 ```
-
 3. Complete the SQL Sandbox with the correct query. Open your browser's Network tab (or just watch the terminal running `npm run dev`) — you should see no errors, and no `"Failed to save progress"` log in the console.
 
 4. Confirm the write actually landed by refreshing Prisma Studio's `Progress` table — you should see a new row with `completed: true`, a `score` of `100`, and a `moduleState` JSON object containing your submitted query.
@@ -277,7 +278,7 @@ git commit -m "feat: wire completeLesson Server Action into module renderer with
 
 **The Target:** Add a bounds check to `app/actions/progress.ts` so a malicious or buggy plugin can never submit an out-of-range score.
 
-**The Concept:** Recall that `completeLesson` already refuses to trust the client's `userId` — it only trusts Clerk's server-verified session. But there's a second, equally important boundary we haven't guarded yet: the `score` value itself. A plugin is just browser JavaScript, and browser JavaScript can be tampered with (someone could edit the SQL Sandbox's code in DevTools to call `onComplete({ score: 9999 })`). The transaction boundary described in the architecture explicitly checks this exact condition before ever touching the database — throwing a "Transaction Integrity Violation" if the score falls outside 0–100 [1]:
+**The Concept:** Recall that `completeLesson` already refuses to trust the client's `userId` — it only trusts Clerk's server-verified session. But there's a second, equally important boundary we haven't guarded yet: the `score` value itself. A plugin is just browser JavaScript, and browser JavaScript can be tampered with (someone could edit the SQL Sandbox's code in DevTools to call `onComplete({ score: 9999 })`). We explicitly check this condition before ever touching the database — throwing a "Transaction Integrity Violation" if the score falls outside 0–100:
 
 ```typescript
 if (score < 0 || score > 100) {
@@ -326,7 +327,7 @@ export async function completeLesson(
 
   // Integrity guard: even though the plugin is expected to only ever send
   // 0-100, we never trust that promise — the server independently rejects
-  // anything outside the valid range before it can reach the transaction [1].
+  // anything outside the valid range before it can reach the transaction.
   if (score !== undefined && (score < 0 || score > 100)) {
     return {
       success: false,
@@ -381,6 +382,8 @@ export async function completeLesson(
 }
 ```
 
+Notice the `revalidateTag(\`progress-${courseId}\`)` call here uses correct parenthesis placement — this exact pattern matches the transaction's cleanup step: "Clear static client cache paths for this specific course" [1].
+
 **The Verification:** Temporarily edit `components/plugins/sql-sandbox/index.tsx`'s `onComplete` call to send `score: 500` instead of `score: 100`, save, and re-run the SQL Sandbox test from the browser. Check your terminal — you should see the logged error `Transaction Integrity Violation: Score bound out of index.`, and confirm in Prisma Studio that no `Progress` row was written or updated. Revert the test edit back to `score: 100` afterward.
 
 Commit:
@@ -398,11 +401,9 @@ This confirms two layers of defense are now in place inside `completeLesson`: th
 
 **The Target:** Update the sidebar (built in Part 2) so that when a student completes a lesson, its checkmark appears **instantly** in the UI — before the server has even confirmed the write succeeded — and automatically reverts if the write fails.
 
-**The Concept:** Normally, a UI update waits for a round trip: click → send request → wait for server → wait for database → get response → *then* update the screen. On a slow connection, this can feel sluggish, like a light switch with a two-second delay before the bulb turns on. React 19's `useOptimistic` hook lets us show the "optimistic" (assumed-successful) result **immediately**, while the real request is still in flight in the background. Think of it like a waiter at a restaurant who tells you "your order is confirmed!" the moment you order, rather than making you wait at the counter until the kitchen has physically finished cooking — and if the kitchen later says "sorry, we're out of that dish," the waiter comes back and corrects the record.
+**The Concept:** Normally, a UI update waits for a round trip: click → send request → wait for server → wait for database → get response → *then* update the screen. React 19's `useOptimistic` hook lets us show the "optimistic" (assumed-successful) result **immediately**, while the real request is still in flight in the background. Think of it like a waiter at a restaurant who tells you "your order is confirmed!" the moment you order, rather than making you wait at the counter until the kitchen has physically finished cooking — and if the kitchen later says "sorry, we're out of that dish," the waiter comes back and corrects the record.
 
 **The Implementation:**
-
-First, we need the sidebar to know which lessons are already completed, so it can render checkmarks correctly on page load. Extend the Sanity navigation query helper to also accept a set of completed lesson IDs (fetched separately from Neon):
 
 #### `lib/db/progress.ts`
 ```typescript
@@ -414,7 +415,7 @@ const prisma = new PrismaClient();
 /**
  * Fetches the set of lessonIds this signed-in user has already completed.
  * This is "Parallel Fetch B" from the architecture — Neon progress data,
- * fetched independently from Sanity's content structure.
+ * fetched independently from Sanity's content structure [1].
  */
 export async function getCompletedLessonIds(): Promise<string[]> {
   const { userId } = await auth();
@@ -428,158 +429,6 @@ export async function getCompletedLessonIds(): Promise<string[]> {
   return rows.map((row) => row.lessonId);
 }
 ```
-
-Now update the dashboard layout to fetch both data sources in parallel and pass completion state down into the sidebar:
-
-#### `app/dashboard/layout.tsx` (updated)
-```tsx
-import { Sidebar } from "./_components/sidebar";
-import { getCourseNavigation } from "@/lib/sanity/queries";
-import { getCompletedLessonIds } from "@/lib/db/progress";
-
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Fetch content structure (Sanity) and progress state (Neon) at the
-  // same time, rather than one after another — this is the parallel
-  // fetch pattern from the architecture's request lifecycle.
-  const [courses, completedLessonIds] = await Promise.all([
-    getCourseNavigation(),
-    getCompletedLessonIds(),
-  ]);
-
-  return (
-    <div className="flex">
-      <Sidebar courses={courses} initialCompletedIds={completedLessonIds}>
-        <p className="px-2 py-1.5 text-xs font-semibold uppercase text-brand-600">
-          My Courses
-        </p>
-      </Sidebar>
-      <main className="flex-1 bg-brand-50 p-8">{children}</main>
-    </div>
-  );
-}
-```
-
-Now rebuild the sidebar itself to accept this data and manage optimistic state:
-
-#### `app/dashboard/_components/sidebar.tsx` (updated)
-```tsx
-"use client";
-
-import { useOptimistic } from "react";
-import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
-import { useState } from "react";
-import type { SidebarCourse } from "@/lib/sanity/queries";
-
-interface SidebarProps {
-  children: React.ReactNode;
-  courses: SidebarCourse[];
-  initialCompletedIds: string[];
-}
-
-export function Sidebar({ children, courses, initialCompletedIds }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
-
-  // useOptimistic gives us a temporary, client-only copy of completedIds
-  // that we can update INSTANTLY on user interaction, without waiting
-  // for the server. React automatically reconciles this back to the real
-  // `initialCompletedIds` value whenever that prop changes (e.g. after
-  // revalidation), and silently discards the optimistic value if the
-  // enclosing action throws or the component re-renders with fresh data.
-  const [optimisticCompletedIds, addOptimisticCompletedId] = useOptimistic(
-    initialCompletedIds,
-    (currentIds: string[], newLessonId: string) => {
-      // Avoid duplicate entries if the same lesson is marked twice.
-      if (currentIds.includes(newLessonId)) return currentIds;
-      return [...currentIds, newLessonId];
-    }
-  );
-
-  return (
-    <div className="flex min-h-screen">
-      <aside
-        className={`flex flex-col border-r border-brand-100 bg-white transition-all duration-200 ${
-          isOpen ? "w-72" : "w-16"
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-brand-100">
-          {isOpen && (
-            <Link href="/dashboard" className="font-bold text-brand-900">
-              Greymatter
-            </Link>
-          )}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle sidebar"
-            className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50"
-          >
-            {isOpen ? "«" : "»"}
-          </button>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-2">
-          {isOpen && (
-            <>
-              {children}
-              <div className="mt-2 space-y-4">
-                {courses.map((course) => (
-                  <div key={course._id}>
-                    <Link
-                      href={`/dashboard/courses/${course.slug}`}
-                      className="block rounded-md px-2 py-1.5 font-medium text-brand-900 hover:bg-brand-50"
-                    >
-                      {course.title}
-                    </Link>
-                    <div className="ml-3 mt-1 space-y-1 border-l border-brand-100 pl-3">
-                      {course.chapters.map((chapter) => (
-                        <div key={chapter._id}>
-                          <p className="px-2 py-1 text-sm font-semibold text-brand-600">
-                            {chapter.title}
-                          </p>
-                          <div className="space-y-0.5">
-                            {chapter.lessons.map((lesson) => {
-                              const isCompleted = optimisticCompletedIds.includes(
-                                lesson._id
-                              );
-                              return (
-                                <Link
-                                  key={lesson._id}
-                                  href={`/dashboard/courses/${course.slug}/lessons/${lesson.slug}`}
-                                  className="flex items-center justify-between rounded-md px-2 py-1 text-sm text-brand-600 hover:bg-brand-50 hover:text-brand-900"
-                                >
-                                  <span>{lesson.title}</span>
-                                  {isCompleted && (
-                                    <span className="text-success-500">✓</span>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </nav>
-
-        <div className="border-t border-brand-100 p-4 flex items-center gap-2">
-          <UserButton afterSignOutUrl="/sign-in" />
-          {isOpen && <span className="text-sm text-brand-600">My Account</span>}
-        </div>
-      </aside>
-    </div>
-  );
-}
-```
-
-There's a subtlety here: `useOptimistic` must be called *inside* the component that owns the state, but the actual trigger (`addOptimisticCompletedId`) needs to be called from deep inside `module-renderer.tsx`, several component levels away. The cleanest way to bridge that gap is via **React Context**, so any lesson page can reach up and trigger the sidebar's optimistic update without prop-drilling through every intermediate layout.
 
 #### `app/dashboard/_components/progress-context.tsx`
 ```tsx
@@ -602,10 +451,7 @@ export function useProgressContext() {
 }
 ```
 
-Now wire the provider around the sidebar's optimistic updater function:
-
-#### `app/dashboard/_components/sidebar.tsx` (final version, wrapping children in the provider)
-
+#### `app/dashboard/_components/sidebar.tsx` (complete, corrected)
 ```tsx
 "use client";
 
@@ -626,9 +472,10 @@ export function Sidebar({ children, courses, initialCompletedIds }: SidebarProps
 
   // useOptimistic gives us a temporary, client-only copy of completedIds
   // that updates INSTANTLY on user interaction, without waiting for the
-  // server. This directly implements the "Optimistic-First Execution"
-  // principle — UI latency is capped at the speed of client-side execution
-  // using React 19 transition features, rather than a full round trip [1].
+  // server. React automatically reconciles this back to the real
+  // `initialCompletedIds` value whenever that prop changes, and silently
+  // discards the optimistic value if the enclosing action throws or the
+  // component re-renders with fresh data.
   const [optimisticCompletedIds, addOptimisticCompletedId] = useOptimistic(
     initialCompletedIds,
     (currentIds: string[], newLessonId: string) => {
@@ -724,8 +571,6 @@ export function Sidebar({ children, courses, initialCompletedIds }: SidebarProps
 }
 ```
 
-Since the `Sidebar` itself now renders the course list internally, simplify the layout that wraps it:
-
 #### `app/dashboard/layout.tsx` (final version)
 ```tsx
 import { Sidebar } from "./_components/sidebar";
@@ -756,8 +601,6 @@ export default async function DashboardLayout({
   );
 }
 ```
-
-Now wire the context into `module-renderer.tsx` so completing a lesson triggers the sidebar's optimistic update *and* the real server write, at the same time:
 
 #### `components/plugins/module-renderer.tsx` (final version)
 ```tsx
@@ -849,7 +692,7 @@ npm run dev
 4. Refresh the entire page (a hard reload, not just client-side navigation). The checkmark should still be present — this confirms the *real* write succeeded server-side (via `getCompletedLessonIds()` in the layout), not just the temporary optimistic one.
 
 5. **Negative test for optimistic rollback:** Remove your test user's `Enrollment` row again via Prisma Studio. Clear the corresponding `Progress` row too. Reload the lesson page fully, then complete the SQL Sandbox again. You should observe:
-   - The checkmark appears **instantly** (optimistic update fires regardless of what the server will eventually say)
+   - The checkmark appears **instantly** (the optimistic update fires regardless of what the server will eventually say)
    - Shortly after, your terminal logs `Failed to save progress: Transaction Failed: Student has not enrolled in the parent course.`
    - On the *next* full page reload, the checkmark is **gone** — because `getCompletedLessonIds()` never found a real `Progress` row, proving the optimistic state was only ever a temporary illusion, correctly discarded once fresh server data replaced it.
 
@@ -890,5 +733,4 @@ Tracing a single "lesson completed" event end to end, here is everything that no
 This closes the loop first diagrammed all the way back at the start of the series — Sanity's content engine and Neon's transaction engine, now fully wired together through a secure, atomic, optimistic-UI-enabled pipeline [1].
 
 ### What's Next
-With Parts 1 through 4 complete, the core Greymatter LMS application is functionally whole: authenticated dashboard, Sanity-driven content and plugin rendering, and a secure, optimistic progress-tracking engine. The three appendices — **Appendix A: The Hybrid Data Engine Concept**, **Appendix B: Next.js 16 Data Lifecycle**, and **Appendix C: Code Segment Breakdown** — remain as the standalone reference material to deepen understanding of the architectural decisions made throughout the series.
-
+With Parts 1 through 4 complete, the core Greymatter LMS application is functionally whole: authenticated dashboard, Sanity-driven content and plugin rendering, and a secure, optimistic progress-tracking engine. The remaining appendices — **Appendix A: The Hybrid Data Engine Concept**, **Appendix B: Next.js 16 Data Lifecycle**, **Appendix C: Code Segment Breakdown**, and **Appendix D: The Course → Chapter → Lesson Hierarchy & Progress Model Fields** — serve as standalone reference material to deepen understanding of the architectural decisions made throughout the series.
