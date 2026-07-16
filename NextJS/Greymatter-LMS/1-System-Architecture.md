@@ -1,78 +1,107 @@
 # Part 1 — System Architecture: Mapping Out Greymatter LMS
 
-Following directly from Part 0, where we proved the "events, not features" philosophy with a tiny `emit()` simulation [13], this part translates that philosophy into real system architecture: diagrams, service boundaries, event pipeline design, worker lifecycle, and data flow between the frontend, database, event engine, and registry [13].
+In Part 0, we built a tiny 10-line simulation of "one event, many workers" and saw why Greymatter LMS treats everything as an event rather than a hardcoded feature [13]. Now it's time to zoom out and design the **actual system architecture** — the real services, the real boundaries, and the real flow of data through Greymatter LMS [12].
 
-**🎯 Goal of this lesson:** Understand the five-layer architecture of Greymatter LMS, see the full request lifecycle from browser to AI worker and back, and learn the hard boundary rules that every later part must respect.
+**🎯 Goal of this lesson:** Understand every layer of the Greymatter stack, how they talk to each other, and walk through one real event end-to-end.
 
-**🧰 Prereqs:** Part 0 completed. Nothing to install yet — this part is conceptual, with one non-runnable code walkthrough.
-
----
-
-## 1. The five layers
-
-Greymatter LMS is built from five distinct layers, each mapped to a real technology:
-
-* **Client + Application** — Next.js 16 (React 19), Tailwind
-* **Auth** — Clerk
-* **Data** — Neon Postgres + Drizzle ORM
-* **Orchestration** — Inngest
-* **Registry** — Sanity
-* **Execution** — independently deployed AI Workers
-
-Each layer only talks to the one directly adjacent to it — no layer reaches past its neighbor.
+**🧰 Prereqs:** Part 0 completed. No new tools needed yet — this is a design lesson before we start scaffolding the repo in Part 2 [12].
 
 ---
 
-## 2. Tracing a full request end-to-end
+## 1. The five layers, named
 
-Following the sequence from the architecture notes, a single assignment submission flows through these steps [12]:
+Greymatter LMS is built from five layers, each with one job and a strict rule about who it's allowed to talk to:
 
-1. Student submits an assignment in the Next.js UI
-2. A Server Action runs, checking auth via Clerk
-3. The Application Layer verifies the student belongs to the org (since Greymatter has no built-in RLS like Supabase) [12]
-4. The submission is written to Neon Postgres
-5. The Server Action emits an `assignment.submitted` event to Inngest
-6. Inngest fetches the submission and discovers which workers should run
-7. Workers execute (grading, quiz generation, tutoring, analytics)
-8. Each worker writes its own result back to Neon Postgres [12]
-9. The Next.js UI reads updated results and displays them to the student
+* **Client + Application Layer** — Next.js 16 (React 19). Renders UI, runs Server Actions, and emits events. Never runs AI logic directly.
+* **Auth** — Clerk. Handles authentication and org membership.
+* **Data Layer** — Neon Postgres via Drizzle ORM. Stores courses, submissions, and worker results. Never decides *what* runs.
+* **Orchestration Layer** — Inngest. The event bus and workflow engine. The only place that decides "this event happened, go run these workers."
+* **Registry Layer** — Sanity. The only place that knows which workers exist and what events they listen to.
+* **Execution Layer** — independently deployed AI Workers. The only place AI logic actually lives.
 
-A non-runnable code sketch demonstrates the five layers concretely:
+---
 
-```typescript
-// app/actions/submitAssignment.ts
-"use server";
+## 2. The full architecture diagram
+
+Putting it all together, here's the production picture we're building toward across this entire series (compare this to Part 0's simplified `emit()` version):
+
+```text
+Users
+↓
+Next.js 16 (React 19) — Client + Application Layer
+↓
+Clerk — Auth & Org Membership
+↓
+Neon Postgres — Data Layer (via Drizzle ORM)
+↓
+Inngest — Orchestration Layer (event bus + workflow engine)
+↓
+Sanity — Registry Layer (worker discovery)
+↓
+AI Workers — Execution Layer (isolated, independently deployed)
+↓
+Neon Postgres — Results written back
+↓
+Next.js 16 — Reads results, renders to student
 ```
 
-**✅ Checkpoint (conceptual, not runnable yet):** Read through the function above and identify the five layers: Client (the form that calls this), Application (this Server Action), Data (the `db.insert` call), Orchestration (`inngest.send`), and Execution (whatever workers pick up `assignment.submitted` later). We'll make this fully runnable once Neon and Inngest are wired up in Parts 4–5 [12].
+**✅ Checkpoint:** Before moving on, redraw this diagram yourself from memory on paper or in a notes app, labeling each arrow with the technology that implements it. If you can't remember what sits between "Orchestration" and "Execution," re-read section 1 before continuing — this diagram is the map every later part builds one piece of.
 
 ---
 
-## 3. The RLS gap — Greymatter's biggest architectural difference
+## 3. The one rule that matters most
 
-Because Greymatter uses Neon Postgres instead of Supabase, it doesn't get row-level security for free. Step 3 above — "does this student belong to this org?" — has to be checked explicitly in application code, every time [12]. This is previewed now but implemented properly in Part 9 (Hardening) [12].
+Every arrow in the diagram above is a **contract, not a shortcut**. A component in the Application Layer only ever talks to the layer directly below it — it never reaches "down" two layers. For example, a React component never queries Neon directly; it always goes through a Server Action [12].
 
----
+This is also why the frontend rule in the original series is stated so bluntly: **no AI logic in the frontend** [7]. We'll enforce this literally with folder structure and lint rules in Part 3 [12].
 
-## 4. Service boundaries — what each layer is *not* allowed to do
-
-This is the most important rule in the whole series, stated as a hard architectural principle: **the LMS does not execute intelligence, it orchestrates intelligence execution** [12]. In Greymatter terms:
-
-* ❌ Next.js **never** calls an AI model directly from a component or API route.
-* ❌ Server Actions **never** contain grading logic, quiz-generation logic, or tutoring logic.
-* ❌ Neon Postgres **never** decides which workers run — it just stores data.
-* ✅ Inngest is the **only** place that decides "this event happened, go run these workers."
-* ✅ Sanity is the **only** place that knows "these workers exist and listen to these events."
-* ✅ Workers are the **only** place AI logic lives, and they can be written in any language, deployed anywhere, and swapped out without touching Next.js at all [12].
-
-These rules are what make the Part 5 promise possible: "new AI feature = new worker, no core changes" [12] — a promise the series proves concretely in Part 6 (toggling a worker off/on with zero code changes) [4] and again in Part 11 (adding real AI workers with zero core changes) [10].
+**🩹 Common confusion at this stage:** "Why can't a Server Action just call the AI model directly and skip Inngest entirely — wouldn't that be faster?" — It would be *faster to write*, but it would also mean the Application Layer now owns retry logic, worker discovery, and failure handling itself, which is exactly the "feature landfill" problem from Part 0 [13]. Keeping AI execution behind the Orchestration and Registry layers is what lets Part 6 disable a worker with zero code changes, and Part 11 add real AI workers with zero core changes [10].
 
 ---
 
-## 5. What's next
+## 4. Walking one event end-to-end
 
-We now understand the philosophy and the architecture on paper. In Part 2, we move from diagrams to a real, physical monorepo — scaffolding `apps/web`, `packages/*`, and `infra/*` with the exact boundaries described above, and proving the boundary system works with a first shared event contract package [8].
+Let's trace a single student submission through every layer, step by step, so the diagram above stops being abstract:
 
-**🩹 Common confusion at this stage:** "If none of this is runnable yet, why not skip straight to code?" — Because every later part assumes you understand *why* a Server Action can't just call an AI model directly, or why Sanity isn't "just a CMS." Skipping this leads to reasonable-sounding but wrong shortcuts later (e.g., putting grading logic inside a Server Action), which Part 9's threat model exists specifically to catch [1].
+**Step 1 — Client Layer.** A student clicks "Submit" on an assignment form rendered by Next.js.
 
-Ready? → **Part 2: Monorepo Setup for Greymatter LMS**
+**Step 2 — Application Layer.** A Server Action receives the form data. It does *not* grade the assignment — it only validates input and checks auth.
+
+**Step 3 — Auth Layer.** Clerk's `auth()` confirms the student is signed in and returns their `userId` and `orgId`.
+
+**Step 4 — Data Layer.** The Server Action writes a new row into the `submissions` table in Neon Postgres via Drizzle.
+
+**Step 5 — Orchestration Layer.** The Server Action emits one event — `assignment.submitted` — to Inngest. This is the *only* event the frontend ever needs to emit; everything downstream is the Orchestration Layer talking to itself [5].
+
+**Step 6 — Registry Layer.** Inngest queries Sanity: "which workers listen to `assignment.submitted`, and are they enabled?"
+
+**Step 7 — Execution Layer.** Inngest calls each matching worker's endpoint (grading, quiz generation, tutoring, analytics) — independently, in parallel.
+
+**Step 8 — Data Layer, again.** Each worker's result is written back into Neon Postgres, into a shared `worker_results` table.
+
+**Step 9 — Client Layer, again.** The student's dashboard reads updated results from Neon Postgres and renders them.
+
+**✅ Checkpoint:** Without looking back at the steps above, try to answer: which layer decides *which* workers run for a given event? (Answer: the Registry Layer, Sanity — not the frontend, and not Inngest itself, which only *queries* the registry.) If you got this wrong, re-read Steps 5–6 before moving on — this distinction is exactly what Part 6 builds [4].
+
+---
+
+## 5. What we've designed, and what we haven't built yet
+
+At this point we have *zero* running code — this part is entirely a design lesson [12]. But we now have a precise answer to a question every later part will implicitly assume you already know:
+
+| Question | Answer | Built in |
+|---|---|---|
+| Where does auth happen? | Clerk, checked in every Server Action | Part 3 |
+| Where does data live? | Neon Postgres, via Drizzle | Part 4 |
+| What decides an event happened? | Inngest | Part 5 |
+| What decides which workers run? | Sanity registry | Part 6 |
+| Where does AI logic actually execute? | Independent worker endpoints | Part 7 |
+| What secures worker calls? | HMAC request signing | Part 7, hardened in Part 9 |
+
+---
+
+## 6. What's next
+
+We now understand every layer of the Greymatter stack, the one rule that governs how they talk to each other, and what a single event's journey looks like end-to-end. In Part 2, we turn this architecture into an actual folder structure — a monorepo — so these boundaries are enforced by the codebase itself, not just good intentions [8].
+
+Ready? → **Part 2: Repository & Project Foundation — Scaffolding the Greymatter LMS Monorepo**
