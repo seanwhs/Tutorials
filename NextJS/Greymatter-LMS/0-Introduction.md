@@ -1,4 +1,4 @@
-# Part 0 — Introduction: The Philosophy Behind Greymatter LMS *(Revised & Expanded)*
+# Part 0 — Introduction: The Philosophy Behind Greymatter LMS 
 
 Welcome to the first lesson in the **Greymatter LMS** tutorial series — a step-by-step build of a real, production-shaped, AI-native Learning Management System. Before we write a single line of production code, we need to understand *why* Greymatter is built the way it is — otherwise Part 5 onward (events, workers, Inngest) will feel like arbitrary complexity instead of a deliberate design choice [13].
 
