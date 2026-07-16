@@ -1,174 +1,78 @@
-# Part 2 — Repository & Project Foundation: Scaffolding the Greymatter LMS Monorepo
+# Part 1 — System Architecture: Mapping Out Greymatter LMS
 
-In Part 1, we mapped out the full system architecture for Greymatter LMS — five layers, one event bus in the middle, and strict boundaries between them. Now we turn that architecture into an actual folder structure, so those boundaries are enforced by the codebase itself, not just good intentions [12].
+Following directly from Part 0, where we proved the "events, not features" philosophy with a tiny `emit()` simulation [13], this part translates that philosophy into real system architecture: diagrams, service boundaries, event pipeline design, worker lifecycle, and data flow between the frontend, database, event engine, and registry [13].
 
-**🎯 Goal of this lesson:** Set up a working monorepo for Greymatter LMS with clearly separated packages for the app, shared types, event contracts, worker SDK, and registry client.
+**🎯 Goal of this lesson:** Understand the five-layer architecture of Greymatter LMS, see the full request lifecycle from browser to AI worker and back, and learn the hard boundary rules that every later part must respect.
 
-**🧰 Prereqs:** Node.js 20+, pnpm installed (`npm i -g pnpm`), and a terminal. No accounts needed yet — Clerk/Sanity/Neon/Inngest signups happen right before we use each one in later parts.
-
----
-
-## 1. Why a monorepo?
-
-The original architecture notes describe the frontend as more than a UI layer — it's an event emitter, a workflow initiator, and a domain gateway, but one that must stay **deliberately thin** [7]. To enforce that "thinness" in practice, we don't just write one Next.js app with everything crammed inside. We split responsibilities into separate packages, each with its own job and its own boundary.
+**🧰 Prereqs:** Part 0 completed. Nothing to install yet — this part is conceptual, with one non-runnable code walkthrough.
 
 ---
 
-## 2. Creating the monorepo
+## 1. The five layers
 
-```bash
-mkdir greymatter-lms && cd greymatter-lms
-pnpm init
-pnpm add -D turbo
-```
+Greymatter LMS is built from five distinct layers, each mapped to a real technology:
 
-Now create the folder structure. This mirrors the original Nexus LMS monorepo layout [8], with two changes for Greymatter LMS: `nexus-lms` → `greymatter-lms`, and `infra/supabase` → `infra/db` (since we're using Neon Postgres + Drizzle instead of Supabase):
+* **Client + Application** — Next.js 16 (React 19), Tailwind
+* **Auth** — Clerk
+* **Data** — Neon Postgres + Drizzle ORM
+* **Orchestration** — Inngest
+* **Registry** — Sanity
+* **Execution** — independently deployed AI Workers
 
-```bash
-mkdir -p apps/web
-mkdir -p packages/ui packages/types packages/events packages/sdk packages/workers packages/registry
-mkdir -p infra/db infra/inngest infra/sanity
-mkdir -p docs/architecture docs/tutorials
-```
-
-**✅ Checkpoint:** Run `tree -L 3` (or `ls -R` on systems without `tree`) and confirm you see:
-
-```text
-greymatter-lms/
-apps/
-  web/                      # Next.js 16 LMS application
-packages/
-  ui/                       # Shared UI components (Tailwind)
-  types/                    # Shared TypeScript types
-  events/                   # Event contracts (VERY IMPORTANT)
-  sdk/                      # LMS client SDK
-  workers/                  # Worker SDK (for external AI tools)
-  registry/                 # Sanity registry client
-infra/
-  db/                       # Neon Postgres schema + Drizzle migrations
-  inngest/                  # event functions/workflows
-  sanity/                   # worker registry schemas
-docs/
-  architecture/
-  tutorials/
-```
-
-*(structure adapted from the original monorepo layout [8])*
+Each layer only talks to the one directly adjacent to it — no layer reaches past its neighbor.
 
 ---
 
-## 3. Wiring up Turborepo
+## 2. Tracing a full request end-to-end
 
-Add a root `package.json` with workspaces:
+Following the sequence from the architecture notes, a single assignment submission flows through these steps [12]:
 
-```json
-// package.json
-{
-  "name": "greymatter-lms",
-  "private": true,
-  "workspaces": ["apps/*", "packages/*"],
-  "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint"
-  },
-  "devDependencies": {
-    "turbo": "^2.0.0"
-  }
-}
-```
+1. Student submits an assignment in the Next.js UI
+2. A Server Action runs, checking auth via Clerk
+3. The Application Layer verifies the student belongs to the org (since Greymatter has no built-in RLS like Supabase) [12]
+4. The submission is written to Neon Postgres
+5. The Server Action emits an `assignment.submitted` event to Inngest
+6. Inngest fetches the submission and discovers which workers should run
+7. Workers execute (grading, quiz generation, tutoring, analytics)
+8. Each worker writes its own result back to Neon Postgres [12]
+9. The Next.js UI reads updated results and displays them to the student
 
-```json
-// turbo.json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "tasks": {
-    "dev": { "cache": false, "persistent": true },
-    "build": { "outputs": ["dist/**", ".next/**"] },
-    "lint": {}
-  }
-}
-```
-
-**✅ Checkpoint:** Run `pnpm install` from the root. It should complete with no errors and create a single `node_modules` at the root shared across all packages.
-
----
-
-## 4. Architectural boundaries — what each package is allowed to do
-
-This is the part that actually enforces the layer separation from Part 1. Just like the original spec defines strict responsibilities for `apps/web` [8], we define the same rule for `apps/web` in Greymatter LMS — with Supabase swapped for Neon:
-
-**`apps/web` (Next.js 16 LMS Core)**
-
-Responsibilities:
-* UI rendering
-* Server Actions
-* Authentication (via Clerk)
-* Event emission
-* Data fetching from Neon Postgres (via Drizzle)
-
-Does **NOT**:
-* run AI logic
-* define workflows
-* contain worker logic
-
-*(boundary rules adapted from the original spec [8])*
-
-The remaining packages each get one job:
-
-| Package | Job | Must never contain |
-|---|---|---|
-| `packages/ui` | Shared Tailwind components (buttons, cards, layouts) | Business logic |
-| `packages/types` | Shared TypeScript interfaces used across app + workers | Implementation code |
-| `packages/events` | Event name + payload contracts (e.g. `assignment.submitted`) | Any execution logic |
-| `packages/sdk` | Typed client for calling Server Actions/API from the frontend | Direct DB access |
-| `packages/workers` | The Worker SDK — interfaces AI workers must implement | LMS-specific business rules |
-| `packages/registry` | Typed client for querying the Sanity worker registry | Hardcoded worker lists |
-| `infra/db` | Drizzle schema + Neon migrations | UI or workflow code |
-| `infra/inngest` | Event functions & workflows | AI model calls themselves |
-| `infra/sanity` | Worker registry schemas (Sanity Studio config) | App UI |
-
----
-
-## 5. A quick sanity check with a placeholder event contract
-
-Let's prove the boundary system works by creating our very first shared package — the one every other part of the series will depend on.
-
-```bash
-cd packages/events
-pnpm init
-```
+A non-runnable code sketch demonstrates the five layers concretely:
 
 ```typescript
-// packages/events/index.ts
-export type AssignmentSubmittedEvent = {
-  name: "assignment.submitted";
-  data: {
-    submissionId: string;
-    studentId: string;
-    orgId: string;
-  };
-};
-
-export type GreymatterEvent = AssignmentSubmittedEvent;
+// app/actions/submitAssignment.ts
+"use server";
 ```
 
-This tiny file is doing exactly what Part 0's `emit()` demo did informally — except now it's a typed, shared contract that both `apps/web` (which emits the event) and every future worker (which reacts to it) can import, without either one knowing about the other's internals.
-
-**✅ Checkpoint:** From the root, run:
-
-```bash
-pnpm --filter events build 2>/dev/null || echo "no build step yet — that's expected, we'll add tsconfig in Part 3"
-```
-
-You should just see confirmation the file exists and TypeScript recognizes it — no errors about missing dependencies.
+**✅ Checkpoint (conceptual, not runnable yet):** Read through the function above and identify the five layers: Client (the form that calls this), Application (this Server Action), Data (the `db.insert` call), Orchestration (`inngest.send`), and Execution (whatever workers pick up `assignment.submitted` later). We'll make this fully runnable once Neon and Inngest are wired up in Parts 4–5 [12].
 
 ---
 
-## 6. What's next
+## 3. The RLS gap — Greymatter's biggest architectural difference
 
-We now have a monorepo skeleton with proper boundaries, an empty (but real) event contracts package, and Turborepo wired up to run scripts across all packages at once. In Part 3, we move into implementation — starting the first executable system, which is the Next.js App Router frontend itself [7]. We'll set up route groups, Clerk auth middleware, and our first Tailwind-styled page.
+Because Greymatter uses Neon Postgres instead of Supabase, it doesn't get row-level security for free. Step 3 above — "does this student belong to this org?" — has to be checked explicitly in application code, every time [12]. This is previewed now but implemented properly in Part 9 (Hardening) [12].
 
-**🩹 Common confusion at this stage:** "Why is `infra/db` separate from `apps/web` if the app is the only thing that queries the database?" — Because in later parts, Inngest workers will *also* need to read/write to Neon Postgres (to persist worker results), and they should import the same schema definitions from `infra/db` rather than duplicating them inside `apps/web`. Keeping schema definitions in their own package means both the app and the orchestration layer share one source of truth.
+---
 
-Ready? → **Part 3: Next.js App Router Foundation for Greymatter LMS**
+## 4. Service boundaries — what each layer is *not* allowed to do
+
+This is the most important rule in the whole series, stated as a hard architectural principle: **the LMS does not execute intelligence, it orchestrates intelligence execution** [12]. In Greymatter terms:
+
+* ❌ Next.js **never** calls an AI model directly from a component or API route.
+* ❌ Server Actions **never** contain grading logic, quiz-generation logic, or tutoring logic.
+* ❌ Neon Postgres **never** decides which workers run — it just stores data.
+* ✅ Inngest is the **only** place that decides "this event happened, go run these workers."
+* ✅ Sanity is the **only** place that knows "these workers exist and listen to these events."
+* ✅ Workers are the **only** place AI logic lives, and they can be written in any language, deployed anywhere, and swapped out without touching Next.js at all [12].
+
+These rules are what make the Part 5 promise possible: "new AI feature = new worker, no core changes" [12] — a promise the series proves concretely in Part 6 (toggling a worker off/on with zero code changes) [4] and again in Part 11 (adding real AI workers with zero core changes) [10].
+
+---
+
+## 5. What's next
+
+We now understand the philosophy and the architecture on paper. In Part 2, we move from diagrams to a real, physical monorepo — scaffolding `apps/web`, `packages/*`, and `infra/*` with the exact boundaries described above, and proving the boundary system works with a first shared event contract package [8].
+
+**🩹 Common confusion at this stage:** "If none of this is runnable yet, why not skip straight to code?" — Because every later part assumes you understand *why* a Server Action can't just call an AI model directly, or why Sanity isn't "just a CMS." Skipping this leads to reasonable-sounding but wrong shortcuts later (e.g., putting grading logic inside a Server Action), which Part 9's threat model exists specifically to catch [1].
+
+Ready? → **Part 2: Monorepo Setup for Greymatter LMS**
