@@ -1,40 +1,36 @@
 # Greymatter LMS: Enterprise Architecture Design Document (EADD)
 
 **System Name:** Greymatter LMS
-
 **System Classification:** Extensible Enterprise Learning Management System
-
 **Target Core Stack:** Next.js 16 (App Router), React 19, Sanity Studio v3 (Headless CMS), Clerk Core Auth, Neon Serverless PostgreSQL, Prisma ORM, Tailwind CSS
-
-**Document Version:** 1.0.0 (Production-Ready Spec)
+**Document Version:** 1.1.0 (Consolidated Production-Ready Spec)
 
 ---
 
 ## 1. System Vision & Problem Domain
 
-Traditional Enterprise Learning Management Systems (LMS) suffer from severe architectural degradation over time due to **Data Domain Conflation**.
+Traditional Enterprise Learning Management Systems suffer architectural degradation over time due to **Data Domain Conflation** — mixing heavy, slow-changing structural content with high-velocity transactional writes in a single database.
 
 ```
                                  [ TRADITIONAL LMS PATHOLOGY ]
-                             
-     Heavy Structural Content (Unstructured markdown, media metadata, quiz matrices)
+
+     Heavy Structural Content (markdown, media metadata, quiz matrices)
                                                │
                                                ▼
                                    ┌──────────────────────┐
                                    │  SINGLE DATABASE     │ ◄─── High-Velocity Writes
-                                   │  (e.g., MySQL, PG)   │      (User progress, heartbeat,
+                                   │  (e.g., MySQL, PG)   │      (progress, heartbeat,
                                    └──────────────────────┘      clicks, analytics)
                                                │
-                       Result: Table bloat, performance degradation, 
+                       Result: Table bloat, performance degradation,
                                expensive migrations on content schema changes.
-
 ```
 
-By decoupling content from transactions, **Greymatter LMS** achieves high performance and easy developer extensibility.
+Greymatter LMS decouples content authoring from transactional state to achieve high performance and easy extensibility:
 
 ```
                                  [ GREYMATTER DECOUPLED PATHWAY ]
-                             
+
      [ Content Creator Workspace ]                      [ High-Frequency App Runtime ]
                    │                                                  │
                    ▼                                                  ▼
@@ -44,29 +40,117 @@ By decoupling content from transactions, **Greymatter LMS** achieves high perfor
        └──────────────────────┘                           └──────────────────────┘
         Delivers nested JSON via                           Manages ACID relational
         highly-cached CDN edges.                           transactions at the edge.
-
 ```
 
 ---
 
 ## 2. Core Architectural Principles
 
-1. **Strict Locality of Behavior (LoB):** Keep styling, presentation logic, and interaction constraints close to the component definitions.
-2. **The "Stateless Player" Pattern:** The core LMS runtime layout remains completely oblivious to *how* a lesson is formatted or *what* interactive mechanics are occurring inside it. It acts merely as a container frame.
-3. **Optimistic-First Execution:** The UI immediately assumes server-bound mutations will succeed. UI latency is capped at the speed of client-side execution using React 19 transition features.
-4. **Isolated Trust Boundaries:** Untrusted developer components must execute within constrained execution frames to prevent Cross-Site Scripting (XSS) and token theft.
+1. **Strict Locality of Behavior (LoB):** Keep styling, presentation logic, and interaction constraints close to the component definitions they affect.
+2. **The "Stateless Player" Pattern:** The core LMS runtime layout stays oblivious to *how* a lesson is formatted or *what* interactive mechanics run inside it — it acts merely as a container frame.
+3. **Optimistic-First Execution:** The UI assumes server-bound mutations will succeed, capping perceived latency at client-side execution speed via React 19 transition features.
+4. **Isolated Trust Boundaries:** Untrusted developer components execute within constrained execution frames to prevent Cross-Site Scripting (XSS) and token theft.
 
 ---
 
-## 3. Deep-Dive Data Architecture
+## 3. High-Level System Architecture
 
-### 3.1 Headless CMS Content Domain (Sanity)
+```
+                     ┌───────────────────────────────────┐
+                     │      Sanity.io Studio (CMS)        │
+                     │  Content Authors Design Courses    │
+                     └─────────────────┬───────────────────┘
+                                       │ (Webhook Sync)
+                                       ▼
+                     ┌───────────────────────────────────┐
+                     │      Sanity Edge Content Lake      │
+                     │  Read-Only Course Definitions      │
+                     │  Static Custom Module Blueprints   │
+                     └─────────────────┬───────────────────┘
+                                       │ (Shared Join Key: Sanity ID String)
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                           NEXT.JS CORE LAYER                            │
+  │                                                                         │
+  │   ┌───────────────────────────────┐     ┌───────────────────────────┐  │
+  │   │     Dynamic Course Engine     │     │   Server Actions Engine    │  │
+  │   │  Hydrates Sanity content      │     │  Guards state changes      │  │
+  │   │  Renders custom module JSON   │     │  Wraps Prisma steps        │  │
+  │   └───────────────┬───────────────┘     └─────────────┬─────────────┘  │
+  └───────────────────┼───────────────────────────────────┼────────────────┘
+                      │ (Queries Data)                    │ (Atomic Mutations)
+                      ▼                                   ▼
+          ┌───────────────────────┐           ┌───────────────────────┐
+          │  Vercel Data Cache    │           │  Neon Serverless PG   │
+          │  Tag-based invalidation│          │  Transaction Brain    │
+          │  Blazing fast reads   │           │  Strict Prisma ORM    │
+          └───────────────────────┘           └───────────────────────┘
+```
 
-Sanity acts as a document store. Because schemas are written in plain JavaScript/TypeScript, we can define structural rules for content, media assets, and interactive component parameters.
+Greymatter strictly segregates three concerns to ensure sub-100ms lesson rendering:
+
+| Layer | Responsibility | Refresh Model |
+|---|---|---|
+| Static Layout | Global nav, workspace shell, sidebar indexes | Build-time / rarely revalidated |
+| Read-Heavy Structure | Course/chapter/lesson content from Sanity | CDN-cached, webhook-revalidated |
+| Transactional Data | Enrollment, progress, scores | Real-time, per-request via Neon |
+
+### Request Lifecycle
+
+```
+[Student Request] ──► Next.js Edge Middleware (Clerk Session Check)
+                            │
+                            ▼
+                     [App Router Page] (RSC)
+                            │
+            ┌───────────────┴───────────────┐
+            ▼                               ▼
+    [Parallel Fetch A]              [Parallel Fetch B]
+     Sanity Content CDN             Neon DB User Progress
+            │                               │
+            └───────────────┬───────────────┘
+                            ▼
+                    Combined Server Render
+                            │
+                            ▼
+            [Dynamic Component Resolution] (RSC)
+            Maps Sanity customModule.moduleType
+            to imported Client chunk via React.lazy
+```
+
+### High-Performance Static Caching (`"use cache"`)
+
+Next.js 16 stabilizes native caching directives. Lesson structures pulled from Sanity are wrapped in a cached context, remaining active until revalidated via webhook:
+
+```typescript
+// app/data/course-fetcher.ts
+import { createClient } from '@sanity/client';
+
+const sanity = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: 'production',
+  useCdn: true,
+  apiVersion: '2026-07-17',
+});
+
+export async function getCachedLesson(lessonId: string) {
+  "use cache";
+  // Cache remains active until revalidated via webhook
+  return await sanity.fetch(`*[_type == "lesson" && _id == $id][0]`, { id: lessonId });
+}
+```
+
+---
+
+## 4. Deep-Dive Data Architecture
+
+### 4.1 Headless CMS Content Domain (Sanity)
+
+Sanity acts as a document store. Because schemas are written in plain JavaScript/TypeScript, structural rules can be defined for content, media assets, and interactive component parameters.
 
 ```
                               [ SANITY CONTENT HIERARCHY ]
-                              
+
                               ┌────────────────────────┐
                               │     Course Schema      │
                               └───────────┬────────────┘
@@ -87,10 +171,9 @@ Sanity acts as a document store. Because schemas are written in plain JavaScript
        │  PortableText Block  │                        │     CustomModule     │
        │  (Paragraphs, Code)  │                        │  (Registry-bound JS) │
        └──────────────────────┘                        └──────────────────────┘
-
 ```
 
-#### Sanity Schema Definition (TypeScript)
+#### Sanity Schema Definitions (TypeScript)
 
 ```typescript
 // schemas/course.ts
@@ -174,14 +257,13 @@ export const lesson = {
     },
   ],
 };
-
 ```
 
 ---
 
-### 3.2 Serverless Relational Database Domain (Neon PostgreSQL + Prisma)
+### 4.2 Serverless Relational Database Domain (Neon PostgreSQL + Prisma)
 
-Neon PostgreSQL is configured to scale down to zero during inactive periods to minimize hosting overhead. Under active loads, connection pooling is handled through Neon's integrated transaction proxy.
+Neon PostgreSQL scales down to zero during inactive periods to minimize hosting overhead. Under active load, connection pooling is handled through Neon's integrated transaction proxy. Operational tables link to the unstructured CMS schema via plain `VARCHAR(255)` string identifiers rather than foreign keys — completely avoiding expensive cross-database migrations and synchronizations.
 
 #### Consolidated Database Model Matrix
 
@@ -200,9 +282,10 @@ Neon PostgreSQL is configured to scale down to zero during inactive periods to m
 |  | `score` | `INT` | None | Standardized percentage-based score (0 to 100). |
 |  | `moduleState` | `JSONB` | None | Raw, arbitrary storage for developer sandbox outputs. |
 
+#### Prisma Schema
+
 ```prisma
 // prisma/schema.prisma
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -243,88 +326,32 @@ model Enrollment {
 }
 
 model Progress {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessonId     String    // Points directly to Sanity Lesson ID
-  completed    Boolean   @default(false)
-  completedAt  DateTime?
-  score        Int?      // Nullable score ranging from 0 to 100
-  moduleState  Json?     // Stored complex objects from custom developer components
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String    // Points directly to Sanity Lesson ID
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  score       Int?      // Nullable score ranging from 0 to 100
+  moduleState Json      @default("{}") // Stored complex objects from custom developer components
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([userId, lessonId])
   @@index([userId])
   @@index([lessonId])
 }
-
-```
-
----
-
-## 4. Next.js App Router Architecture & Request Lifecycle
-
-```
-[Student Request] ──► Next.js Edge Middleware (Clerk Session Check) 
-                            │
-                            ▼
-                     [App Router Page] (RSC) 
-                            │
-            ┌───────────────┴───────────────┐
-            ▼                               ▼
-    [Parallel Fetch A]              [Parallel Fetch B]
-     Sanity Content CDN             Neon DB User Progress
-            │                               │
-            └───────────────┬───────────────┘
-                            ▼
-                    Combined Server Render
-                            │
-                            ▼
-            [Dynamic Component Resolution] (RSC)
-            Maps Sanity customModule.moduleType
-            to imported Client chunk via React.lazy
-
-```
-
-To ensure sub-100ms lesson rendering, Greymatter strictly segregates Static Assets, Read-Heavy Structures, and Transactional Data:
-
-### 1. Static Layout Elements
-
-Global navigations, workspace layouts, and sidebar indexes are rendered as static skeletal trees.
-
-### 2. High-Performance Static Caching (`"use cache"`)
-
-Next.js 16 stabilizes native caching directives. When pulling lesson structures from Sanity, the data fetching logic is wrapped in a cached context:
-
-```typescript
-// app/data/course-fetcher.ts
-import { createClient } from '@sanity/client';
-
-const sanity = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-  dataset: 'production',
-  useCdn: true,
-  apiVersion: '2026-07-17',
-});
-
-// Leveraging Next.js 16's high performance cached functions
-export async function getCachedLesson(lessonId: string) {
-  "use cache";
-  // Cache remains active until revalidated via webhook
-  return await sanity.fetch(`*[_type == "lesson" && _id == $id][0]`, { id: lessonId });
-}
-
 ```
 
 ---
 
 ## 5. Security Architecture & Boundary Controls
 
-Executing custom JavaScript components loaded dynamically introduces two massive vulnerabilities: **Cross-Site Scripting (XSS)** and **Data Spoofing** (students sending successful completions through simulated API requests).
+Executing custom JavaScript components loaded dynamically introduces two major vulnerabilities: **Cross-Site Scripting (XSS)** and **Data Spoofing** (students sending fake "successful completion" payloads via simulated API requests).
 
 ### 5.1 Defense Path 1: Sandboxing Untrusted Code
 
-If the module is built by an untrusted third party, do not let it execute in the client's parent frame. Use a secure iframe container:
+If a module is built by an untrusted third party, it must never execute in the client's parent frame. Instead, it runs inside a secure iframe container:
 
 ```tsx
 // components/plugins/SandboxFrame.tsx
@@ -376,16 +403,15 @@ export function SandboxFrame({ moduleUrl, config, onComplete }: SandboxFrameProp
     />
   );
 }
-
 ```
 
 ---
 
 ### 5.2 Defense Path 2: Cryptographic Hash Verification
 
-For high-stakes exams or grading modules, you should verify client submissions using a standard HMAC cryptographic handshake.
+For high-stakes exams or grading modules, client submissions should be verified using a standard HMAC cryptographic handshake.
 
-When the lesson loads, the backend issues a single-use token signed with a server secret. When the custom module finishes execution, it must return its progress output alongside this encrypted signature, preventing students from bypassing the UI and spoofing API requests.
+When a lesson loads, the backend issues a single-use token signed with a server secret. When the custom module finishes execution, it must return its progress output alongside this encrypted signature, preventing students from bypassing the UI and spoofing API requests.
 
 ```
 1. Next.js Server ──(Generates Unique Lesson Salt)──► React Plugin Client
@@ -396,65 +422,123 @@ When the lesson loads, the backend issues a single-use token signed with a serve
 2. Next.js Server ◄──(Submits Response + Salt Hash)── React Plugin Client
          │
   [Server recalculates hash to verify score was legitimately earned]
-
 ```
 
 ---
 
-## 6. Real-Time Transaction Engine (Server Action Setup)
+## 6. The Secure Transaction Pipeline
 
-Below is the clean Server Action configuration that secures the boundary between the dynamic custom client module and your Neon SQL ledger.
+Because modern frontends expose application variables directly to client runtimes, absolute security perimeter separation is required. Progress updates bypass traditional REST endpoints, routing instead through a heavily isolated, multi-stage Next.js Server Action wrapped in a strict relational database transaction block.
+
+```
+┌─────────────────────────┐
+│ Client Custom Module    │
+│ (e.g., SQL Sandbox UI)  │
+└────────────┬────────────┘
+             │ (Dispatches raw local analytics payloads)
+             ▼
+┌─────────────────────────┐
+│ Next.js Server Boundary │
+├─────────────────────────┴────────────────────────────────────────────────┐
+│ 1. Context Auth Evaluation: Extracts verified token claims via Clerk.     │
+│ 2. Parameter Sanitization: Asserts structural bounds on dynamic variables.│
+│                                                                          │
+│ 3. Database Isolation Boundary ($transaction):                          │
+│    ┌───────────────────────────────────────────────────────────────┐    │
+│    │ Operational Assertions:                                       │    │
+│    │ - Queries Enrollment row using composite user/course indexes. │    │
+│    │ - Aborts explicitly if relationship returns void.             │    │
+│    │                                                               │    │
+│    │ State Serialization:                                          │    │
+│    │ - Executes atomic Upsert on target Progress rows.             │    │
+│    └───────────────────────────────┬───────────────────────────────┘    │
+│                                    │                                     │
+│                                    ▼ (On Success Commit)                 │
+│ 4. Cache Eviction Pipeline: Dispatches cache tag invalidation rules.     │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Complete Implementation
 
 ```typescript
 // app/actions/progress.ts
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
-import { revalidateTag } from 'next/cache';
+import { auth } from "@clerk/nextjs/server";
+import { PrismaClient } from "@prisma/client";
+import { revalidateTag } from "next/cache";
 
 const prisma = new PrismaClient();
 
-interface ProgressPayload {
-  lessonId: string;
-  courseId: string;
-  score: number;
-  moduleState: any;
+// Rigid custom types to structure the Dynamic JSON Payload data store
+interface ModuleStateSchema {
+  currentStep?: number;
+  terminalLogs?: string[];
+  executionHistory?: Array<{ timestamp: string; verified: boolean }>;
+  [key: string]: unknown;
 }
 
-export async function submitLessonProgress({ lessonId, courseId, score, moduleState }: ProgressPayload) {
-  const { userId } = await auth();
+interface CompleteLessonPayload {
+  courseId: string;
+  lessonId: string;
+  score?: number;
+  moduleState?: ModuleStateSchema;
+}
 
+interface OperationalResponse {
+  success: boolean;
+  error?: string;
+  transactionTimestamp?: string;
+}
+
+/**
+ * Executes a highly structured Server Action protecting progress entries via database isolation levels.
+ */
+export async function completeLesson(payload: CompleteLessonPayload): Promise<OperationalResponse> {
+  // 1. Establish strict server-side identity context
+  const { userId } = await auth();
   if (!userId) {
-    throw new Error('Unauthorized Access: User session was missing or expired.');
+    return {
+      success: false,
+      error: "UNAUTHORIZED_ACCESS_DENIED: Execution context missing authenticated session identifiers.",
+    };
   }
 
-  if (score < 0 || score > 100) {
-    throw new Error('Transaction Integrity Violation: Score bound out of index.');
+  const { courseId, lessonId, score, moduleState } = payload;
+
+  // 2. Strict application guardrails on client-provided data
+  if (score !== undefined && (score < 0 || score > 100)) {
+    return {
+      success: false,
+      error: "INTEGRITY_VIOLATION: Input score deviates outside established system baseline (0-100).",
+    };
   }
 
   try {
+    // 3. Initiate database isolation context
     await prisma.$transaction(async (tx) => {
-      // 1. Assert registration status exists before saving progress
+      // Step A: Assert the student has a verified operational relationship with the parent course
       const enrollment = await tx.enrollment.findUnique({
         where: {
-          userId_courseId: { userId, courseId }
-        }
+          userId_courseId: { userId, courseId },
+        },
       });
 
       if (!enrollment) {
-        throw new Error('Transaction Failed: Student has not enrolled in the parent course.');
+        throw new Error(
+          "ENROLLMENT_NOT_FOUND: Mutation cancelled. Target user does not possess verified course clearance."
+        );
       }
 
-      // 2. Upsert progress state safely
+      // Step B: Atomically commit the progress status change
       await tx.progress.upsert({
         where: {
-          userId_lessonId: { userId, lessonId }
+          userId_lessonId: { userId, lessonId },
         },
         update: {
           completed: true,
           completedAt: new Date(),
-          score,
+          score: score ?? null,
           moduleState: moduleState || {},
         },
         create: {
@@ -462,26 +546,158 @@ export async function submitLessonProgress({ lessonId, courseId, score, moduleSt
           lessonId,
           completed: true,
           completedAt: new Date(),
-          score,
+          score: score ?? null,
           moduleState: moduleState || {},
-        }
+        },
       });
     });
 
-    // Clear static client cache paths for this specific course
+    // 4. Invalidate the relevant segment of the Data Cache
     revalidateTag(`progress-${courseId}`);
-    return { success: true };
-    
+
+    return {
+      success: true,
+      transactionTimestamp: new Date().toISOString(),
+    };
+
   } catch (error: any) {
-    console.error('CRITICAL: Database transaction rollback executed: ', error.message);
-    return { success: false, error: 'Failed to write completed execution progress.' };
+    console.error(`FATAL SYSTEM TRANSACTION FAILURE — ROLLBACK INITIATED: ${error.message}`);
+    return {
+      success: false,
+      error: error.message ?? "INTERNAL_SERVER_ERROR: Relational processing exception.",
+    };
   }
 }
-
 ```
 
 ---
 
-## 7. Next Steps for Implementation
+## 7. Advanced Data Hydration & Aggregation Strategy
 
-Now that the blueprint is complete, you can start building:
+To safely reconstruct complete system UI nodes without maintaining deep database joins, Greymatter leverages parallelized read mechanisms that combine unstructured CMS content with relational transactional state.
+
+```typescript
+// app/data/hydrate-course.ts
+import { createClient } from "@sanity/client";
+import { PrismaClient } from "@prisma/client";
+import { cache } from "react";
+
+const sanity = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  useCdn: false, // Set false to read freshly generated content directly from edge nodes
+  apiVersion: "2026-03-01",
+});
+
+const prisma = new PrismaClient();
+
+// Data schemas enforcing structural design parity across system models
+export interface HydratedLesson {
+  id: string;
+  title: string;
+  slug: string;
+  type: "text" | "interactive_sandbox" | "assessment";
+  cmsContent: any;
+  userProgress: {
+    completed: boolean;
+    completedAt: Date | null;
+    score: number | null;
+    moduleState: any;
+  } | null;
+}
+
+/**
+ * High-performance composite reader combining CMS unstructured arrays with Neon database records.
+ * Uses Next.js tag-based data cache rules.
+ */
+export const getHydratedCourseData = cache(async (userId: string, courseId: string) => {
+  try {
+    // A. Fetch the course structure from Sanity
+    const sanityCourse = await sanity.fetch(
+      `*[_type == "course" && _id == $courseId][0]{
+        _id,
+        title,
+        lessons[]->{
+          _id,
+          title,
+          "slug": slug.current,
+          type,
+          body
+        }
+      }`,
+      { courseId }
+    );
+
+    if (!sanityCourse) return null;
+
+    // B. Fetch user progress scoped strictly to the current course's lesson set
+    const targetLessonIds = sanityCourse.lessons.map((l: any) => l._id);
+    const specificProgress = await prisma.progress.findMany({
+      where: {
+        userId,
+        lessonId: { in: targetLessonIds },
+      },
+    });
+
+    // Create a key-value hashmap for constant-time lookup performance
+    const progressMap = new Map(specificProgress.map((p) => [p.lessonId, p]));
+
+    // C. Perform non-destructive hydration, matching elements via shared ID string signatures
+    const hydratedLessons: HydratedLesson[] = sanityCourse.lessons.map((lesson: any) => {
+      const progress = progressMap.get(lesson._id);
+
+      return {
+        id: lesson._id,
+        title: lesson.title,
+        slug: lesson.slug,
+        type: lesson.type,
+        cmsContent: lesson.body,
+        userProgress: progress
+          ? {
+              completed: progress.completed,
+              completedAt: progress.completedAt,
+              score: progress.score,
+              moduleState: progress.moduleState,
+            }
+          : null,
+      };
+    });
+
+    return {
+      courseId: sanityCourse._id,
+      courseTitle: sanityCourse.title,
+      lessons: hydratedLessons,
+    };
+
+  } catch (error) {
+    console.error("Aggregation Layer Exception Failure:", error);
+    throw new Error("DATA_HYDRATION_FAILED: Multi-source record binding could not complete.");
+  }
+});
+```
+
+---
+
+## 8. Summary Matrix: Component Field Mapping
+
+| **Data Space / Target** | **Schema Model Type** | **Database Layer** | **Primary Key Format** | **Data Mapping Objective** |
+| --- | --- | --- | --- | --- |
+| **Auth System** | `User` | Clerk Ecosystem | String ID (`user_...`) | Session management & user base context |
+| **Course Structuring** | `Course` / `Chapter` / `Lesson` | Sanity Studio | String UUID / Hash Key | Content delivery & module configurations |
+| **Operational Maps** | `Enrollment` | Neon DB Matrix | PostgreSQL UUID Key | Validation checks & purchase tracking |
+| **Runtime Aggregates** | `Progress` | Neon DB Matrix | PostgreSQL UUID Key | Real-time scores & interactive states |
+
+---
+
+## 9. Next Steps for Implementation
+
+With the blueprint complete, implementation can proceed in the following order:
+
+1. **Provision infrastructure:** Set up Sanity project/dataset, Neon database (with pooled + direct URLs), and Clerk application.
+2. **Define schemas:** Deploy the `course` / `chapter` / `lesson` Sanity schemas and run the initial Prisma migration.
+3. **Wire authentication:** Configure Clerk middleware and sync users to the `User` table via webhook.
+4. **Build the Stateless Player:** Implement the RSC lesson page that performs parallel fetches (Sanity + Neon) and resolves `customModule.moduleType` against a client-side `ModuleRegistry`.
+5. **Implement trust boundaries:** Stand up the `SandboxFrame` iframe component and, for graded modules, the HMAC salt-issuance/verification handshake.
+6. **Ship the transaction engine:** Deploy `completeLesson` as a Server Action, gated by enrollment checks and score-bound validation.
+7. **Enable caching/revalidation:** Wrap Sanity reads in `"use cache"`, and configure webhook-triggered `revalidateTag` calls scoped per course.
+8. **Load-test the decoupled path:** Confirm Sanity CDN reads stay sub-100ms and Neon writes remain isolated from content-read latency under concurrent load.
