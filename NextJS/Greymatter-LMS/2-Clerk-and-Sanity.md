@@ -1,10 +1,59 @@
+### Prerequisite: two small additions to Part 1 before starting
+
+Part 2 depends on two things Part 1's schemas didn't originally include. Apply both now:
+
+**1. Add a `Role` enum and `role` field to `User`** in `prisma/schema.prisma`:
+
+```prisma
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+model User {
+  id          String       @id @default(cuid())
+  clerkId     String       @unique
+  email       String       @unique
+  name        String?
+  role        Role         @default(STUDENT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  enrollments Enrollment[]
+  progress    Progress[]
+}
+```
+
+```bash
+npx prisma migrate dev --name add_user_role
+```
+
+**2. Add a `slug` field to the `lesson` schema** in `sanity/schemaTypes/lesson.ts`, right after `title`:
+
+```ts
+defineField({
+  name: "slug",
+  title: "Slug",
+  type: "slug",
+  options: { source: "title", maxLength: 96 },
+  validation: (Rule) => Rule.required(),
+}),
+```
+
+Sanity Studio schema changes apply automatically on next load — no migration step needed, but any existing test `lesson` documents from Part 1 will need their slug generated manually in the Studio (open the doc, click "Generate" next to the Slug field, republish).
+
+With those two in place, here's Part 2 in full.
+
+---
+
 # Part 2: Authentication & Core Navigation Shell
 
-Picking up exactly where Part 1 left off: you have a Next.js 16 + Tailwind workspace, a local Sanity Studio with `course`/`chapter`/`lesson` schemas, and a Neon Postgres database wired to Prisma with `User`, `Enrollment`, and `Progress` models. In Part 2 we connect a real human to that system — authentication — and give them a place to stand once logged in — the dashboard shell.
+Picking up exactly where Part 1 left off: you have a Next.js 16 + Tailwind workspace, a local Sanity Studio with `course`/`chapter`/`lesson` schemas (now including a `lesson.slug` field), and a Neon Postgres database wired to Prisma with `User` (including a `role` enum), `Enrollment`, and `Progress` models. In Part 2 we connect a real human to that system — authentication — and give them a place to stand once logged in — the dashboard shell.
 
 ## 2.0 Why Authentication Comes Before "Building the Dashboard UI"
 
-**The Concept:** Every student request first passes through **Next.js Edge Middleware** for a session check, *before* it ever reaches a page component [1]. Think of middleware like the bouncer at a club entrance: it checks your wristband (session token) before you're allowed anywhere inside, rather than each room individually checking IDs. If we built the dashboard UI first with no bouncer at the door, anyone — logged in or not — could load `/dashboard` and see private course progress. So authentication has to be the first gate, architecturally, not an afterthought.
+**The Concept:** Every student request first passes through **Next.js Edge Middleware** for a session check, _before_ it ever reaches a page component [1]. Think of middleware like the bouncer at a club entrance: it checks your wristband (session token) before you're allowed anywhere inside, rather than each room individually checking IDs. If we built the dashboard UI first with no bouncer at the door, anyone — logged in or not — could load `/dashboard` and see private course progress. So authentication has to be the first gate, architecturally, not an afterthought.
 
 We're using **Clerk**, a hosted authentication service, because it manages the security-critical parts (password hashing, session tokens, email verification) so we don't have to write or audit that code ourselves — similar to using a bank's vault instead of building your own safe.
 
@@ -14,7 +63,7 @@ We're using **Clerk**, a hosted authentication service, because it manages the s
 
 **The Target:** A Clerk application configured on their dashboard, and `@clerk/nextjs` installed in our project.
 
-**The Concept:** Clerk needs to know about *your* project before your project can know about Clerk. You create an "Application" on Clerk's dashboard (their side), which hands you a **publishable key** (safe to expose in browser code, like a storefront address) and a **secret key** (must never leave the server, like a vault combination).
+**The Concept:** Clerk needs to know about _your_ project before your project can know about Clerk. You create an "Application" on Clerk's dashboard (their side), which hands you a **publishable key** (safe to expose in browser code, like a storefront address) and a **secret key** (must never leave the server, like a vault combination).
 
 **The Implementation:**
 
@@ -30,6 +79,7 @@ npm install @clerk/nextjs
 5. Update your `.env` file (created in Part 0) with real values:
 
 #### `.env`
+
 ```bash
 # ── Clerk (Authentication) ──────────────────────────────────────────────────
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -68,6 +118,7 @@ git status
 **The Implementation:**
 
 #### `app/layout.tsx`
+
 ```tsx
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -112,6 +163,7 @@ Visit `http://localhost:3000` — the page should render exactly as it did at th
 **The Implementation:**
 
 #### `app/sign-in/[[...sign-in]]/page.tsx`
+
 ```tsx
 import { SignIn } from "@clerk/nextjs";
 
@@ -125,6 +177,7 @@ export default function SignInPage() {
 ```
 
 #### `app/sign-up/[[...sign-up]]/page.tsx`
+
 ```tsx
 import { SignUp } from "@clerk/nextjs";
 
@@ -145,13 +198,14 @@ The `[[...sign-in]]` folder name is a Next.js **optional catch-all route** — t
 
 ## Step 4: Protect Routes with Edge Middleware
 
-**The Target:** A `middleware.ts` file that checks a visitor's session *before* any dashboard page loads — the "bouncer at the door" step where Edge Middleware performs the Clerk session check as the very first stage of the request lifecycle [1].
+**The Target:** A `middleware.ts` file that checks a visitor's session _before_ any dashboard page loads — the "bouncer at the door" step where Edge Middleware performs the Clerk session check as the very first stage of the request lifecycle [1].
 
 **The Concept:** Middleware runs at the edge — close to the user, before your main application code starts — and intercepts every matching request. This is the earliest point to say "you don't have a valid session, go to `/sign-in`," which is far more secure than checking auth status inside individual page components (easy to forget one).
 
 **The Implementation:**
 
 #### `middleware.ts` (project root)
+
 ```typescript
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
@@ -178,15 +232,15 @@ export const config = {
 };
 ```
 
-**The Verification:** With the dev server running, open an incognito window and navigate to `http://localhost:3000/dashboard`. You should be redirected to `/sign-in`. Now sign in with your test account — you should land back on `/dashboard`, which will 404 for now (expected, since we haven't built that page yet — a 404 *after* passing the auth check confirms middleware is working).
-
----
+**The Verification:** With the dev server running, open an incognito window and navigate to `http://localhost:3000/dashboard`. You should be redirected to `/sign-in`. Now sign in with your test account — you should land back on `/dashboard`, which will 404 for now (expected, since we haven't built that page yet — a 404 _after_ passing the auth check confirms middleware is working).
 
 ## Step 5: Sync Clerk Users into Neon via Webhook (Role Assignment)
 
 **The Target:** A webhook endpoint listening for Clerk's `user.created` event, writing a corresponding `User` row into Neon via Prisma — defaulting new signups to the `STUDENT` role.
 
-**The Concept:** Clerk owns *authentication* (proving who someone is), but Greymatter's `Progress` and `Enrollment` tables need a `User` row to attach to. Rather than querying Clerk's API every time we need a user's role, we keep a lightweight mirrored copy in our own database — like a company keeping its own badge-swipe records instead of calling a government registry every time it needs to verify identity. Webhooks are how Clerk notifies *us* the moment a new user signs up.
+**The Concept:** Clerk owns _authentication_ (proving who someone is), but Greymatter's `Progress` and `Enrollment` tables need a `User` row to attach to. Rather than querying Clerk's API every time we need a user's role, we keep a lightweight mirrored copy in our own database — like a company keeping its own badge-swipe records instead of calling a government registry every time it needs to verify identity. Webhooks are how Clerk notifies _us_ the moment a new user signs up.
+
+Two fixes from the Part 1 audit apply directly here: the webhook must upsert on **`clerkId`**, not `id` (so Clerk's identity string never collides with our internal `cuid()` primary key), and it must reuse the **`lib/prisma.ts` singleton** from Part 1 rather than instantiating a second, unmanaged `PrismaClient`.
 
 **The Implementation:**
 
@@ -199,14 +253,11 @@ npm install svix
 ```typescript
 import { Webhook } from "svix";
 import { headers } from "next/headers";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import type { WebhookEvent } from "@clerk/nextjs/server";
-
-const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-
   if (!WEBHOOK_SECRET) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET in environment variables.");
   }
@@ -249,14 +300,16 @@ export async function POST(req: Request) {
       return new Response("User has no email address on record.", { status: 400 });
     }
 
-    // Mirror the Clerk user into our own Neon database,
-    // defaulting to STUDENT — instructors are promoted manually later.
-    // This matches the User model's Role enum exactly (STUDENT, INSTRUCTOR, ADMIN) [1].
+    // Mirror the Clerk user into our own Neon database, keyed by clerkId —
+    // NOT the internal `id` primary key, which Prisma generates itself via
+    // cuid(). Keeping these separate means if Greymatter ever migrates auth
+    // providers, only clerkId changes; every Enrollment/Progress row keeps
+    // working because they reference the stable internal id.
     await prisma.user.upsert({
-      where: { id },
+      where: { clerkId: id },
       update: { email: primaryEmail },
       create: {
-        id,
+        clerkId: id,
         email: primaryEmail,
         role: "STUDENT",
       },
@@ -267,7 +320,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Notice this endpoint reuses the exact `User` model shape from your Prisma schema — `id`, `email`, `role` — which was defined with `role Role @default(STUDENT)` against the `enum Role { STUDENT INSTRUCTOR ADMIN }` [1]. This webhook is the first moment that model receives real, live data.
+This now matches the `User` model exactly as it stands after the Part 1 prerequisite patch — `clerkId`, `email`, `role Role @default(STUDENT)` against `enum Role { STUDENT INSTRUCTOR ADMIN }`. This webhook is the first moment that model receives real, live data.
 
 **The Verification (local testing):**
 
@@ -303,7 +356,9 @@ npx prisma studio
 ```
 
 Open `http://localhost:5555`, click the `User` table, and confirm a new row exists with:
-- `id` matching the Clerk user ID (e.g., `user_2abc...`)
+
+- `clerkId` matching the Clerk user ID (e.g., `user_2abc...`)
+- `id` populated with a distinct, Prisma-generated `cuid()` — **not** the same string as `clerkId`
 - `email` matching your signup address
 - `role` set to `STUDENT`
 
@@ -329,6 +384,7 @@ git commit -m "feat: add Clerk auth, middleware protection, and user-sync webhoo
 First, create a small reusable Client Component to hold the toggle state:
 
 #### `app/dashboard/_components/sidebar.tsx`
+
 ```tsx
 "use client";
 
@@ -362,9 +418,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             {isOpen ? "«" : "»"}
           </button>
         </div>
-
         <nav className="flex-1 overflow-y-auto p-2">{isOpen && children}</nav>
-
         <div className="border-t border-brand-100 p-4 flex items-center gap-2">
           <UserButton afterSignOutUrl="/sign-in" />
           {isOpen && <span className="text-sm text-brand-600">My Account</span>}
@@ -378,6 +432,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 Now wire it into a dashboard layout that wraps every page under `/dashboard`:
 
 #### `app/dashboard/layout.tsx`
+
 ```tsx
 import { Sidebar } from "./_components/sidebar";
 
@@ -401,6 +456,7 @@ export default function DashboardLayout({
 ```
 
 #### `app/dashboard/page.tsx`
+
 ```tsx
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -422,8 +478,9 @@ export default async function DashboardHomePage() {
 ```
 
 **The Verification:** Sign in through `/sign-in`, then navigate to `http://localhost:3000/dashboard`. You should see:
+
 - A left sidebar (default expanded, ~288px wide) with "Greymatter" branding, a "My Courses" label, and a user avatar/button at the bottom
-- Clicking the `«`/`»` toggle button collapses the sidebar down to a narrow 64px icon rail and back
+- Clicking the `«»` toggle button collapses the sidebar down to a narrow 64px icon rail and back
 - The main content area shows a personalized welcome message using your Clerk first name
 
 If `user.firstName` renders as `undefined` or the greeting looks wrong, check that you filled in a first name during sign-up, or simply confirm the fallback text ("Welcome back 👋") displays correctly instead.
@@ -441,7 +498,7 @@ git commit -m "feat: build collapsible sidebar dashboard shell"
 
 **The Target:** Replace the placeholder "My Courses" label with real course, chapter, and lesson data fetched from Sanity — rendered directly into the sidebar as navigable links.
 
-**The Concept:** This is "Parallel Fetch A" from the architecture diagram — content coming from Sanity's CDN rather than Neon. We query Sanity using **GROQ** (Sanity's query language, similar in spirit to SQL but built specifically for JSON document trees) and fetch it from the CDN endpoint, which serves cached, fast responses since course structure rarely changes.
+**The Concept:** This is "Parallel Fetch A" from the architecture diagram — content coming from Sanity's CDN rather than Neon. We query Sanity using **GROQ** (Sanity's query language, similar in spirit to SQL but built specifically for JSON document trees) and fetch it from the CDN endpoint, which serves cached, fast responses since course structure rarely changes. This step depends on the `lesson.slug` field added in the Part 1 prerequisite patch at the top of this Part — without it, every lesson link below would silently resolve to `undefined`.
 
 **The Implementation:**
 
@@ -454,6 +511,7 @@ npm install @sanity/client
 Create a typed query helper:
 
 #### `lib/sanity/queries.ts`
+
 ```typescript
 import { client } from "./client";
 
@@ -509,6 +567,7 @@ Now that `getCourseNavigation()` is defined, let's wire it into the sidebar so r
 **The Implementation:**
 
 #### `app/dashboard/layout.tsx` (updated)
+
 ```tsx
 import { Sidebar } from "./_components/sidebar";
 import { getCourseNavigation } from "@/lib/sanity/queries";
@@ -572,12 +631,11 @@ Notice this component is `async` — that's what allows the direct `await getCou
 
 **The Verification:**
 
-1. Make sure your local Sanity Studio (from Part 1) has at least one `course` document with a linked `chapter`, which itself has at least one linked `lesson`. If you haven't created test content yet, open your Studio (`npm run dev` inside the `studio/` folder, or wherever you configured it in Part 1) and add:
+1. Make sure your local Sanity Studio (from Part 1, at `/studio`) has at least one `course` document with a linked `chapter`, which itself has at least one linked `lesson`. If you haven't created test content yet, visit `http://localhost:3000/studio` and add:
    - One `course` document, titled e.g. "Intro to SQL"
    - One `chapter` document titled "Getting Started", referenced from that course
-   - One `lesson` document titled "What is a Database?", referenced from that chapter
+   - One `lesson` document titled "What is a Database?", with its **slug generated** (click "Generate" next to the Slug field — this only works now that the Part 1 prerequisite patch added that field), referenced from that chapter
    - Publish all three documents (draft-only content won't appear via the CDN query)
-
 2. Restart your Next.js dev server and visit `http://localhost:3000/dashboard`:
 
 ```bash
@@ -588,13 +646,13 @@ npm run dev
    - "Intro to SQL" as a bold clickable course title
    - Indented beneath it, "Getting Started" as a chapter label
    - Indented further, "What is a Database?" as a clickable lesson link
-
 4. Click the lesson link — it will currently 404, since we haven't built the actual lesson page route yet. That's expected; it confirms the `href` is being generated correctly from real Sanity slugs.
 
 If the sidebar shows no courses at all, double-check:
 - Your `NEXT_PUBLIC_SANITY_PROJECT_ID` and `NEXT_PUBLIC_SANITY_DATASET` in `.env` match your actual Sanity project
 - The documents are **published**, not left as unpublished drafts (the CDN-cached `force-cache` fetch only serves published content)
 - Your GROQ query's `_type == "course"` matches the exact schema type name you defined in Part 1
+- Every `lesson` document has a generated slug — if it's blank, `"slug": slug.current` returns `null` and the `href` will contain the literal string `undefined`
 
 Once confirmed, commit this final checkpoint for Part 2:
 
@@ -608,15 +666,14 @@ git commit -m "feat: fetch and render course/chapter/lesson navigation from Sani
 ## Closing Out Part 2
 
 ### What You Have Right Now
+
 - A Clerk application fully wired into Next.js via `<ClerkProvider>`
 - Working `/sign-in` and `/sign-up` pages using Clerk's prebuilt components
 - Edge Middleware protecting every `/dashboard` route, redirecting unauthenticated visitors
-- A webhook endpoint that mirrors every new Clerk signup into your Neon `User` table via Prisma, defaulting to the `STUDENT` role
+- A webhook endpoint that mirrors every new Clerk signup into your Neon `User` table via Prisma (keyed correctly on `clerkId`, using the shared `lib/prisma.ts` singleton), defaulting to the `STUDENT` role
 - A responsive, collapsible sidebar dashboard shell
-- Real course/chapter/lesson navigation rendered server-side from Sanity's CDN
+- Real course/chapter/lesson navigation rendered server-side from Sanity's CDN, with working lesson slugs
 
 ### What's Next
-**Part 3: The React-Only Plugin Registry & Component Contract** — you'll define a typed `@greymatter/plugin-sdk` contract, build a dynamic client-side component registry using `next/dynamic` for lazy loading, and create a working "SQL Sandbox" interactive lesson plugin that invokes a completion callback — setting up the exact hand-off point where Part 4's progress-tracking transaction (the `prisma.$transaction` pattern shown earlier) will plug in.
 
-
-    
+**Part 3: The React-Only Plugin Registry & Component Contract** — you'll define a typed `@greymatter/plugin-sdk` contract, build a dynamic client-side component registry using `next/dynamic` for lazy loading, and create a working "SQL Sandbox" interactive lesson plugin that invokes a completion callback — setting up the exact hand-off point where Part 4's progress-tracking transaction (the `prisma.$transaction` pattern) will plug in.
