@@ -1,4 +1,4 @@
-# Part 0: Welcome to Context Engineering — Series Roadmap & Environment Setup
+# Part 0: Series Roadmap & Mental Model
 
 ## 1. Why This Series Exists
 
@@ -8,21 +8,21 @@ This series teaches a different discipline: **context engineering**.
 
 > **Context engineering** is the practice of treating the LLM's **context window** — the total amount of text it can "see" at once — as a scarce, expensive, and unreliable hardware resource, and building deterministic software *around* it so the overall system behaves predictably, cheaply, and quickly, even though the component doing the "thinking" is a probabilistic model.
 
-Here's the analogy we'll keep returning to throughout the series:
+The metaphor we'll keep returning to throughout the series:
 
 > **The context window is not a chat box. It is volatile, high-latency RAM with unreliable attention.**
 
 - **Volatile** — nothing persists between requests unless you explicitly re-send it (like RAM losing its contents when the power cuts).
 - **High-latency** — the more you cram in, the slower and more expensive every single request becomes.
-- **Unreliable attention** — the model doesn't weigh every word in the prompt equally. Stuff buried in the middle of a huge prompt often gets silently ignored — a phenomenon researchers call **"Lost in the Middle."**
+- **Unreliable attention** — the model doesn't weigh every word in the prompt equally. Information buried in the middle of a huge prompt often gets silently ignored — a phenomenon researchers call **"Lost in the Middle."**
 
-A junior engineer pastes an entire codebase into ChatGPT and hopes for the best. A senior engineer designs a **memory hierarchy** — deciding what always stays visible (like a CPU's L1 cache), what gets fetched only when needed (like RAM), and what stays untouched until explicitly requested (like disk storage). By the end of this series, you'll think and build like the second engineer.
+A junior engineer pastes an entire codebase into a chat window and hopes for the best. A senior engineer designs a **memory hierarchy** — deciding what always stays visible (like a CPU's L1 cache), what gets fetched only when needed (like RAM), and what stays untouched until explicitly requested (like disk storage). By the end of this series, you'll think and build like the second engineer.
 
 ---
 
-## 2. The Running Build: CodeCopilot
+## 2. The Running Build: OpenCode
 
-Every part of this series adds exactly one deliberate, load-bearing layer to a single, continuously evolving application: **CodeCopilot** — an AI assistant that answers questions about a real codebase and its documentation, in the same category as GitHub Copilot Chat or Cursor's chat panel, except we're building the engine ourselves so you understand every layer inside it.
+Every part of this series adds exactly one deliberate, load-bearing layer to a single, continuously evolving application: **OpenCode** — a command-line AI assistant that answers questions about a real codebase and its documentation, in the same category as tools like Cursor or Aider, except we're building the engine ourselves so you understand every layer inside it.
 
 We picked this project because it forces us to need *every* layer we're going to build:
 
@@ -31,7 +31,7 @@ We picked this project because it forces us to need *every* layer we're going to
 - It has to not be slow or bankrupt whoever's paying the API bill → **Production Layer**
 - All of the above sits on top of a disciplined prompt structure → **Mental Model**
 
-By the end of the series you won't have a toy chatbot. You'll have a working, instrumented, cost-aware backend service that happens to have an LLM as one of its components — not its entire personality.
+By the end of the series you won't have a toy chatbot. You'll have a working, instrumented, cost-aware CLI tool that happens to have an LLM as one of its components — not its entire personality.
 
 ---
 
@@ -57,7 +57,7 @@ PHASE 4 — THE PRODUCTION LAYER (Performance & Evals)
   Part 8  → Deterministic evals: retrieval recall, faithfulness, retrieval precision
 ```
 
-Every "How It Breaks" section is not filler — you will **run the broken version yourself**, see the bad latency/cost/output with your own eyes, and then fix it in the following part. This is how the lessons actually stick instead of becoming trivia you forget in a week.
+Every "How It Breaks" section is not filler — you will **run the broken version yourself**, see the bad latency/cost/output with your own eyes, and then fix it in the following part.
 
 ---
 
@@ -77,8 +77,6 @@ Every "How It Breaks" section is not filler — you will **run the broken versio
 
 Every layer sits directly on top of the one below it. You cannot skip layers — a caching strategy (Phase 4) is meaningless if your prompt structure (Phase 1) changes on every request, and tool-calling (Phase 3) is dangerous if your retrieval (Phase 2) hands the model garbage. That's why we build bottom-up, and why this series must be followed in order.
 
----
-
 ## 5. What We're Building Right Now: The Ground Floor
 
 Before we can write a single line of "AI" code, we need solid ground to build on. In this part, we will, in strict dependency order:
@@ -87,9 +85,8 @@ Before we can write a single line of "AI" code, we need solid ground to build on
 2. Scaffold the project skeleton (a foundation slab before walls)
 3. Configure TypeScript (the rulebook that keeps our code safe as it grows across 8 parts)
 4. Set up environment/secret configuration safely (never hardcode API keys)
-5. Write a minimal "dial tone" script that proves your LLM API key actually works — before we build anything on top of it
 
-Each step only exists because the next step needs it. We are not adding anything "just in case."
+Step 5 (the "dial tone" verification script) comes in the next message — it depends on everything here being done first.
 
 ---
 
@@ -144,30 +141,33 @@ If all three commands print version numbers with no "command not found" errors, 
 
 ### Step 2 — Scaffold the Project Skeleton
 
-**The Target:** A new project directory called `codecopilot` with a `package.json` file — the "birth certificate" of any Node.js project.
+**The Target:** A new project directory called `opencode` with a `package.json` file — the "birth certificate" of any Node.js project.
 
 **The Concept:** `package.json` is like a recipe card taped to the front of your kitchen — it lists exactly what ingredients (dependencies) the project needs and what commands (scripts) are available to "cook" it (run, build, test). Every tool in the Node ecosystem — npm, TypeScript, your bundler — reads this file first to understand the project.
 
 **The Implementation**
 
 ```bash
-mkdir codecopilot
-cd codecopilot
+mkdir opencode
+cd opencode
 git init
 npm init -y
 ```
 
 This creates a default `package.json`. We'll now replace it with a deliberately configured version instead of the auto-generated placeholder, because we know exactly what we need:
 
-##### `codecopilot/package.json`
+##### `opencode/package.json`
 
 ```json
 {
-  "name": "codecopilot",
+  "name": "opencode",
   "version": "0.1.0",
-  "description": "A from-scratch AI coding assistant, built part-by-part to teach context engineering.",
+  "description": "A from-scratch AI coding assistant CLI, built part-by-part to teach context engineering.",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "opencode": "dist/index.js"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
@@ -184,9 +184,10 @@ This creates a default `package.json`. We'll now replace it with a deliberately 
 
 - `"type": "module"` — tells Node to treat `.js` files as native ES Modules (`import`/`export` syntax) instead of the older CommonJS (`require`). We're building a new project in 2024+, so we use the modern standard from day one — retrofitting this later is painful.
 - `"main": "dist/index.js"` — points to the *compiled* JavaScript output, not our TypeScript source. `dist/` will be generated by the TypeScript compiler in Step 3.
+- `"bin": { "opencode": "dist/index.js" }` — registers a CLI command named `opencode`, pointing at the compiled entry file. This is what lets this project eventually be invoked as a real terminal command (e.g., `opencode ask "..."`) instead of only ever being run via `node`. We won't wire up full CLI argument parsing until it's needed in a later part, but declaring this now means the project structure never has to be reshuffled to support it.
 - `"scripts.dev"` — uses `tsx` (a fast TypeScript executor) so we can run `.ts` files directly during development without a manual compile step, exactly like `nodemon` but TypeScript-aware.
-- `"scripts.build"` / `"scripts.start"` — the production path: compile TypeScript to plain JavaScript, then run the compiled output. Production servers should never run raw `.ts` files directly — compiling first catches type errors before deployment.
-- `"engines"` — a guardrail that documents (and can enforce, with the right npm config) the minimum Node version, so a teammate — or future you — doesn't run this on an incompatible Node version and get baffling errors.
+- `"scripts.build"` / `"scripts.start"` — the production path: compile TypeScript to plain JavaScript, then run the compiled output. Production tools should never run raw `.ts` files directly — compiling first catches type errors before the tool ever ships.
+- `"engines"` — a guardrail that documents the minimum Node version, so a teammate — or future you — doesn't run this on an incompatible Node version and get baffling errors.
 
 **The Verification**
 
@@ -194,7 +195,7 @@ This creates a default `package.json`. We'll now replace it with a deliberately 
 cat package.json
 ```
 
-You should see the exact JSON above echoed back. If the file is malformed JSON (e.g., missing a comma), `npm install` in the next step will fail immediately with a parse error — so this is a good moment to double check it visually.
+You should see the exact JSON above echoed back. If the file is malformed JSON (e.g., missing a comma), `npm install` in the next step will fail immediately with a parse error — so this is a good moment to double-check it visually.
 
 ---
 
@@ -212,7 +213,7 @@ We'll also install `tsx` (lets us run `.ts` files directly in development, witho
 npm install --save-dev typescript tsx @types/node
 ```
 
-##### `codecopilot/tsconfig.json`
+##### `opencode/tsconfig.json`
 
 ```json
 {
@@ -251,7 +252,7 @@ npm install --save-dev typescript tsx @types/node
 
 - `"module": "NodeNext"` / `"moduleResolution": "NodeNext"` — tells TypeScript to compile using Node's native ESM rules, matching the `"type": "module"` we set in `package.json` in Step 2. If these two settings disagree, imports silently fail at runtime with cryptic `ERR_MODULE_NOT_FOUND` errors — a classic beginner trap we're avoiding by wiring it correctly from day one.
 - `"target": "ES2022"` — compiles down to modern JavaScript syntax that Node 18+ understands natively, so we don't waste compile time transpiling to ancient JS nobody needs.
-- `"outDir"` / `"rootDir"` — draws a clean line between source code (`src/`, what we write) and compiled output (`dist/`, what actually runs in production). This mirrors the `main` field we set in `package.json`.
+- `"outDir"` / `"rootDir"` — draws a clean line between source code (`src/`, what we write) and compiled output (`dist/`, what actually runs in production). This mirrors the `main`/`bin` fields we set in `package.json`.
 - `"strict": true` — the single most important flag. It bundles on ~8 stricter checks (like disallowing implicit `any` types). Think of it as the difference between a spellchecker that only catches misspelled words versus one that also catches grammar and logic errors.
 - `"noUncheckedIndexedAccess": true` — when we later index into arrays of retrieved documents or chunks (Phase 2), this forces TypeScript to acknowledge that `array[i]` might be `undefined` (e.g., empty search results) rather than assuming it always exists. This single setting prevents a huge class of "cannot read property of undefined" crashes later in the series.
 - `"skipLibCheck": true` — skips type-checking inside `node_modules` dependencies (which we don't control and can trust are already checked), keeping our compile times fast.
@@ -294,7 +295,7 @@ mkdir src
 
 We install the `openai` SDK now because Step 5's dial-tone script needs it — we're using OpenAI as our LLM provider for this series (the same patterns apply directly to Anthropic, Google, or any other provider; we'll note where they diverge).
 
-##### `codecopilot/.env.example`
+##### `opencode/.env.example`
 
 ```bash
 # Copy this file to .env and fill in your real key.
@@ -304,15 +305,15 @@ We install the `openai` SDK now because Step 5's dial-tone script needs it — w
 OPENAI_API_KEY=sk-your-key-here
 ```
 
-##### `codecopilot/.env`
+##### `opencode/.env`
 
 ```bash
 OPENAI_API_KEY=sk-REPLACE_WITH_YOUR_REAL_KEY
 ```
 
-> Get a real key from https://platform.openai.com/api-keys. If you don't have an OpenAI account, create one — new accounts typically get a small free credit grant, which is plenty for this entire series if you're mindful (and Part 7 specifically teaches you how to keep costs low).
+> Get a real key from https://platform.openai.com/api-keys. If you don't have an OpenAI account, create one — new accounts typically get a small free credit grant, which is plenty for this entire series if you're mindful (Part 7 specifically teaches you how to keep costs low).
 
-##### `codecopilot/.gitignore`
+##### `opencode/.gitignore`
 
 ```
 # Dependencies
@@ -331,7 +332,7 @@ dist/
 
 This is the single most important file in the whole setup from a security standpoint: it tells Git to never track `node_modules` (huge, regenerable), `dist` (regenerable build output), or `.env` (your actual secret key). Create this **before** your first `git add`, or your key could end up in Git history permanently — simply deleting the file later doesn't erase it from history.
 
-##### `codecopilot/src/config.ts`
+##### `opencode/src/config.ts`
 
 ```typescript
 import "dotenv/config"; // side-effect import: reads .env and populates process.env
@@ -370,7 +371,7 @@ export const config = parsedEnv.data;
 
 **The Verification**
 
-Temporarily break your `.env` on purpose to prove the safety net works:
+Temporarily break your `.env` on purpose to prove the safety net actually works before trusting it:
 
 ```bash
 echo "OPENAI_API_KEY=garbage" > .env
@@ -384,9 +385,9 @@ Expected output:
 { OPENAI_API_KEY: [ "OPENAI_API_KEY should start with 'sk-'" ] }
 ```
 
-The process should also exit with a non-zero status code (confirm with `echo $?` on macOS/Linux immediately after — it should print `1`, not `0`). This proves that a malformed key is caught **immediately**, not two hours from now during a live API call.
+The process should also exit with a non-zero status code (confirm with `echo $?` on macOS/Linux immediately after — it should print `1`, not `0`).
 
-Now restore your real key and confirm the happy path:
+Now restore your real key:
 
 ```bash
 echo "OPENAI_API_KEY=sk-REPLACE_WITH_YOUR_REAL_KEY" > .env
@@ -399,9 +400,7 @@ Expected output:
 ✅ Config loaded OK
 ```
 
-If you see that, your secrets pipeline is solid: no hardcoded keys, no silent failures, fail-fast on misconfiguration. Now edit `.env` one more time and paste your **actual** OpenAI key in — Step 5 needs it to make a real network call.
-
----
+If you see that, edit `.env` one more time and paste your **actual** OpenAI key in — Step 5 needs it to make a real network call.
 
 ### Step 5 — The "Dial Tone" Script
 
@@ -411,7 +410,7 @@ If you see that, your secrets pipeline is solid: no hardcoded keys, no silent fa
 
 **The Implementation**
 
-##### `codecopilot/src/index.ts`
+##### `opencode/src/index.ts`
 
 ```typescript
 import { config } from "./config.js";
@@ -476,7 +475,7 @@ checkDialTone();
 
 **The Verification**
 
-Run the script in development mode using the `dev` script we defined in `package.json` back in Step 2:
+Run the script in development mode using the `dev` script we defined in `package.json`:
 
 ```bash
 npm run dev
@@ -508,12 +507,47 @@ npm run build
 npm run start
 ```
 
-`npm run build` compiles every `.ts` file in `src/` into plain `.js` inside `dist/` (per our `tsconfig.json`), and `npm run start` runs that compiled output directly with `node`, with no TypeScript tooling involved at all — exactly how this app will run once deployed to a real server in later parts. You should see the identical `pong` output. If both the `dev` and `build`/`start` paths work identically, your entire foundation for the rest of the series is solid.
+`npm run build` compiles every `.ts` file in `src/` into plain `.js` inside `dist/` (per our `tsconfig.json`), and `npm run start` runs that compiled output directly with `node`, with no TypeScript tooling involved at all — exactly how this tool will run once packaged/deployed in later parts. You should see the identical `pong` output. If both the `dev` and `build`/`start` paths work identically, your entire foundation for the rest of the series is solid.
 
 ---
 
-## 6. What's Next: Part 1
+## 6. Project Structure Checkpoint
+
+At the end of Part 0, your directory should look exactly like this:
+
+```
+opencode/
+├── .env                  (gitignored — your real secret key)
+├── .env.example          (committed — template for others)
+├── .gitignore
+├── package.json
+├── tsconfig.json
+├── dist/                 (generated by `npm run build`, gitignored)
+│   ├── config.js
+│   └── index.js
+└── src/
+    ├── config.ts
+    └── index.ts
+```
+
+Commit this now, before moving on:
+
+```bash
+git add .
+git status
+# Confirm .env is NOT listed — only .env.example should appear
+git commit -m "Part 0: project scaffold, TypeScript config, secrets, dial-tone check"
+```
+
+---
+
+## 7. What's Next: Part 1
 
 Right now, `index.ts` does something almost embarrassingly simple: it sends one hardcoded sentence and gets one word back. In **Part 1**, we push this same dial-tone connection to its breaking point on purpose — we'll point it at a real, multi-file codebase, write code that recursively reads every file into one giant string, and stuff the *entire thing* into a single prompt alongside a user's question.
 
 It will appear to work at first, on a small folder. Then we'll scale it up and watch it fail in exactly the ways experienced engineers warn about: ballooning latency before the first token even arrives, a shockingly large token bill for one single question, and — most damning of all — the model confidently ignoring a critical function definition because it was buried in the middle of a 50,000-token wall of text. You'll see this "Lost in the Middle" failure with your own eyes, on your own machine, using your own API key — not as an abstract claim in a blog post.
+
+---
+
+**✅ Part 0 is now complete.** Foundation is poured: Node/TypeScript environment verified, `opencode` project scaffolded, strict TypeScript configured, secrets safely loaded and validated, and a working end-to-end call to the OpenAI API proven on both the dev and production paths.
+
