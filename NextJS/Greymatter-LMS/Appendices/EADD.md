@@ -3,7 +3,7 @@
 **System Name:** Greymatter LMS
 **System Classification:** Extensible Enterprise Learning Management System
 **Target Core Stack:** Next.js 16 (App Router), React 19, Sanity Studio v3 (Headless CMS), Clerk Core Auth, Neon Serverless PostgreSQL, Prisma ORM, Tailwind CSS
-**Document Version:** 1.1.0 (Consolidated Production-Ready Spec)
+**Document Version:** 1.2.0 (Consolidated, Reconciled Against Parts 1–4 Implementation)
 
 ---
 
@@ -47,9 +47,10 @@ Greymatter LMS decouples content authoring from transactional state to achieve h
 ## 2. Core Architectural Principles
 
 1. **Strict Locality of Behavior (LoB):** Keep styling, presentation logic, and interaction constraints close to the component definitions they affect.
-2. **The "Stateless Player" Pattern:** The core LMS runtime layout stays oblivious to *how* a lesson is formatted or *what* interactive mechanics run inside it — it acts merely as a container frame.
-3. **Optimistic-First Execution:** The UI assumes server-bound mutations will succeed, capping perceived latency at client-side execution speed via React 19 transition features.
-4. **Isolated Trust Boundaries:** Untrusted developer components execute within constrained execution frames to prevent Cross-Site Scripting (XSS) and token theft.
+2. **The "Stateless Player" Pattern:** The core LMS runtime layout stays oblivious to _how_ a lesson is formatted or _what_ interactive mechanics run inside it — it acts merely as a container frame.
+3. **Optimistic-First Execution:** The UI assumes server-bound mutations will succeed, capping perceived latency at client-side execution speed via React 19 transition features (`useOptimistic`, `useTransition`).
+4. **Identity Boundary Discipline:** The system that proves *who you are* (Clerk) and the system that stores *what you're allowed to do* (Neon/Prisma `User.id`) are deliberately kept as two distinct identifiers, joined by exactly one field (`User.clerkId`), never conflated elsewhere in the schema.
+5. **Isolated Trust Boundaries:** Untrusted developer components execute within constrained execution frames to prevent Cross-Site Scripting (XSS) and token theft — a defense layer scoped as a future-phase enhancement beyond this document's baseline implementation (see §5.2).
 
 ---
 
@@ -124,13 +125,13 @@ Next.js 16 stabilizes native caching directives. Lesson structures pulled from S
 
 ```typescript
 // app/data/course-fetcher.ts
-import { createClient } from '@sanity/client';
+import { createClient } from "@sanity/client";
 
 const sanity = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-  dataset: 'production',
+  dataset: "production",
   useCdn: true,
-  apiVersion: '2026-07-17',
+  apiVersion: "2026-07-17",
 });
 
 export async function getCachedLesson(lessonId: string) {
@@ -166,121 +167,206 @@ Sanity acts as a document store. Because schemas are written in plain JavaScript
                               └───────────┬────────────┘
                                           │
                   ┌───────────────────────┴───────────────────────┐
-                  ▼ (Rich Text Block Array)                       ▼ (Optional Extension Block)
+                  ▼ (Rich Text Block Array — field: "body")       ▼ (Optional Extension Block)
        ┌──────────────────────┐                        ┌──────────────────────┐
-       │  PortableText Block  │                        │     CustomModule     │
+       │  PortableText Block  │                        │     customModule     │
        │  (Paragraphs, Code)  │                        │  (Registry-bound JS) │
        └──────────────────────┘                        └──────────────────────┘
 ```
 
 #### Sanity Schema Definitions (TypeScript)
 
+The following schemas match the actual implementation, using Sanity's `defineField`/`defineType` helpers for full type inference in Studio — not plain object literals:
+
 ```typescript
-// schemas/course.ts
-export const course = {
-  name: 'course',
-  type: 'document',
-  title: 'Course Blueprint',
-  fields: [
-    { name: 'title', type: 'string', title: 'Course Title', validation: (Rule: any) => Rule.required() },
-    { name: 'slug', type: 'slug', title: 'Slug', options: { source: 'title' } },
-    { name: 'description', type: 'text', title: 'Short Description' },
-    {
-      name: 'chapters',
-      type: 'array',
-      title: 'Course Chapters',
-      of: [{ type: 'reference', to: [{ type: 'chapter' }] }],
-    },
-  ],
-};
+// sanity/schemaTypes/course.ts
+import { defineField, defineType } from "sanity";
 
-// schemas/chapter.ts
-export const chapter = {
-  name: 'chapter',
-  type: 'document',
-  title: 'Chapter',
+export const course = defineType({
+  name: "course",
+  title: "Course",
+  type: "document",
   fields: [
-    { name: 'title', type: 'string', title: 'Chapter Title', validation: (Rule: any) => Rule.required() },
-    {
-      name: 'lessons',
-      type: 'array',
-      title: 'Lessons',
-      of: [{ type: 'reference', to: [{ type: 'lesson' }] }],
-    },
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "slug",
+      title: "Slug",
+      type: "slug",
+      options: { source: "title", maxLength: 96 },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "description",
+      title: "Description",
+      type: "text",
+    }),
+    defineField({
+      name: "chapters",
+      title: "Chapters",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "chapter" }] }],
+    }),
   ],
-};
+});
+```
 
-// schemas/lesson.ts
-export const lesson = {
-  name: 'lesson',
-  type: 'document',
-  title: 'Lesson',
+```typescript
+// sanity/schemaTypes/chapter.ts
+import { defineField, defineType } from "sanity";
+
+export const chapter = defineType({
+  name: "chapter",
+  title: "Chapter",
+  type: "document",
   fields: [
-    { name: 'title', type: 'string', title: 'Lesson Title', validation: (Rule: any) => Rule.required() },
-    {
-      name: 'content',
-      type: 'array',
-      title: 'Lesson Material',
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "order",
+      title: "Order",
+      type: "number",
+      validation: (Rule) => Rule.required().integer().min(0),
+    }),
+    defineField({
+      name: "lessons",
+      title: "Lessons",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "lesson" }] }],
+    }),
+  ],
+});
+```
+
+```typescript
+// sanity/schemaTypes/lesson.ts
+import { defineField, defineType } from "sanity";
+
+export const lesson = defineType({
+  name: "lesson",
+  title: "Lesson",
+  type: "document",
+  fields: [
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "slug",
+      title: "Slug",
+      type: "slug",
+      options: { source: "title", maxLength: 96 },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "order",
+      title: "Order",
+      type: "number",
+      validation: (Rule) => Rule.required().integer().min(0),
+    }),
+    defineField({
+      name: "videoUrl",
+      title: "Video URL",
+      type: "url",
+    }),
+    defineField({
+      name: "body",
+      title: "Body",
+      type: "array",
       of: [
-        { type: 'block' }, // Standard Portable Text editor (headings, lists, strong, etc.)
-        {
-          type: 'object',
-          name: 'customModule',
-          title: 'Custom Interactivity Module',
+        { type: "block" }, // Standard Portable Text editor (headings, lists, strong, etc.)
+        defineField({
+          type: "object",
+          name: "customModule",
+          title: "Custom Interactivity Module",
           fields: [
-            {
-              name: 'moduleType',
-              type: 'string',
-              title: 'Module Key Identifier',
-              description: 'Must match a dynamic key in the Next.js ModuleRegistry.',
-              validation: (Rule: any) => Rule.required(),
-            },
-            {
-              name: 'configPayload',
-              type: 'text',
-              title: 'JSON Configurations',
-              description: 'Paste valid JSON structure containing parameters passed to the developer widget.',
-              initialValue: '{}',
-              validation: (Rule: any) =>
-                Rule.custom((value: string) => {
+            defineField({
+              name: "moduleType",
+              type: "string",
+              title: "Module Key Identifier",
+              description:
+                'Must match a dynamic key in the Next.js ModuleRegistry (e.g. "sql-sandbox").',
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "configPayload",
+              type: "text",
+              title: "Module Config (JSON string)",
+              description:
+                "Arbitrary configuration passed as props to the resolved plugin component — must be valid JSON.",
+              validation: (Rule) =>
+                Rule.custom((value: string | undefined) => {
+                  if (!value) return true; // optional field, empty is fine
                   try {
-                    if (value) JSON.parse(value);
+                    JSON.parse(value);
                     return true;
                   } catch (e) {
-                    return 'Must be a valid, parsable JSON string';
+                    return "Must be a valid, parsable JSON string";
                   }
                 }),
-            },
+            }),
           ],
-        },
+        }),
       ],
-    },
+    }),
   ],
-};
+});
 ```
+
+```typescript
+// sanity/schemaTypes/index.ts
+import { course } from "./course";
+import { chapter } from "./chapter";
+import { lesson } from "./lesson";
+
+export const schemaTypes = [course, chapter, lesson];
+```
+
+Note that the lesson's rich-text field is named `body`, not `content` — this matters because every GROQ query in this document and in the reference implementation reads `body`, and a mismatch here would silently return `undefined` at query time rather than throwing a visible error.
 
 ---
 
 ### 4.2 Serverless Relational Database Domain (Neon PostgreSQL + Prisma)
 
-Neon PostgreSQL scales down to zero during inactive periods to minimize hosting overhead. Under active load, connection pooling is handled through Neon's integrated transaction proxy. Operational tables link to the unstructured CMS schema via plain `VARCHAR(255)` string identifiers rather than foreign keys — completely avoiding expensive cross-database migrations and synchronizations.
+Neon PostgreSQL scales down to zero during inactive periods to minimize hosting overhead. Under active load, connection pooling is handled through Neon's integrated transaction proxy (PgBouncer). Operational tables link to the unstructured CMS schema via plain `TEXT` string identifiers rather than foreign keys — completely avoiding expensive cross-database migrations and synchronizations.
+
+A critical identity-boundary decision governs the `User` model specifically: **`User.id` is never the Clerk-issued identity string.** It is an internal, Prisma-generated `cuid()`, kept permanently distinct from `User.clerkId` (the external Clerk identity). This is not a stylistic choice — every `Enrollment` and `Progress` foreign key points at `User.id`, so if `id` and `clerkId` were ever conflated, changing auth providers in the future would require rewriting every transactional row in the database. Keeping them separate means only the `clerkId` column would need to change.
+
+All primary keys across `User`, `Enrollment`, and `Progress` use Prisma's `cuid()` generator, producing `TEXT`-backed string values — **not** native Postgres `UUID` columns. This is a deliberate, single standard applied consistently across the schema, chosen because `cuid()` is collision-resistant, sortable-by-creation-time, and requires no `pgcrypto` extension or `dbgenerated()` call to produce.
 
 #### Consolidated Database Model Matrix
 
 | Model | Database Field Name | Data Type | Primary / Foreign Key / Index | Description |
 | --- | --- | --- | --- | --- |
-| **User** | `id` | `VARCHAR(255)` | **Primary Key** | Directly maps to the Clerk User ID. |
-|  | `email` | `VARCHAR(255)` | `Unique Index` | User email synced via webhook from Clerk. |
-|  | `role` | `ENUM ('STUDENT', 'INSTRUCTOR', 'ADMIN')` | None | System permission level. |
-| **Enrollment** | `id` | `UUID` | **Primary Key** | Unique enrollment ID. |
-|  | `userId` | `VARCHAR(255)` | Foreign Key -> `User.id` | Student enrolled. |
-|  | `courseId` | `VARCHAR(255)` | `Index` | References Sanity's `course._id` value. |
-| **Progress** | `id` | `UUID` | **Primary Key** | Unique progress tracker ID. |
-|  | `userId` | `VARCHAR(255)` | Foreign Key -> `User.id` | Student tracking state. |
-|  | `lessonId` | `VARCHAR(255)` | `Index` | References Sanity's `lesson._id` value. |
+| **User** | `id` | `TEXT` (`cuid()`) | **Primary Key** | Internal identifier, distinct from Clerk's own user id. |
+|  | `clerkId` | `TEXT` | `Unique Index` | The external Clerk User ID, synced via webhook. |
+|  | `email` | `TEXT` | `Unique Index` | User email synced via webhook from Clerk. |
+|  | `name` | `TEXT`, nullable | None | Optional display name. |
+|  | `role` | `ENUM ('STUDENT', 'INSTRUCTOR', 'ADMIN')` | None | System permission level, defaults to `STUDENT`. |
+| **Enrollment** | `id` | `TEXT` (`cuid()`) | **Primary Key** | Unique enrollment ID. |
+|  | `userId` | `TEXT` | Foreign Key → `User.id` | Student enrolled — always the internal id. |
+|  | `courseId` | `TEXT` | `Index` | References Sanity's `course._id` value. |
+|  | `enrolledAt` | `TIMESTAMP` | None | Defaults to creation time. |
+|  | — | — | `Unique(userId, courseId)` | Prevents duplicate enrollment; backs the compound lookup used in the transaction engine (§6). |
+| **Progress** | `id` | `TEXT` (`cuid()`) | **Primary Key** | Unique progress tracker ID. |
+|  | `userId` | `TEXT` | Foreign Key → `User.id` | Student tracking state — always the internal id. |
+|  | `courseId` | `TEXT` | `Index` | References Sanity's `course._id`. Denormalized so course-scoped progress queries avoid a join. Required on every row. |
+|  | `lessonId` | `TEXT` | `Index` | References Sanity's `lesson._id` value. |
 |  | `completed` | `BOOLEAN` | None | Tracks whether the lesson has been completed. |
-|  | `score` | `INT` | None | Standardized percentage-based score (0 to 100). |
-|  | `moduleState` | `JSONB` | None | Raw, arbitrary storage for developer sandbox outputs. |
+|  | `completedAt` | `TIMESTAMP`, nullable | None | Set when `completed` becomes `true`. |
+|  | `score` | `INT`, nullable | None | Standardized percentage-based score (0 to 100). |
+|  | `moduleState` | `JSON`, nullable | None | Raw, arbitrary storage for developer sandbox outputs. |
+|  | — | — | `Unique(userId, lessonId)` | Guarantees exactly one progress row per student per lesson; backs the transaction engine's `upsert`. |
 
 #### Prisma Schema
 
@@ -303,43 +389,44 @@ enum Role {
 }
 
 model User {
-  id          String       @id
+  id          String       @id @default(cuid())
+  clerkId     String       @unique
   email       String       @unique
+  name        String?
   role        Role         @default(STUDENT)
-  enrollments Enrollment[]
-  progress    Progress[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  @@index([email])
+  enrollments Enrollment[]
+  progress    Progress[]
 }
 
 model Enrollment {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId  String   // Points directly to Sanity Course ID
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String   // Points directly to Sanity Course ID — no FK possible
+  enrolledAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@index([courseId])
 }
 
 model Progress {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String    @id @default(cuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String    // Denormalized for fast "progress by course" queries — required
   lessonId    String    // Points directly to Sanity Lesson ID
   completed   Boolean   @default(false)
   completedAt DateTime?
   score       Int?      // Nullable score ranging from 0 to 100
-  moduleState Json      @default("{}") // Stored complex objects from custom developer components
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  moduleState Json?     // Nullable — arbitrary developer sandbox output
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
-  @@index([userId])
-  @@index([lessonId])
+  @@index([userId, courseId])
 }
 ```
 
@@ -349,15 +436,17 @@ model Progress {
 
 Executing custom JavaScript components loaded dynamically introduces two major vulnerabilities: **Cross-Site Scripting (XSS)** and **Data Spoofing** (students sending fake "successful completion" payloads via simulated API requests).
 
-### 5.1 Defense Path 1: Sandboxing Untrusted Code
+The baseline implementation covered in this document (§6) addresses spoofing via server-side enrollment verification and score-bounds checking inside an atomic transaction. The two mechanisms below — iframe sandboxing and HMAC challenge/response — are **future-phase hardening layers**, not part of the current build. They're documented here because the plugin registry's architecture (a string `moduleType` resolved to a component, per §4.1) is designed to accommodate them without requiring a redesign, should Greymatter later need to run third-party-authored plugin code it doesn't fully trust.
 
-If a module is built by an untrusted third party, it must never execute in the client's parent frame. Instead, it runs inside a secure iframe container:
+### 5.1 Defense Path 1 (Future Phase): Sandboxing Untrusted Code
+
+If a module is built by an untrusted third party, it should never execute in the client's parent frame. Instead, it would run inside a secure iframe container:
 
 ```tsx
 // components/plugins/SandboxFrame.tsx
-'use client';
+"use client";
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from "react";
 
 interface SandboxFrameProps {
   moduleUrl: string;
@@ -375,19 +464,19 @@ export function SandboxFrame({ moduleUrl, config, onComplete }: SandboxFrameProp
       if (!trustedOrigins.includes(event.origin)) return;
 
       const { type, payload } = event.data;
-      if (type === 'MODULE_COMPLETE') {
+      if (type === "MODULE_COMPLETE") {
         onComplete(payload.score, payload.metadata);
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, [onComplete]);
 
   const sendConfigOnLoad = () => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        { type: 'INITIALIZE', config },
+        { type: "INITIALIZE", config },
         moduleUrl
       );
     }
@@ -398,20 +487,20 @@ export function SandboxFrame({ moduleUrl, config, onComplete }: SandboxFrameProp
       ref={iframeRef}
       src={moduleUrl}
       onLoad={sendConfigOnLoad}
-      sandbox="allow-scripts" // Blocks cookie and localStorage access!
+      sandbox="allow-scripts" // Blocks cookie and localStorage access
       className="w-full h-96 border border-slate-200 rounded-xl"
     />
   );
 }
 ```
 
----
+Note this is architecturally separate from the `ModuleRegistry` built in the current implementation — `ModuleRegistry` resolves `moduleType` to a **first-party, code-split React component** via `next/dynamic`, whereas `SandboxFrame` would be an alternative resolution path for third-party plugin URLs specifically. The two are not mutually exclusive: a future version of `resolveModule()` could check whether a given `moduleType` maps to a trusted first-party component or an untrusted iframe URL, and branch accordingly. No such branching exists in the current build — every registered module today is first-party code, rendered directly, with trust established through the transaction engine in §6 rather than iframe isolation.
 
-### 5.2 Defense Path 2: Cryptographic Hash Verification
+### 5.2 Defense Path 2 (Future Phase): Cryptographic Hash Verification
 
 For high-stakes exams or grading modules, client submissions should be verified using a standard HMAC cryptographic handshake.
 
-When a lesson loads, the backend issues a single-use token signed with a server secret. When the custom module finishes execution, it must return its progress output alongside this encrypted signature, preventing students from bypassing the UI and spoofing API requests.
+When a lesson loads, the backend would issue a single-use token signed with a server secret. When the custom module finishes execution, it would need to return its progress output alongside this encrypted signature, preventing students from bypassing the UI and spoofing API requests directly against the Server Action.
 
 ```
 1. Next.js Server ──(Generates Unique Lesson Salt)──► React Plugin Client
@@ -423,6 +512,8 @@ When a lesson loads, the backend issues a single-use token signed with a server 
          │
   [Server recalculates hash to verify score was legitimately earned]
 ```
+
+As with §5.1, this is not implemented in the current build. The baseline defense actually shipped — enrollment verification inside an atomic transaction, plus server-side score-bounds checking — protects against the specific threat model of "a student tampers with the plugin's JS to fake a score," but does not protect against a sufficiently motivated attacker replaying a legitimate request with a forged score, since no cryptographic proof of *how* the score was derived is currently collected or checked. The HMAC handshake would close that gap; it's listed here as the documented next step for any module type where that residual risk is unacceptable (e.g., a proctored final exam).
 
 ---
 
@@ -440,37 +531,62 @@ Because modern frontends expose application variables directly to client runtime
 ┌─────────────────────────┐
 │ Next.js Server Boundary │
 ├─────────────────────────┴────────────────────────────────────────────────┐
-│ 1. Context Auth Evaluation: Extracts verified token claims via Clerk.     │
+│ 1. Identity Resolution: Extracts verified Clerk session, resolves it to  │
+│    our own internal User.id via a User.clerkId lookup — never uses the  │
+│    raw Clerk id against Enrollment/Progress directly.                   │
 │ 2. Parameter Sanitization: Asserts structural bounds on dynamic variables.│
-│                                                                          │
+│                                                                           │
 │ 3. Database Isolation Boundary ($transaction):                          │
 │    ┌───────────────────────────────────────────────────────────────┐    │
 │    │ Operational Assertions:                                       │    │
 │    │ - Queries Enrollment row using composite user/course indexes. │    │
-│    │ - Aborts explicitly if relationship returns void.             │    │
+│    │ - Aborts explicitly (throws, triggering rollback) if the      │    │
+│    │   relationship returns void.                                  │    │
 │    │                                                               │    │
 │    │ State Serialization:                                          │    │
-│    │ - Executes atomic Upsert on target Progress rows.             │    │
+│    │ - Executes atomic Upsert on target Progress rows, supplying  │    │
+│    │   courseId on the create branch (required, non-nullable).    │    │
 │    └───────────────────────────────┬───────────────────────────────┘    │
 │                                    │                                     │
 │                                    ▼ (On Success Commit)                 │
-│ 4. Cache Eviction Pipeline: Dispatches cache tag invalidation rules.     │
+│ 4. Client Response: Returns a generic success/failure signal — never    │
+│    the raw internal error message, which stays server-side only.        │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Complete Implementation
 
 ```typescript
-// app/actions/progress.ts
-'use server';
-
+// lib/auth/get-internal-user.ts
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
-import { revalidateTag } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+/**
+ * Resolves the currently signed-in Clerk session down to our own
+ * internal User.id. Enrollment.userId and Progress.userId are foreign
+ * keys into User.id, NOT into Clerk's external id — this lookup is
+ * mandatory before either table can be safely queried.
+ */
+export async function getInternalUserId(): Promise<string | null> {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return null;
 
-// Rigid custom types to structure the Dynamic JSON Payload data store
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true },
+  });
+
+  return user?.id ?? null;
+}
+```
+
+```typescript
+// app/actions/progress.ts
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { getInternalUserId } from "@/lib/auth/get-internal-user";
+
 interface ModuleStateSchema {
   currentStep?: number;
   terminalLogs?: string[];
@@ -488,36 +604,41 @@ interface CompleteLessonPayload {
 interface OperationalResponse {
   success: boolean;
   error?: string;
-  transactionTimestamp?: string;
 }
 
 /**
- * Executes a highly structured Server Action protecting progress entries via database isolation levels.
+ * Executes a structured Server Action protecting progress entries via
+ * database isolation levels. Never trusts client-supplied identity or
+ * an unbounded score; never leaks internal failure detail to the caller.
  */
-export async function completeLesson(payload: CompleteLessonPayload): Promise<OperationalResponse> {
-  // 1. Establish strict server-side identity context
-  const { userId } = await auth();
+export async function completeLesson(
+  payload: CompleteLessonPayload
+): Promise<OperationalResponse> {
+  // 1. Resolve verified identity to our own internal User.id
+  const userId = await getInternalUserId();
   if (!userId) {
     return {
       success: false,
-      error: "UNAUTHORIZED_ACCESS_DENIED: Execution context missing authenticated session identifiers.",
+      error: "You must be signed in to record progress.",
     };
   }
 
   const { courseId, lessonId, score, moduleState } = payload;
+  if (!courseId || !lessonId) {
+    return { success: false, error: "Missing courseId or lessonId." };
+  }
 
   // 2. Strict application guardrails on client-provided data
   if (score !== undefined && (score < 0 || score > 100)) {
     return {
       success: false,
-      error: "INTEGRITY_VIOLATION: Input score deviates outside established system baseline (0-100).",
+      error: "Transaction Integrity Violation: Score bound out of index.",
     };
   }
 
   try {
     // 3. Initiate database isolation context
     await prisma.$transaction(async (tx) => {
-      // Step A: Assert the student has a verified operational relationship with the parent course
       const enrollment = await tx.enrollment.findUnique({
         where: {
           userId_courseId: { userId, courseId },
@@ -526,11 +647,10 @@ export async function completeLesson(payload: CompleteLessonPayload): Promise<Op
 
       if (!enrollment) {
         throw new Error(
-          "ENROLLMENT_NOT_FOUND: Mutation cancelled. Target user does not possess verified course clearance."
+          "Transaction Failed: Student has not enrolled in the parent course."
         );
       }
 
-      // Step B: Atomically commit the progress status change
       await tx.progress.upsert({
         where: {
           userId_lessonId: { userId, lessonId },
@@ -538,33 +658,28 @@ export async function completeLesson(payload: CompleteLessonPayload): Promise<Op
         update: {
           completed: true,
           completedAt: new Date(),
-          score: score ?? null,
-          moduleState: moduleState || {},
+          score,
+          moduleState: moduleState ?? {},
         },
         create: {
           userId,
           lessonId,
+          courseId, // required, non-nullable — must be supplied on create
           completed: true,
           completedAt: new Date(),
-          score: score ?? null,
-          moduleState: moduleState || {},
+          score,
+          moduleState: moduleState ?? {},
         },
       });
     });
 
-    // 4. Invalidate the relevant segment of the Data Cache
-    revalidateTag(`progress-${courseId}`);
-
-    return {
-      success: true,
-      transactionTimestamp: new Date().toISOString(),
-    };
-
+    return { success: true };
   } catch (error: any) {
-    console.error(`FATAL SYSTEM TRANSACTION FAILURE — ROLLBACK INITIATED: ${error.message}`);
+    // Detailed failure reason stays server-side only.
+    console.error("CRITICAL: Database transaction rollback executed:", error.message);
     return {
       success: false,
-      error: error.message ?? "INTERNAL_SERVER_ERROR: Relational processing exception.",
+      error: "Failed to save lesson progress. Please try again.",
     };
   }
 }
@@ -579,49 +694,50 @@ To safely reconstruct complete system UI nodes without maintaining deep database
 ```typescript
 // app/data/hydrate-course.ts
 import { createClient } from "@sanity/client";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getInternalUserId } from "@/lib/auth/get-internal-user";
 import { cache } from "react";
 
 const sanity = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-  useCdn: false, // Set false to read freshly generated content directly from edge nodes
+  useCdn: false, // false reads freshly generated content directly from Sanity's origin
   apiVersion: "2026-03-01",
 });
 
-const prisma = new PrismaClient();
-
-// Data schemas enforcing structural design parity across system models
 export interface HydratedLesson {
   id: string;
   title: string;
   slug: string;
-  type: "text" | "interactive_sandbox" | "assessment";
-  cmsContent: any;
+  cmsContent: unknown; // the lesson's "body" Portable Text array
   userProgress: {
     completed: boolean;
     completedAt: Date | null;
     score: number | null;
-    moduleState: any;
+    moduleState: unknown;
   } | null;
 }
 
 /**
- * High-performance composite reader combining CMS unstructured arrays with Neon database records.
- * Uses Next.js tag-based data cache rules.
+ * High-performance composite reader combining CMS unstructured arrays with
+ * Neon database records. Resolves the caller's internal User.id once,
+ * up front — never queries Progress using a raw Clerk session id.
  */
-export const getHydratedCourseData = cache(async (userId: string, courseId: string) => {
+export const getHydratedCourseData = cache(async (courseId: string) => {
+  const userId = await getInternalUserId();
+
   try {
-    // A. Fetch the course structure from Sanity
+    // A. Fetch the course structure from Sanity, including each lesson's
+    //    real "body" field (not "content" — that field doesn't exist),
+    //    walking through the chapters[] -> lessons[] reference chain.
     const sanityCourse = await sanity.fetch(
       `*[_type == "course" && _id == $courseId][0]{
         _id,
         title,
-        lessons[]->{
+        "lessons": chapters[]->lessons[]->{
           _id,
           title,
           "slug": slug.current,
-          type,
           body
         }
       }`,
@@ -630,27 +746,32 @@ export const getHydratedCourseData = cache(async (userId: string, courseId: stri
 
     if (!sanityCourse) return null;
 
-    // B. Fetch user progress scoped strictly to the current course's lesson set
+    // B. Fetch user progress scoped strictly to the current course's
+    //    lesson set — but only if a signed-in, resolved user exists.
+    //    An anonymous or not-yet-synced visitor sees content with no
+    //    progress overlay, rather than throwing.
     const targetLessonIds = sanityCourse.lessons.map((l: any) => l._id);
-    const specificProgress = await prisma.progress.findMany({
-      where: {
-        userId,
-        lessonId: { in: targetLessonIds },
-      },
-    });
+
+    const specificProgress = userId
+      ? await prisma.progress.findMany({
+          where: {
+            userId,
+            lessonId: { in: targetLessonIds },
+          },
+        })
+      : [];
 
     // Create a key-value hashmap for constant-time lookup performance
     const progressMap = new Map(specificProgress.map((p) => [p.lessonId, p]));
 
-    // C. Perform non-destructive hydration, matching elements via shared ID string signatures
+    // C. Perform non-destructive hydration, matching elements via shared
+    //    Sanity document _id strings — never a true database join.
     const hydratedLessons: HydratedLesson[] = sanityCourse.lessons.map((lesson: any) => {
       const progress = progressMap.get(lesson._id);
-
       return {
         id: lesson._id,
         title: lesson.title,
         slug: lesson.slug,
-        type: lesson.type,
         cmsContent: lesson.body,
         userProgress: progress
           ? {
@@ -668,7 +789,6 @@ export const getHydratedCourseData = cache(async (userId: string, courseId: stri
       courseTitle: sanityCourse.title,
       lessons: hydratedLessons,
     };
-
   } catch (error) {
     console.error("Aggregation Layer Exception Failure:", error);
     throw new Error("DATA_HYDRATION_FAILED: Multi-source record binding could not complete.");
@@ -676,16 +796,22 @@ export const getHydratedCourseData = cache(async (userId: string, courseId: stri
 });
 ```
 
+Two corrections from an earlier draft of this function are worth calling out explicitly, since both are easy to reintroduce by accident:
+
+- **No `lesson.type` field.** An earlier version of this hydrator referenced `lesson.type: "text" | "interactive_sandbox" | "assessment"` and queried it directly from Sanity. No such field exists anywhere in the actual `lesson` schema (§4.1) — a lesson's "type" is implicit, derived entirely from whether its `body` array happens to contain a `customModule` block, not from an explicit enum. If a future iteration wants to classify lessons this way for filtering/UI purposes, it would need to be added as a real schema field first; referencing it here without that field existing would silently return `undefined` for every lesson.
+- **`userId` is resolved once, before either fetch runs**, rather than assumed to be a valid parameter passed in from elsewhere. This function accepts only `courseId` — it derives `userId` internally via `getInternalUserId()`, consistent with every other data-access function in this document, so that no caller can accidentally pass in an unresolved Clerk id by mistake.
+
 ---
 
 ## 8. Summary Matrix: Component Field Mapping
 
 | **Data Space / Target** | **Schema Model Type** | **Database Layer** | **Primary Key Format** | **Data Mapping Objective** |
 | --- | --- | --- | --- | --- |
-| **Auth System** | `User` | Clerk Ecosystem | String ID (`user_...`) | Session management & user base context |
-| **Course Structuring** | `Course` / `Chapter` / `Lesson` | Sanity Studio | String UUID / Hash Key | Content delivery & module configurations |
-| **Operational Maps** | `Enrollment` | Neon DB Matrix | PostgreSQL UUID Key | Validation checks & purchase tracking |
-| **Runtime Aggregates** | `Progress` | Neon DB Matrix | PostgreSQL UUID Key | Real-time scores & interactive states |
+| **Auth System (External)** | Clerk User | Clerk Ecosystem | String ID (`user_...`) | Session management & identity proof — mirrored into `User.clerkId`, never into `User.id` |
+| **Auth System (Internal)** | `User` | Neon DB (Prisma) | `TEXT` (`cuid()`) | Local identity record satisfying FK relationships for `Enrollment`/`Progress` |
+| **Course Structuring** | `Course` / `Chapter` / `Lesson` | Sanity Studio | Sanity document `_id` (string) | Content delivery & module configurations |
+| **Operational Maps** | `Enrollment` | Neon DB (Prisma) | `TEXT` (`cuid()`) | Validation checks & course-access tracking |
+| **Runtime Aggregates** | `Progress` | Neon DB (Prisma) | `TEXT` (`cuid()`) | Real-time scores & interactive states |
 
 ---
 
@@ -694,10 +820,18 @@ export const getHydratedCourseData = cache(async (userId: string, courseId: stri
 With the blueprint complete, implementation can proceed in the following order:
 
 1. **Provision infrastructure:** Set up Sanity project/dataset, Neon database (with pooled + direct URLs), and Clerk application.
-2. **Define schemas:** Deploy the `course` / `chapter` / `lesson` Sanity schemas and run the initial Prisma migration.
-3. **Wire authentication:** Configure Clerk middleware and sync users to the `User` table via webhook.
+2. **Define schemas:** Deploy the `course` / `chapter` / `lesson` Sanity schemas (§4.1) and run the initial Prisma migration (§4.2), including the `User.clerkId` field and `Progress.courseId`/`score`/`moduleState` columns from the outset.
+3. **Wire authentication:** Configure Clerk middleware, and sync users to the `User` table via webhook — upserting on `clerkId`, never on `id`.
 4. **Build the Stateless Player:** Implement the RSC lesson page that performs parallel fetches (Sanity + Neon) and resolves `customModule.moduleType` against a client-side `ModuleRegistry`.
-5. **Implement trust boundaries:** Stand up the `SandboxFrame` iframe component and, for graded modules, the HMAC salt-issuance/verification handshake.
-6. **Ship the transaction engine:** Deploy `completeLesson` as a Server Action, gated by enrollment checks and score-bound validation.
-7. **Enable caching/revalidation:** Wrap Sanity reads in `"use cache"`, and configure webhook-triggered `revalidateTag` calls scoped per course.
+5. **Ship the baseline transaction engine:** Deploy `completeLesson` as a Server Action (§6), gated by resolved-identity checks, score-bound validation, and an enrollment-guarded atomic transaction — this is the security baseline actually shipped, not the future-phase mechanisms in §5.
+6. **Enable caching/revalidation:** Wrap Sanity reads in `"use cache"`, and configure webhook-triggered cache revalidation scoped per course where applicable.
+7. **(Optional, future phase) Harden high-stakes modules:** For graded/proctored content specifically, implement the `SandboxFrame` iframe isolation and/or HMAC salt-issuance handshake described in §5.1–5.2. Treat this as an additive layer on top of the baseline transaction engine, not a replacement for it.
 8. **Load-test the decoupled path:** Confirm Sanity CDN reads stay sub-100ms and Neon writes remain isolated from content-read latency under concurrent load.
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+
