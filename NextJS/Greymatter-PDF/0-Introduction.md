@@ -117,7 +117,3 @@ You do **not** need any prior experience with PDF internals, Next.js, or React C
 In **Part 1: The Hybrid Architecture Blueprint**, we scaffold the actual Next.js 16 project from scratch, define our folder structure, and draw out the exact request/response topology between browser and server that every later part builds on top of.
 
 Let's begin.
-
----
-
-I'll keep working through Parts 2–9 in the background per your instruction and let you know when more are ready.
