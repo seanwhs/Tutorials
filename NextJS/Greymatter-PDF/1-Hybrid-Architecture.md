@@ -1,8 +1,8 @@
 # Part 1: The Hybrid Architecture Blueprint
 
-*(Phase 1 - Core Architecture and High-Performance Rendering)*
+*(Phase 1 — Core Architecture and High-Performance Rendering)*
 
-## 1.1 Deconstructing Apryse - the pillars of an enterprise document suite
+## 1.1 Deconstructing Apryse — the pillars of an enterprise document suite
 
 Enterprise document SDKs like Apryse (formerly PDFTron) bundle four separate jobs into one product:
 
@@ -33,12 +33,12 @@ The browser and server talk over three channels: normal HTTP fetches, Next.js Se
 Three rules fall out of this diagram and every future part obeys them:
 
 1. **Never send a whole PDF's raw bytes to a browser tab in one shot.** It must come through `proxy.ts` (Part 3), which checks permissions and streams it in chunks.
-2. **Never parse or render PDF vector graphics on the browser's main thread.** The main thread also handles clicks, scrolling, and typing - blocking it freezes the tab. Part 2 moves this work into a Web Worker (a background thread).
+2. **Never parse or render PDF vector graphics on the browser's main thread.** The main thread also handles clicks, scrolling, and typing — blocking it freezes the tab. Part 2 moves this work into a Web Worker (a background thread).
 3. **Never do byte-level file surgery (merge/split/stamp) in the browser.** This happens through Server Actions, which execute securely on the server (Part 6).
 
 ## 1.3 Why Next.js 16 and React 19.2 fit this topology
 
-Next.js's App Router makes every file a Server Component by default - its code runs only on the server and is never shipped to the browser as JavaScript. Developers must opt in to browser execution by adding the exact string `"use client"` at the top of a file. This default-server, opt-in-client model is a structural safety rail.
+Next.js's App Router makes every file a Server Component by default — its code runs only on the server and is never shipped to the browser as JavaScript. Developers must opt in to browser execution by adding the exact string `"use client"` at the top of a file. This default-server, opt-in-client model is a structural safety rail.
 
 React 19.2 ships the React Compiler, an automatic build-time tool that rewrites component code to skip unnecessary re-renders without manually wrapping things in `useMemo` or `useCallback`. We enable it today and lean on it heavily from Part 4 onward.
 
@@ -82,13 +82,13 @@ cd greymatter-pdf
 npm run dev
 ```
 
-Open http://localhost:3000 - confirm the default Next.js welcome page loads. Stop with Ctrl+C.
+Open http://localhost:3000 — confirm the default Next.js welcome page loads. Stop with Ctrl+C.
 
 ## Step 3: Design the folder structure
 
 **The Target:** lay out the `src/` directory so every future part has an obvious home for its files.
 
-**The Concept:** like labeling drawers in a new kitchen before buying ingredients - deciding which drawer holds knives (server-only logic) versus napkins (client-only UI) prevents a messy junk drawer later.
+**The Concept:** like labeling drawers in a new kitchen before buying ingredients — deciding which drawer holds knives (server-only logic) versus napkins (client-only UI) prevents a messy junk drawer later.
 
 **The Implementation:**
 
@@ -192,7 +192,7 @@ Expected output: the build completes successfully and prints a route summary tab
 
 **The Target:** create a `.env.local` file for secrets, and confirm git ignores it.
 
-**The Concept:** `.env.local` is like a physical key you keep in your own pocket, never handed to anyone else - it holds values (database passwords, storage keys) that must never be committed to a shared code repository, since a repository is like a photocopied binder everyone on the team can read.
+**The Concept:** `.env.local` is like a physical key you keep in your own pocket, never handed to anyone else — it holds values (database passwords, storage keys) that must never be committed to a shared code repository, since a repository is like a photocopied binder everyone on the team can read.
 
 **The Implementation:** create the file at the project root:
 
@@ -239,6 +239,3 @@ git commit -m "chore: scaffold greymatter-pdf with Next.js 16, React Compiler, a
 ## Part 1 Summary
 
 By this point you have: a running Next.js 16 + React 19.2 project named `greymatter-pdf`, with the React Compiler enabled, a purposeful `src/` folder layout that anticipates every future Part, a raised Server Action body size limit ready for PDF byte payloads, and a safe `.env.local` pattern with git already ignoring secrets. Part 2 begins filling in `src/workers` and `src/components/viewer` with the actual PDF rendering pipeline.
-
-*(A separate Reference Appendix note covers deeper dives on Server vs. Client Components, how the React Compiler works internally, and a glossary — ask for it separately if you want it.)*
-
