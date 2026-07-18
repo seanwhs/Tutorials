@@ -1,679 +1,733 @@
-### Prerequisite: two small additions to Part 1 before starting
+Let me pull all three saved notes for Part 2 to assemble the complete content.
+All three pieces confirmed intact. Here is the complete, assembled Part 2.
 
-Part 2 depends on two things Part 1's schemas didn't originally include. Apply both now:
+# Part 2: Multi-Threaded Client-Side Rendering via Web Workers
 
-**1. Add a `Role` enum and `role` field to `User`** in `prisma/schema.prisma`:
+*(Phase 1 — Core Architecture and High-Performance Rendering)*
 
-```prisma
-enum Role {
-  STUDENT
-  INSTRUCTOR
-  ADMIN
-}
+## Why this part exists
 
-model User {
-  id          String       @id @default(cuid())
-  clerkId     String       @unique
-  email       String       @unique
-  name        String?
-  role        Role         @default(STUDENT)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+In Part 1 we established a rule: never parse PDF vector graphics on the browser's main thread. Here is why, with an analogy.
 
-  enrollments Enrollment[]
-  progress    Progress[]
-}
-```
+Imagine a single waiter (the main thread) who must do two jobs at once: take orders from customers (respond to clicks, scrolling, typing) and personally chop vegetables in the back (parse thousands of PDF drawing instructions). If the waiter is chopping vegetables, they cannot hear a customer calling for the bill — the whole restaurant appears frozen. A Web Worker is like hiring a second person dedicated only to chopping vegetables, in a separate room, who hands finished plates back to the waiter when ready. The waiter stays free to serve customers the entire time.
 
-```bash
-npx prisma migrate dev --name add_user_role
-```
-
-**2. Add a `slug` field to the `lesson` schema** in `sanity/schemaTypes/lesson.ts`, right after `title`:
-
-```ts
-defineField({
-  name: "slug",
-  title: "Slug",
-  type: "slug",
-  options: { source: "title", maxLength: 96 },
-  validation: (Rule) => Rule.required(),
-}),
-```
-
-Sanity Studio schema changes apply automatically on next load — no migration step needed, but any existing test `lesson` documents from Part 1 will need their slug generated manually in the Studio (open the doc, click "Generate" next to the Slug field, republish).
-
-With those two in place, here's Part 2 in full.
+Technically: a Web Worker is a background JavaScript thread the browser provides. It cannot touch the DOM directly, but it can do CPU-heavy computation and message the main thread when done. We use one to run pdf.js (Mozilla's PDF parsing/rendering engine, distributed as the npm package `pdfjs-dist`), so parsing a 300-page PDF never freezes scrolling or clicking.
 
 ---
 
-# Part 2: Authentication & Core Navigation Shell
+## Step 1: Install pdfjs-dist
 
-Picking up exactly where Part 1 left off: you have a Next.js 16 + Tailwind workspace, a local Sanity Studio with `course`/`chapter`/`lesson` schemas (now including a `lesson.slug` field), and a Neon Postgres database wired to Prisma with `User` (including a `role` enum), `Enrollment`, and `Progress` models. In Part 2 we connect a real human to that system — authentication — and give them a place to stand once logged in — the dashboard shell.
+**The Target:** add the `pdfjs-dist` package to `greymatter-pdf`.
 
-## 2.0 Why Authentication Comes Before "Building the Dashboard UI"
-
-**The Concept:** Every student request first passes through **Next.js Edge Middleware** for a session check, _before_ it ever reaches a page component [1]. Think of middleware like the bouncer at a club entrance: it checks your wristband (session token) before you're allowed anywhere inside, rather than each room individually checking IDs. If we built the dashboard UI first with no bouncer at the door, anyone — logged in or not — could load `/dashboard` and see private course progress. So authentication has to be the first gate, architecturally, not an afterthought.
-
-We're using **Clerk**, a hosted authentication service, because it manages the security-critical parts (password hashing, session tokens, email verification) so we don't have to write or audit that code ourselves — similar to using a bank's vault instead of building your own safe.
-
----
-
-## Step 1: Create a Clerk Application and Install the SDK
-
-**The Target:** A Clerk application configured on their dashboard, and `@clerk/nextjs` installed in our project.
-
-**The Concept:** Clerk needs to know about _your_ project before your project can know about Clerk. You create an "Application" on Clerk's dashboard (their side), which hands you a **publishable key** (safe to expose in browser code, like a storefront address) and a **secret key** (must never leave the server, like a vault combination).
+**The Concept:** `pdfjs-dist` is the packaged, npm-installable build of Mozilla's PDF.js. It has two halves: a core that parses PDF bytes into drawing instructions (the CPU-heavy part we push into the Worker), and a display layer that paints those instructions onto an HTML canvas.
 
 **The Implementation:**
 
-1. Go to `https://dashboard.clerk.com` and create a free account.
-2. Click **Create Application**, name it `greymatter-lms`, and enable **Email** as a sign-in method.
-3. On the **API Keys** page, copy your `Publishable key` and `Secret key`.
-4. Install the SDK:
-
 ```bash
-npm install @clerk/nextjs
+cd greymatter-pdf
+npm install pdfjs-dist@4.6.82
 ```
 
-5. Update your `.env` file (created in Part 0) with real values:
-
-#### `.env`
-
-```bash
-# ── Clerk (Authentication) ──────────────────────────────────────────────────
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxxxxxxxxxxxxx"
-CLERK_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxxxxxxxxx"
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-
-# Required later in this Part for the role-syncing webhook
-CLERK_WEBHOOK_SECRET=""
-```
-
-Leave `CLERK_WEBHOOK_SECRET` empty for now — we'll fill it in during Step 5.
+We pin an exact version because pdf.js ships a matching internal API version between its main package and its worker script — mismatches throw a hard runtime error.
 
 **The Verification:**
 
 ```bash
-cat .env
+npm ls pdfjs-dist
 ```
 
-Confirm `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` show real values starting with `pk_test_` and `sk_test_`. Then run:
+Expected output:
+```
+greymatter-pdf@0.1.0
+└── pdfjs-dist@4.6.82
+```
+
+---
+
+## Step 2: Copy the pdf.js worker script into public/
+
+**The Target:** make pdf.js's own internal worker file available as a static asset.
+
+**The Concept:** pdf.js internally uses a worker script (`pdf.worker.min.mjs`) to do its byte-parsing math. This is separate from the Web Worker we are about to build. Next.js needs this file served as a plain static asset at a predictable URL, so we copy it into `public/`, which Next.js serves as-is.
+
+**The Implementation:**
 
 ```bash
-git status
+mkdir -p public/pdf
+cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf/pdf.worker.min.mjs
 ```
 
-`.env` should **not** appear as trackable — if it does, fix `.gitignore` before proceeding.
+Add this copy step to `package.json` so it survives fresh installs on any machine or CI:
 
----
+### `greymatter-pdf/package.json` (scripts section only)
 
-## Step 2: Wrap the App in `<ClerkProvider>`
-
-**The Target:** Making Clerk's authentication context available to every page in the app.
-
-**The Concept:** `<ClerkProvider>` is like the electrical wiring running through the walls of a house — invisible itself, but every outlet (every component needing "is someone logged in?") depends on it existing. It must wrap the entire app at the root layout level.
-
-**The Implementation:**
-
-#### `app/layout.tsx`
-
-```tsx
-import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Greymatter LMS",
-  description: "A hybrid-architecture Learning Management System.",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="antialiased">{children}</body>
-      </html>
-    </ClerkProvider>
-  );
-}
-```
-
-**The Verification:**
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:3000` — the page should render exactly as it did at the end of Part 1. If you see a Clerk configuration error, double-check your `.env` keys and confirm you restarted the dev server after editing `.env` (Next.js only reads env files on startup).
-
----
-
-## Step 3: Create Sign-In and Sign-Up Pages
-
-**The Target:** Dedicated `/sign-in` and `/sign-up` routes using Clerk's prebuilt UI components.
-
-**The Concept:** Rather than hand-building a login form (fields, "forgot password" flow, error states), Clerk ships pre-built, themeable components — like using a manufactured door lock instead of forging your own. It's tested and secure; it just needs installing in the right spot.
-
-**The Implementation:**
-
-#### `app/sign-in/[[...sign-in]]/page.tsx`
-
-```tsx
-import { SignIn } from "@clerk/nextjs";
-
-export default function SignInPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-brand-50">
-      <SignIn />
-    </main>
-  );
-}
-```
-
-#### `app/sign-up/[[...sign-up]]/page.tsx`
-
-```tsx
-import { SignUp } from "@clerk/nextjs";
-
-export default function SignUpPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-brand-50">
-      <SignUp />
-    </main>
-  );
-}
-```
-
-The `[[...sign-in]]` folder name is a Next.js **optional catch-all route** — the double brackets mean "match `/sign-in` itself, plus any sub-paths like `/sign-in/factor-one`," which Clerk needs internally for multi-step flows like two-factor verification.
-
-**The Verification:** Visit `http://localhost:3000/sign-in` and `http://localhost:3000/sign-up`. You should see Clerk's styled forms. Create a real test account through sign-up — confirm it appears in the Clerk Dashboard's **Users** tab.
-
----
-
-## Step 4: Protect Routes with Edge Middleware
-
-**The Target:** A `middleware.ts` file that checks a visitor's session _before_ any dashboard page loads — the "bouncer at the door" step where Edge Middleware performs the Clerk session check as the very first stage of the request lifecycle [1].
-
-**The Concept:** Middleware runs at the edge — close to the user, before your main application code starts — and intercepts every matching request. This is the earliest point to say "you don't have a valid session, go to `/sign-in`," which is far more secure than checking auth status inside individual page components (easy to forget one).
-
-**The Implementation:**
-
-#### `middleware.ts` (project root)
-
-```typescript
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
-// Define which routes require a logged-in session.
-// Everything under /dashboard is private; marketing/auth pages stay public.
-const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    // Throws a redirect to the sign-in page if no valid session exists
-    await auth.protect();
+```json
+{
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "npm run copy:pdf-worker && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "copy:pdf-worker": "node scripts/copy-pdf-worker.mjs"
   }
+}
+```
+
+### `greymatter-pdf/scripts/copy-pdf-worker.mjs`
+
+```javascript
+import { copyFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = join(__dirname, "..");
+
+const source = join(
+  projectRoot,
+  "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
+);
+const destinationDir = join(projectRoot, "public/pdf");
+const destination = join(destinationDir, "pdf.worker.min.mjs");
+
+async function main() {
+  await mkdir(destinationDir, { recursive: true });
+  await copyFile(source, destination);
+  console.log(`[copy:pdf-worker] Copied pdf.js worker to ${destination}`);
+}
+
+main().catch((error) => {
+  console.error("[copy:pdf-worker] Failed to copy pdf.js worker:", error);
+  process.exit(1);
 });
-
-export const config = {
-  matcher: [
-    // Skip Next.js internals and static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
-};
 ```
 
-**The Verification:** With the dev server running, open an incognito window and navigate to `http://localhost:3000/dashboard`. You should be redirected to `/sign-in`. Now sign in with your test account — you should land back on `/dashboard`, which will 404 for now (expected, since we haven't built that page yet — a 404 _after_ passing the auth check confirms middleware is working).
+**The Verification:**
 
-## Step 5: Sync Clerk Users into Neon via Webhook (Role Assignment)
+```bash
+npm run copy:pdf-worker
+ls -la public/pdf/
+```
 
-**The Target:** A webhook endpoint listening for Clerk's `user.created` event, writing a corresponding `User` row into Neon via Prisma — defaulting new signups to the `STUDENT` role.
+Expected output: `pdf.worker.min.mjs` listed with a non-zero file size.
 
-**The Concept:** Clerk owns _authentication_ (proving who someone is), but Greymatter's `Progress` and `Enrollment` tables need a `User` row to attach to. Rather than querying Clerk's API every time we need a user's role, we keep a lightweight mirrored copy in our own database — like a company keeping its own badge-swipe records instead of calling a government registry every time it needs to verify identity. Webhooks are how Clerk notifies _us_ the moment a new user signs up.
+---
 
-Two fixes from the Part 1 audit apply directly here: the webhook must upsert on **`clerkId`**, not `id` (so Clerk's identity string never collides with our internal `cuid()` primary key), and it must reuse the **`lib/prisma.ts` singleton** from Part 1 rather than instantiating a second, unmanaged `PrismaClient`.
+## Step 3: Define shared TypeScript types for worker messages
+
+**The Target:** `src/types/pdf-worker.ts`
+
+**The Concept:** our Web Worker and React component talk to each other by sending plain JavaScript objects — the only way threads communicate, since there is no shared memory by default. Like two people passing notes under a door, both sides need to agree on the note's format in advance. We define that format as TypeScript types now.
 
 **The Implementation:**
 
-```bash
-npm install svix
-```
-
-#### `app/api/webhooks/clerk/route.ts`
+### `src/types/pdf-worker.ts`
 
 ```typescript
-import { Webhook } from "svix";
-import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import type { WebhookEvent } from "@clerk/nextjs/server";
+// Messages sent FROM the main thread TO the worker.
+export type PdfWorkerRequest =
+  | {
+      type: "LOAD_DOCUMENT";
+      requestId: string;
+      arrayBuffer: ArrayBuffer;
+    }
+  | {
+      type: "RENDER_PAGE";
+      requestId: string;
+      pageNumber: number;
+      scale: number;
+      devicePixelRatio: number;
+    };
 
-export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
-  if (!WEBHOOK_SECRET) {
-    throw new Error("Missing CLERK_WEBHOOK_SECRET in environment variables.");
-  }
+// Messages sent FROM the worker BACK TO the main thread.
+export type PdfWorkerResponse =
+  | {
+      type: "DOCUMENT_LOADED";
+      requestId: string;
+      numPages: number;
+    }
+  | {
+      type: "PAGE_RENDERED";
+      requestId: string;
+      pageNumber: number;
+      bitmap: ImageBitmap;
+      widthCss: number;
+      heightCss: number;
+    }
+  | {
+      type: "ERROR";
+      requestId: string;
+      message: string;
+    };
+```
 
-  // Clerk signs every webhook request with these three headers.
-  // We must verify them to prove the request truly came from Clerk,
-  // not an attacker pretending to be Clerk.
-  const headerPayload = await headers();
-  const svix_id = headerPayload.get("svix-id");
-  const svix_timestamp = headerPayload.get("svix-timestamp");
-  const svix_signature = headerPayload.get("svix-signature");
+**The Verification:**
 
-  if (!svix_id || !svix_timestamp || !svix_signature) {
-    return new Response("Missing required svix headers.", { status: 400 });
-  }
+```bash
+npx tsc --noEmit
+```
 
-  const payload = await req.json();
-  const body = JSON.stringify(payload);
+Expected output: no errors printed.
 
-  const wh = new Webhook(WEBHOOK_SECRET);
-  let evt: WebhookEvent;
+---
+
+## Step 4: Write the Web Worker itself
+
+**The Target:** `src/workers/pdf.worker.ts`
+
+**The Concept:** this file is the second chef in the back room. It never touches React or the DOM directly — it only receives a request, does the heavy lifting with pdf.js, and sends a response back. Because it runs on a separate thread, any amount of computation here cannot freeze the buttons and scrollbars the user is touching.
+
+**The Implementation:**
+
+### `src/workers/pdf.worker.ts`
+
+```typescript
+// This file runs in a dedicated Web Worker thread, NOT in the browser's
+// main thread. It has no access to the DOM but can do heavy computation
+// freely without affecting UI responsiveness.
+import * as pdfjsLib from "pdfjs-dist";
+import type {
+  PdfWorkerRequest,
+  PdfWorkerResponse,
+} from "@/types/pdf-worker";
+
+// pdf.js needs to know where its own internal worker script lives.
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
+
+// We keep the loaded PDF document in memory here, across multiple render
+// requests -- re-parsing the whole file on every page scroll would waste
+// CPU time.
+let loadedDocument: pdfjsLib.PDFDocumentProxy | null = null;
+
+function respond(message: PdfWorkerResponse, transfer: Transferable[] = []) {
+  self.postMessage(message, { transfer });
+}
+
+self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
+  const request = event.data;
 
   try {
-    evt = wh.verify(body, {
-      "svix-id": svix_id,
-      "svix-timestamp": svix_timestamp,
-      "svix-signature": svix_signature,
-    }) as WebhookEvent;
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    return new Response("Invalid webhook signature.", { status: 400 });
-  }
+    if (request.type === "LOAD_DOCUMENT") {
+      const loadingTask = pdfjsLib.getDocument({
+        data: request.arrayBuffer,
+      });
+      loadedDocument = await loadingTask.promise;
 
-  // We only care about new user creation for this endpoint.
-  if (evt.type === "user.created") {
-    const { id, email_addresses } = evt.data;
-    const primaryEmail = email_addresses[0]?.email_address;
-
-    if (!primaryEmail) {
-      return new Response("User has no email address on record.", { status: 400 });
+      respond({
+        type: "DOCUMENT_LOADED",
+        requestId: request.requestId,
+        numPages: loadedDocument.numPages,
+      });
+      return;
     }
 
-    // Mirror the Clerk user into our own Neon database, keyed by clerkId —
-    // NOT the internal `id` primary key, which Prisma generates itself via
-    // cuid(). Keeping these separate means if Greymatter ever migrates auth
-    // providers, only clerkId changes; every Enrollment/Progress row keeps
-    // working because they reference the stable internal id.
-    await prisma.user.upsert({
-      where: { clerkId: id },
-      update: { email: primaryEmail },
-      create: {
-        clerkId: id,
-        email: primaryEmail,
-        role: "STUDENT",
-      },
+    if (request.type === "RENDER_PAGE") {
+      if (!loadedDocument) {
+        throw new Error(
+          "RENDER_PAGE was requested before any document finished loading."
+        );
+      }
+
+      const page = await loadedDocument.getPage(request.pageNumber);
+
+      // Multiply by devicePixelRatio so the bitmap has enough real pixels
+      // to look sharp on high-density screens -- explained in depth in
+      // Step 6.
+      const viewport = page.getViewport({
+        scale: request.scale * request.devicePixelRatio,
+      });
+
+      // OffscreenCanvas is a canvas-like object usable inside a Worker;
+      // a regular <canvas> DOM element cannot exist here.
+      const offscreenCanvas = new OffscreenCanvas(
+        viewport.width,
+        viewport.height
+      );
+      const context = offscreenCanvas.getContext("2d");
+      if (!context) {
+        throw new Error("Could not acquire a 2D rendering context.");
+      }
+
+      // This is the heavy lifting: pdf.js walks the page's vector drawing
+      // instructions and paints them onto our OffscreenCanvas.
+      await page.render({
+        canvasContext: context as unknown as CanvasRenderingContext2D,
+        viewport,
+      }).promise;
+
+      const bitmap = await offscreenCanvas.transferToImageBitmap();
+
+      respond(
+        {
+          type: "PAGE_RENDERED",
+          requestId: request.requestId,
+          pageNumber: request.pageNumber,
+          bitmap,
+          widthCss: viewport.width / request.devicePixelRatio,
+          heightCss: viewport.height / request.devicePixelRatio,
+        },
+        [bitmap]
+      );
+      return;
+    }
+  } catch (error) {
+    respond({
+      type: "ERROR",
+      requestId: request.requestId,
+      message: error instanceof Error ? error.message : "Unknown worker error.",
     });
   }
+};
 
-  return new Response("Webhook processed successfully.", { status: 200 });
-}
+// This empty export turns the file into an ES module, required for the
+// import syntax above to work when this file is loaded as a module-type
+// Worker (see Step 5).
+export {};
 ```
 
-This now matches the `User` model exactly as it stands after the Part 1 prerequisite patch — `clerkId`, `email`, `role Role @default(STUDENT)` against `enum Role { STUDENT INSTRUCTOR ADMIN }`. This webhook is the first moment that model receives real, live data.
-
-**The Verification (local testing):**
-
-Since Clerk needs a public URL to deliver webhooks to, and your app runs on `localhost`, use a tunnel tool such as `ngrok`:
+**The Verification:** a Worker file cannot be fully tested in isolation — it needs a component to talk to it (Step 6). For now, confirm it compiles cleanly:
 
 ```bash
-ngrok http 3000
+npx tsc --noEmit
 ```
 
-Copy the `https://xxxx.ngrok.io` URL. In the Clerk Dashboard, go to **Webhooks → Add Endpoint**, set the URL to:
-
-```
-https://xxxx.ngrok.io/api/webhooks/clerk
-```
-
-Subscribe to the `user.created` event. Clerk will show a **Signing Secret** — copy it into `.env`:
-
-```bash
-CLERK_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-Restart your dev server so the new env var is picked up:
-
-```bash
-# Ctrl+C to stop, then:
-npm run dev
-```
-
-Now trigger the event — either click **Send test event** in the Clerk Dashboard's Webhooks page, or sign up a brand-new test user via `/sign-up`. Watch your terminal for errors, then confirm the row landed in Neon:
-
-```bash
-npx prisma studio
-```
-
-Open `http://localhost:5555`, click the `User` table, and confirm a new row exists with:
-
-- `clerkId` matching the Clerk user ID (e.g., `user_2abc...`)
-- `id` populated with a distinct, Prisma-generated `cuid()` — **not** the same string as `clerkId`
-- `email` matching your signup address
-- `role` set to `STUDENT`
-
-If the row is missing, check for an `"Invalid webhook signature"` error in your terminal — this almost always means `CLERK_WEBHOOK_SECRET` doesn't match the Clerk Dashboard value, or the server wasn't restarted.
-
-Commit this checkpoint:
-
-```bash
-git add .
-git commit -m "feat: add Clerk auth, middleware protection, and user-sync webhook"
-```
+Expected output: no errors.
 
 ---
 
-## Step 6: Build the Collapsible Sidebar Dashboard Shell
+## Step 5: Build a React hook that owns the Worker's lifecycle
 
-**The Target:** A responsive dashboard layout at `/dashboard` with a collapsible sidebar that will eventually list courses, chapters, and lessons.
+**The Target:** `src/lib/pdf/use-pdf-worker.ts`
 
-**The Concept:** A **layout** in Next.js's App Router is a shared UI wrapper that persists across page navigations within a route segment — like a picture frame that stays the same while you swap the photo inside it. We use a Client Component for the sidebar's collapse/expand toggle because that interactivity (a click event, local open/closed state) can only run in the browser, whereas the surrounding page content can remain a Server Component for fast initial rendering.
-
-**The Implementation:**
-
-First, create a small reusable Client Component to hold the toggle state:
-
-#### `app/dashboard/_components/sidebar.tsx`
-
-```tsx
-"use client";
-
-import { useState } from "react";
-import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
-
-export function Sidebar({ children }: { children: React.ReactNode }) {
-  // Local UI state — whether the sidebar is expanded or collapsed.
-  // This lives only in the browser, so it must be a Client Component.
-  const [isOpen, setIsOpen] = useState(true);
-
-  return (
-    <div className="flex min-h-screen">
-      <aside
-        className={`flex flex-col border-r border-brand-100 bg-white transition-all duration-200 ${
-          isOpen ? "w-72" : "w-16"
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-brand-100">
-          {isOpen && (
-            <Link href="/dashboard" className="font-bold text-brand-900">
-              Greymatter
-            </Link>
-          )}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle sidebar"
-            className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50"
-          >
-            {isOpen ? "«" : "»"}
-          </button>
-        </div>
-        <nav className="flex-1 overflow-y-auto p-2">{isOpen && children}</nav>
-        <div className="border-t border-brand-100 p-4 flex items-center gap-2">
-          <UserButton afterSignOutUrl="/sign-in" />
-          {isOpen && <span className="text-sm text-brand-600">My Account</span>}
-        </div>
-      </aside>
-    </div>
-  );
-}
-```
-
-Now wire it into a dashboard layout that wraps every page under `/dashboard`:
-
-#### `app/dashboard/layout.tsx`
-
-```tsx
-import { Sidebar } from "./_components/sidebar";
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex">
-      <Sidebar>
-        <p className="px-2 py-1.5 text-xs font-semibold uppercase text-brand-600">
-          My Courses
-        </p>
-        {/* Course/chapter/lesson links will be rendered here in the next step */}
-      </Sidebar>
-      <main className="flex-1 bg-brand-50 p-8">{children}</main>
-    </div>
-  );
-}
-```
-
-#### `app/dashboard/page.tsx`
-
-```tsx
-import { currentUser } from "@clerk/nextjs/server";
-
-export default async function DashboardHomePage() {
-  const user = await currentUser();
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-brand-900">
-        Welcome back{user?.firstName ? `, ${user.firstName}` : ""} 👋
-      </h1>
-      <p className="mt-2 text-brand-600">
-        Your enrolled courses will appear in the sidebar once we connect
-        Sanity content in the next step.
-      </p>
-    </div>
-  );
-}
-```
-
-**The Verification:** Sign in through `/sign-in`, then navigate to `http://localhost:3000/dashboard`. You should see:
-
-- A left sidebar (default expanded, ~288px wide) with "Greymatter" branding, a "My Courses" label, and a user avatar/button at the bottom
-- Clicking the `«»` toggle button collapses the sidebar down to a narrow 64px icon rail and back
-- The main content area shows a personalized welcome message using your Clerk first name
-
-If `user.firstName` renders as `undefined` or the greeting looks wrong, check that you filled in a first name during sign-up, or simply confirm the fallback text ("Welcome back 👋") displays correctly instead.
-
-Commit:
-
-```bash
-git add .
-git commit -m "feat: build collapsible sidebar dashboard shell"
-```
-
----
-
-## Step 7: Fetch and Render Static Course Layouts from Sanity CDN
-
-**The Target:** Replace the placeholder "My Courses" label with real course, chapter, and lesson data fetched from Sanity — rendered directly into the sidebar as navigable links.
-
-**The Concept:** This is "Parallel Fetch A" from the architecture diagram — content coming from Sanity's CDN rather than Neon. We query Sanity using **GROQ** (Sanity's query language, similar in spirit to SQL but built specifically for JSON document trees) and fetch it from the CDN endpoint, which serves cached, fast responses since course structure rarely changes. This step depends on the `lesson.slug` field added in the Part 1 prerequisite patch at the top of this Part — without it, every lesson link below would silently resolve to `undefined`.
+**The Concept:** somebody needs to be responsible for starting the worker, sending it messages, and shutting it down when the user navigates away, otherwise we would leak background threads forever, like leaving an oven on after closing. A React custom hook is a reusable function that packages this lifecycle management once, for reuse in any component. Think of it as a dedicated phone line installed between our React component and the worker's back room — this hook wires up the phone and hands the receiver to whoever needs it.
 
 **The Implementation:**
 
-Install the Sanity client if you haven't already from Part 1:
-
-```bash
-npm install @sanity/client
-```
-
-Create a typed query helper:
-
-#### `lib/sanity/queries.ts`
+### `src/lib/pdf/use-pdf-worker.ts`
 
 ```typescript
-import { client } from "./client";
+"use client";
 
-// Shape returned by our GROQ query below — kept in sync manually with
-// the course/chapter/lesson schemas defined in the Studio during Part 1.
-export interface SidebarLesson {
-  _id: string;
-  title: string;
-  slug: string;
+import { useEffect, useRef, useCallback } from "react";
+import type {
+  PdfWorkerRequest,
+  PdfWorkerResponse,
+} from "@/types/pdf-worker";
+
+function createRequestId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export interface SidebarChapter {
-  _id: string;
-  title: string;
-  lessons: SidebarLesson[];
-}
-
-export interface SidebarCourse {
-  _id: string;
-  title: string;
-  slug: string;
-  chapters: SidebarChapter[];
-}
-
-// GROQ query: fetch every course, and for each one, resolve its
-// referenced chapters and lessons in a single round trip.
-const COURSE_NAV_QUERY = `*[_type == "course"] {
-  _id,
-  title,
-  "slug": slug.current,
-  "chapters": chapters[]-> {
-    _id,
-    title,
-    "lessons": lessons[]-> {
-      _id,
-      title,
-      "slug": slug.current
-    }
+type PendingResolvers = Map<
+  string,
+  {
+    resolve: (response: PdfWorkerResponse) => void;
+    reject: (error: Error) => void;
   }
-}`;
+>;
 
-export async function getCourseNavigation(): Promise<SidebarCourse[]> {
-  // useCdn: true serves this from Sanity's fast, cached edge network —
-  // appropriate here since course structure changes rarely.
-  return client.fetch(COURSE_NAV_QUERY, {}, { cache: "force-cache" });
+export function usePdfWorker() {
+  const workerRef = useRef<Worker | null>(null);
+  const pendingRef = useRef<PendingResolvers>(new Map());
+
+  useEffect(() => {
+    // new URL(..., import.meta.url) combined with { type: "module" } is the
+    // standard, bundler-friendly way to construct a Worker in a modern
+    // Next.js / Turbopack project. Turbopack detects this exact pattern at
+    // build time and bundles src/workers/pdf.worker.ts as its own separate
+    // JavaScript file, then wires up the URL correctly for production.
+    const worker = new Worker(
+      new URL("../../workers/pdf.worker.ts", import.meta.url),
+      { type: "module" }
+    );
+
+    worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
+      const response = event.data;
+      const pending = pendingRef.current.get(response.requestId);
+      if (!pending) return; // response for a request we no longer care about
+
+      pendingRef.current.delete(response.requestId);
+
+      if (response.type === "ERROR") {
+        pending.reject(new Error(response.message));
+      } else {
+        pending.resolve(response);
+      }
+    };
+
+    worker.onerror = (event) => {
+      // A top-level worker crash (e.g. a syntax error) has no requestId to
+      // match, so we reject every currently pending request.
+      pendingRef.current.forEach(({ reject }) =>
+        reject(new Error(event.message))
+      );
+      pendingRef.current.clear();
+    };
+
+    workerRef.current = worker;
+
+    // Cleanup: terminate the worker thread when the component using this
+    // hook unmounts, so we never leak background threads.
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  // A generic "send request, await matching response" helper. Every actual
+  // call site (loadDocument, renderPage below) is built on top of this.
+  const sendRequest = useCallback(
+    (request: PdfWorkerRequest, transfer: Transferable[] = []) => {
+      return new Promise<PdfWorkerResponse>((resolve, reject) => {
+        const worker = workerRef.current;
+        if (!worker) {
+          reject(new Error("PDF worker is not initialized yet."));
+          return;
+        }
+        pendingRef.current.set(request.requestId, { resolve, reject });
+        worker.postMessage(request, { transfer });
+      });
+    },
+    []
+  );
+
+  const loadDocument = useCallback(
+    async (arrayBuffer: ArrayBuffer) => {
+      const requestId = createRequestId();
+      const response = await sendRequest(
+        { type: "LOAD_DOCUMENT", requestId, arrayBuffer },
+        [arrayBuffer] // transfer the buffer, not copy it
+      );
+      if (response.type !== "DOCUMENT_LOADED") {
+        throw new Error("Unexpected response type for LOAD_DOCUMENT.");
+      }
+      return response.numPages;
+    },
+    [sendRequest]
+  );
+
+  const renderPage = useCallback(
+    async (pageNumber: number, scale: number, devicePixelRatio: number) => {
+      const requestId = createRequestId();
+      const response = await sendRequest({
+        type: "RENDER_PAGE",
+        requestId,
+        pageNumber,
+        scale,
+        devicePixelRatio,
+      });
+      if (response.type !== "PAGE_RENDERED") {
+        throw new Error("Unexpected response type for RENDER_PAGE.");
+      }
+      return response;
+    },
+    [sendRequest]
+  );
+
+  return { loadDocument, renderPage };
 }
 ```
 
-Now that `getCourseNavigation()` is defined, let's wire it into the sidebar so real course/chapter/lesson links render instead of the placeholder text.
+Note for readers: we still use `useCallback` here even though Part 1 said the React Compiler removes the need for manual memoization inside components. This file is a plain hook, not a component the compiler analyzes for render-skipping — these functions are returned to consumers and used inside other hooks' dependency arrays (like `useEffect` in Step 7), where stable function identity still matters for correctness, not just performance. From Part 4 onward, inside actual components, we lean on the compiler and stop hand-writing these.
 
-**The Concept:** The dashboard layout is a **Server Component** by default (no `"use client"` directive), which means it can directly `await` data — including calling our Sanity fetch function — during server-side rendering, before any HTML is sent to the browser. This is the "Combined Server Render" step from the architecture diagram: content resolved on the server, then handed down as props into the interactive `Sidebar` Client Component we built in Step 6.
+**The Verification:** this hook needs a consuming component to be testable — continue to Step 6 and Step 7 below.
+
+---
+
+## Step 6: The canvas-rendering React component
+
+**The Target:** `src/components/viewer/PdfPageCanvas.tsx`
+
+**The Concept:** this is where pixels finally hit the screen. Two tricky ideas need explaining first.
+
+**devicePixelRatio:** your screen has a certain number of actual physical pixels, but CSS/browser layout talks in "CSS pixels," which on high-density (Retina/4K) screens represent multiple physical pixels each. `window.devicePixelRatio` tells us that multiplier (commonly 1, 2, or 3). If we render our PDF bitmap at only 1x resolution but display it on a 2x screen, text looks blurry, like stretching a small photo to fill a big frame. So we ask the worker to render at `scale × devicePixelRatio` real pixels, then use CSS to display it back down at the correct on-screen size, giving us crisp, sharp text.
+
+**Canvas arrays for scroll-heavy layouts:** rather than one giant canvas for an entire multi-page document (which would be enormous and slow to redraw), we render one canvas element per page. Each page component manages its own render lifecycle independently.
 
 **The Implementation:**
 
-#### `app/dashboard/layout.tsx` (updated)
+### `src/components/viewer/PdfPageCanvas.tsx`
 
-```tsx
-import { Sidebar } from "./_components/sidebar";
-import { getCourseNavigation } from "@/lib/sanity/queries";
-import Link from "next/link";
+```typescript
+"use client";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Server-side fetch — runs before any HTML is sent to the browser.
-  // This is "Parallel Fetch A" from the architecture diagram: Sanity content.
-  const courses = await getCourseNavigation();
+import { useEffect, useRef, useState } from "react";
+import { usePdfWorker } from "@/lib/pdf/use-pdf-worker";
+
+interface PdfPageCanvasProps {
+  pageNumber: number;
+  scale: number;
+  renderPage: ReturnType<typeof usePdfWorker>["renderPage"];
+}
+
+// One instance of this component is rendered per PDF page. Each owns a
+// single <canvas> element and is responsible only for painting its own
+// page -- this keeps memory and redraw cost proportional to visible pages,
+// not the whole document.
+export function PdfPageCanvas({
+  pageNumber,
+  scale,
+  renderPage,
+}: PdfPageCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isRendering, setIsRendering] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function draw() {
+      setIsRendering(true);
+      setError(null);
+      try {
+        // window.devicePixelRatio is only available in the browser, which
+        // is exactly why this whole component must be a Client Component
+        // ("use client" at the top) -- Server Components never run in a
+        // browser context and would have no such value.
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        const result = await renderPage(pageNumber, scale, devicePixelRatio);
+
+        if (cancelled) return;
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        // The bitmap itself contains devicePixelRatio-multiplied real
+        // pixels (e.g. 2x as many on a Retina screen), but we set the
+        // canvas's CSS width/height to the un-multiplied "widthCss"/
+        // "heightCss" values, so it occupies the correct amount of visual
+        // space on the page while still rendering crisply.
+        canvas.width = result.bitmap.width;
+        canvas.height = result.bitmap.height;
+        canvas.style.width = `${result.widthCss}px`;
+        canvas.style.height = `${result.heightCss}px`;
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Could not acquire a 2D context for the canvas.");
+        }
+        // Paints the already-rendered bitmap onto the visible <canvas> --
+        // a cheap operation, since all the expensive parsing/drawing math
+        // already happened inside the worker thread.
+        context.drawImage(result.bitmap, 0, 0);
+        result.bitmap.close(); // release the bitmap's memory once painted
+      } catch (caughtError) {
+        if (!cancelled) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Failed to render page."
+          );
+        }
+      } finally {
+        if (!cancelled) setIsRendering(false);
+      }
+    }
+
+    draw();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pageNumber, scale, renderPage]);
 
   return (
-    <div className="flex">
-      <Sidebar>
-        <p className="px-2 py-1.5 text-xs font-semibold uppercase text-brand-600">
-          My Courses
-        </p>
-        <div className="mt-2 space-y-4">
-          {courses.map((course) => (
-            <div key={course._id}>
-              <Link
-                href={`/dashboard/courses/${course.slug}`}
-                className="block rounded-md px-2 py-1.5 font-medium text-brand-900 hover:bg-brand-50"
-              >
-                {course.title}
-              </Link>
-              <div className="ml-3 mt-1 space-y-1 border-l border-brand-100 pl-3">
-                {course.chapters.map((chapter) => (
-                  <div key={chapter._id}>
-                    <p className="px-2 py-1 text-sm font-semibold text-brand-600">
-                      {chapter.title}
-                    </p>
-                    <div className="space-y-0.5">
-                      {chapter.lessons.map((lesson) => (
-                        <Link
-                          key={lesson._id}
-                          href={`/dashboard/courses/${course.slug}/lessons/${lesson.slug}`}
-                          className="block rounded-md px-2 py-1 text-sm text-brand-600 hover:bg-brand-50 hover:text-brand-900"
-                        >
-                          {lesson.title}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+    <div className="relative mb-4 flex justify-center">
+      {isRendering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-sm text-gray-500">
+          Rendering page {pageNumber}...
         </div>
-      </Sidebar>
-      <main className="flex-1 bg-brand-50 p-8">{children}</main>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-sm text-red-600">
+          Error on page {pageNumber}: {error}
+        </div>
+      )}
+      <canvas
+        ref={canvasRef}
+        className="border border-gray-200 shadow-sm"
+        aria-label={`PDF page ${pageNumber}`}
+      />
     </div>
   );
 }
 ```
 
-Notice this component is `async` — that's what allows the direct `await getCourseNavigation()` call. This only works because it's a Server Component; you cannot make a Client Component's function body `async` in this way.
+**The Verification:** this component still needs a parent that loads a document and passes down `renderPage` — continue to Step 7.
+
+---
+
+## Step 7: The multi-page viewer container
+
+**The Target:** `src/components/viewer/PdfViewer.tsx`
+
+**The Concept:** we need one top-level component that (a) loads the worker via `usePdfWorker`, (b) fetches the PDF's raw bytes, (c) tells the worker to parse the document once, and (d) renders one `PdfPageCanvas` per page in a scrollable list. Think of this component as the restaurant's host: it greets the incoming document, finds out how many pages (tables) exist, and seats a `PdfPageCanvas` at every one, letting each table (page) independently order and receive its own food (rendered bitmap) without waiting on the others.
+
+**The Implementation:**
+
+### `src/components/viewer/PdfViewer.tsx`
+
+```typescript
+"use client";
+
+import { useEffect, useState } from "react";
+import { usePdfWorker } from "@/lib/pdf/use-pdf-worker";
+import { PdfPageCanvas } from "@/components/viewer/PdfPageCanvas";
+
+interface PdfViewerProps {
+  // For this Part, we accept a direct URL to a PDF file (e.g. something
+  // temporarily placed in /public for testing). Part 3 replaces this with
+  // a secure, authenticated proxy.ts URL instead of a raw public file path.
+  fileUrl: string;
+}
+
+export function PdfViewer({ fileUrl }: PdfViewerProps) {
+  const { loadDocument, renderPage } = usePdfWorker();
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // A fixed zoom level for this Part; Part 4 wires this up to a zoom
+  // control the user can change.
+  const [scale] = useState(1.25);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        // fetch() retrieves the PDF bytes over HTTP. We convert the
+        // response to an ArrayBuffer because that is the exact format our
+        // worker's LOAD_DOCUMENT message expects (see src/types/pdf-worker.ts).
+        const response = await fetch(fileUrl);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch PDF: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        if (cancelled) return;
+
+        const pages = await loadDocument(arrayBuffer);
+        if (!cancelled) setNumPages(pages);
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error ? error.message : "Failed to load PDF."
+          );
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUrl, loadDocument]);
+
+  if (loadError) {
+    return (
+      <div className="p-4 text-sm text-red-600">
+        Could not load document: {loadError}
+      </div>
+    );
+  }
+
+  if (numPages === null) {
+    return <div className="p-4 text-sm text-gray-500">Loading document...</div>;
+  }
+
+  return (
+    <div className="flex flex-col items-center overflow-y-auto p-4">
+      {/* One canvas per page, in a simple vertical scroll -- Part 9 revisits
+          this with virtualization (only rendering pages near the viewport)
+          for very long documents, but a plain list is the right starting
+          point for correctness first. */}
+      {Array.from({ length: numPages }, (_, index) => index + 1).map(
+        (pageNumber) => (
+          <PdfPageCanvas
+            key={pageNumber}
+            pageNumber={pageNumber}
+            scale={scale}
+            renderPage={renderPage}
+          />
+        )
+      )}
+    </div>
+  );
+}
+```
+
+Now wire this into an actual route so we have something to open in a browser. Recall from Part 1 that `src/app/viewer/[documentId]` was already created as an empty directory reserved for this exact purpose.
+
+### `src/app/viewer/[documentId]/page.tsx`
+
+```typescript
+// This file is a Server Component by default (no "use client" at the top).
+// Its only job here is to render the page shell and hand off to the
+// PdfViewer Client Component for actual interactivity -- exactly the
+// division of responsibility established in Part 1.
+import { PdfViewer } from "@/components/viewer/PdfViewer";
+
+export default async function ViewerPage({
+  params,
+}: {
+  params: Promise<{ documentId: string }>;
+}) {
+  const { documentId } = await params;
+
+  // For this Part only, we point directly at a test file placed in public/.
+  // Part 3 replaces this hardcoded path with a real lookup: documentId will
+  // be used to find the correct file via our secure proxy.ts layer instead.
+  const fileUrl = `/test-pdfs/${documentId}.pdf`;
+
+  return (
+    <main className="h-screen w-screen bg-gray-50">
+      <PdfViewer fileUrl={fileUrl} />
+    </main>
+  );
+}
+```
 
 **The Verification:**
 
-1. Make sure your local Sanity Studio (from Part 1, at `/studio`) has at least one `course` document with a linked `chapter`, which itself has at least one linked `lesson`. If you haven't created test content yet, visit `http://localhost:3000/studio` and add:
-   - One `course` document, titled e.g. "Intro to SQL"
-   - One `chapter` document titled "Getting Started", referenced from that course
-   - One `lesson` document titled "What is a Database?", with its **slug generated** (click "Generate" next to the Slug field — this only works now that the Part 1 prerequisite patch added that field), referenced from that chapter
-   - Publish all three documents (draft-only content won't appear via the CDN query)
-2. Restart your Next.js dev server and visit `http://localhost:3000/dashboard`:
+1. Add a sample PDF for testing:
+
+```bash
+mkdir -p public/test-pdfs
+# Copy any PDF file you have locally, naming it sample.pdf
+cp ~/Downloads/some-file.pdf public/test-pdfs/sample.pdf
+```
+
+(If you don't have a sample PDF handy, any multi-page PDF works — an emailed invoice, a downloaded ebook sample, or a printed-to-PDF document from your OS all work fine for this test.)
+
+2. Start the dev server:
 
 ```bash
 npm run dev
 ```
 
-3. You should now see, in the sidebar:
-   - "Intro to SQL" as a bold clickable course title
-   - Indented beneath it, "Getting Started" as a chapter label
-   - Indented further, "What is a Database?" as a clickable lesson link
-4. Click the lesson link — it will currently 404, since we haven't built the actual lesson page route yet. That's expected; it confirms the `href` is being generated correctly from real Sanity slugs.
+3. Open your browser to:
 
-If the sidebar shows no courses at all, double-check:
-- Your `NEXT_PUBLIC_SANITY_PROJECT_ID` and `NEXT_PUBLIC_SANITY_DATASET` in `.env` match your actual Sanity project
-- The documents are **published**, not left as unpublished drafts (the CDN-cached `force-cache` fetch only serves published content)
-- Your GROQ query's `_type == "course"` matches the exact schema type name you defined in Part 1
-- Every `lesson` document has a generated slug — if it's blank, `"slug": slug.current` returns `null` and the `href` will contain the literal string `undefined`
-
-Once confirmed, commit this final checkpoint for Part 2:
-
-```bash
-git add .
-git commit -m "feat: fetch and render course/chapter/lesson navigation from Sanity CDN"
 ```
+http://localhost:3000/viewer/sample
+```
+
+Expected result: you should see "Loading document..." briefly, then each page of your PDF should appear one after another, rendered as sharp images inside bordered boxes, with a brief "Rendering page N..." placeholder flashing per page as it loads.
+
+4. Confirm the main thread is not blocked: while the PDF is loading/rendering, try scrolling the page or resizing the browser window. It should remain responsive throughout, even for a large file — this is the entire point of Part 2's architecture.
+
+5. Open your browser's DevTools (F12), go to the Network tab, and reload. You should see a request for `pdf.worker.min.mjs` succeed (status 200) — this confirms Step 2's static asset copy worked correctly.
+
+6. In DevTools, go to the Console tab and confirm there are no red errors. A common early mistake is forgetting Step 2 (copying the `pdf.worker.min.mjs` file), which shows up as a 404 error for that file and a blank/broken viewer.
 
 ---
 
-## Closing Out Part 2
+## Part 2 Summary
 
-### What You Have Right Now
+By this point you have: `pdfjs-dist` installed and correctly configured with its own internal worker script served as a static asset; a fully-typed message contract between the main thread and a Web Worker; the Web Worker itself, which loads PDF documents and renders individual pages to `ImageBitmap`s entirely off the main thread; a `usePdfWorker` hook that manages the worker's lifecycle safely (including cleanup on unmount); a `PdfPageCanvas` component that paints rendered bitmaps crisply regardless of screen pixel density; and a `PdfViewer` container that ties it all together into a scrollable, multi-page document view, reachable at `/viewer/[documentId]`.
 
-- A Clerk application fully wired into Next.js via `<ClerkProvider>`
-- Working `/sign-in` and `/sign-up` pages using Clerk's prebuilt components
-- Edge Middleware protecting every `/dashboard` route, redirecting unauthenticated visitors
-- A webhook endpoint that mirrors every new Clerk signup into your Neon `User` table via Prisma (keyed correctly on `clerkId`, using the shared `lib/prisma.ts` singleton), defaulting to the `STUDENT` role
-- A responsive, collapsible sidebar dashboard shell
-- Real course/chapter/lesson navigation rendered server-side from Sanity's CDN, with working lesson slugs
+Critically, you have now proven experimentally (not just in theory) that heavy PDF parsing does not freeze the browser tab — the core promise of the hybrid architecture from Part 1.
 
-### What's Next
-
-**Part 3: The React-Only Plugin Registry & Component Contract** — you'll define a typed `@greymatter/plugin-sdk` contract, build a dynamic client-side component registry using `next/dynamic` for lazy loading, and create a working "SQL Sandbox" interactive lesson plugin that invokes a completion callback — setting up the exact hand-off point where Part 4's progress-tracking transaction (the `prisma.$transaction` pattern) will plug in.
+Part 3 replaces the temporary hardcoded `/test-pdfs/` file path with a secure, authenticated `proxy.ts` layer, so real PDF files are never exposed as raw public URLs, and are instead streamed through a permission-checked Node.js route.
