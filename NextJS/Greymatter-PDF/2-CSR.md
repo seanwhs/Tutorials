@@ -1,16 +1,14 @@
 # Part 2: Multi-Threaded Client-Side Rendering via Web Workers
 
-*(Phase 1 — Core Architecture & High-Performance Rendering)*
-
----
+*(Phase 1 — Core Architecture and High-Performance Rendering)*
 
 ## Why this part exists
 
-In Part 1 we drew a rule: **never parse PDF vector graphics on the browser's main thread**. Here's why that rule matters in practice, with an analogy.
+In Part 1 we established a rule: never parse PDF vector graphics on the browser's main thread. Here is why, with an analogy.
 
-Imagine a single waiter (the main thread) who must do two jobs at once: take orders from customers (respond to clicks, scrolling, typing) *and* personally chop vegetables in the back (parse thousands of PDF drawing instructions). If the waiter is chopping vegetables, they cannot hear a customer calling for the bill — the whole restaurant appears frozen from the customer's point of view. A **Web Worker** is like hiring a second person dedicated only to chopping vegetables, in a separate room, who hands finished plates back to the waiter when ready. The waiter stays free to serve customers the entire time.
+Imagine a single waiter (the main thread) who must do two jobs at once: take orders from customers (respond to clicks, scrolling, typing) and personally chop vegetables in the back (parse thousands of PDF drawing instructions). If the waiter is chopping vegetables, they cannot hear a customer calling for the bill — the whole restaurant appears frozen. A **Web Worker** is like hiring a second person dedicated only to chopping vegetables, in a separate room, who hands finished plates back to the waiter when ready. The waiter stays free to serve customers the entire time.
 
-Technically: a Web Worker is a background JavaScript thread the browser provides. It cannot touch the DOM (the page's visual elements) directly, but it can do CPU-heavy computation and message the main thread when done. We'll use one to run **pdf.js** (Mozilla's PDF parsing/rendering engine, distributed as the npm package `pdfjs-dist`), so parsing a 300-page PDF never freezes scrolling or clicking.
+Technically: a Web Worker is a background JavaScript thread the browser provides. It cannot touch the DOM directly, but it can do CPU-heavy computation and message the main thread when done. We use one to run **pdf.js** (Mozilla's PDF parsing/rendering engine, distributed as the npm package `pdfjs-dist`), so parsing a 300-page PDF never freezes scrolling or clicking.
 
 ---
 
@@ -18,7 +16,7 @@ Technically: a Web Worker is a background JavaScript thread the browser provides
 
 **The Target:** add the `pdfjs-dist` package to `greymatter-pdf`.
 
-**The Concept:** `pdfjs-dist` is the packaged, npm-installable build of Mozilla's PDF.js — the same engine that powers PDF viewing inside Firefox. It has two halves: a **core** that parses PDF bytes into drawing instructions (this is the CPU-heavy part we push into the Worker), and a **display layer** that paints those instructions onto an HTML `<canvas>`.
+**The Concept:** `pdfjs-dist` is the packaged, npm-installable build of Mozilla's PDF.js. It has two halves: a core that parses PDF bytes into drawing instructions (the CPU-heavy part we push into the Worker), and a display layer that paints those instructions onto an HTML canvas.
 
 **The Implementation:**
 
@@ -27,7 +25,7 @@ cd greymatter-pdf
 npm install pdfjs-dist@4.6.82
 ```
 
-We pin an exact version (rather than `^4.6.82`) because pdf.js ships a matching internal "API version" between its main package and its worker script — mismatches between them throw a hard runtime error. Pinning avoids that entirely during this tutorial.
+We pin an exact version because pdf.js ships a matching internal API version between its main package and its worker script — mismatches throw a hard runtime error.
 
 **The Verification:**
 
@@ -43,11 +41,11 @@ greymatter-pdf@0.1.0
 
 ---
 
-## Step 2: Copy the pdf.js worker script into `public/`
+## Step 2: Copy the pdf.js worker script into public/
 
 **The Target:** make pdf.js's own internal worker file available as a static asset.
 
-**The Concept:** pdf.js *itself* internally uses a worker script (`pdf.worker.min.mjs`) to do its byte-parsing math. This is separate from — and runs inside — the Web Worker we're about to build; think of it as pdf.js bringing its own specialized tool that we mount inside our workshop. Next.js needs this file served as a plain static asset (not bundled/transformed) at a predictable URL, so we copy it into the `public/` directory, which Next.js serves as-is.
+**The Concept:** pdf.js internally uses a worker script (`pdf.worker.min.mjs`) to do its byte-parsing math. This is separate from the Web Worker we are about to build. Next.js needs this file served as a plain static asset at a predictable URL, so we copy it into `public/`, which Next.js serves as-is.
 
 **The Implementation:**
 
@@ -56,9 +54,9 @@ mkdir -p public/pdf
 cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf/pdf.worker.min.mjs
 ```
 
-Add this copy step to `package.json` so it survives fresh installs (e.g., on a teammate's machine or in CI). Open `package.json` and update the `scripts` block:
+Add this copy step to `package.json` so it survives fresh installs on any machine or CI:
 
-### `greymatter-pdf/package.json` (scripts section only — merge into your existing file)
+### `greymatter-pdf/package.json` (scripts section only)
 
 ```json
 {
@@ -72,15 +70,9 @@ Add this copy step to `package.json` so it survives fresh installs (e.g., on a t
 }
 ```
 
-Now create the small Node.js script that performs the copy (so it's cross-platform, unlike a raw `cp` shell command which fails on Windows):
-
 ### `greymatter-pdf/scripts/copy-pdf-worker.mjs`
 
 ```javascript
-// This script copies pdf.js's internal worker file into the public/
-// directory so Next.js can serve it as a static asset at a stable URL
-// (/pdf/pdf.worker.min.mjs). We run it before every build and also once
-// manually right now, so local development has the file immediately.
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -114,7 +106,7 @@ npm run copy:pdf-worker
 ls -la public/pdf/
 ```
 
-Expected output: a file listing showing `pdf.worker.min.mjs` with a non-zero file size (it should be several hundred KB).
+Expected output: `pdf.worker.min.mjs` listed with a non-zero file size.
 
 ---
 
@@ -122,7 +114,7 @@ Expected output: a file listing showing `pdf.worker.min.mjs` with a non-zero fil
 
 **The Target:** `src/types/pdf-worker.ts`
 
-**The Concept:** Our Web Worker and our React component will talk to each other by sending plain JavaScript objects back and forth (this is literally the only way threads communicate — there's no shared memory by default). Think of it like two people passing notes under a door: they need to agree in advance on the note's format, or neither side can understand what's written. We define that "note format" as TypeScript types now, so both sides of the door — the worker file (Step 4) and the React hook (Step 5) — share one source of truth and the compiler catches mismatches for us.
+**The Concept:** our Web Worker and React component talk to each other by sending plain JavaScript objects — the only way threads communicate, since there is no shared memory by default. Like two people passing notes under a door, both sides need to agree on the note's format in advance.
 
 **The Implementation:**
 
@@ -134,17 +126,14 @@ export type PdfWorkerRequest =
   | {
       type: "LOAD_DOCUMENT";
       requestId: string;
-      // We pass the raw PDF bytes as a Transferable ArrayBuffer rather than
-      // a copy, so the (potentially large) buffer moves ownership to the
-      // worker instantly instead of being cloned in memory twice.
       arrayBuffer: ArrayBuffer;
     }
   | {
       type: "RENDER_PAGE";
       requestId: string;
-      pageNumber: number; // 1-indexed, matching pdf.js's own convention
-      scale: number; // zoom level multiplier, e.g. 1.5 = 150%
-      devicePixelRatio: number; // screen sharpness multiplier, explained in Step 6
+      pageNumber: number;
+      scale: number;
+      devicePixelRatio: number;
     };
 
 // Messages sent FROM the worker BACK TO the main thread.
@@ -158,12 +147,9 @@ export type PdfWorkerResponse =
       type: "PAGE_RENDERED";
       requestId: string;
       pageNumber: number;
-      // ImageBitmap is a highly efficient, GPU-friendly image format that
-      // can be transferred between threads almost for free (no copying),
-      // unlike a regular array of pixel data.
       bitmap: ImageBitmap;
-      widthCss: number; // the CSS pixel width the <canvas> element should be
-      heightCss: number; // the CSS pixel height the <canvas> element should be
+      widthCss: number;
+      heightCss: number;
     }
   | {
       type: "ERROR";
@@ -178,7 +164,7 @@ export type PdfWorkerResponse =
 npx tsc --noEmit
 ```
 
-Expected output: no errors printed (a clean TypeScript compile check). If you see an error about `ImageBitmap` not being found, confirm your `tsconfig.json`'s `lib` array includes `"DOM"` (it does by default in a fresh `create-next-app` project).
+Expected output: no errors printed.
 
 ---
 
@@ -186,7 +172,7 @@ Expected output: no errors printed (a clean TypeScript compile check). If you se
 
 **The Target:** `src/workers/pdf.worker.ts`
 
-**The Concept:** This file is the "second chef in the back room" from our earlier analogy. It never touches React, never touches the DOM directly — it only knows how to (a) receive a request, (b) do the heavy lifting with pdf.js, and (c) send a response back. Because it runs on a separate thread, any amount of computation here — even for a huge document — cannot freeze the buttons and scrollbars the user is touching.
+**The Concept:** this file is the second chef in the back room. It never touches React or the DOM directly — it only receives a request, does the heavy lifting with pdf.js, and sends a response back.
 
 **The Implementation:**
 
@@ -194,30 +180,23 @@ Expected output: no errors printed (a clean TypeScript compile check). If you se
 
 ```typescript
 // This file runs in a dedicated Web Worker thread, NOT in the browser's
-// main thread. It has no access to the DOM (no document, no window.alert,
-// etc.) but it can do heavy computation freely without affecting UI
-// responsiveness.
+// main thread. It has no access to the DOM but can do heavy computation
+// freely without affecting UI responsiveness.
 import * as pdfjsLib from "pdfjs-dist";
 import type {
   PdfWorkerRequest,
   PdfWorkerResponse,
 } from "@/types/pdf-worker";
 
-// pdf.js needs to know where its own internal worker script lives. Even
-// though WE are already inside a worker, pdf.js's core library still wants
-// this configured — it uses it to spin up further internal parsing logic.
+// pdf.js needs to know where its own internal worker script lives.
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf/pdf.worker.min.mjs";
 
-// We keep the loaded PDF document in memory here, inside the worker, across
-// multiple render requests -- re-parsing the whole file on every single
-// page scroll would be wasteful.
+// We keep the loaded PDF document in memory here, across multiple render
+// requests -- re-parsing the whole file on every page scroll would waste
+// CPU time.
 let loadedDocument: pdfjsLib.PDFDocumentProxy | null = null;
 
-// Type-safe helper to post a message back to the main thread. The second
-// argument (`transfer`) is a list of objects to hand over by reference
-// instead of copying -- critical for performance with large ImageBitmaps.
 function respond(message: PdfWorkerResponse, transfer: Transferable[] = []) {
-  // `self` refers to the worker's own global scope (its version of `window`).
   self.postMessage(message, { transfer });
 }
 
@@ -226,15 +205,6 @@ self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
 
   try {
     if (request.type === "LOAD_DOCUMENT") {
-      // pdfjsLib.getDocument accepts the raw bytes and returns a "loading
-      // task" we must await to get the actual document proxy object.
-      const loadingTask = pdfjsLib.getDocument({
-        data: request.arrayBuffer,
-      });
-      loadedDocument = await loadingTask
-
-      // pdfjsLib.getDocument accepts the raw bytes and returns a "loading
-      // task" we must await to get the actual document proxy object.
       const loadingTask = pdfjsLib.getDocument({
         data: request.arrayBuffer,
       });
@@ -255,22 +225,17 @@ self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
         );
       }
 
-      // Fetch the specific page object. pdf.js pages are 1-indexed to match
-      // how humans refer to "page 1", not how arrays are indexed.
       const page = await loadedDocument.getPage(request.pageNumber);
 
-      // A "viewport" in pdf.js describes the pixel dimensions and transform
-      // matrix needed to render the page at a given zoom (scale). We
-      // multiply by devicePixelRatio here so the bitmap has enough real
-      // pixels to look sharp on high-density ("Retina") screens -- more on
-      // this in Step 6, where we explain devicePixelRatio in depth.
+      // Multiply by devicePixelRatio so the bitmap has enough real pixels
+      // to look sharp on high-density screens -- explained in depth in
+      // Step 6.
       const viewport = page.getViewport({
         scale: request.scale * request.devicePixelRatio,
       });
 
-      // OffscreenCanvas is a canvas-like object usable inside a Worker
-      // (a regular <canvas> DOM element cannot exist here, since Workers
-      // have no DOM access at all).
+      // OffscreenCanvas is a canvas-like object usable inside a Worker;
+      // a regular <canvas> DOM element cannot exist here.
       const offscreenCanvas = new OffscreenCanvas(
         viewport.width,
         viewport.height
@@ -280,17 +245,13 @@ self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
         throw new Error("Could not acquire a 2D rendering context.");
       }
 
-      // This is the actual heavy lifting: pdf.js walks the page's vector
-      // drawing instructions (lines, curves, text glyphs, images) and
-      // paints them onto our OffscreenCanvas. This is the exact operation
-      // that would freeze the main thread if we ran it there directly.
+      // This is the heavy lifting: pdf.js walks the page's vector drawing
+      // instructions and paints them onto our OffscreenCanvas.
       await page.render({
         canvasContext: context as unknown as CanvasRenderingContext2D,
         viewport,
       }).promise;
 
-      // Convert the finished drawing into an ImageBitmap -- a format
-      // optimized for cheap, zero-copy transfer between threads.
       const bitmap = await offscreenCanvas.transferToImageBitmap();
 
       respond(
@@ -299,14 +260,10 @@ self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
           requestId: request.requestId,
           pageNumber: request.pageNumber,
           bitmap,
-          // We report back the CSS size (unscaled by devicePixelRatio) so
-          // the main thread knows what size to set the <canvas> element's
-          // CSS width/height to, keeping it visually correct on screen
-          // regardless of how many actual pixels the bitmap contains.
           widthCss: viewport.width / request.devicePixelRatio,
           heightCss: viewport.height / request.devicePixelRatio,
         },
-        [bitmap] // transfer ownership of the bitmap, not a copy
+        [bitmap]
       );
       return;
     }
@@ -319,14 +276,13 @@ self.onmessage = async (event: MessageEvent<PdfWorkerRequest>) => {
   }
 };
 
-// This empty export turns the file into an ES module, which is required
-// for the `import * as pdfjsLib` syntax at the top to work correctly when
-// this file is loaded as a module-type Worker (see Step 5 for how we
-// instantiate it with { type: "module" }).
+// This empty export turns the file into an ES module, required for the
+// import syntax above to work when this file is loaded as a module-type
+// Worker (see Step 5).
 export {};
 ```
 
-**The Verification:** we can't fully test a Worker file in isolation yet — it needs a component to talk to it. Skip ahead to Step 6's verification, which exercises this file end-to-end. For now, just confirm it compiles cleanly:
+**The Verification:** a Worker file cannot be fully tested in isolation — it needs a component to talk to it (Step 6). For now, confirm it compiles cleanly:
 
 ```bash
 npx tsc --noEmit
@@ -340,7 +296,7 @@ Expected output: no errors.
 
 **The Target:** `src/lib/pdf/use-pdf-worker.ts`
 
-**The Concept:** Somebody needs to be responsible for *starting* the worker, sending it messages, and *shutting it down* when the user navigates away (otherwise we'd leak background threads forever, like leaving the kitchen's oven on after closing). A React **custom hook** is a reusable function that lets us package this "worker lifecycle management" logic once and reuse it in any component. Think of it as a dedicated phone line installed between our React component and the worker's back room — this hook wires up the phone and hands the receiver to whoever needs it.
+**The Concept:** somebody needs to be responsible for starting the worker, sending it messages, and shutting it down when the user navigates away, otherwise we would leak background threads forever, like leaving an oven on after closing. A React custom hook is a reusable function that packages this lifecycle management once, for reuse in any component. Think of it as a dedicated phone line installed between our React component and the worker's back room — this hook wires up the phone and hands the receiver to whoever needs it.
 
 **The Implementation:**
 
@@ -355,9 +311,6 @@ import type {
   PdfWorkerResponse,
 } from "@/types/pdf-worker";
 
-// Each request we send gets a unique ID so that when a response comes back,
-// we know exactly which pending request it answers -- similar to a coat
-// check ticket number, since messages can arrive out of order.
 function createRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -375,8 +328,8 @@ export function usePdfWorker() {
   const pendingRef = useRef<PendingResolvers>(new Map());
 
   useEffect(() => {
-    // `new URL(..., import.meta.url)` combined with `{ type: "module" }` is
-    // the standard, bundler-friendly way to construct a Worker in a modern
+    // new URL(..., import.meta.url) combined with { type: "module" } is the
+    // standard, bundler-friendly way to construct a Worker in a modern
     // Next.js / Turbopack project. Turbopack detects this exact pattern at
     // build time and bundles src/workers/pdf.worker.ts as its own separate
     // JavaScript file, then wires up the URL correctly for production.
@@ -440,7 +393,7 @@ export function usePdfWorker() {
       const requestId = createRequestId();
       const response = await sendRequest(
         { type: "LOAD_DOCUMENT", requestId, arrayBuffer },
-        [arrayBuffer] // transfer the buffer, not copy it -- see Step 6 note
+        [arrayBuffer] // transfer the buffer, not copy it
       );
       if (response.type !== "DOCUMENT_LOADED") {
         throw new Error("Unexpected response type for LOAD_DOCUMENT.");
@@ -472,9 +425,9 @@ export function usePdfWorker() {
 }
 ```
 
-Note for readers coming from older React tutorials: you'll notice we still used `useCallback` here, even though Part 1 said the React Compiler removes the *need* for manual memoization in components. This file is a plain hook, not a component the compiler analyzes for render-skipping — and more importantly, these functions are returned to consumers and used inside other hooks' dependency arrays (like `useEffect` in Step 6), where stable function identity still matters for correctness, not just performance. The compiler optimizes *rendering*; it doesn't remove the general usefulness of `useCallback` for API design. From Part 4 onward, inside actual *components*, you'll see us lean on the compiler and stop hand-writing these.
+Note for readers: we still use `useCallback` here even though Part 1 said the React Compiler removes the need for manual memoization inside components. This file is a plain hook, not a component the compiler analyzes for render-skipping — these functions are returned to consumers and used inside other hooks' dependency arrays (like `useEffect` in Step 7), where stable function identity still matters for correctness, not just performance. From Part 4 onward, inside actual components, we lean on the compiler and stop hand-writing these.
 
-**The Verification:** again, this hook needs a consuming component to be testable — continue to Step 6.
+**The Verification:** this hook needs a consuming component to be testable — continue to Step 6 and Step 7 below.
 
 ---
 
@@ -482,13 +435,11 @@ Note for readers coming from older React tutorials: you'll notice we still used 
 
 **The Target:** `src/components/viewer/PdfPageCanvas.tsx`
 
-**The Concept:** This is where pixels finally hit the screen. Two tricky ideas need explaining before the code:
+**The Concept:** this is where pixels finally hit the screen. Two tricky ideas need explaining first.
 
-1. **`devicePixelRatio`**: Your screen has a certain number of *actual* physical pixels, but CSS/browser layout talks in "CSS pixels," which on high-density ("Retina"/4K) screens represent *multiple* physical pixels each. `window.devicePixelRatio` tells us that multiplier (commonly 1, 2, or 3). If we render our PDF bitmap at only 1x resolution but display it on a 2x screen, text looks blurry — like stretching a small photo to fill a big frame. So we ask the worker to render at `scale * devicePixelRatio` real pixels, then use CSS to display it back down at the correct on-screen size, giving us crisp, sharp text.
+**devicePixelRatio:** your screen has a certain number of actual physical pixels, but CSS/browser layout talks in "CSS pixels," which on high-density (Retina/4K) screens represent multiple physical pixels each. `window.devicePixelRatio` tells us that multiplier (commonly 1, 2, or 3). If we render our PDF bitmap at only 1x resolution but display it on a 2x screen, text looks blurry, like stretching a small photo to fill a big frame. So we ask the worker to render at scale × devicePixelRatio real pixels, then use CSS to display it back down at the correct on-screen size, giving us crisp, sharp text.
 
-2. **Canvas arrays for scroll-heavy layouts**: rather than one giant canvas for an entire multi-page document (which would be enormous and slow to redraw), we render one `<canvas>` element *per page*, and only actually render (fill with pixels) the pages that are near the visible scroll position, using a technique called **windowing** or **lazy rendering**. Think of it like a photo album where you only actually develop the photos on the pages you're currently looking at, plus a couple pages ahead/behind — not the entire 300-page album at once.
-
-For this Part, we'll build the single-page canvas component and a basic multi-page container that renders every page's canvas element up front, but only triggers the actual worker `renderPage` call when a page scrolls near the viewport (using the browser's built-in `IntersectionObserver` API — a tool that tells you when an element enters or leaves the visible screen area).
+**Canvas arrays for scroll-heavy layouts:** rather than one giant canvas for an entire multi-page document (which would be enormous and slow to redraw), we render one canvas element per page. Each page component manages its own render lifecycle independently.
 
 **The Implementation:**
 
@@ -506,190 +457,215 @@ interface PdfPageCanvasProps {
   renderPage: ReturnType<typeof usePdfWorker>["renderPage"];
 }
 
-// Renders exactly one PDF page into its own <canvas> element. It only
-// triggers the (expensive) worker render call once the canvas scrolls
-// near the visible viewport, using IntersectionObserver.
+// One instance of this component is rendered per PDF page. Each owns a
+// single <canvas> element and is responsible only for painting its own
+// page -- this keeps memory and redraw cost proportional to visible pages,
+// not the whole document.
 export function PdfPageCanvas({
   pageNumber,
   scale,
   renderPage,
 }: PdfPageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [hasRendered, setHasRendered] = useState(false);
-  const [isNearViewport, setIsNearViewport] = useState(false);
+  const [isRendering, setIsRendering] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Step A: watch whether this page's placeholder div is near the screen.
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting) {
-          setIsNearViewport(true);
-        }
-      },
-      {
-        // rootMargin extends the "visible" zone by 600px above and below
-        // the actual screen edges, so pages start rendering just before
-        // the user scrolls to them -- avoiding a visible blank flash.
-        rootMargin: "600px 0px 600px 0px",
-      }
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  // Step B: once near the viewport (and not already rendered), ask the
-  // worker to render this page, then paint the returned bitmap onto our
-  // real, on-screen <canvas> element.
-  useEffect(() => {
-    if (!isNearViewport || hasRendered) return;
-
     let cancelled = false;
 
-    async function renderThisPage() {
-      const devicePixelRatio = window.devicePixelRatio || 1;
-      const result = await renderPage(pageNumber, scale, devicePixelRatio);
+    async function draw() {
+      setIsRendering(true);
+      setError(null);
+      try {
+        // window.devicePixelRatio is only available in the browser, which
+        // is exactly why this whole component must be a Client Component
+        // ("use client" at the top) -- Server Components never run in a
+        // browser context and would have no such value.
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        const result = await renderPage(pageNumber, scale, devicePixelRatio);
 
-      // If the component unmounted or scrolled away while we were waiting
-      // on the worker, discard the result instead of touching a stale DOM node.
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-      // Set the canvas's actual pixel buffer size to the full-resolution
-      // bitmap dimensions (this is the "physical pixels" count)...
-      canvas.width = result.bitmap.width;
-      canvas.height = result.bitmap.height;
+        // The bitmap itself contains devicePixelRatio-multiplied real
+        // pixels (e.g. 2x as many on a Retina screen), but we set the
+        // canvas's CSS width/height to the un-multiplied "widthCss"/
+        // "heightCss" values, so it occupies the correct amount of visual
+        // space on the page while still rendering crisply.
+        canvas.width = result.bitmap.width;
+        canvas.height = result.bitmap.height;
+        canvas.style.width = `${result.widthCss}px`;
+        canvas.style.height = `${result.heightCss}px`;
 
-      // ...but set its CSS display size back down to the intended
-      // on-screen size, so it appears correctly sized despite containing
-      // extra pixels for sharpness.
-      canvas.style.width = `${result.widthCss}px`;
-      canvas.style.height = `${result.heightCss}px`;
-
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.drawImage(result.bitmap, 0, 0);
-
-      // ImageBitmap objects hold GPU/graphics memory that must be
-      // explicitly released once we're done painting it, otherwise we leak
-      // memory on every page render.
-      result.bitmap.close();
-
-      setHasRendered(true);
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Could not acquire a 2D context for the canvas.");
+        }
+        // Paints the already-rendered bitmap onto the visible <canvas> --
+        // a cheap operation, since all the expensive parsing/drawing math
+        // already happened inside the worker thread.
+        context.drawImage(result.bitmap, 0, 0);
+        result.bitmap.close(); // release the bitmap's memory once painted
+      } catch (caughtError) {
+        if (!cancelled) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Failed to render page."
+          );
+        }
+      } finally {
+        if (!cancelled) setIsRendering(false);
+      }
     }
 
-    renderThisPage().catch((error) => {
-      console.error(`Failed to render page ${pageNumber}:`, error);
-    });
+    draw();
 
     return () => {
       cancelled = true;
     };
-  }, [isNearViewport, hasRendered, pageNumber, scale, renderPage]);
+  }, [pageNumber, scale, renderPage]);
 
   return (
-    <div
-      ref={containerRef}
-      className="mb-4 flex justify-center bg-gray-100 min-h-[400px]"
-      data-page-number={pageNumber}
-    >
-      <canvas ref={canvasRef} className="shadow-md bg-white" />
+    <div className="relative mb-4 flex justify-center">
+      {isRendering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-sm text-gray-500">
+          Rendering page {pageNumber}...
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-sm text-red-600">
+          Error on page {pageNumber}: {error}
+        </div>
+      )}
+      <canvas
+        ref={canvasRef}
+        className="border border-gray-200 shadow-sm"
+        aria-label={`PDF page ${pageNumber}`}
+      />
     </div>
   );
 }
 ```
 
-### `src/components/viewer/PdfDocumentViewer.tsx`
+**The Verification:** this component still needs a parent that loads a document and passes down `renderPage` — continue to Step 7.
+
+---
+
+## Step 7: The multi-page viewer container
+
+**The Target:** `src/components/viewer/PdfViewer.tsx`
+
+**The Concept:** we need one top-level component that (a) loads the worker via `usePdfWorker`, (b) fetches the PDF's raw bytes, (c) tells the worker to parse the document once, and (d) renders one `PdfPageCanvas` per page in a scrollable list. Think of this component as the restaurant's host: it greets the incoming document, finds out how many pages (tables) exist, and seats a `PdfPageCanvas` at every one, letting each table (page) independently order and receive its own food (rendered bitmap) without waiting on the others.
+
+**The Implementation:**
+
+### `src/components/viewer/PdfViewer.tsx`
 
 ```typescript
 "use client";
 
 import { useEffect, useState } from "react";
 import { usePdfWorker } from "@/lib/pdf/use-pdf-worker";
-import { PdfPageCanvas } from "./PdfPageCanvas";
+import { PdfPageCanvas } from "@/components/viewer/PdfPageCanvas";
 
-interface PdfDocumentViewerProps {
-  // For this Part, we accept a direct URL to fetch bytes from. Part 3
-  // replaces this with a request through our secure proxy.ts layer instead
-  // of a raw public URL.
+interface PdfViewerProps {
+  // For this Part, we accept a direct URL to a PDF file (e.g. something
+  // temporarily placed in /public for testing). Part 3 replaces this with
+  // a secure, authenticated proxy.ts URL instead of a raw public file path.
   fileUrl: string;
 }
 
-export function PdfDocumentViewer({ fileUrl }: PdfDocumentViewerProps) {
+export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const { loadDocument, renderPage } = usePdfWorker();
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const scale = 1.25; // a fixed baseline zoom for this Part; Part 4 makes this adjustable
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // A fixed zoom level for this Part; Part 4 wires this up to a zoom
+  // control the user can change.
+  const [scale] = useState(1.25);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
+        // fetch() retrieves the PDF bytes over HTTP. We convert the
+        // response to an ArrayBuffer because that is the exact format our
+        // worker's LOAD_DOCUMENT message expects (see src/types/pdf-worker.ts).
         const response = await fetch(fileUrl);
         if (!response.ok) {
-          throw new Error(`Failed to fetch PDF: ${response.status}`);
+          throw new Error(
+            `Failed to fetch PDF: ${response.status} ${response.statusText}`
+          );
         }
+
         const arrayBuffer = await response.arrayBuffer();
+
+        if (cancelled) return;
+
         const pages = await loadDocument(arrayBuffer);
         if (!cancelled) setNumPages(pages);
-      } catch (err) {
+      } catch (error) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error loading PDF.");
+          setLoadError(
+            error instanceof Error ? error.message : "Failed to load PDF."
+          );
         }
       }
     }
 
     load();
+
     return () => {
       cancelled = true;
     };
   }, [fileUrl, loadDocument]);
 
-  if (error) {
+  if (loadError) {
     return (
-      <div className="p-4 text-red-600 bg-red-50 rounded">
-        Could not load document: {error}
+      <div className="p-4 text-sm text-red-600">
+        Could not load document: {loadError}
       </div>
     );
   }
 
   if (numPages === null) {
-    return <div className="p-4 text-gray-500">Loading document…</div>;
+    return <div className="p-4 text-sm text-gray-500">Loading document...</div>;
   }
 
   return (
-    <div className="w-full overflow-y-auto" style={{ height: "100vh" }}>
-      {Array.from({ length: numPages }, (_, index) => (
-        <PdfPageCanvas
-          key={index + 1}
-          pageNumber={index + 1}
-          scale={scale}
-          renderPage={renderPage}
-        />
-      ))}
+    <div className="flex flex-col items-center overflow-y-auto p-4">
+      {/* One canvas per page, in a simple vertical scroll -- Part 9 revisits
+          this with virtualization (only rendering pages near the viewport)
+          for very long documents, but a plain list is the right starting
+          point for correctness first. */}
+      {Array.from({ length: numPages }, (_, index) => index + 1).map(
+        (pageNumber) => (
+          <PdfPageCanvas
+            key={pageNumber}
+            pageNumber={pageNumber}
+            scale={scale}
+            renderPage={renderPage}
+          />
+        )
+      )}
     </div>
   );
 }
 ```
 
-## Step 7: Wire it into a route
+Now wire this into an actual route so we have something to open in a browser. Recall from Part 1 that `src/app/viewer/[documentId]` was already created as an empty directory reserved for this exact purpose.
 
-**The Target:** `src/app/viewer/[documentId]/page.tsx`
-
-**The Concept:** This is a Server Component (no `"use client"` directive) — it runs on the server, and its only job here is to pass a URL down into our Client Component. Keeping this file server-only matters later: Part 3 will have this Server Component look up permissions and build a signed proxy URL server-side before ever handing anything to the browser.
-
-**The Implementation:**
+### `src/app/viewer/[documentId]/page.tsx`
 
 ```typescript
-import { PdfDocumentViewer } from "@/components/viewer/PdfDocumentViewer";
+// This file is a Server Component by default (no "use client" at the top).
+// Its only job here is to render the page shell and hand off to the
+// PdfViewer Client Component for actual interactivity -- exactly the
+// division of responsibility established in Part 1.
+import { PdfViewer } from "@/components/viewer/PdfViewer";
 
 export default async function ViewerPage({
   params,
@@ -698,33 +674,57 @@ export default async function ViewerPage({
 }) {
   const { documentId } = await params;
 
-  // Temporary for this Part only: a hardcoded public sample PDF, so we can
-  // verify our rendering pipeline end-to-end before Part 3 introduces real,
-  // secured document storage.
-  const fileUrl = `/sample-pdfs/${documentId}.pdf`;
+  // For this Part only, we point directly at a test file placed in public/.
+  // Part 3 replaces this hardcoded path with a real lookup: documentId will
+  // be used to find the correct file via our secure proxy.ts layer instead.
+  const fileUrl = `/test-pdfs/${documentId}.pdf`;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <PdfDocumentViewer fileUrl={fileUrl} />
+    <main className="h-screen w-screen bg-gray-50">
+      <PdfViewer fileUrl={fileUrl} />
     </main>
   );
 }
 ```
 
-**The Verification (end-to-end test of this entire Part):**
+**The Verification:**
 
-1. Download any small sample PDF and place it at `public/sample-pdfs/demo.pdf`.
-2. Run:
+1. Add a sample PDF for testing:
+
+```bash
+mkdir -p public/test-pdfs
+# Copy any PDF file you have locally, naming it sample.pdf
+cp ~/Downloads/some-file.pdf public/test-pdfs/sample.pdf
+```
+
+(If you don't have a sample PDF handy, any multi-page PDF works — an emailed invoice, a downloaded ebook sample, or a printed-to-PDF document from your OS all work fine for this test.)
+
+2. Start the dev server:
+
 ```bash
 npm run dev
 ```
-3. Open `http://localhost:3000/viewer/demo` in your browser.
-4. **Expected result:** the PDF's pages render as sharp images on screen, scrolling is smooth, and if you open your browser's DevTools → Performance tab and scroll while recording, the "Main" thread track shows little to no long "Task" blocks during rendering — confirming the heavy work happened on the Worker thread instead.
-5. Open DevTools → Application/Sources → check for a separate `pdf.worker.ts` (or its compiled equivalent) thread listed, confirming the Worker is genuinely active.
+
+3. Open your browser to:
+
+```
+http://localhost:3000/viewer/sample
+```
+
+Expected result: you should see "Loading document..." briefly, then each page of your PDF should appear one after another, rendered as sharp images inside bordered boxes, with a brief "Rendering page N..." placeholder flashing per page as it loads.
+
+4. Confirm the main thread is not blocked: while the PDF is loading/rendering, try scrolling the page or resizing the browser window. It should remain responsive throughout, even for a large file — this is the entire point of Part 2's architecture.
+
+5. Open your browser's DevTools (F12), go to the Network tab, and reload. You should see a request for `pdf.worker.min.mjs` succeed (status 200) — this confirms Step 2's static asset copy worked correctly.
+
+6. In DevTools, go to the Console tab and confirm there are no red errors. A common early mistake is forgetting Step 2 (copying the `pdf.worker.min.mjs` file), which shows up as a 404 error for that file and a blank/broken viewer.
 
 ---
 
 ## Part 2 Summary
 
-We installed `pdfjs-dist`, served its internal worker script as a static asset, defined a typed message contract between threads, wrote a dedicated Web Worker that parses and rasterizes PDF pages entirely off the main thread, built a React hook to manage that worker's lifecycle safely, and rendered pages into individually-observed `<canvas>` elements that respect device pixel ratio and only render near the viewport. Part 3 replaces our temporary public `fileUrl` with a secure, authenticated `proxy.ts` byte-streaming layer.
+By this point you have: `pdfjs-dist` installed and correctly configured with its own internal worker script served as a static asset; a fully-typed message contract between the main thread and a Web Worker; the Web Worker itself, which loads PDF documents and renders individual pages to `ImageBitmap`s entirely off the main thread; a `usePdfWorker` hook that manages the worker's lifecycle safely (including cleanup on unmount); a `PdfPageCanvas` component that paints rendered bitmaps crisply regardless of screen pixel density; and a `PdfViewer` container that ties it all together into a scrollable, multi-page document view, reachable at `/viewer/[documentId]`.
 
+Critically, you have now proven experimentally (not just in theory) that heavy PDF parsing does not freeze the browser tab — the core promise of the hybrid architecture from Part 1.
+
+Part 3 replaces the temporary hardcoded `/test-pdfs/` file path with a secure, authenticated `proxy.ts` layer, so real PDF files are never exposed as raw public URLs, and are instead streamed through a permission-checked Node.js route.
