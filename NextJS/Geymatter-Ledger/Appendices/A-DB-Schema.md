@@ -1,6 +1,6 @@
-# Appendix A: Complete Database Schema Reference
+# Appendix A (Expanded, Revised): Complete Database Schema Reference
 
-This is the full, authoritative reference for every table in Greymatter Ledger's database — every column, every type, every constraint, every relationship, and why each one exists. Treat this as the master blueprint you return to whenever you extend the app per Part 14's roadmap.
+This is the full, authoritative reference for every table in Greymatter Ledger's database — every column, every type, every constraint, every relationship, and why each one exists. This revision incorporates the voiding/reversal columns added in Part 14.2. Treat this as the master blueprint you return to whenever you extend the app per Part 14's roadmap.
 
 ## A.1 — Entity Relationship Overview
 
@@ -9,6 +9,7 @@ organizations (1) ──< accounts (self-referencing via parentId)
 organizations (1) ──< customers
 organizations (1) ──< vendors
 organizations (1) ──< journal_entries ──< journal_lines >── accounts
+journal_entries (1) ──< journal_entries (self-referencing via reversalOfEntryId) [Part 14.2]
 organizations (1) ──< invoices >── customers
 invoices (1) ──< invoice_lines
 organizations (1) ──< bills >── vendors
@@ -25,7 +26,7 @@ payments.journalEntryId ──> journal_entries (nullable link back)
 imported_transactions.journalEntryId ──> journal_entries (nullable link back)
 ```
 
-Every arrow ending in `journal_entries` is the single point where money is recognized as officially real. Every other table exists either to *produce* a journal entry (invoices, bills, payments, bank imports) or to support the business context around it (customers, vendors, accounts themselves).
+Every arrow ending in `journal_entries` is the single point where money is recognized as officially real. Every other table exists either to *produce* a journal entry (invoices, bills, payments, bank imports) or to support the business context around it (customers, vendors, accounts themselves). As of Part 14.2, `journal_entries` also references *itself* — a voided entry points forward to its reversal, and a reversal points back to what it reversed.
 
 ---
 
@@ -87,9 +88,9 @@ Every arrow ending in `journal_entries` is the single point where money is recog
 
 ---
 
-## A.4 — `journal_entries` and `journal_lines`
+## A.4 — `journal_entries` and `journal_lines` (Revised — Part 14.2)
 
-**Purpose:** The core ledger — the only place money is ever officially recorded (Part 6).
+**Purpose:** The core ledger — the only place money is ever officially recorded (Part 6), extended in Part 14.2 to support voiding/reversal.
 
 **`journal_entries`** (the envelope):
 
@@ -99,11 +100,14 @@ Every arrow ending in `journal_entries` is the single point where money is recog
 | `organizationId` | `uuid` | NOT NULL, FK → organizations, cascade | |
 | `entryDate` | `date` | NOT NULL | The date used by every report's period filtering |
 | `description` | `text` | NOT NULL | Human-readable summary, e.g. `"Invoice INV-..."` |
-| `sourceType` | `text` | NOT NULL, default `"manual"` | `invoice`\|`bill`\|`payment`\|`bank_import`\|`manual` |
-| `sourceId` | `uuid` | nullable | Points back to the originating invoice/bill/payment/import row |
+| `sourceType` | `text` | NOT NULL, default `"manual"` | `invoice`\|`bill`\|`payment`\|`bank_import`\|`manual`\|**`void_reversal`** *(new, Part 14.2)* |
+| `sourceId` | `uuid` | nullable | Points back to the originating invoice/bill/payment/import row, **or**, for a reversal entry, back to the original voided entry it corrects |
+| **`isVoided`** | **`boolean`** | **NOT NULL, default `false`** *(new)* | True once this entry has been superseded by a reversal. Never triggers deletion — the row remains permanently, unchanged otherwise |
+| **`voidedAt`** | **`timestamp`** | **nullable** *(new)* | Set the moment `voidJournalEntry` marks this entry as voided |
+| **`reversalOfEntryId`** | **`uuid`** | **nullable, self-FK via `foreignKey()`** *(new)* | If THIS entry is itself a reversal, points back to the original entry it cancels out |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
-**`journal_lines`** (one debit or credit):
+**`journal_lines`** (one debit or credit) — unchanged from Part 6:
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
@@ -114,7 +118,11 @@ Every arrow ending in `journal_entries` is the single point where money is recog
 | `creditAmount` | `numeric(14,2)` | NOT NULL, default `0` | |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
-**Invariant enforced entirely in application code (`postJournalEntry`), never at the database constraint level:** for any given `journalEntryId`, `SUM(debitAmount) = SUM(creditAmount)`. No database-level `CHECK` constraint enforces this — it's guaranteed exclusively by the fact that every write path in the entire application passes through `postJournalEntry`, which is why that discipline matters so much (Part 6).
+**Invariant enforced entirely in application code (`postJournalEntry`), never at the database constraint level:** for any given `journalEntryId`, `SUM(debitAmount) = SUM(creditAmount)`. No database-level `CHECK` constraint enforces this — it's guaranteed exclusively by the fact that every write path in the entire application passes through `postJournalEntry`.
+
+**New invariant, established by Part 14.2:** an entry is **never** deleted or edited in place once posted — not even when "undone." The only mutation ever applied to an already-posted entry is flipping `isVoided` to `true` and setting `voidedAt`. Reversal is always additive (a brand-new entry), never destructive.
+
+**How voiding actually composes with the engine, in one sentence:** `voidJournalEntry` (Part 14.2) reads an entry's existing lines, builds a mirror-image line set (every debit becomes a credit and vice versa), and feeds that mirror set straight back through the same `postJournalEntry` used everywhere else — meaning a reversal entry is guaranteed balanced for exactly the same reason any other entry is: it never bypasses the one trusted engine.
 
 ---
 
@@ -138,7 +146,7 @@ Structurally identical, deliberately kept as separate tables (Part 7 reference s
 
 ## A.6 — `invoices` and `invoice_lines`
 
-**Purpose:** Accounts Receivable workflow (Part 7).
+**Purpose:** Accounts Receivable workflow (Part 7), with `status = "void"` now actually reachable as of Part 14.2.
 
 **`invoices`:**
 
@@ -150,12 +158,12 @@ Structurally identical, deliberately kept as separate tables (Part 7 reference s
 | `invoiceNumber` | `text` | NOT NULL | `INV-{timestamp}` |
 | `issueDate` | `date` | NOT NULL | Drives journal `entryDate` and all reporting |
 | `dueDate` | `date` | NOT NULL | Drives AR Aging bucketing |
-| `status` | `enum(invoice_status)` | NOT NULL, default `draft` | `draft`\|`sent`\|`partially_paid`\|`paid`\|`overdue`\|`void` |
+| `status` | `enum(invoice_status)` | NOT NULL, default `draft` | `draft`\|`sent`\|`partially_paid`\|`paid`\|`overdue`\|`void` — **`void` is now actually set by `voidInvoice` (Part 14.2)**, previously reserved but unused |
 | `subtotal` | `numeric(14,2)` | NOT NULL | Denormalized sum of lines (pre-GST) |
 | `gstTotal` | `numeric(14,2)` | NOT NULL | Denormalized sum of line GST |
 | `total` | `numeric(14,2)` | NOT NULL | `subtotal + gstTotal` |
-| `amountPaid` | `numeric(14,2)` | NOT NULL, default `0` | Updated by `recordInvoicePayment` |
-| `journalEntryId` | `uuid` | FK → journal_entries, **set null** | Traceability link |
+| `amountPaid` | `numeric(14,2)` | NOT NULL, default `0` | Updated by `recordInvoicePayment`; **also gates voiding** — `voidInvoice` refuses to run if this is greater than zero |
+| `journalEntryId` | `uuid` | FK → journal_entries, **set null** | Traceability link; **also the entry `voidInvoice` passes to `voidJournalEntry`** |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
 **`invoice_lines`:**
@@ -169,21 +177,31 @@ Structurally identical, deliberately kept as separate tables (Part 7 reference s
 | `unitPrice` | `numeric(14,2)` | NOT NULL | |
 | `gstRate` | `numeric(5,2)` | NOT NULL, default `9.00` | Per-line, not per-invoice — supports mixed-rate invoices |
 | `lineTotal` | `numeric(14,2)` | NOT NULL | `quantity × unitPrice`, denormalized |
-| `createdAt` | `timestamp` | NOT NULL  | default now | 
+| `createdAt` | `timestamp` | NOT NULL, default now | |
 
 **Journal shape produced by `createInvoice` (Part 7):**
 
 ```
-Debit  Accounts Receivable (1100)  = total (subtotal + GST)
-Credit Sales Revenue (4000)        = subtotal
+Debit  Accounts Receivable (1100)    = total (subtotal + GST)
+Credit Sales Revenue (4000)          = subtotal
 Credit GST Output Tax Payable (2100) = gstTotal   [only if gstTotal > 0]
 ```
+
+**Journal shape produced by `voidInvoice` → `voidJournalEntry` (Part 14.2), mirroring the above exactly:**
+
+```
+Debit  Sales Revenue (4000)          = subtotal
+Debit  GST Output Tax Payable (2100) = gstTotal   [only if gstTotal > 0]
+Credit Accounts Receivable (1100)    = total
+```
+
+**Atomicity note (Part 14.2 fix):** `voidInvoice` wraps the reversal (via `voidJournalEntry`, passed a `tx`) **and** the `invoices.status` update in a single `dbTransactional.transaction(...)` block — both succeed together or neither persists. This was a corrected bug; the original draft ran these as two separate, un-transactioned writes.
 
 ---
 
 ## A.7 — `bills` and `bill_lines`
 
-**Purpose:** Accounts Payable workflow — the structural mirror of invoices, but posting the opposite journal direction (Part 8).
+**Purpose:** Accounts Payable workflow — the structural mirror of invoices, but posting the opposite journal direction (Part 8). `status = "void"` is likewise now reachable via `voidBill` (Part 14.2).
 
 **`bills`:**
 
@@ -195,11 +213,11 @@ Credit GST Output Tax Payable (2100) = gstTotal   [only if gstTotal > 0]
 | `billNumber` | `text` | NOT NULL | `BILL-{timestamp}` |
 | `issueDate` | `date` | NOT NULL | |
 | `dueDate` | `date` | NOT NULL | Drives AP Aging bucketing |
-| `status` | `enum(bill_status)` | NOT NULL, default `received` | `draft`\|`received`\|`partially_paid`\|`paid`\|`overdue`\|`void` |
+| `status` | `enum(bill_status)` | NOT NULL, default `received` | `draft`\|`received`\|`partially_paid`\|`paid`\|`overdue`\|`void` — **set by `voidBill` (Part 14.2)** |
 | `subtotal` | `numeric(14,2)` | NOT NULL | |
 | `gstTotal` | `numeric(14,2)` | NOT NULL | |
 | `total` | `numeric(14,2)` | NOT NULL | |
-| `amountPaid` | `numeric(14,2)` | NOT NULL, default `0` | |
+| `amountPaid` | `numeric(14,2)` | NOT NULL, default `0` | Also gates voiding, same guard as invoices |
 | `journalEntryId` | `uuid` | FK → journal_entries, **set null** | |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
@@ -217,20 +235,29 @@ Credit GST Output Tax Payable (2100) = gstTotal   [only if gstTotal > 0]
 | `expenseAccountId` | `uuid` | NOT NULL, FK → accounts, **restrict** | The one structural difference from invoice_lines — each line can target a different expense account |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
-**Journal shape produced by `createBill` (Part 8)** — one debit line *per distinct expense account used*, not a single flat line:
+**Journal shape produced by `createBill` (Part 8):**
 
 ```
-Debit  [Expense Account A]           = sum of lines targeting A
-Debit  [Expense Account B]           = sum of lines targeting B   [repeated per distinct account]
+Debit  [Expense Account A]             = sum of lines targeting A
+Debit  [Expense Account B]             = sum of lines targeting B   [per distinct account]
 Debit  GST Input Tax Receivable (1200) = gstTotal   [only if gstTotal > 0]
-Credit Accounts Payable (2000)       = total
+Credit Accounts Payable (2000)         = total
+```
+
+**Journal shape produced by `voidBill` → `voidJournalEntry` (Part 14.2):**
+
+```
+Credit [Expense Account A]             = sum of lines targeting A
+Credit [Expense Account B]             = sum of lines targeting B
+Credit GST Input Tax Receivable (1200) = gstTotal   [only if gstTotal > 0]
+Debit  Accounts Payable (2000)         = total
 ```
 
 ---
 
 ## A.8 — `payments`
 
-**Purpose:** A single shared table recording cash movement against *either* an invoice or a bill — never both (Part 8).
+**Purpose:** A single shared table recording cash movement against *either* an invoice or a bill — never both (Part 8). **Not yet extended with its own void support** — see the note below.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
@@ -257,6 +284,8 @@ Debit  Accounts Payable (2000)        = amount
 Credit Cash (1000)                    = amount
 ```
 
+**⚠️ Design gap surfaced by Part 14.2:** `voidInvoice`/`voidBill` currently *refuse to run at all* if `amountPaid > 0` — meaning a paid invoice/bill cannot yet be voided without first "voiding the payment," but **no `voidPayment` function exists yet**. This is an intentionally incomplete edge, called out explicitly rather than glossed over: a natural, small follow-on extension would add a `voidPayment(paymentId, reason)` function (reversing the Cash↔AR or Cash↔AP entry the same way, then decrementing the parent invoice/bill's `amountPaid` and status) before a fully paid record can be voided end-to-end.
+
 ---
 
 ## A.9 — `recurring_invoice_templates`
@@ -269,12 +298,12 @@ Credit Cash (1000)                    = amount
 | `organizationId` | `uuid` | NOT NULL, FK, cascade | |
 | `customerId` | `uuid` | NOT NULL, FK → customers, **restrict** | |
 | `interval` | `enum(recurring_interval)` | NOT NULL | `weekly`\|`monthly`\|`quarterly`\|`yearly` |
-| `lineItemsJson` | `text` | NOT NULL | JSON-serialized `InvoiceLineInput[]` — deliberately not relational (Part 11 reference section: read-as-a-whole, never queried per-field) |
-| `nextRunDate` | `date` | NOT NULL | Advanced by the job itself after each firing — the mechanism that makes the job idempotent |
+| `lineItemsJson` | `text` | NOT NULL | JSON-serialized `InvoiceLineInput[]` — deliberately not relational (Part 11 reference section) |
+| `nextRunDate` | `date` | NOT NULL | Advanced by the job itself after each firing |
 | `isActive` | `boolean` | NOT NULL, default `true` | |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
-**No direct journal link** — this table never posts anything itself; it only ever calls `createInvoice`, which produces its own standard invoice journal entry (Section A.6 above).
+**No direct journal link** — invoices it generates get their own standard journal entry (Section A.6), which can independently be voided later like any other invoice.
 
 ---
 
@@ -288,24 +317,14 @@ Credit Cash (1000)                    = amount
 | `organizationId` | `uuid` | NOT NULL, FK, cascade | |
 | `transactionDate` | `date` | NOT NULL | Normalized from the bank's raw date format |
 | `description` | `text` | NOT NULL | Raw text from the CSV |
-| `amount` | `numeric(14,2)` | NOT NULL | **Signed** — positive = money in, negative = money out (unlike journal_lines' two-column convention) |
+| `amount` | `numeric(14,2)` | NOT NULL | **Signed** — positive = money in, negative = money out |
 | `status` | `enum(imported_transaction_status)` | NOT NULL, default `pending` | `pending`\|`categorized`\|`posted`\|`ignored` |
 | `categorizedAccountId` | `uuid` | nullable, FK → accounts, **set null** | User's chosen offsetting account |
 | `journalEntryId` | `uuid` | FK → journal_entries, **set null** | Only populated once `status = posted` |
-| `duplicateCheckHash` | `text` | NOT NULL | `sha256(date|description|amount)` — prevents re-importing overlapping CSV exports |
+| `duplicateCheckHash` | `text` | NOT NULL | `sha256(date|description|amount)` |
 | `createdAt` | `timestamp` | NOT NULL, default now | |
 
-**Journal shape produced by `postImportedTransaction`** — the sign of `amount` determines which side Cash lands on:
-
-```
-If amount >= 0 (money in):
-  Debit  Cash (1000)              = |amount|
-  Credit [categorizedAccountId]   = |amount|
-
-If amount < 0 (money out):
-  Debit  [categorizedAccountId]   = |amount|
-  Credit Cash (1000)              = |amount|
-```
+**⚠️ Same gap as payments:** there is no `voidImportedTransaction`/un-post path yet — once posted, a bank-import-sourced entry can only be corrected via the generic `voidJournalEntry(organizationId, entry.id, reason)` directly, since `imported_transactions.status` has no `void` value in its enum (only `pending`\|`categorized`\|`posted`\|`ignored`). Calling `voidJournalEntry` directly would correctly reverse the ledger entry, but would leave this row's own `status` still reading `posted` — a small, honest inconsistency worth flagging rather than hiding. A clean follow-on extension: add a `voided` value to `imported_transaction_status`, and a `voidImportedTransaction()` action mirroring `voidInvoice`/`voidBill`'s pattern exactly (validate → single transaction wrapping both `voidJournalEntry` and the status update → revalidate).
 
 ---
 
@@ -319,18 +338,19 @@ If amount < 0 (money out):
 | `bill_status` | `draft`, `received`, `partially_paid`, `paid`, `overdue`, `void` | `bills` |
 | `payment_method` | `bank_transfer`, `cash`, `credit_card`, `cheque`, `other` | `payments` |
 | `recurring_interval` | `weekly`, `monthly`, `quarterly`, `yearly` | `recurring_invoice_templates` |
-| `imported_transaction_status` | `pending`, `categorized`, `posted`, `ignored` | `imported_transactions` |
+| `imported_transaction_status` | `pending`, `categorized`, `posted`, `ignored` | `imported_transactions` *(no `void` value yet — see A.10)* |
+
+Note: `journal_entries.sourceType` is **not** a database enum — it's a plain `text` column (Part 6), so `"void_reversal"` (introduced in Part 14.2) required no migration to the type system at all, only a new string value in application code. This is a direct payoff of the design choice explained in Part 5's reference section: enums suit small, rarely-changing, structurally-enforced sets; plain text suits categories expected to grow.
 
 ---
 
 ## A.12 — `onDelete` Behavior Cheat Sheet
 
-A quick-reference for the reasoning behind every foreign key's delete behavior (each individually justified in its originating part's reference section):
-
 | Relationship | Behavior | Why |
 |---|---|---|
 | Any table → `organizations` | `cascade` | Deleting a whole company should remove everything under it |
 | `accounts.parentId` → `accounts` | (self-ref, no cascade specified) | Nested account hierarchy |
+| **`journal_entries.reversalOfEntryId` → `journal_entries`** | **(self-ref, no cascade specified)** *(new, Part 14.2)* | A reversal entry's link back to its original — neither side is ever deleted, so cascade behavior is moot in practice |
 | `journal_lines.accountId` → `accounts` | `restrict` | Never silently orphan historical postings |
 | `invoices.customerId` → `customers` | `restrict` | Never silently erase revenue history |
 | `bills.vendorId` → `vendors` | `restrict` | Never silently erase expense history |
@@ -339,7 +359,18 @@ A quick-reference for the reasoning behind every foreign key's delete behavior (
 | `payments.bankAccountId` → `accounts` | `restrict` | Same |
 | `invoice_lines.invoiceId` → `invoices` | `cascade` | Lines have no independent meaning |
 | `bill_lines.billId` → `bills` | `cascade` | Same |
-| `*.journalEntryId` → `journal_entries` | `set null` | Traceability link only — losing the pointer doesn't corrupt the underlying fact |
+| `*.journalEntryId` → `journal_entries` | `set null` | Traceability link only |
 | `imported_transactions.categorizedAccountId` → `accounts` | `set null` | Pre-posting annotation, not yet a permanent fact |
 
-**The one-sentence rule underlying every choice above:** once a row represents money that has actually moved (a posted journal line, an invoice with revenue behind it, a bill with expense behind it), the database itself refuses to let you silently delete anything it depends on — matching Part 4 and Part 6's core discipline, enforced structurally, not just by convention.
+**The one-sentence rule underlying every choice above, extended by Part 14.2:** once a row represents money that has actually moved, the database refuses to let you silently delete anything it depends on — and as of Part 14.2, this now extends to the concept of "undoing" itself: even *reversing* a transaction is implemented as an addition to the ledger, never a deletion or in-place edit of what came before.
+
+---
+
+## A.13 — Known Gaps (Honest Accounting of This Appendix's Own Limits)
+
+Two gaps were surfaced directly by building out Part 14.2, worth tracking explicitly rather than leaving implicit:
+
+1. **No `voidPayment()`** — `voidInvoice`/`voidBill` cannot run against a record with `amountPaid > 0`. Voiding a fully-paid invoice or bill today requires no built-in path at all.
+2. **No void state for `imported_transactions`** — a posted bank-import entry can be reversed at the ledger level via `voidJournalEntry` directly, but the `imported_transactions` row itself has no `void` status value to reflect that, leaving its own `status` column stale relative to the ledger's true state.
+
+Both are natural, well-scoped next steps in the same spirit as Part 14.2 itself — neither requires a new third-party service, and both reuse `voidJournalEntry`'s existing executor-based composability unchanged.
