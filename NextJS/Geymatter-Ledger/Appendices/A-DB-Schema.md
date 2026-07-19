@@ -1,6 +1,4 @@
-Fair — a reference appendix should be self-contained per section, not lean on "go check elsewhere." Here's the complete Appendix A with every table fully spelled out.
-
-# Appendix A (Final, Fully Consolidated): Complete Database Schema Reference
+# Appendix A: Database Schema Reference
 
 The definitive reference for every table in Greymatter Ledger's database — the original 14-part course plus all extensions (14.2 through 14.8). Every column, every constraint, every journal shape, every known gap, fully spelled out.
 
