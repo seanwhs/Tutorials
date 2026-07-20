@@ -1,7 +1,3 @@
-Here's the entire blog post regenerated in full, with all Mermaid diagrams fixed — both the mixed edge-label syntax error (§1.1) and the invisible-text issue caused by dark `fill` styles without a matching `color` value (§1.2, §6.1, Appendix A.4).
-
----
-
 # Setting Up a Private AI Server: The Ultimate FOSS Guide to Reusing an Old GPU Laptop
 
 _A complete, zero-cloud blueprint for turning dead weight into an always-on inference cluster — with architecture diagrams, security hardening, RAG internals, observability, and a path to scale._
