@@ -1,6 +1,10 @@
+Here's the entire blog post regenerated in full, with all Mermaid diagrams fixed — both the mixed edge-label syntax error (§1.1) and the invisible-text issue caused by dark `fill` styles without a matching `color` value (§1.2, §6.1, Appendix A.4).
+
+---
+
 # Setting Up a Private AI Server: The Ultimate FOSS Guide to Reusing an Old GPU Laptop
 
-*A complete, zero-cloud blueprint for turning dead weight into an always-on inference cluster — with architecture diagrams, security hardening, RAG internals, observability, and a path to scale.*
+_A complete, zero-cloud blueprint for turning dead weight into an always-on inference cluster — with architecture diagrams, security hardening, RAG internals, observability, and a path to scale._
 
 ## Table of Contents
 
@@ -78,13 +82,13 @@ graph TD
         end
     end
 
-    IDE -- Autocomplete Queries -->|LAN Port 11434| Q1B
-    IDE -- Inline Chat Queries -->|LAN Port 11434| Q7B
-    Browser -->|HTTP Port 3000| OWUI
-    OWUI -- Ingests Docs --> VDB
+    IDE -->|"Autocomplete Queries — LAN Port 11434"| Q1B
+    IDE -->|"Inline Chat Queries — LAN Port 11434"| Q7B
+    Browser -->|"HTTP Port 3000"| OWUI
+    OWUI -- "Ingests Docs" --> VDB
     OWUI -- "1. Vector Search Query" --> VDB
     VDB -->|"2. Context Returned"| OWUI
-    OWUI -- "3. Augmented Prompt" -->|LAN Port 11434| OllamaEngine
+    OWUI -->|"3. Augmented Prompt — LAN Port 11434"| OllamaEngine
 ```
 
 - **GPU Server Laptop:** Runs Ollama, hosts models, runs an embedding model, and exposes an OpenAI-compatible API on your LAN.
@@ -117,18 +121,16 @@ flowchart LR
     SRV <--> Router
     Router --> Firewall
     Firewall -->|"Only trusted subnet, port 11434"| SRV
-
     Cafe -.->|"Encrypted WireGuard tunnel only"| TS
     Hotel -.->|"Encrypted WireGuard tunnel only"| TS
     TS -.->|"Private mesh IP 100.x.y.z"| SRV
 
-    style Zone3 fill:#3a1616,stroke:#ff4444
-    style Zone2 fill:#123a24,stroke:#33cc88
-    style Zone1 fill:#1c2a3a,stroke:#4488cc
-    style Zone0 fill:#222,stroke:#888
+    style Zone3 fill:#3a1616,stroke:#ff4444,color:#ffffff
+    style Zone2 fill:#123a24,stroke:#33cc88,color:#ffffff
+    style Zone1 fill:#1c2a3a,stroke:#4488cc,color:#ffffff
+    style Zone0 fill:#222222,stroke:#888888,color:#ffffff
 ```
-
-**Key rule of thumb:** Zone 3 (public internet) should *never* touch Ollama's raw port directly. All remote traffic is funneled through the encrypted, authenticated mesh overlay (Zone 2) before it ever reaches Zone 0/1.
+**Key rule of thumb:** Zone 3 (public internet) should _never_ touch Ollama's raw port directly. All remote traffic is funneled through the encrypted, authenticated mesh overlay (Zone 2) before it ever reaches Zone 0/1.
 
 ### 1.3 Component Responsibilities
 
@@ -143,14 +145,14 @@ graph LR
     H["Optional: LiteLLM Proxy<br/>(Load Balancing / Auth Shim)"] -.-> C
 ```
 
-- **Ollama** is *only* responsible for loading model weights into GPU/VRAM and serving inference requests. It has no concept of users, documents, or chat history.
+- **Ollama** is _only_ responsible for loading model weights into GPU/VRAM and serving inference requests. It has no concept of users, documents, or chat history.
 - **Open WebUI** is the stateful layer: it owns your chat history, your uploaded documents, your vector embeddings, and your user accounts.
 - **Continue.dev** is stateless from the server's perspective — it just fires HTTP requests at Ollama's API directly, bypassing Open WebUI entirely for speed.
 - **LiteLLM** (optional, covered in Part VIII) can sit in front of Ollama to add API-key authentication, rate limiting, and multi-backend load balancing — useful once you have more than one GPU node.
 
 ### 1.4 Why Not Just Run Everything On the Old Laptop?
 
-A common instinct is to install Open WebUI directly on the GPU laptop too. Resist this. Keeping the UI/orchestration layer on your *primary* workstation means:
+A common instinct is to install Open WebUI directly on the GPU laptop too. Resist this. Keeping the UI/orchestration layer on your _primary_ workstation means:
 
 - The old laptop's limited RAM/CPU stays dedicated to GPU inference, not web server threads, SQLite writes, or Chroma indexing.
 - You can reboot/upgrade the UI stack without ever touching the always-on inference node.
@@ -188,7 +190,7 @@ stateDiagram-v2
 
 ### 2.2 OS-Level: Prevent Sleep on Lid Close
 
-#### Linux (Ubuntu/Debian) 
+#### Linux (Ubuntu/Debian)
 
 Edit the systemd logind config:
 
@@ -239,10 +241,12 @@ Running a laptop plugged in at 100% while hot accelerates battery swelling and c
 sudo apt install tlp tlp-rdw
 sudo nano /etc/tlp.conf
 ```
+
 ```ini
 START_CHARGE_THRESH_BAT0=50
 STOP_CHARGE_THRESH_BAT0=60
 ```
+
 ```bash
 sudo systemctl enable tlp && sudo systemctl restart tlp
 ```
@@ -279,14 +283,14 @@ A 24/7 unattended box needs to recover from crashes without you SSH-ing in at 2a
 
 ```mermaid
 flowchart TD
-    A[systemd Service Watchdog] -->|Restart=always, RestartSec=5| B{ollama.service alive?}
+    A[systemd Service Watchdog] -->|"Restart=always, RestartSec=5"| B{ollama.service alive?}
     B -->|No| A
     B -->|Yes| C[Application Health Check Script]
     C -->|"cron: every 5 min, curl /api/tags"| D{HTTP 200?}
     D -->|No| E[systemctl restart ollama]
     D -->|Yes| F[Log OK to health.log]
     F --> C
-    G[Hardware Watchdog Timer /dev/watchdog] -->|"No heartbeat in 60s"| H[Force Hardware Reboot]
+    G["Hardware Watchdog Timer /dev/watchdog"] -->|"No heartbeat in 60s"| H[Force Hardware Reboot]
     E --> G
 ```
 
@@ -319,10 +323,12 @@ sudo chmod +x /usr/local/bin/ollama-healthcheck.sh
 sudo apt install watchdog
 sudo nano /etc/watchdog.conf
 ```
+
 ```ini
 watchdog-device = /dev/watchdog
 max-load-1 = 24
 ```
+
 ```bash
 sudo systemctl enable --now watchdog
 ```
@@ -375,6 +381,17 @@ sudo systemctl restart ollama
 
 #### Windows
 
+1. Search **"
+
+$$$$$$$$$$$$$
+$$$$$$$$$$$$$
+$$$$$$$$$$$$$
+$$$$$$$$$$$$$
+
+Continuing exactly from where it cut off:
+
+#### Windows
+
 1. Search **"Environment Variables"** → **Edit the system environment variables**.
 2. Under **User variables**, click **New**:
    - **Name:** `OLLAMA_HOST`
@@ -405,15 +422,14 @@ Not all old GPU laptops are equal. Use this decision tree to pick sane defaults 
 
 ```mermaid
 flowchart TD
-    Start([What is your GPU's VRAM?]) --> V4{"≤ 4GB VRAM"}
+    Start(["What is your GPU's VRAM?"]) --> V4{"≤ 4GB VRAM"}
     V4 -->|Yes| T1["qwen2.5-coder:1.5b<br/>llama3.2:1b<br/>nomic-embed-text"]
     V4 -->|No| V8{"4–8GB VRAM"}
     V8 -->|Yes| T2["qwen2.5-coder:7b (Q4_K_M)<br/>llama3.2:3b<br/>nomic-embed-text"]
     V8 -->|No| V12{"8–12GB VRAM"}
     V12 -->|Yes| T3["qwen2.5-coder:14b (Q4)<br/>llama3.2:3b<br/>nomic-embed-text"]
-    V12 -->|No| V16["> 12GB VRAM"]
+    V12 -->|No| V16["&gt; 12GB VRAM"]
     V16 --> T4["qwen2.5-coder:32b (Q4)<br/>llama3.1:8b<br/>mxbai-embed-large"]
-
     T1 --> Note1["Expect slower generation,<br/>use for autocomplete only"]
     T2 --> Note2["Sweet spot for most<br/>2018-2021 gaming laptops"]
     T3 --> Note3["Strong chat + code quality"]
@@ -523,7 +539,6 @@ services:
     volumes:
       - open-webui-data:/app/backend/data
     restart: always
-
 volumes:
   open-webui-data:
 ```
@@ -597,11 +612,11 @@ flowchart LR
         M2[qwen2.5-coder:7b]
         M3[nomic-embed-text]
     end
-    C1 -->|low latency, small context| M1
-    C2 -->|larger context, reasoning| M2
-    C4 -->|git-aware editing| M2
-    C3 -->|embeddings for RAG| M3
-    C3 -->|augmented chat| M2
+    C1 -->|"low latency, small context"| M1
+    C2 -->|"larger context, reasoning"| M2
+    C4 -->|"git-aware editing"| M2
+    C3 -->|"embeddings for RAG"| M3
+    C3 -->|"augmented chat"| M2
 ```
 
 ---
@@ -620,13 +635,11 @@ sequenceDiagram
     participant UI as Open WebUI (Docker)
     participant DB as ChromaDB (Docker Vol)
     participant GPU as Remote Ollama (GPU Laptop)
-
     User->>UI: Uploads document (e.g., project_spec.md)
     UI->>UI: Chunks document into paragraphs
     UI->>GPU: Sends text chunks to /api/embeddings (nomic-embed-text)
     GPU-->>UI: Returns dense numerical vectors
     UI->>DB: Stores chunks paired with their vectors
-
     User->>UI: Submits query: "How do I build the auth module?"
     UI->>GPU: Vectorizes the user query
     GPU-->>UI: Returns query vector
@@ -639,7 +652,7 @@ sequenceDiagram
 
 ### 5.2 Chunking Strategy Matters
 
-The quality of your RAG answers depends heavily on *how* documents are chunked before embedding. Open WebUI exposes these under **Admin Settings → Documents**:
+The quality of your RAG answers depends heavily on _how_ documents are chunked before embedding. Open WebUI exposes these under **Admin Settings → Documents**:
 
 ```mermaid
 graph TD
@@ -673,11 +686,10 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A[RAG Answer Feels Wrong] --> B{Diagnose}
+    A["RAG Answer Feels Wrong"] --> B{Diagnose}
     B --> C["Retrieved chunks irrelevant"]
     B --> D["Correct chunks retrieved,<br/>but model ignores them"]
     B --> E["Embedding model mismatch<br/>between ingest & query time"]
-
     C --> C1["Fix: reduce chunk size,<br/>improve document structure with headers"]
     D --> D1["Fix: increase Top K,<br/>or strengthen system prompt<br/>instructing model to prioritize context"]
     E --> E1["Fix: re-index documents<br/>after changing embedding model —<br/>vectors are NOT portable across models"]
@@ -705,13 +717,13 @@ graph TD
     E --> F["Layer 6: Application Auth<br/>Open WebUI user accounts, signup disabled"]
     F --> G["Layer 7: Monitoring & Alerting<br/>Log review, anomaly detection"]
 
-    style A fill:#1c2a3a
-    style B fill:#1c2a3a
-    style C fill:#1c3a2a
-    style D fill:#123a24
-    style E fill:#2a2a1c
-    style F fill:#2a2a1c
-    style G fill:#3a1c1c
+    style A fill:#1c2a3a,stroke:#4488cc,color:#ffffff
+    style B fill:#1c2a3a,stroke:#4488cc,color:#ffffff
+    style C fill:#1c3a2a,stroke:#33cc88,color:#ffffff
+    style D fill:#123a24,stroke:#33cc88,color:#ffffff
+    style E fill:#2a2a1c,stroke:#cccc44,color:#ffffff
+    style F fill:#2a2a1c,stroke:#cccc44,color:#ffffff
+    style G fill:#3a1c1c,stroke:#ff4444,color:#ffffff
 ```
 
 Each layer assumes the one before it might fail. Never rely on a single control.
@@ -725,7 +737,7 @@ Each layer assumes the one before it might fail. Never rely on a single control.
    Environment="OLLAMA_HOST=192.168.1.50:11434"
    ```
 
-   *Assign a static IP or DHCP reservation for the server in your home router settings so the address does not rotate (see Part III, section 3.5).*
+   _Assign a static IP or DHCP reservation for the server in your home router settings so the address does not rotate (see Part III, section 3.5)._
 
 3. **UFW Firewall Rules (Linux):** Restrict access exclusively to your trusted local subnet:
 
@@ -741,11 +753,13 @@ Each layer assumes the one before it might fail. Never rely on a single control.
    ```bash
    sudo nano /etc/ssh/sshd_config
    ```
+
    ```ini
    PasswordAuthentication no
    PermitRootLogin no
    PubkeyAuthentication yes
    ```
+
    ```bash
    sudo systemctl restart sshd
    ```
@@ -760,7 +774,6 @@ sequenceDiagram
     participant Laptop as Your Laptop
     participant TSNet as Tailscale Coordination Server
     participant Server as GPU Server (Home)
-
     Laptop->>TSNet: Authenticate (OAuth/SSO)
     Server->>TSNet: Authenticate (OAuth/SSO)
     TSNet-->>Laptop: Exchange WireGuard public keys
@@ -779,7 +792,6 @@ sequenceDiagram
    ```
 
 2. Bind Ollama to the server's private mesh network IP (e.g., `100.x.y.z`), or simply leave it bound to the LAN IP and rely on Tailscale's subnet routing / ACLs to gate access — either works, but binding directly to the tailnet IP is more explicit and auditable.
-
 3. Update your client config elements (`config.json`, Docker environment flags) to point directly to that encrypted tunnel IP:
 
    ```json
@@ -859,7 +871,6 @@ graph TD
         Graf["Grafana<br/>(dashboards)"]
         AlertMgr["Alertmanager<br/>(threshold alerts)"]
     end
-
     NodeExp -->|":9100/metrics"| Prom
     NvidiaExp -->|":9835/metrics"| Prom
     Prom --> Graf
@@ -877,7 +888,6 @@ Minimal `docker-compose.yml` addition on your workstation to add Prometheus + Gr
     ports:
       - "9090:9090"
     restart: always
-
   grafana:
     image: grafana/grafana:latest
     ports:
@@ -920,9 +930,7 @@ flowchart LR
     A["Open WebUI Docker Volume<br/>open-webui-data"] -->|"Daily cron"| B["restic / borgbackup"]
     B --> C["Local NAS / External Drive"]
     B --> D["Optional: Encrypted Offsite<br/>(Backblaze B2 / rsync.net)"]
-
     E["Ollama Modelfiles<br/>(custom system prompts)"] -->|"Git commit"| F["Local Git Repo"]
-
     G["docker-compose.yml +<br/>config.json (Continue.dev)"] -->|"Git commit"| F
 ```
 
@@ -932,7 +940,6 @@ Simple `restic` backup script for the Open WebUI Docker volume:
 #!/bin/bash
 docker run --rm -v open-webui-data:/data -v /mnt/backup:/backup \
   alpine tar czf /backup/open-webui-$(date +%Y%m%d).tar.gz -C /data .
-
 # Prune backups older than 30 days
 find /mnt/backup -name "open-webui-*.tar.gz" -mtime +30 -delete
 ```
@@ -988,21 +995,17 @@ graph TD
         OWUI[Open WebUI]
         Continue[Continue.dev]
     end
-
     subgraph Proxy["LiteLLM Proxy (Workstation or dedicated node)"]
         LB["Load Balancer / Router<br/>+ API Key Auth + Spend Tracking"]
     end
-
     subgraph Node1["GPU Node 1 (Old Laptop, 6GB VRAM)"]
         N1M1[qwen2.5-coder:1.5b]
         N1M2[nomic-embed-text]
     end
-
     subgraph Node2["GPU Node 2 (Desktop Tower, 16GB VRAM)"]
         N2M1[qwen2.5-coder:32b]
         N2M2[llama3.1:8b]
     end
-
     OWUI --> LB
     Continue --> LB
     LB -->|"small/fast requests"| Node1
@@ -1017,12 +1020,10 @@ model_list:
     litellm_params:
       model: ollama/qwen2.5-coder:1.5b
       api_base: http://192.168.1.50:11434
-
   - model_name: heavy-reasoning
     litellm_params:
       model: ollama/qwen2.5-coder:32b
       api_base: http://192.168.1.60:11434
-
 general_settings:
   master_key: sk-your-generated-key-here
   database_url: "sqlite:///litellm.db"
@@ -1041,12 +1042,12 @@ Now every client (Continue.dev, Open WebUI) points at `http://localhost:4000` wi
 
 ```mermaid
 flowchart TD
-    A{Are requests queuing<br/>/ slow under normal use?} -->|No| B[Stay single-node —<br/>you're fine]
-    A -->|Yes| C{Is it VRAM-bound<br/>-- model won't fit?}
-    C -->|Yes| D[Add a second, higher-VRAM node<br/>for large-model workloads]
-    C -->|No| E{Is it concurrency-bound<br/>-- multiple users/requests at once?}
-    E -->|Yes| F[Add a second node of similar spec<br/>and load-balance via LiteLLM]
-    E -->|No| G[Investigate thermal throttling<br/>or disk I/O bottlenecks first]
+    A{"Are requests queuing<br/>/ slow under normal use?"} -->|No| B["Stay single-node —<br/>you're fine"]
+    A -->|Yes| C{"Is it VRAM-bound<br/>-- model won't fit?"}
+    C -->|Yes| D["Add a second, higher-VRAM node<br/>for large-model workloads"]
+    C -->|No| E{"Is it concurrency-bound<br/>-- multiple users/requests at once?"}
+    E -->|Yes| F["Add a second node of similar spec<br/>and load-balance via LiteLLM"]
+    E -->|No| G["Investigate thermal throttling<br/>or disk I/O bottlenecks first"]
 ```
 
 ### 8.3 Considerations for Multi-Node Setups
@@ -1119,7 +1120,6 @@ services:
     volumes:
       - open-webui-data:/app/backend/data
     restart: always
-
   prometheus:
     image: prom/prometheus:latest
     volumes:
@@ -1127,13 +1127,11 @@ services:
     ports:
       - "9090:9090"
     restart: always
-
   grafana:
     image: grafana/grafana:latest
     ports:
       - "3001:3000"
     restart: always
-
 volumes:
   open-webui-data:
 ```
@@ -1144,16 +1142,6 @@ volumes:
 - **GGUF** — the quantized model file format used by llama.cpp/Ollama for efficient CPU/GPU inference.
 - **RAG (Retrieval-Augmented Generation)** — injecting relevant retrieved document chunks into a prompt before generation, rather than relying purely on the model's trained knowledge.
 - **Embedding model** — a model that converts text into a dense numerical vector for similarity search (e.g., `nomic-embed-text`).
-- **ChromaDB** — an open-source embedded vector database
-
-
-$$$$$$$$$$$$
-$$$$$$$$$$$$
-$$$$$$$$$$$$
-$$$$$$$$$$$$
-
-Continuing exactly from where it cut off:
-
 - **ChromaDB** — an open-source embedded vector database used by Open WebUI to store and query document embeddings via cosine similarity search.
 - **Quantization (e.g., Q4_K_M)** — a technique that compresses model weights to lower bit-precision (e.g., 4-bit instead of 16-bit), trading a small amount of accuracy for dramatically reduced VRAM usage and faster inference — essential for fitting larger models on old, VRAM-constrained GPUs.
 - **KV Cache** — the intermediate attention state a model keeps in memory during generation to avoid recomputing previous tokens; this is a major consumer of VRAM alongside the model weights themselves.
@@ -1209,9 +1197,9 @@ graph TB
     end
     RemoteYou -.Encrypted WireGuard.-> Ollama
 
-    style GPU fill:#123a24
-    style WS fill:#1c2a3a
-    style Remote fill:#2a2a1c
+    style GPU fill:#123a24,stroke:#33cc88,color:#ffffff
+    style WS fill:#1c2a3a,stroke:#4488cc,color:#ffffff
+    style Remote fill:#2a2a1c,stroke:#cccc44,color:#ffffff
 ```
 
 ---
