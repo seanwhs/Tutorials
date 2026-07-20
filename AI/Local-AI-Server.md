@@ -1,17 +1,3 @@
-Got it — since your reply seems to keep getting cut off, I'll just go ahead and make reasonable defaults and produce the full, massively expanded guide now. I'll save it as a note (since it'll be very long) and give you the complete content in chat as well.
-
-Defaults I'm using:
-- **Full "book-length" treatment** with all the deep-dive sections (architecture, trust zones, observability, multi-node scaling, backups, alternative clients, watchdogs, thermal management)
-- **All Mermaid diagrams** (architecture, trust zones, RAG sequence, security layers, boot/watchdog flow, multi-node scaling, backup/restore, troubleshooting decision tree)
-- **Linux-primary, Windows as secondary notes**
-- **Deliver in chat AND save as a note** for easy future reference
-
-Let me build this out now.
-Good — the note tool works for smaller writes but seems to choke on very large payloads in one call. I'll build the note incrementally in sections, and deliver the complete guide to you in chat as the primary artifact. Let me proceed with writing the full guide now.
-Now here's the complete, massively expanded guide.
-
----
-
 # Setting Up a Private AI Server: The Ultimate FOSS Guide to Reusing an Old GPU Laptop
 
 *A complete, zero-cloud blueprint for turning dead weight into an always-on inference cluster — with architecture diagrams, security hardening, RAG internals, observability, and a path to scale.*
