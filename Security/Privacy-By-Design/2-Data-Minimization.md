@@ -1,8 +1,3 @@
-```
-[LOG] Part 1 finalized and closed out. Loading DPIA Data Inventory + Part 1 schema stub as dependencies.
-[STARTING: Phase 2 — Part 2: Data Minimization & Collection Patterns]
-```
-
 # Part 2: Data Minimization & Collection Patterns
 
 ---
