@@ -1,24 +1,27 @@
 # Part 3: Field-Level Encryption & Zero-Trust Access Control
 
-### Why Field-Level Encryption + Zero-Trust?
-Even if the database is breached or a developer makes a mistake, health data must remain protected. **Envelope encryption** + a centralized **policy engine** ensures defense-in-depth.
+---
+
+### Why This Part Is Critical
+Even if someone hacks your database or a developer makes a mistake, health data must stay protected.  
+**Field-Level Encryption** encrypts each sensitive field individually.  
+**Zero-Trust** means "never trust, always verify" — every access decision goes through a central policy engine.
 
 ---
 
-#### Step 3.1: The Target — Envelope Encryption Library (AES-256-GCM + Google Cloud KMS)
+#### Step 3.1: The Target — Envelope Encryption Library with Google Cloud KMS
 
-**The Concept**:  
-Imagine a small locked box (Data Encryption Key — DEK) inside a big vault (Key Encryption Key — KEK in HSM). We encrypt data with the DEK, then wrap the DEK with the KEK. The KEK never leaves Google’s hardware.
+**The Concept (Simple Analogy)**:  
+You put your secret note in a small locked box (DEK = Data Encryption Key). Then you put that box inside a giant bank vault (KEK = Key Encryption Key managed by Google’s hardware). We throw away the small key after use.
 
 **Implementation**:
 
-First, install the KMS client:
-
+1. Install the library:
 ```bash
 npm install @google-cloud/kms
 ```
 
-Create **lib/encryption.ts** (complete production code):
+2. Create **`lib/encryption.ts`** (complete, production-ready code):
 
 ```ts
 import crypto from 'crypto';
@@ -26,63 +29,71 @@ import { KeyManagementServiceClient } from '@google-cloud/kms';
 
 const kmsClient = new KeyManagementServiceClient();
 
+// Get this from Google Cloud Console
 const KEY_NAME = process.env.KMS_KEY_NAME!;
 
-if (!KEY_NAME) throw new Error("KMS_KEY_NAME is required");
+if (!KEY_NAME) {
+  throw new Error("❌ KMS_KEY_NAME environment variable is required. Check your .env.local");
+}
 
 /**
- * Encrypts plaintext using envelope encryption
- * Returns a single Buffer containing: wrappedDEK + IV + ciphertext + authTag
+ * Encrypts a string using Envelope Encryption (AES-256-GCM)
+ * Returns a single Buffer safe to store in BYTEA column
  */
 export async function encryptField(plaintext: string): Promise<Buffer> {
-  // 1. Generate fresh DEK (32 bytes for AES-256)
-  const dek = crypto.randomBytes(32);
+  if (!plaintext) return Buffer.from([]);
 
-  // 2. Encrypt plaintext with AES-256-GCM
-  const iv = crypto.randomBytes(12);
+  // Step 1: Generate a fresh Data Encryption Key (DEK)
+  const dek = crypto.randomBytes(32);                    // 256-bit key
+
+  // Step 2: Encrypt the actual data with AES-256-GCM
+  const iv = crypto.randomBytes(12);                     // Initialization Vector
   const cipher = crypto.createCipheriv('aes-256-gcm', dek, iv);
   
   let encrypted = cipher.update(plaintext, 'utf8');
   encrypted = Buffer.concat([encrypted, cipher.final()]);
-  const authTag = cipher.getAuthTag();
+  
+  const authTag = cipher.getAuthTag();                   // Prevents tampering
 
-  // 3. Wrap DEK using KMS (KEK)
-  const [wrappedResponse] = await kmsClient.encrypt({
+  // Step 3: Wrap (encrypt) the DEK using Google KMS
+  const [wrapResult] = await kmsClient.encrypt({
     name: KEY_NAME,
     plaintext: dek,
   });
 
-  const wrappedDek = wrappedResponse.ciphertext!;
+  const wrappedDek = wrapResult.ciphertext!;
 
-  // 4. Concatenate everything for storage
+  // Step 4: Combine everything into one payload
   return Buffer.concat([wrappedDek, iv, encrypted, authTag]);
 }
 
 /**
- * Decrypts the envelope payload
+ * Decrypts the payload back to original string
  */
 export async function decryptField(encryptedBuffer: Buffer): Promise<string> {
-  const wrappedDekLength = 256; // Adjust based on KMS response size
+  if (encryptedBuffer.length === 0) return "";
+
+  const wrappedDekLength = 256;   // Typical size from KMS
   const ivLength = 12;
   const authTagLength = 16;
 
   const wrappedDek = encryptedBuffer.slice(0, wrappedDekLength);
   const iv = encryptedBuffer.slice(wrappedDekLength, wrappedDekLength + ivLength);
   const ciphertext = encryptedBuffer.slice(
-    wrappedDekLength + ivLength, 
+    wrappedDekLength + ivLength,
     encryptedBuffer.length - authTagLength
   );
   const authTag = encryptedBuffer.slice(encryptedBuffer.length - authTagLength);
 
-  // Unwrap DEK
-  const [dekResponse] = await kmsClient.decrypt({
+  // Unwrap the DEK using KMS
+  const [unwrapResult] = await kmsClient.decrypt({
     name: KEY_NAME,
     ciphertext: wrappedDek,
   });
 
-  const dek = dekResponse.plaintext!;
+  const dek = unwrapResult.plaintext!;
 
-  // Decrypt with AES-GCM
+  // Decrypt the data
   const decipher = crypto.createDecipheriv('aes-256-gcm', dek, iv);
   decipher.setAuthTag(authTag);
 
@@ -93,89 +104,105 @@ export async function decryptField(encryptedBuffer: Buffer): Promise<string> {
 }
 ```
 
+**Add to `.env.local`** (replace with your actual values from Google Cloud):
+```env
+KMS_KEY_NAME=projects/your-project/locations/global/keyRings/your-ring/cryptoKeys/your-key
+```
+
 **Verification**:
 ```bash
 node -e '
   import("./lib/encryption.js").then(async ({ encryptField, decryptField }) => {
-    const encrypted = await encryptField("This is secret health data");
-    console.log("Encrypted length:", encrypted.length);
+    const secret = "My private mental health note";
+    const encrypted = await encryptField(secret);
+    console.log("✅ Encrypted length:", encrypted.length, "bytes");
     const decrypted = await decryptField(encrypted);
-    console.log("Decrypted:", decrypted);
+    console.log("✅ Decrypted:", decrypted);
   });
 '
 ```
 
 ---
 
-#### Step 3.2: The Target — Zero-Trust Policy Engine (RBAC + ABAC)
+#### Step 3.2: The Target — Zero-Trust Policy Engine
 
 **The Concept**:  
-All access decisions go through one trusted place. “Fail closed” means unknown = deny.
+All access decisions go through **one** place. If the policy doesn’t explicitly allow it → deny.
 
 **Implementation**:
 
-**lib/policy-engine.ts**:
+Create **`lib/policy-engine.ts`**:
+
 ```ts
-type UserContext = {
+export type UserContext = {
   userId: string;
   role: 'owner' | 'support' | 'admin';
   isSupportMasked?: boolean;
 };
 
-type Resource = {
+export type Resource = {
   ownerId: string;
-  type: 'mood_log' | 'journal' | 'consent';
+  type: 'mood_log' | 'journal_entry';
 };
 
 export class PolicyEngine {
+  /**
+   * Can the current user view this resource?
+   */
   static canView(context: UserContext, resource: Resource): boolean {
-    if (context.userId === resource.ownerId) return true; // Owner always wins
+    // Owner can always see their own data
+    if (context.userId === resource.ownerId) return true;
 
+    // Support staff get masked view only
     if (context.role === 'support') {
-      return context.isSupportMasked === true; // Only masked view
+      return context.isSupportMasked === true;
     }
 
-    return false; // Fail closed
+    // Default: deny (Zero-Trust)
+    return false;
   }
 
   static canEdit(context: UserContext, resource: Resource): boolean {
     return context.userId === resource.ownerId;
   }
 
-  static async logAccess(context: UserContext, action: string, resourceId: string) {
-    // In real app: send to audit table via Inngest or direct insert
-    console.log(`[AUDIT] ${context.userId} performed ${action} on ${resourceId}`);
+  static async auditLog(context: UserContext, action: string, resourceId: string) {
+    console.log(`[AUDIT ${new Date().toISOString()}] User ${context.userId} (${context.role}) ${action} resource ${resourceId}`);
+    // In production: send to audit table or external service
   }
 }
 ```
 
 **Verification**:
-Test in Node REPL — owner succeeds, support gets masked, stranger denied.
+Test in a temporary script or Node REPL.
 
 ---
 
-#### Step 3.3: The Target — Integrate Encryption into Data Layer
+#### Step 3.3: The Target — Integrate Encryption with Database
 
-**Implementation** — Update **lib/db.ts** with helper functions:
+**Implementation** (update **`lib/db.ts`**):
 
 ```ts
+import { sql } from './db'; // self import if needed
 import { encryptField, decryptField } from './encryption';
 
-export async function createMoodLog(userId: string, moodScore: number, notes?: string) {
-  let notesEncrypted: Buffer | null = null;
-  if (notes) {
-    notesEncrypted = await encryptField(notes);
-  }
+export async function createEncryptedMoodLog(userId: string, moodScore: number, notes?: string) {
+  const notesEncrypted = notes ? await encryptField(notes) : null;
 
-  return sql`
+  const result = await sql`
     INSERT INTO mood_logs (user_id, mood_score, notes_encrypted)
     VALUES (${userId}, ${moodScore}, ${notesEncrypted})
     RETURNING id;
   `;
+
+  return result[0].id;
 }
 ```
 
-**Verification**:
-Insert a record with notes, then query and confirm `notes_encrypted` is binary data (not readable text).
+---
 
-We’re building something truly privacy-first. Keep going!
+**Part 3 Complete!**
+
+You now have strong encryption and access control. Sensitive data is protected even if the database is compromised.
+
+Great work — the hardest technical parts are behind us!
