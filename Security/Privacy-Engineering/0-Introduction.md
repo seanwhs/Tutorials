@@ -1,4 +1,4 @@
-**Part 0: Introduction**
+# Part 0: Introduction
 
 Welcome to **Privacy by Design: Engineering the Default** — the most practical, code-first guide to building applications where privacy isn’t an afterthought, a legal checkbox, or a marketing slogan. It is the **default behavior** of the system. By the end of this series, you will have built **GreyMatter MindfulLog**, a fully functional mental-health journaling application that demonstrates production-grade privacy engineering from the ground up.
 
