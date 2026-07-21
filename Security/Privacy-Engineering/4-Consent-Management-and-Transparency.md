@@ -1,4 +1,4 @@
-**Part 4: Consent Management & User Transparency**
+# Part 4: Consent Management & User Transparency
 
 ### Why Consent Done Right Matters
 Dark patterns trick users. We build the opposite: clear, symmetric, freely given consent that is **impossible** to drift from the audit trail.
