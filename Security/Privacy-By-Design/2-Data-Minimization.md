@@ -222,6 +222,7 @@ export const securityEvents = pgTable(
  * db.query.users.findFirst({ with: { moodEntries: true } }) with full
  * type safety instead of hand-writing JOINs everywhere.
  */
+
 export const usersRelations = relations(users, ({ many }) => ({
   moodEntries: many(moodEntries),
   journalEntries: many(journalEntries),
@@ -322,6 +323,7 @@ import { createHmac } from "node:crypto";
 // secret across unrelated concerns; if this secret were ever rotated or
 // leaked, the blast radius should be limited to "IP hash comparisons stop
 // matching historical rows," not "someone can now decrypt journal entries."
+
 const IP_HASH_SECRET = process.env.IP_HASH_SECRET;
 
 if (!IP_HASH_SECRET) {
@@ -341,6 +343,7 @@ if (!IP_HASH_SECRET) {
  * - Salted via HMAC's secret key: prevents rainbow-table attacks that a
  *   plain, unsalted SHA-256 hash would be vulnerable to.
  */
+
 export function hashIpAddress(rawIp: string): string {
   return createHmac("sha256", IP_HASH_SECRET!).update(rawIp).digest("hex");
 }
@@ -372,6 +375,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
  * DPIA's Risk Assessment (Section 4) and Data Inventory retention column
  * (Section 2) from Part 1.
  */
+
 export async function recordLoginEvent(params: {
   internalUserId: string;
   rawIp: string;
@@ -454,6 +458,7 @@ Confirm `ip_hash` is a 64-character hex string, never a dotted-quad IP, and that
  * full local part. Used anywhere we render user data to admin/support
  * tooling where full identity confirmation isn't required.
  */
+
 export function maskEmail(email: string): string {
   const [localPart, domain] = email.split("@");
   if (!domain || localPart.length === 0) return "***";
@@ -471,6 +476,7 @@ export function maskEmail(email: string): string {
  * plaintext — it is a display-layer control, not a replacement for the
  * encryption boundary built in Part 3.
  */
+
 export function maskFreeText(plaintext: string, visibleChars = 3): string {
   if (plaintext.length <= visibleChars) return "*".repeat(plaintext.length);
   return `${plaintext.slice(0, visibleChars)}${"*".repeat(12)} (redacted, ${plaintext.length} chars total)`;
@@ -516,6 +522,7 @@ import { lt } from "drizzle-orm";
  * `expiresAt` column in schema.ts — without this function running reliably,
  * that column is just a suggestion, not a retention guarantee.
  */
+
 export const securityEventTtlSweep = inngest.createFunction(
   { id: "security-event-ttl-sweep" },
   { cron: "0 3 * * *" }, // 03:00 UTC daily — low-traffic window
