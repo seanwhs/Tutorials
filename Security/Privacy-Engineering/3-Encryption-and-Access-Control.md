@@ -1,4 +1,4 @@
-**Part 3: Field-Level Encryption & Zero-Trust Access Control**
+# Part 3: Field-Level Encryption & Zero-Trust Access Control
 
 ### Why Field-Level Encryption + Zero-Trust?
 Even if the database is breached or a developer makes a mistake, health data must remain protected. **Envelope encryption** + a centralized **policy engine** ensures defense-in-depth.
