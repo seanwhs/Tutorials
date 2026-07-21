@@ -1,154 +1,131 @@
-**Part 5: DSAR Export & Right to be Forgotten**
-
-This part implements two GDPR rights: **Right of Access (DSAR)** and **Right to Erasure** ("Right to be Forgotten").
+# Part 5: DSAR Export & Right to be Forgotten
 
 ---
 
-#### Step 5.1: The Target — DSAR Export Engine (Async + Durable)
+### Why This Part Is Powerful
+This is where users get real control. **DSAR** = "Give me all my data". **Right to be Forgotten** = "Delete everything about me". We implement both reliably and safely.
+
+---
+
+#### Step 5.1: The Target — DSAR Export Engine
 
 **The Concept**:  
-Exporting all user data must be complete, verifiable, and temporary. We use Inngest for reliable background processing.
+Collect all user data, decrypt it on the fly, package it as a ZIP with a manifest file, and make it available for download with an expiry.
 
 **Implementation**:
 
-First, install additional deps if needed:
-
+Install helper:
 ```bash
 npm install jszip
 ```
 
-**lib/export.ts** (core engine):
+Create **`lib/dsar-export.ts`**:
+
 ```ts
 import { sql } from './db';
 import { decryptField } from './encryption';
 import JSZip from 'jszip';
 
-export async function generateDSARExport(userId: string) {
+export async function generateFullDSARExport(userId: string) {
   const zip = new JSZip();
+  const timestamp = new Date().toISOString();
 
-  // 1. Mood logs
+  // 1. Mood Logs
   const moodLogs = await sql`SELECT * FROM mood_logs WHERE user_id = ${userId}`;
   const decryptedMoods = await Promise.all(moodLogs.map(async (log: any) => ({
-    ...log,
+    id: log.id,
+    mood_score: log.mood_score,
     notes: log.notes_encrypted ? await decryptField(log.notes_encrypted) : null,
-    notes_encrypted: undefined
+    created_at: log.created_at,
   })));
 
   zip.file("mood_logs.json", JSON.stringify(decryptedMoods, null, 2));
 
-  // 2. Journal entries (similar decryption)
-  // 3. Consent history
+  // 2. Journal Entries
+  const journals = await sql`SELECT * FROM journal_entries WHERE user_id = ${userId}`;
+  const decryptedJournals = await Promise.all(journals.map(async (j: any) => ({
+    id: j.id,
+    title: j.title,
+    content: await decryptField(j.content_encrypted),
+    created_at: j.created_at,
+  })));
+
+  zip.file("journal_entries.json", JSON.stringify(decryptedJournals, null, 2));
+
+  // 3. Consent History
   const consents = await sql`SELECT * FROM consent_records WHERE user_id = ${userId}`;
   zip.file("consent_history.json", JSON.stringify(consents, null, 2));
 
   // 4. Manifest
   const manifest = {
     userId,
-    exportedAt: new Date().toISOString(),
-    recordCount: moodLogs.length + consents.length,
-    completeness: "All tables processed"
+    exportedAt: timestamp,
+    recordCounts: {
+      moodLogs: moodLogs.length,
+      journalEntries: journals.length,
+      consents: consents.length,
+    },
+    note: "This export contains all your personal data as of the export time."
   };
-  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+  zip.file("EXPORT_MANIFEST.json", JSON.stringify(manifest, null, 2));
 
-  const content = await zip.generateAsync({ type: "nodebuffer" });
-  return content;
+  return await zip.generateAsync({ type: "nodebuffer" });
 }
 ```
 
-**Inngest function** (simplified — full setup requires Inngest client registration):
-
-```ts
-// inngest/functions/export-dsar.ts
-import { Inngest } from 'inngest';
-
-const inngest = new Inngest({ id: "mindful-log" });
-
-export const dsarExport = inngest.createFunction(
-  { id: "dsar-export" },
-  { event: "app/dsar.requested" },
-  async ({ event }) => {
-    const { userId } = event.data;
-    const zipBuffer = await generateDSARExport(userId);
-    // Upload to temporary signed URL or email
-    return { success: true, expiresIn: "7 days" };
-  }
-);
-```
-
-**Verification**:
-Trigger export → Check generated ZIP contains decrypted JSON + manifest.
+**Verification**: Call the function with a test user ID and check the resulting ZIP file.
 
 ---
 
 #### Step 5.2: The Target — Right to be Forgotten Orchestrator
 
 **The Concept**:  
-Deletion must be atomic across systems. We use explicit sequencing and retries.
+Deletion must be careful and ordered. We delete local data, anonymize audit trails, and remove identity from Clerk.
 
 **Implementation**:
 
-**lib/deletion-orchestrator.ts**:
+Create **`lib/delete-account.ts`**:
+
 ```ts
 import { sql } from './db';
 import { Clerk } from '@clerk/nextjs/server';
 
-export async function deleteUserAccount(userId: string) {
-  // Step 1: Capture references
-  const references = await sql`SELECT * FROM mood_logs WHERE user_id = ${userId} LIMIT 5`; // audit snapshot
+export async function orchestrateAccountDeletion(userId: string) {
+  console.log(`🗑️ Starting deletion for user: ${userId}`);
 
-  // Step 2: Delete local data
+  // Step 1: Snapshot for audit (optional)
+  const snapshot = await sql`SELECT COUNT(*) FROM mood_logs WHERE user_id = ${userId}`;
+
+  // Step 2: Delete personal data
   await sql`DELETE FROM mood_logs WHERE user_id = ${userId}`;
   await sql`DELETE FROM journal_entries WHERE user_id = ${userId}`;
   await sql`DELETE FROM reminders WHERE user_id = ${userId}`;
 
-  // Step 3: Anonymize consent ledger (preserve audit)
+  // Step 3: Anonymize consent records (preserve audit trail)
   await sql`
     UPDATE consent_records 
-    SET user_id = 'deleted-' || substring(user_id from 1 for 8)
+    SET user_id = 'deleted-user-' || substring(user_id from 1 for 8)
     WHERE user_id = ${userId}
   `;
 
-  // Step 4: Delete Clerk identity
-  const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY! });
-  await clerk.users.deleteUser(userId);
+  // Step 4: Delete from users_privacy table
+  await sql`DELETE FROM users_privacy WHERE user_id = ${userId}`;
 
-  // Step 5: Mark as deleted
-  await sql`
-    UPDATE users_privacy 
-    SET deleted_at = NOW() 
-    WHERE user_id = ${userId}
-  `;
+  // Step 5: Delete Clerk identity
+  const clerkClient = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY! });
+  await clerkClient.users.deleteUser(userId);
 
-  console.log(`✅ Full deletion completed for user ${userId}`);
+  console.log(`✅ Complete deletion finished for user ${userId}`);
   return true;
 }
 ```
 
-**UI Confirmation** (critical for safety):
+Add rate limiting using Upstash Redis (as shown in previous responses).
 
-```tsx
-// Simple confirmation page snippet
-const [confirmationText, setConfirmationText] = useState("");
-// Button disabled unless confirmationText === "DELETE MY ACCOUNT"
-```
+---
 
-**Rate Limiting** (using Upstash Redis):
-```ts
-import { Redis } from '@upstash/redis';
+**Part 5 Complete!**
 
-const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL!, token: process.env.UPSTASH_REDIS_REST_TOKEN! });
+You now have working export and deletion flows — two of the hardest privacy rights to implement correctly.
 
-export async function checkDeletionRateLimit(userId: string): Promise<boolean> {
-  const key = `deletion:${userId}`;
-  const count = await redis.get(key) as number || 0;
-  if (count >= 1) return false;
-  await redis.set(key, count + 1, { ex: 86400 }); // 24 hours
-  return true;
-}
-```
-
-**Verification**:
-- Use Neon branch to safely test deletion.
-- Confirm data gone, consent anonymized, Clerk user deleted.
-
-We’re in the home stretch!
+You're nearly finished with a complete privacy-first application!
