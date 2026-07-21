@@ -1,4 +1,4 @@
-**Part 6: Auditing, Monitoring & Privacy CI/CD**
+# Part 6: Auditing, Monitoring & Privacy CI/CD
 
 #### Step 6.1: The Target — PII Schema Scanner (CI Enforcement)
 
