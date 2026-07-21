@@ -1,83 +1,69 @@
 # Part 7: Incident Response & Operations
 
+---
+
+### Why We Need This
+Even the best systems can have incidents. Preparation turns potential disasters into manageable events.
+
+---
+
 #### Step 7.1: The Target — Incident Response Playbook
 
-**The Concept**:  
-Prepare for the worst before it happens. Clear severity levels and responsibilities.
-
-**Implementation** — `docs/INCIDENT_RESPONSE.md`:
+**Implementation** — Create **`docs/INCIDENT_RESPONSE.md`**:
 
 ```markdown
 # MindfulLog Incident Response Playbook
 
 ## Severity Levels
-- **SEV-1 (Critical)**: Plaintext health data exposed → Notify users + regulators within 72h (GDPR)
-- **SEV-2**: Potential breach of encrypted data
-- **SEV-3**: Near-miss or policy violation
+- **SEV-1 (Critical)**: Unencrypted health data exposed
+- **SEV-2**: Encrypted data potentially compromised
+- **SEV-3**: Policy violation or near-miss
 
-## Response Steps
-1. **Detect** → Monitoring alerts (logs, KMS failures)
-2. **Contain** → Revoke sessions, rotate keys
-3. **Eradicate** → Delete compromised data
-4. **Recover** → Restore from encrypted backups
-5. **Post-Mortem** → Update DPIA + scanner rules
+## Response Process
+1. **Identify** (0-15 min) — Confirm incident via logs/scanner
+2. **Contain** (15-60 min) — Revoke sessions, disable affected features
+3. **Eradicate** — Rotate KMS keys, delete compromised records
+4. **Recover** — Restore from backups, notify users if required
+5. **Lessons Learned** — Update DPIA, scanner rules, and code
 
-## Key Rotation Strategy
-- Rotate KEK annually via Google Cloud KMS versioning
-- New DEKs per encryption operation (already implemented)
+## Key Rotation
+- Rotate KEK yearly via Google Cloud KMS
+- DEKs are per-field and ephemeral (already implemented)
 ```
 
 ---
 
-#### Step 7.2: The Target — Backup & Retention Policies
-
-**Implementation** (in Neon + scripts):
-- Backups encrypted separately from DEKs.
-- Table-specific retention (e.g., mood logs: 7 years max unless consented longer).
-
----
-
-#### 7.3: Final Project Verification
+#### 7.2: Final Project Verification Checklist
 
 Run these commands:
 
 ```bash
-npm run build
 npm run privacy:scan
-node -e 'import("./lib/db.js").then(m => m.testConnection())'
+npm run build
+node -e 'import("./lib/db.js").then(m => m.testDatabaseConnection())'
 ```
 
-**Manual Checks**:
-1. Insert journal entry → Confirm `content_encrypted` is binary in DB.
-2. Attempt unauthorized access → Policy engine denies.
-3. Trigger export → Receive valid ZIP.
-4. Delete account → All traces removed or anonymized.
-
-**What You Have Built**:
-- Living DPIA
-- Encrypted, minimized schema
-- Envelope encryption library
-- Centralized policy engine
-- Append-only consent system
-- DSAR + Deletion pipelines
-- Privacy CI/CD
-- Full incident playbook
+**Manual Tests**:
+- Create mood log with notes → Confirm encrypted in DB
+- Toggle consents → Check ledger
+- Trigger export → Valid ZIP
+- Simulate deletion → Data removed safely
 
 ---
 
-**[COMPLETED: Part 7]**  
-**[SERIES COMPLETE — Privacy by Design: Engineering the Default]**
+**🎉 Full Series Complete!**
 
-**Congratulations!** You have built a real, production-grade privacy-first application. The safe behavior is now the *only* behavior the code allows.
+You have successfully built **MindfulLog** — a production-grade, privacy-first mental health journaling application where safe behavior is the *only* behavior.
 
-### Next Steps for You
-1. Deploy to Vercel + connect Neon.
-2. Add your own features using the same patterns.
-3. Audit and open-source parts of it.
-4. Teach others — the industry desperately needs this mindset.
+**What You Now Have**:
+- Complete working codebase
+- Strong encryption
+- User rights (export + deletion)
+- Consent system
+- Automated privacy checks
+- Documentation & playbooks
 
-The complete project exists in the working environment with all files implemented step-by-step as described.
+Deploy it, extend it, and be proud of the privacy engineering mindset you've developed.
 
-You are now a privacy engineer.
-
-**Thank you for completing the full series.**  
+**Thank you for following the entire series.**  
+You are now equipped to build privacy by design into every future project.
