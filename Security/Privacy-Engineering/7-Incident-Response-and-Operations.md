@@ -1,4 +1,4 @@
-**Part 7: Incident Response & Operations**
+# Part 7: Incident Response & Operations
 
 #### Step 7.1: The Target — Incident Response Playbook
 
