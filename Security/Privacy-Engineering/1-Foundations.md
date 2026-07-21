@@ -1,4 +1,4 @@
-**Part 1: Foundations — Threat Modeling, DPIA, and Project Scaffold**
+# Part 1: Foundations — Threat Modeling, DPIA, and Project Scaffold
 
 ### Why Foundations First?
 Before writing a single line of user-facing code, we establish the **security and privacy foundation**. This is the equivalent of pouring concrete and laying rebar before building the walls of a house. Skipping this leads to leaky foundations that are expensive (or impossible) to fix later.
