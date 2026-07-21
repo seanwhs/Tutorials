@@ -1,4 +1,4 @@
-**Part 2: Data Minimization & Schema Design**
+# Part 2: Data Minimization & Schema Design
 
 ### Why Data Minimization First?
 Data minimization is the privacy equivalent of “declutter your house.” The less data you store, the less can be stolen, leaked, or misused. We design the schema **after** the threat model so every column has a documented justification.
