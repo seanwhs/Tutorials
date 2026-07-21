@@ -1,31 +1,38 @@
 # Part 4: Consent Management & User Transparency
 
-### Why Consent Done Right Matters
-Dark patterns trick users. We build the opposite: clear, symmetric, freely given consent that is **impossible** to drift from the audit trail.
+---
+
+### Why Consent Management Is So Important
+Traditional consent is often a single vague checkbox. We do the opposite: **granular, transparent, and immutable**. Every decision is recorded forever in an append-only ledger. This makes compliance easy and gives users real trust.
 
 ---
 
-#### Step 4.1: The Target — Append-Only Consent Ledger + Current State Derivation
+#### Step 4.1: The Target — Append-Only Consent Ledger Functions
 
 **The Concept**:  
-Never `UPDATE` consent. Every decision is a new immutable record. Current state is derived by taking the latest record per purpose.
+Instead of updating a row when the user changes consent, we add a new row every time. The current state is calculated by looking at the most recent record per purpose.
 
 **Implementation**:
 
-**lib/consent.ts** (complete):
+Create **`lib/consent.ts`**:
+
 ```ts
 import { sql } from './db';
 import { hmacValue } from './privacy-utils';
 
-export type ConsentPurpose = 'analytics' | 'marketing' | 'research' | 'support_access';
+export type ConsentPurpose = 
+  | 'analytics' 
+  | 'marketing' 
+  | 'research' 
+  | 'support_access';
 
 export async function recordConsent(
-  userId: string, 
-  purpose: ConsentPurpose, 
+  userId: string,
+  purpose: ConsentPurpose,
   granted: boolean,
-  ip?: string
+  ipAddress?: string
 ) {
-  const ipHmac = ip ? hmacValue(ip) : null;
+  const ipHmac = ipAddress ? hmacValue(ipAddress) : null;
 
   const result = await sql`
     INSERT INTO consent_records (user_id, purpose, granted, ip_hmac)
@@ -33,31 +40,38 @@ export async function recordConsent(
     RETURNING id, recorded_at;
   `;
 
-  // Trigger Inngest event for propagation (implemented later)
+  console.log(`✅ Consent recorded for ${purpose}: ${granted}`);
   return result[0];
 }
 
 export async function getCurrentConsents(userId: string) {
   const rows = await sql`
-    WITH latest AS (
-      SELECT DISTINCT ON (purpose) *
+    WITH latest_consents AS (
+      SELECT DISTINCT ON (purpose) purpose, granted
       FROM consent_records
       WHERE user_id = ${userId}
       ORDER BY purpose, recorded_at DESC
     )
-    SELECT purpose, granted 
-    FROM latest;
+    SELECT * FROM latest_consents;
   `;
 
-  return rows.reduce((acc: any, row: any) => {
-    acc[row.purpose] = row.granted;
-    return acc;
-  }, {} as Record<ConsentPurpose, boolean>);
+  const consents: Record<ConsentPurpose, boolean> = {
+    analytics: false,
+    marketing: false,
+    research: false,
+    support_access: false,
+  };
+
+  rows.forEach((row: any) => {
+    consents[row.purpose as ConsentPurpose] = row.granted;
+  });
+
+  return consents;
 }
 
-export async function getConsentHistory(userId: string) {
-  return sql`
-    SELECT purpose, granted, recorded_at, ip_hmac
+export async function getFullConsentHistory(userId: string) {
+  return await sql`
+    SELECT id, purpose, granted, recorded_at, ip_hmac
     FROM consent_records
     WHERE user_id = ${userId}
     ORDER BY recorded_at DESC;
@@ -67,14 +81,14 @@ export async function getConsentHistory(userId: string) {
 
 ---
 
-#### Step 4.2: The Target — Anti-Dark-Pattern Consent UI
+#### Step 4.2: The Target — Anti-Dark-Pattern Consent UI Page
 
 **The Concept**:  
-Equal prominence for Allow / Don’t Allow. No pre-checked boxes. Clear language.
+Buttons for "Allow" and "Don’t Allow" are the same size and prominence. No pre-checked boxes. Clear descriptions.
 
 **Implementation**:
 
-**app/settings/consent/page.tsx** (React Server Component + Client interactivity):
+Create folder **`app/settings/consent`** and file **`page.tsx`**:
 
 ```tsx
 'use client';
@@ -83,79 +97,102 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { recordConsent, getCurrentConsents, ConsentPurpose } from "@/lib/consent";
 
-const purposes: { key: ConsentPurpose; label: string; description: string }[] = [
-  { key: "analytics", label: "Analytics", description: "Help us improve the app with anonymous usage data" },
-  { key: "marketing", label: "Marketing", description: "Occasional product updates (max 4 per year)" },
-  { key: "research", label: "Research", description: "Contribute anonymized data to mental health studies" },
-  { key: "support_access", label: "Support Access", description: "Allow support to view your data when you request help" },
+const purposes = [
+  { 
+    key: "analytics" as ConsentPurpose, 
+    label: "Analytics & Improvement", 
+    description: "Anonymous usage data to help us make MindfulLog better." 
+  },
+  { 
+    key: "marketing" as ConsentPurpose, 
+    label: "Product Updates", 
+    description: "Occasional emails about new features (maximum 4 per year)." 
+  },
+  { 
+    key: "research" as ConsentPurpose, 
+    label: "Mental Health Research", 
+    description: "Contribute fully anonymized data to scientific studies." 
+  },
+  { 
+    key: "support_access" as ConsentPurpose, 
+    label: "Customer Support Access", 
+    description: "Allow support team to view your data when you request help." 
+  },
 ];
 
-export default function ConsentSettings() {
+export default function ConsentPage() {
   const { user } = useUser();
-  const [consents, setConsents] = useState<Record<ConsentPurpose, boolean>>({} as any);
+  const [currentConsents, setCurrentConsents] = useState<Record<ConsentPurpose, boolean>>({
+    analytics: false, marketing: false, research: false, support_access: false
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
-      getCurrentConsents(user.id).then(setConsents);
+      getCurrentConsents(user.id).then(setCurrentConsents);
     }
   }, [user]);
 
   const toggleConsent = async (purpose: ConsentPurpose) => {
     if (!user?.id) return;
     setLoading(true);
-    
-    const newValue = !consents[purpose];
+
+    const newValue = !currentConsents[purpose];
     await recordConsent(user.id, purpose, newValue);
     
-    setConsents(prev => ({ ...prev, [purpose]: newValue }));
+    setCurrentConsents(prev => ({ ...prev, [purpose]: newValue }));
     setLoading(false);
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Your Privacy Choices</h1>
-      <p className="mb-8 text-gray-600">You can change these at any time. Every change is permanently recorded.</p>
+    <div className="max-w-3xl mx-auto py-12 px-6">
+      <h1 className="text-4xl font-bold mb-4">Your Privacy Choices</h1>
+      <p className="text-lg text-gray-600 mb-10">
+        You control exactly how your data is used. Every change is permanently recorded.
+      </p>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {purposes.map(({ key, label, description }) => (
-          <div key={key} className="border rounded-xl p-6 flex items-start gap-6 hover:bg-gray-50 transition">
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg">{label}</h3>
-              <p className="text-gray-600 mt-1">{description}</p>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => toggleConsent(key)}
-                disabled={loading}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  consents[key] 
-                    ? "bg-green-600 text-white" 
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
-              >
-                Allow
-              </button>
-              <button
-                onClick={() => toggleConsent(key)}
-                disabled={loading}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  !consents[key] 
-                    ? "bg-red-600 text-white" 
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
-              >
-                Don’t Allow
-              </button>
+          <div key={key} className="border border-gray-200 rounded-2xl p-8 hover:border-blue-200 transition-all">
+            <div className="flex justify-between items-start gap-8">
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-2">{label}</h3>
+                <p className="text-gray-600 leading-relaxed">{description}</p>
+              </div>
+
+              <div className="flex gap-4 flex-shrink-0">
+                <button
+                  onClick={() => toggleConsent(key)}
+                  disabled={loading}
+                  className={`px-8 py-4 rounded-2xl font-semibold text-sm transition-all ${
+                    currentConsents[key]
+                      ? "bg-green-600 text-white shadow-md"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Allow
+                </button>
+
+                <button
+                  onClick={() => toggleConsent(key)}
+                  disabled={loading}
+                  className={`px-8 py-4 rounded-2xl font-semibold text-sm transition-all ${
+                    !currentConsents[key]
+                      ? "bg-red-600 text-white shadow-md"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Don’t Allow
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-12">
-        <a href="/settings/consent/history" className="text-blue-600 hover:underline">
-          View full consent history →
+      <div className="mt-12 text-center">
+        <a href="/settings/consent/history" className="text-blue-600 hover:underline text-sm">
+          View complete consent history →
         </a>
       </div>
     </div>
@@ -163,17 +200,10 @@ export default function ConsentSettings() {
 }
 ```
 
-**Verification**:
-- Run `npm run dev`
-- Go to `/settings/consent`
-- Toggle options — buttons are symmetric and equally prominent.
-- Check database: multiple rows per purpose, never updates.
-
 ---
 
-#### Step 4.3: The Target — Inngest Event-Driven Propagation (Basic Setup)
+**Part 4 Complete!**
 
-**The Concept**:  
-Consent changes fan out to other systems reliably.
+You now have a beautiful, ethical consent system with full auditability.
 
-(Full Inngest client + functions would be wired here in a complete repo — events like `consent.changed` trigger background jobs.)
+You're building something truly special. Keep going!
