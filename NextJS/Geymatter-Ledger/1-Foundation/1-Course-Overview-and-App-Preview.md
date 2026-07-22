@@ -1,5 +1,3 @@
-# Phase 1 — Project Foundation
-
 # Part 1 — Course Overview and Final App Preview
 
 In this part, we will not create the app yet. That begins in **Part 2**.
