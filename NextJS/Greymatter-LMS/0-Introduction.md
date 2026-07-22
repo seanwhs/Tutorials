@@ -1,361 +1,356 @@
-# Greymatter LMS: The Complete Build Series
+# GreyMatter LMS: From Zero to Production-Ready Learning Platform
 
-Before we touch a single line of code, let's set the map on the table. You're about to build **Greymatter LMS** — a full-stack Learning Management System that separates "what content looks like" from "what a student has actually done" using two purpose-built engines instead of forcing one database to do everything.
+# Part 0 — What We Are Building
 
-Think of it like a restaurant: the **menu, recipes, and photos of dishes** rarely change and can be printed in bulk ahead of time (that's your content — courses, chapters, lessons). But **who ordered what, and whether they finished their meal** changes every second and must be tracked precisely (that's your transactional data — enrollments, progress, completions). Greymatter uses **Sanity.io** as the "printed menu" system and **Neon PostgreSQL + Prisma** as the "live order tracker." Separating these means a spike in students checking off lessons never slows down the rendering of your course catalog, and vice versa.
+## 0.1 Welcome to GreyMatter LMS
+
+Imagine you're opening a school from scratch. Before you hang a sign on the door, you have to answer some unglamorous questions: Where are student records kept? Who's allowed into which classroom? Who updates the whiteboard for tomorrow's lecture? What happens if a hundred students try to hand in the same assignment at the same instant?
+
+**GreyMatter LMS** is the school we're going to build together, one wall at a time. By the end of this series you will have designed, coded, tested, and deployed a real, multi-user **Learning Management System** — a website where instructors publish courses and students take them, similar in spirit to Udemy or a university's online classroom.
+
+This will not be a toy project glued together with shortcuts. We will write the kind of code a professional engineering team would ship: typed database access, validated inputs, real authorization checks, background job processing, and automated tests. But before any code appears, every concept is explained in plain language, using everyday comparisons, so nothing lands on the page unexplained.
+
+### Who this series is for
+
+You should already be comfortable with:
+
+- Basic HTML and CSS
+- Basic JavaScript (functions, arrays, objects, `async`/`await`)
+- Basic React (components, props, `useState`)
+
+You do **not** need to already know any of the following — each is introduced carefully, exactly when you need it:
+
+- Next.js Server Components, Server Actions, or Route Handlers
+- SQL or PostgreSQL
+- Drizzle ORM
+- Sanity (a "headless CMS" — defined below)
+- Inngest or event-driven background job systems
+- Webhooks
+- Database transactions
+- Authorization design
+- Automated testing (Vitest, Playwright)
+
+### How to use this series
+
+Each part builds directly on the one before it. You cannot skip Part 5 and expect Part 8 to make sense — the database tables created in Part 5 are used, unmodified, in Part 8. Follow the parts **in order**, and complete the verification steps at the end of each before moving on. It's like assembling flat-pack furniture: skip step 4, and step 9 won't screw in — and you won't know why.
+
+Starting with Part 1, every part follows the same rhythm:
+
+1. **The goal** — what we're building.
+2. **Why it exists** — the problem it solves.
+3. **The data flow** — how information moves.
+4. **The implementation** — full, working, copy-pasteable code.
+5. **Code walkthrough** — plain-language explanation of the tricky lines.
+6. **Verification** — exact commands/checks to prove it worked.
+7. **Common mistakes** — what usually goes wrong, and the fix.
+8. **Git checkpoint** — a commit command, so you always have a save point.
+
+Part 0 has no code. Instead, it builds the **mental model** that makes every later decision feel obvious instead of arbitrary.
 
 ---
 
-## The Full Series Roadmap
+## 0.2 What does an LMS actually need to manage?
 
-Here is the entire journey, so you always know where you are and what's coming next.
+Every LMS — GreyMatter included — manages two very different categories of information. Confusing them is the most common design mistake beginners make, so we'll nail the distinction before writing code.
 
-| Part | Title | What You'll Walk Away With |
+### Category 1: Content — "what everyone sees"
+
+Written once by an instructor; every student sees the identical version:
+
+- Course titles, descriptions, thumbnails
+- Chapters and lessons
+- Lesson text, images, videos
+- Quiz questions and their possible answers
+- Instructor bios
+
+Analogy: a **textbook**. A publisher writes it once; every student reads the identical copy. Nobody's personal copy differs based on who they are.
+
+### Category 2: Transactional data — "what's true about *you*, right now"
+
+Different for every user, changes constantly, and must never cross between users:
+
+- Which courses has *this* student enrolled in?
+- Which lessons has *this* student finished?
+- What score did *this* student get on *this* attempt?
+- Has *this* student earned a certificate?
+
+Analogy: your **library card and borrowing history**. The building and its books are the same for everyone; your borrowing record is uniquely yours. Mixing it up with someone else's is a serious problem, not a cosmetic bug.
+
+### Why this drives our architecture
+
+| | Content (textbook) | Transactional data (library card) |
 |---|---|---|
-| **Part 0** | Introduction to the Series *(this document)* | Mental model of the architecture, verified local toolchain, initialized project skeleton, Git repo, and environment variable scaffolding. |
-| **Part 1** | Architecture & Local Workspace Bootstrapping | A running Next.js 16 + Tailwind app, a local Sanity Studio with `course`, `chapter`, `lesson` schemas, a provisioned Neon Postgres instance, and Prisma modeling `User`, `Enrollment`, `Progress`. |
-| **Part 2** | Authentication & Core Navigation Shell | Clerk-protected routes via middleware, role assignment, a responsive collapsible-sidebar dashboard, and Sanity content rendered through the App Router. |
-| **Part 3** | The React-Only Plugin Registry & Component Contract | A typed `@greymatter/plugin-sdk` contract, a `next/dynamic`-powered lazy-loading component registry, and a working "SQL Sandbox" interactive lesson plugin. |
-| **Part 4** | Building the Secure State & Progress Transaction Engine | A Server Action + Prisma transaction that safely records progress, wired to React 19's `useOptimistic` for instant UI feedback. |
-| **Appendix A** | The Hybrid Data Engine Concept | Deep dive on why content and transactions are split. |
-| **Appendix B** | Next.js 16 Data Lifecycle | How Server Components, Client Components, and Server Actions hand off work to each other. |
-| **Appendix C** | Code Segment Breakdown | Line-by-line dissection of the Prisma transaction and `next/dynamic` internals. |
-| **Appendix D** | The Course → Chapter → Lesson Hierarchy & Progress Model Fields | A deeper look at the content schema hierarchy, where the `CustomModule` extension block fits, and a full reference to every `Progress` model field. |
+| Changes how often? | Rarely | Constantly |
+| Same for every user? | Yes | No |
+| Needs rich editing tools? | Yes (images, formatted text, video) | No — structured facts |
+| Needs strict relational integrity? | Somewhat | Absolutely — grades/certificates depend on it |
+| Read-to-write ratio | Read constantly, written rarely | Read and written constantly |
 
-Every part builds strictly on the previous one — nothing in Part 2 will require you to have "secretly known" something not yet taught in Part 0 or 1.
+Because the needs are nearly opposite, GreyMatter uses **two databases**:
 
----
+- **Sanity** (a headless CMS — a content system with no public website of its own, just an API and an authoring tool) stores the textbook: courses, chapters, lessons, quiz *definitions*, instructor bios.
+- **Neon** (managed PostgreSQL — a mature relational database engine) stores the library card: users, enrollments, lesson progress, quiz *attempts*, certificates.
 
-# Part 0: Introduction to the Series
-
-### 0.1 The Target
-Before writing framework code, our target for Part 0 is entirely **foundational**: a verified development toolchain, a clean project directory under version control, and an environment variable scaffold that documents every secret we will need across the whole series — even before we've created the accounts that generate those secrets.
-
-### 0.2 The Concept: Why "Bootstrapping" Comes Before "Building"
-Imagine building a house. You wouldn't pour the foundation for the kitchen before confirming your tools (hammer, level, drill) actually work and before marking out the property lines. In software, this "marking out the property lines" step is called **bootstrapping** — setting up the empty shell of a project (folder structure, version control, environment configuration) so that every subsequent step has a safe, predictable place to land. Skipping this is the single biggest cause of "it works on my machine" bugs later.
-
-We're also going to explain **why** Greymatter is architected the way it is, because in later parts you'll be asked to write code (like Prisma transactions or Sanity schemas) that only makes sense once you understand the two-engine design.
+This is the single most important architectural decision in the series. Whenever you're unsure later — "does this belong in Sanity or Neon?" — return to the test: *same for everyone and rarely edited → Sanity; unique per user and frequently changing → Neon.*
 
 ---
 
-## Step 1: Understand the Two Engines (Content vs. Transaction)
+## 0.3 Synchronous requests versus background workflows
 
-**The Target:** No code yet — a shared mental model everyone on the team (including future-you) can point to.
+A second distinction governs how our *code* is organized, not just our data.
 
-**The Concept:**
-Greymatter's data lives in two separate "brains":
+Picture a bank teller accepting a check deposit. Two things happen:
 
-1. **The Content Brain (Sanity.io)** — a **headless CMS**, meaning a content database with no built-in webpage of its own; it just serves structured content (JSON) over an API for *any* frontend to consume. Sanity stores things that change rarely: course titles, chapter outlines, lesson text, and the definitions of interactive "modules" inside a lesson. Because schemas are just JavaScript/TypeScript objects, we can define strict rules for what a "lesson" or "course" is allowed to contain.
-2. **The Transaction Brain (Neon PostgreSQL via Prisma)** — a traditional relational database that tracks **who did what, when**. This is where `User`, `Enrollment`, and `Progress` records live, exactly as laid out in the consolidated database model matrix: `User.id` maps directly to the Clerk User ID, `Enrollment.courseId` is an indexed string referencing Sanity's `course._id`, and `Progress.lessonId` is an indexed string referencing Sanity's `lesson._id` [1]. Neon is a **serverless Postgres** provider, meaning the database automatically "scales down to zero" — shutting down compute when nobody is using it — so you pay nothing (or close to it) during idle periods, and it wakes back up on the next request through Neon's built-in connection pooling proxy.
+1. **Right now, while you wait:** the teller confirms the deposit and hands you a receipt. Must be fast.
+2. **Sometime after you leave:** the check clears, funds move between banks, statements get generated. None of this should make you stand at the counter.
 
-**Why split them at all?** If you stored every lesson's rich text *and* every student's click-by-click progress in the same relational table, a popular course being viewed by thousands of students would compete for the same database connections needed to record a single student's checkbox click. Splitting "read-heavy, rarely-changing content" from "write-heavy, per-user transactional data" means these two workloads never block each other.
+This is exactly an LMS's shape:
 
-Here's the exact request flow you'll be building toward — this is the diagram you should keep open in a tab while working through Part 1 and Part 2:
+- **Synchronous, must-happen-now:** "Save that this student answered this quiz question." Must happen inside the HTTP request — the student is watching the screen.
+- **Background, can-happen-a-moment-later:** "Recalculate overall course completion. Check certificate eligibility. Email the student. Update instructor analytics." None of this needs to block the current screen.
 
+The fast synchronous part is handled by **Next.js Server Actions** and **Route Handlers** talking directly to Neon. The background part is handled by **Inngest**, a tool built for durable background jobs — jobs that reliably retry on failure instead of silently vanishing.
+
+```text
+Student clicks "Submit Quiz Answer"
+        │
+        ▼
+Next.js Server Action (must respond quickly)
+        │
+        ├── Save the answer + score to Neon        ◄── synchronous, blocking
+        │
+        └── Emit a "lesson/completed" event          ◄── fire-and-forget
+                │
+                ▼
+        Inngest picks up the event moments later
+                │
+                ├── Recalculate whole-course progress %
+                ├── Check certificate eligibility
+                ├── Send a notification email
+                └── Update instructor-facing analytics
 ```
-[Student Request] ──► Next.js Edge Middleware (Clerk Session Check)
-│
-▼
-[App Router Page] (RSC)
-│
-┌───────────────┴───────────────┐
-▼                               ▼
-[Parallel Fetch A]              [Parallel Fetch B]
-Sanity Content CDN             Neon DB User Progress
-│                               │
-└───────────────┬───────────────┘
-▼
-Combined Server Render
-│
-▼
-[Dynamic Component Resolution] (RSC)
-Maps Sanity customModule.moduleType
-to imported Client chunk via React.lazy
-```
 
-Notice the "Parallel Fetch A / Parallel Fetch B" split — this is the two-engine design made literal in code: one request goes to Sanity's CDN for content, another goes to Neon for the student's personal progress, and Next.js combines them into a single rendered page. This design is what lets Greymatter target **sub-100ms lesson rendering** by strictly segregating static assets, read-heavy structures, and transactional data.
-
-**The Verification:** There's no code to run yet for Step 1 — it's a conceptual checkpoint. Before moving on, make sure you can answer these three questions out loud (or to a rubber duck):
-
-1. "If 10,000 students are viewing a course's chapter list right now, which system serves that request — Sanity or Neon?" *(Answer: Sanity — it's read-heavy, rarely-changing content.)*
-2. "If one student clicks 'Mark Lesson Complete,' which system records that?" *(Answer: Neon, via Prisma — it's a per-user transactional write.)*
-3. "Why does Next.js fetch from both in parallel instead of one-after-the-other?" *(Answer: so a slow write to the transaction engine never delays the rendering of static content, and vice versa.)*
-
-If you can answer all three without looking back, you're ready to move forward.
+We build the synchronous half in Parts 8 and 11, and the background half starting in Part 12.
 
 ---
 
-## Step 2: Verify Your Local Toolchain
+## 0.4 Trust boundaries: why the server can never trust the browser
 
-**The Target:** Confirm Node.js, a package manager, and Git are correctly installed before any project files exist.
+A scenario that trips up nearly every beginner building their first quiz feature:
 
-**The Concept:** This is the "check your hammer isn't broken before swinging it" step. Every tool in this series — Next.js, Prisma, Sanity's CLI — runs on top of Node.js. If your Node version is too old, half the errors you'll hit later will be red herrings caused by an outdated runtime, not your actual code.
+A student takes a 10-question quiz. JavaScript *in the browser* checks the answers, computes "9 out of 10," and sends `{ score: 9 }` to the server, which saves it as-is.
 
-**The Implementation:** Open your terminal and run:
+**This is a serious security flaw.** Anyone can open developer tools, intercept the request, and change the body to `{ score: 10 }` before sending — no programming skill required beyond "Edit and Resend." The server simply believed whatever number arrived.
 
-```bash
-node -v
-```
+It's like a driving examiner handing the *student* the scorecard and asking them to fill in their own result and mail it back.
 
-You should see `v20.x` or higher (Next.js 16 requires a modern LTS Node release). If you see anything below `v18`, install the latest LTS from nodejs.org before continuing.
+The fix, repeated throughout this series:
 
-```bash
-npm -v
-git --version
-```
+> **The server is the only party allowed to decide what is true. The browser only makes requests; it never supplies the answer.**
 
-Both should return version numbers without errors.
+Concretely:
 
-**The Verification:** Your terminal output should resemble:
+- The browser sends *which answer the student picked* (e.g., `"b"`).
+- The server — never the browser — looks up the correct answer from Sanity and computes the score itself.
+- The server verifies the student is actually enrolled in the course before accepting anything.
+- Only the server-computed result is saved to Neon and returned to the student.
 
-```
-v20.14.0
-10.7.0
-git version 2.43.0
-```
-
-If any command says "command not found," stop here and install that tool before proceeding — every later step assumes these three exist.
+We implement this rigorously in Part 11. For now: **the browser proposes, the server disposes.**
 
 ---
 
-## Step 3: Create the Project Directory and Initialize Git
+## 0.5 A quick tour of the tools, in plain language
 
-**The Target:** An empty, version-controlled folder named `greymatter-lms` that will hold every file we create for the rest of the series.
-
-**The Concept:** Git is like a "save game" system for your code — it lets you snapshot your progress after each step so that if something breaks in Part 3, you can compare it against a known-good checkpoint from Part 1 instead of guessing what changed.
-
-**The Implementation:**
-
-```bash
-mkdir greymatter-lms
-cd greymatter-lms
-git init
-```
-
-Create a `.gitignore` file at the project root so secrets and generated files never get committed:
-
-#### `.gitignore`
-```
-# Dependencies
-node_modules/
-
-# Next.js build output
-.next/
-out/
-
-# Environment secrets — never commit these
-.env
-.env.local
-.env*.local
-
-# Prisma generated client
-node_modules/.prisma
-
-# Sanity
-.sanity/
-
-# OS/editor noise
-.DS_Store
-*.log
-```
-
-**The Verification:**
-
-```bash
-git status
-```
-
-You should see `.gitignore` listed as an untracked file, and nothing else complaining. Commit this first checkpoint:
-
-```bash
-git add .gitignore
-git commit -m "chore: initialize repository and gitignore"
-```
+- **Next.js** — the framework running our whole website: both the pages a browser renders and the server-side logic that talks to our databases, in one project. Like a building housing both classrooms (what students see) and a staff-only back office (server logic).
+- **React** — the library Next.js uses to build the UI out of reusable components, like building a wall from standardized bricks instead of hand-carving each one.
+- **Tailwind CSS** — a styling toolkit describing appearance directly in markup (`className="rounded-lg bg-blue-600 p-4"`) instead of separate stylesheets. A box of pre-cut materials instead of a lumber yard.
+- **Sanity** — our headless CMS (the textbook system). "Headless" means it has no public website of its own — just a content database and an editor screen called **Sanity Studio**. Our own Next.js pages fetch content from it via an API.
+- **Neon** — our managed PostgreSQL database (the library-card system). PostgreSQL is a relational database: data is stored in strict, related tables (e.g., an `enrollments` table pointing at a `users` table), which prevents data from becoming inconsistent or contradictory.
+- **Drizzle ORM** — a tool that lets us write database queries as typed TypeScript function calls instead of raw SQL strings, so mistakes get caught while typing instead of at 2 a.m. in production. An ORM ("Object-Relational Mapper") is a translator between "table rows" and "JavaScript objects."
+- **Clerk** — a hosted authentication service. Rather than building our own password storage, reset-email flows, and session cookies (all extremely easy to get wrong from a security standpoint), we outsource that responsibility to a specialist, the way a small business outsources payroll instead of building its own payroll department.
+- **Inngest** — our background workflow engine, the "back office" that clears the check after the teller hands you a receipt.
+- **Zod** — a validation library. It checks that data arriving from the browser (or a webhook) actually has the shape we expect *before* we trust it — like a bouncer checking ID at the door before letting anyone in.
+- **Vitest / Playwright** — our testing tools. Vitest tests small pieces of logic in isolation (unit tests); Playwright drives an actual browser to click through the whole app like a real user (end-to-end tests).
 
 ---
 
-## Step 4: Scaffold the Environment Variable Contract
+## 0.6 The three roles GreyMatter serves
 
-**The Target:** A `.env.example` file that documents *every* secret the entire series will eventually need — even though we haven't created the Sanity project, Neon database, or Clerk app yet.
+| Role | Can do |
+|---|---|
+| **Student** | Browse courses, enroll, read lessons, complete interactive modules, submit quizzes, track progress, earn certificates. |
+| **Instructor** | Preview authored content, view enrolled students, inspect completion/assessment data, view analytics, trigger reminders. |
+| **Administrator** | Manage roles, control course availability, review all enrollments/workflows, view platform-wide analytics. |
 
-**The Concept:** Think of `.env.example` as a packing checklist you write before a trip, before you've actually bought any of the items. By writing down every credential name up front, later parts of this series become "fill in this blank" instead of "figure out what variable name to invent." It also means anyone cloning your repo instantly knows what accounts they need to create, without reading through every file.
-
-Two of these variable names — `DATABASE_URL` and `DIRECT_URL` — come directly from how Prisma's `datasource` block is configured: `DATABASE_URL` is the pooled connection Neon gives your app for normal queries, while `DIRECT_URL` is used for non-pooled direct migration runs [1].
-
-**The Implementation:**
-
-#### `.env.example`
-
-```bash
-# ── Database (Neon Serverless PostgreSQL + Prisma) ──────────────────────────
-# Pooled connection string — used by the running app for normal queries.
-DATABASE_URL="postgresql://user:password@ep-example-pooler.region.aws.neon.tech/greymatter?sslmode=require"
-# Direct (non-pooled) connection string — used only for running migrations.
-DIRECT_URL="postgresql://user:password@ep-example.region.aws.neon.tech/greymatter?sslmode=require"
-
-# ── Sanity.io (Content Registry) ────────────────────────────────────────────
-NEXT_PUBLIC_SANITY_PROJECT_ID=""
-NEXT_PUBLIC_SANITY_DATASET="production"
-NEXT_PUBLIC_SANITY_API_VERSION="2024-01-01"
-SANITY_API_READ_TOKEN=""
-
-# ── Clerk (Authentication) ──────────────────────────────────────────────────
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""
-CLERK_SECRET_KEY=""
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-
-# ── App Config ───────────────────────────────────────────────────────────────
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-Now copy it to a real (untracked) `.env` file so your local setup has a place to eventually paste real secrets into:
-
-```bash
-cp .env.example .env
-```
-
-**The Verification:**
-
-```bash
-git status
-```
-
-You should see `.env.example` listed as untracked (good — we *want* to commit this one), but **`.env` should not appear**, because `.gitignore` is already excluding it. If `.env` shows up in `git status`, stop and double-check your `.gitignore` spelling before continuing — leaking real secrets into Git history is one of the most common beginner mistakes.
-
-Commit the template:
-
-```bash
-git add .env.example
-git commit -m "chore: scaffold environment variable contract"
-```
+A fourth "role," the **Content Editor**, doesn't log into our Next.js app at all — they work entirely inside Sanity Studio, authoring courses, chapters, lessons, and quizzes. This matters architecturally: content authoring and application usage are two completely separate surfaces that happen to be connected by an API, not two features bolted onto the same login system. Keeping that boundary clean is exactly why Sanity exists as a separate system in the first place, rather than an "admin panel" bolted onto our own database.
 
 ---
 
-## Step 5: Preview What You're Building Toward (Forward Reference)
+## 0.7 The final architecture, end to end
 
-**The Target:** No new files — just a preview so Part 1 doesn't feel like it's coming out of nowhere.
+Here is the complete system you will have built by the final part of this series. Don't worry about understanding every arrow yet — treat this as a map you'll recognize pieces of as we go, and can flip back to whenever you feel lost.
 
-**The Concept:** It helps to see the destination before starting the drive. In Part 1, you'll write a Prisma schema that defines a `User` and an `Enrollment` model, plus the `datasource` and `generator` blocks that make Prisma work at all. Here's the complete preview, exactly as it will appear in Part 1 [1]:
-
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Used for non-pooled direct migration runs
-}
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum Role {
-  STUDENT
-  INSTRUCTOR
-  ADMIN
-}
-
-model User {
-  id          String       @id
-  email       String       @unique
-  role        Role         @default(STUDENT)
-  enrollments Enrollment[]
-  progress    Progress[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  @@index([email])
-}
-
-model Enrollment {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId  String   // Points directly to Sanity Course ID
-  createdAt DateTime @default(now())
-
-  @@unique([userId, courseId])
-  @@index([courseId])
-}
+```text
+                              ┌─────────────────────────┐
+                              │        Browser           │
+                              │  (Student / Instructor /  │
+                              │   Admin — React UI)       │
+                              └────────────┬─────────────┘
+                                           │  HTTPS
+                                           ▼
+                        ┌──────────────────────────────────────┐
+                        │            Next.js 16 App              │
+                        │  ┌───────────────┐  ┌────────────────┐ │
+                        │  │ Server         │  │ Route Handlers │ │
+                        │  │ Components /   │  │ (webhooks,     │ │
+                        │  │ Server Actions │  │  Inngest API)  │ │
+                        │  └───────┬───────┘  └───────┬────────┘ │
+                        └──────────┼───────────────────┼─────────┘
+                                   │                    │
+                     ┌─────────────┴───────┐    ┌───────┴─────────┐
+                     ▼                     ▼    ▼                 ▼
+           ┌──────────────────┐  ┌──────────────────┐   ┌──────────────────┐
+           │   Sanity Content  │  │  Neon PostgreSQL  │   │      Clerk        │
+           │  (Courses,        │  │  (Users, Roles,   │   │ (Auth, sessions,  │
+           │   Chapters,       │  │   Enrollments,    │   │  webhooks on      │
+           │   Lessons,        │  │   Progress,       │   │  user create/     │
+           │   Quizzes,        │  │   Attempts,       │   │  update/delete)   │
+           │   Portable Text)  │  │   Certificates)    │   │                  │
+           └──────────────────┘  └────────┬───────────┘   └──────────────────┘
+                                          │
+                                          │  emits events
+                                          ▼
+                              ┌──────────────────────────┐
+                              │         Inngest            │
+                              │  (durable background jobs) │
+                              │                             │
+                              │  • Onboard new users        │
+                              │  • Confirm enrollment        │
+                              │  • Recalculate progress      │
+                              │  • Detect course completion   │
+                              │  • Generate certificates       │
+                              │  • Send emails / reminders      │
+                              │  • Build analytics summaries     │
+                              └──────────────────────────────────┘
 ```
 
-A few things worth noticing now, so they feel familiar rather than new in Part 1:
-
-- **`datasource db { ... }`** — this block is where `DATABASE_URL` and `DIRECT_URL`, the two variables you just scaffolded in Step 4, actually get used [1]. `url` (pooled) is what your running app uses for everyday queries; `directUrl` (non-pooled) is used only when running schema migrations.
-- **`enum Role`** — this restricts the `User.role` field to exactly three fixed values (`STUDENT`, `INSTRUCTOR`, `ADMIN`) at the database level, rather than trusting every part of your app to type the string correctly. You'll see why this matters when Clerk assigns roles in Part 2.
-- **`Enrollment.courseId` is a plain `String`, not a foreign key** — it deliberately points at a Sanity document ID rather than another Postgres table. That single line *is* the hybrid architecture in practice: Postgres tracks the relationship ("this user is enrolled in this course"), while Sanity owns what that course actually *is*.
-
-And in Part 4, you'll write a Server Action that wraps a progress-completion write in a Prisma transaction — first checking that an enrollment exists, and only then recording progress, all inside one atomic operation so a student can never have "progress" on a course they were never enrolled in. Here's the complete pattern you'll build, shown in full now as a preview [1]:
-
-```ts
-try {
-  await prisma.$transaction(async (tx) => {
-    // 1. Assert registration status exists before saving progress
-    const enrollment = await tx.enrollment.findUnique({
-      where: {
-        userId_courseId: { userId, courseId }
-      }
-    });
-
-    if (!enrollment) {
-      throw new Error('Transaction Failed: Student has not enrolled in the parent course.');
-    }
-
-    // 2. Upsert progress state safely
-    await tx.progress.upsert({
-      where: {
-        userId_lessonId: { userId, lessonId }
-      },
-      update: {
-        completed: true,
-        completedAt: new Date(),
-        score,
-        moduleState: moduleState || {},
-      },
-      create: {
-        userId,
-        lessonId,
-        completed: true,
-        completedAt: new Date(),
-        score,
-        moduleState: moduleState || {},
-      }
-    });
-  });
-
-  // Clear static client cache paths for this specific course
-  revalidateTag(`progress-${courseId}`);
-  return { success: true };
-
-} catch (error: any) {
-  console.error('CRITICAL: Database transaction rollback executed: ', error.message);
-  return { success: false, error: 'Failed to write completed execution progress.' };
-}
-```
-
-**Why this matters as a preview:** notice the whole thing is wrapped in `prisma.$transaction(...)`. Think of a database transaction like an "all-or-nothing" checkout at a store — either every item in your cart gets rung up and paid for, or if something fails partway (a card decline), *none* of it goes through. Here, that means: if the enrollment check fails, the progress upsert never happens — the database never ends up in a half-finished, inconsistent state [1]. You don't need to write this code yet; just notice the shape, because in Part 4 we'll build it piece by piece, explaining `findUnique`, `upsert`, and `$transaction` individually before assembling them.
-
-**The Verification:** Since this step was purely a "preview read," there's nothing to run. Just confirm you can point to which env variable (`DATABASE_URL` vs `DIRECT_URL`) each line in the `datasource` block uses, and why `courseId` on `Enrollment` is a plain string instead of a foreign key relation — if both make sense, you're ready to close out Part 0.
+Notice the shape of it: **Next.js sits in the middle**, talking to three specialist services, each responsible for exactly one job — Sanity for content, Neon for transactional truth, Clerk for identity, and Inngest for anything that can happen "a moment later." This is a very common, very production-realistic pattern called **separation of concerns** — nobody in this diagram is asked to do a job outside their specialty, the same way a hospital doesn't ask the radiologist to also run the pharmacy.
 
 ---
 
-## Closing Out Part 0
+## 0.8 The final project folder structure
 
-**Final checkpoint commit:**
+You don't need to create any of this yet — Part 1 will build it piece by piece — but seeing the destination up front helps every future decision make sense.
 
-```bash
-git add .
-git status   # confirm only .gitignore and .env.example are staged — never .env
-git commit -m "chore: complete Part 0 bootstrap - toolchain verified, env contract scaffolded"
+```text
+greymatter-lms/
+├── app/                        # Next.js App Router: pages, layouts, route handlers
+│   ├── (marketing)/             # Public landing pages
+│   ├── (auth)/                  # Sign-in / sign-up routes
+│   ├── courses/                 # Public course catalog & detail pages
+│   ├── dashboard/                # Authenticated student area
+│   ├── instructor/                # Authenticated instructor area
+│   ├── admin/                      # Authenticated admin area
+│   ├── studio/                      # Embedded Sanity Studio
+│   └── api/                          # Route handlers (webhooks, Inngest endpoint)
+├── components/
+│   ├── ui/                       # Design-system primitives (button, card, input...)
+│   └── ...                        # Feature-specific components
+├── db/
+│   ├── schema/                    # Drizzle table definitions
+│   ├── migrations/                 # Generated SQL migrations
+│   └── client.ts                    # Neon connection setup
+├── inngest/
+│   ├── client.ts                    # Inngest client instance
+│   └── functions/                    # Individual background workflow definitions
+├── lib/
+│   ├── auth/                         # Session + role helper functions
+│   └── validation/                    # Zod schemas
+├── sanity/
+│   ├── schema-types/                  # Sanity document/block schema definitions
+│   └── lib/                            # Sanity client + GROQ query helpers
+├── public/                              # Static assets
+├── tests/
+│   ├── unit/                             # Vitest unit tests
+│   └── e2e/                               # Playwright end-to-end tests
+├── .env.example
+└── package.json
 ```
 
-### What You Have Right Now
-- A clear mental model of Greymatter's two-engine (Content vs. Transaction) architecture
-- A verified Node.js/npm/Git toolchain
-- A Git-initialized `greymatter-lms` project folder
-- A `.gitignore` protecting secrets from ever being committed
-- A complete `.env.example` documenting every credential the entire series will need
-- A preview understanding of the `User` and `Enrollment` Prisma models and the enrollment-verifying transaction pattern you'll build in Part 4 [1]
+Every top-level folder maps directly to one of the concepts we just discussed: `sanity/` is the textbook system, `db/` is the library-card system, `inngest/` is the back office, `app/` is the building that houses all of it, and `lib/auth/` is the security desk checking IDs at every door.
 
-### What's Next
-**Part 1: Architecture & Local Workspace Bootstrapping** picks up immediately from here — you'll run `create-next-app` inside this exact folder, install Tailwind CSS, initialize a local Sanity Studio with real `course`, `chapter`, `lesson` schemas, provision an actual Neon Postgres instance, and run your first Prisma migration against the schema you just previewed [1].
+---
+
+## 0.9 Series conventions
+
+A few ground rules that will hold for the rest of the series, so nothing feels inconsistent later:
+
+- **Package manager:** we'll use `npm` in all terminal commands. If you prefer `pnpm` or `yarn`, the commands translate directly — just swap the executable name.
+- **Language:** everything is written in **TypeScript**, not plain JavaScript. TypeScript adds type checking on top of JavaScript — it's the difference between a form that lets you scribble anything in any box, versus one that refuses to accept letters in a box labeled "phone number" before you even submit it. This matters enormously in an app juggling three external systems with three different data shapes.
+- **File paths:** every code block is labeled with its exact relative path from the project root, as a heading directly above the block, e.g. `db/schema/users.ts`. When we say "open this file," we mean relative to your `greymatter-lms/` project folder.
+- **Environment variables:** any secret (API keys, database URLs) will always be introduced through an environment variable and documented in `.env.example`, never hard-coded — this is a security practice, not a stylistic preference.
+- **Git checkpoints:** at the end of every part, you'll run a `git commit` with a specific message we provide. If something breaks two parts later, you can always check out an earlier checkpoint and diff against it.
+- **"Beginner box" callouts:** whenever a term is used for the first time, it will be defined in-line, in parentheses, the moment it appears — the same way we've done throughout this very part.
+
+---
+
+## 0.10 Reader deliverables checklist
+
+By the end of the full series, you will have personally built and can check off:
+
+- [ ] A running Next.js 16 + React 19 + Tailwind CSS application
+- [ ] A reusable, accessible design-system component library
+- [ ] A Sanity Studio content model for courses, chapters, lessons, and quizzes
+- [ ] Public, SEO-friendly course catalog and detail pages
+- [ ] A Neon PostgreSQL database with versioned Drizzle migrations
+- [ ] Clerk authentication with an internal user record synchronized via webhooks
+- [ ] Role-based authorization (Student / Instructor / Admin) enforced on both routes *and* individual server operations
+- [ ] A secure course-enrollment flow with duplicate-enrollment protection
+- [ ] A full lesson player rendering Portable Text, images, video, and code
+- [ ] An extensible interactive-module plugin system (quizzes, exercises, checkpoints)
+- [ ] Server-authoritative grading — the browser never determines its own score
+- [ ] Inngest-powered background workflows for onboarding, progress, and completion
+- [ ] Automatic course-completion detection and downloadable certificates
+- [ ] Scheduled learner-reminder and notification workflows
+- [ ] An instructor analytics dashboard
+- [ ] Unit tests (Vitest) and end-to-end tests (Playwright)
+- [ ] A deployed, production-configured application (Vercel + Neon + Sanity + Clerk + Inngest, all wired together)
+
+---
+
+## 0.11 The development roadmap
+
+This is the order we will build in, and — importantly — *why* this order and no other:
+
+```text
+Project foundation           (Part 1–2)   → You need a place to put code before you put code in it.
+    → Content modeling        (Part 3–4)   → You need something to teach before students can enroll.
+    → Database modeling        (Part 5)     → You need a place to record who's enrolled before enrollment exists.
+    → Authentication            (Part 6)     → You need to know who the user is before you track their progress.
+    → Enrollment                 (Part 7–8)   → You need a relationship between user and course before lessons matter.
+    → Lesson delivery              (Part 9)     → You need to actually deliver content before it can be interactive.
+    → Interactive modules           (Part 10)    → You need a plugin system before you can grade anything server-side.
+    → Secure progress tracking       (Part 11)    → You need graded attempts before background jobs have anything to react to.
+    → Inngest automation              (Part 12)    → You need events before you can build workflows that consume them.
+    → Certificates & reminders         (Part 13–14) → You need completion detection before certificates make sense.
+    → Instructor analytics               (Part 15)    → You need real data flowing before analytics has anything to show.
+    → Testing & deployment                 (Part 16)    → You need a finished app before you can test and ship it.
+```
+
+Notice this isn't an arbitrary checklist — each stage is a **hard prerequisite** for the one after it. This is why the series must be followed in order: Part 11's "server-authoritative grading" is meaningless without Part 10's plugin contract, which is meaningless without Part 9's lesson player, which is meaningless without Part 4's Sanity queries. Every part is a load-bearing wall for the ones that follow.
+
+---
+
+## 0.12 The key lesson of Part 0
+
+If you remember exactly one thing from this introduction before diving into real code, make it this:
+
+> **Content lives in Sanity. Per-user truth lives in Neon. Anything that can wait a moment lives in Inngest. And the browser never gets to grade its own homework.**
+
+Every architectural decision for the rest of this series is a direct consequence of that one sentence. When a part later asks you to put something in one system rather than another, you'll now understand *why*, instead of memorizing it as an arbitrary rule.
+
+---
+
+## What's next
+
+Part 1 moves from theory into practice: we'll install our tools, scaffold the actual Next.js 16 project, wire up TypeScript and Tailwind CSS, set up environment variables and Git, and finish with a running application and a passing build — the literal first brick in GreyMatter LMS's foundation.
