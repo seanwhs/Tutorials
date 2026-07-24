@@ -2,458 +2,683 @@
 
 Welcome to the **GreyMatter Feedback** tutorial series.
 
-In this series, you will build a complete, production-minded QR-code feedback application from scratch. The application will let organizers create feedback sessions, display or print session-specific QR codes, collect anonymous participant feedback on mobile devices, analyze results in an admin portal, export raw data to CSV, and generate PDF reports asynchronously.
+In this series, you will build a complete QR-code feedback platform for events, courses, workshops, conferences, training programs, and internal meetings.
 
-> **Tutorial requirement noted:** We will use **Neon** as the hosted PostgreSQL database provider throughout this series, with **Prisma** as the type-safe database toolkit.
+GreyMatter Feedback lets an organizer create a feedback form for a specific event session, publish it, generate a QR code, and collect participant responses through a mobile-friendly web page. Administrators can then review analytics, read written feedback, export responses as CSV, and generate executive PDF reports.
 
-I have also noted the core requirements for the remaining parts of this tutorial series:
+The final application will use:
 
-- Build **GreyMatter Feedback** from beginning to end, one part at a time.
-- Use **Next.js 16 App Router**, **React 19**, **TypeScript**, and **Tailwind CSS**.
-- Use **Neon PostgreSQL** with **Prisma**.
-- Use **Inngest** for background jobs and asynchronous report generation.
-- Provide beginner-friendly explanations while maintaining production-grade architecture and security.
-- Make the tutorial code-heavy, with complete copy-pasteable file contents.
-- Avoid placeholders, omitted implementation, and unexplained dependencies.
-- For every technical step, include:
-  1. **The Target**
-  2. **The Concept**
-  3. **The Implementation**
-  4. **The Verification**
-- Include clear generation logs between tutorial parts.
-- Build participant feedback flows, an admin dashboard, QR generation, CSV export, background PDF reporting, privacy-aware abuse prevention, and offline-friendly form behavior.
+- **Next.js 16** with the App Router
+- **React 19**
+- **TypeScript**
+- **Tailwind CSS**
+- **Neon PostgreSQL**
+- **Prisma**
+- **Inngest**
+- **QR-code generation**
+- **React PDF**
+- **Optional S3-compatible file storage** for production reports
 
 ---
 
 ## What Is GreyMatter Feedback?
 
-**GreyMatter Feedback** is a feedback platform for workshops, lectures, conferences, training sessions, company meetings, customer events, and similar in-person experiences.
+GreyMatter Feedback is a feedback collection and reporting system designed around a simple participant experience:
 
-Its central idea is simple:
+1. An organizer displays or prints a QR code.
+2. A participant scans the QR code with their phone.
+3. The phone opens the correct feedback form.
+4. The participant submits ratings, choices, and comments.
+5. Administrators review results and generate reports.
 
-1. An organizer creates a feedback session.
-2. The system generates a QR code for that session.
-3. Participants scan the QR code with their phones.
-4. They answer a short, mobile-friendly feedback form.
-5. Organizers review analytics and export reports.
-
-For example, an event organizer running a React workshop might create:
+For example, an organization may run a course called:
 
 ```text
-Event: React Summit 2026
-Session: Advanced React Patterns
-Session ID: REACT-2026-Q3
+React Fundamentals
 ```
 
-GreyMatter Feedback generates a QR code that points to a URL like:
+That course may contain several feedback targets:
+
+```text
+React Fundamentals
+├── Module 1: Components
+├── Module 2: State and Effects
+├── Module 3: Data Fetching
+└── End-of-course Evaluation
+```
+
+Each target can have its own QR code and its own feedback form.
+
+```text
+/e/REACT-MODULE-1
+/e/REACT-MODULE-2
+/e/REACT-MODULE-3
+/e/REACT-FINAL
+```
+
+This same model works for a conference:
+
+```text
+Annual Product Conference
+├── Opening Keynote
+├── Product Strategy Panel
+├── Customer Success Workshop
+└── Closing Session
+```
+
+Or for a company training program:
+
+```text
+Leadership Essentials
+├── Week 1: Communication
+├── Week 2: Delegation
+└── Week 3: Performance Conversations
+```
+
+---
+
+## The Main Idea: Every Session Can Have a Different Form
+
+GreyMatter Feedback does **not** use one hard-coded feedback form for every event.
+
+Instead, forms are **configuration-driven**.
+
+A configuration-driven system stores the form definition in the database. The application reads that definition and renders the appropriate fields dynamically.
+
+For example, a short workshop form may look like this:
+
+```text
+1. How useful was this workshop?                Rating, 1–5
+2. How likely are you to recommend it?          NPS, 0–10
+3. What should we improve?                      Text
+```
+
+A course evaluation form may be more detailed:
+
+```text
+1. How clear was the instructor?                Rating, 1–5
+2. How useful were the course materials?        Rating, 1–5
+3. Was the pace appropriate?                    Choice
+4. Which topic needs more explanation?          Choice
+5. What was most valuable?                      Text
+6. What should change next time?                Text
+```
+
+The participant-facing application stays reusable. It does not need a new page or code deployment every time an administrator creates a different form.
+
+Instead, the QR URL identifies a session:
 
 ```text
 https://feedback.example.com/e/REACT-2026-Q3?src=qr
 ```
 
-When a participant scans that code, their phone opens the feedback form specifically configured for that session.
+The application loads the published form assigned to that session and renders its questions.
 
 ---
 
-## The Problem GreyMatter Feedback Solves
+## Form Authoring Environment
 
-Traditional feedback collection often creates unnecessary friction:
+GreyMatter Feedback will include a protected administrator environment for creating and managing feedback forms.
 
-- Paper forms are slow to distribute and manually process.
-- Generic web forms require attendees to find or type a URL.
-- Spreadsheet analysis is time-consuming.
-- Report generation is repetitive.
-- Participants may be reluctant to share honest feedback if they think they can be personally identified.
+This is not an external form builder. It is a first-class feature built directly into the GreyMatter admin portal.
 
-GreyMatter Feedback reduces that friction.
+Administrators will be able to:
 
-The QR code acts like a direct door to the right form. Participants do not need an account, an app installation, or a complicated sign-in process. They scan, respond, and submit.
+- Create events or courses.
+- Create sessions inside an event or course.
+- Give each session a QR-friendly identifier.
+- Create a feedback form draft.
+- Add questions.
+- Choose question types.
+- Add choice options.
+- Mark questions as required or optional.
+- Set rating scales and limits.
+- Reorder questions.
+- Preview the participant form.
+- Publish a form.
+- Generate and download a QR code.
+- Deactivate a session when feedback collection ends.
+- Review results and export reports.
 
-Meanwhile, administrators get useful information without manually combining paper forms or spreadsheets.
+A future administrator authoring screen will resemble this:
+
+```text
+Session: Advanced React Patterns
+Session ID: REACT-2026-Q3
+Form status: Draft
+
+Question 1
+Type: Rating
+Prompt: How useful was this workshop?
+Scale: 1 to 5
+Required: Yes
+
+Question 2
+Type: NPS
+Prompt: How likely are you to recommend this workshop?
+Scale: 0 to 10
+Required: Yes
+
+Question 3
+Type: Choice
+Prompt: Which section was most valuable?
+Options:
+- Server Components
+- Data Fetching
+- Performance
+Required: No
+
+Question 4
+Type: Text
+Prompt: What should we improve?
+Maximum length: 1,500 characters
+Required: No
+
+[ Save Draft ] [ Preview ] [ Publish ]
+```
 
 ---
 
-## What We Will Build
+## Why GreyMatter Feedback Uses a Built-In Form Authoring System
 
-By the end of the series, GreyMatter Feedback will include two major application areas.
+The tutorial will use **Neon PostgreSQL and Prisma** as the authoritative source of truth for both:
 
-## 1. Participant Feedback Experience
+1. Form definitions.
+2. Participant responses.
 
-Participants will open a route such as:
+We considered using a headless CMS such as Sanity for form authoring. Sanity is a strong tool for editorial content, but it is not the preferred baseline architecture for this application.
+
+Feedback forms are deeply tied to transactional data:
+
+- Responses.
+- Answers.
+- Rating averages.
+- NPS calculations.
+- CSV exports.
+- PDF reports.
+- Question-level analytics.
+- Historical reporting accuracy.
+
+If form definitions were stored in Sanity while responses lived in Neon, the system would need synchronization between two sources of truth:
+
+```text
+Sanity
+└── Form definitions and publishing
+
+Neon
+└── Responses, answers, analytics, and reports
+```
+
+This would add complexity around:
+
+- Synchronization failures.
+- Published form snapshots.
+- Question changes after responses exist.
+- Duplicate validation logic.
+- Runtime dependency on another external service.
+
+Instead, GreyMatter Feedback will keep the form authoring workflow close to the feedback data:
+
+```text
+GreyMatter Admin Portal
+        |
+        v
+Neon PostgreSQL via Prisma
+├── Events
+├── Sessions
+├── Form versions
+├── Questions
+├── Responses
+├── Answers
+└── Reports
+```
+
+This gives us one consistent system for authoring, publishing, submitting, analyzing, exporting, and reporting.
+
+---
+
+## Drafts, Publishing, and Form Versioning
+
+A feedback form must not silently change after people have responded to it.
+
+Consider this example.
+
+A form initially contains:
+
+```text
+How would you rate the instructor?
+```
+
+After 100 responses, an administrator changes the same question to:
+
+```text
+How would you rate the venue?
+```
+
+If the old answers remain attached to that same question, the resulting report becomes misleading. It would combine instructor ratings and venue ratings.
+
+To prevent this, GreyMatter Feedback will use **form versioning**.
+
+A form version is a snapshot of a form at a particular point in time.
+
+```text
+Session: REACT-2026-Q3
+├── Version 1 — Published
+│   ├── “How useful was this workshop?”
+│   ├── “How likely are you to recommend it?”
+│   └── “What should we improve?”
+│
+└── Version 2 — Draft
+    ├── “How useful was this workshop?”
+    ├── “How likely are you to recommend it?”
+    ├── “How useful was the hands-on exercise?”
+    └── “What should we improve?”
+```
+
+The workflow will be:
+
+```text
+Create session
+   ↓
+Create editable draft form version
+   ↓
+Add and configure questions
+   ↓
+Preview on desktop and mobile
+   ↓
+Publish the form version
+   ↓
+Generate/share session QR code
+   ↓
+Participants submit feedback
+   ↓
+Published version becomes historically protected
+   ↓
+Create a new draft version if future changes are needed
+```
+
+Each participant response will record which exact form version it used.
+
+That means GreyMatter Feedback can always accurately answer questions such as:
+
+```text
+Which wording did participants see?
+Which options were available?
+Which rating scale was used?
+Which version produced these analytics?
+```
+
+---
+
+## Form Statuses
+
+Forms will use clear lifecycle states.
+
+| Status | Meaning |
+|---|---|
+| `DRAFT` | Editable by administrators but unavailable to participants |
+| `PUBLISHED` | Live and available to participants through the session QR URL |
+| `ARCHIVED` | Retained for historical reporting but no longer active |
+
+A session itself will also have an active/inactive state.
+
+```text
+Session active + published form = accepts feedback
+Session inactive = displays a polite “feedback is closed” message
+No published form = participant cannot access an unfinished draft
+```
+
+---
+
+## The Final Product
+
+By the end of the tutorial series, you will have built two connected experiences.
+
+## 1. Participant Experience
+
+Participants will visit a route like:
 
 ```text
 /e/REACT-2026-Q3
 ```
 
-This route will load the correct session details and questions from the database.
+They will receive a fast, mobile-first form containing the questions from the session’s active published form version.
 
-The feedback form will support four question types:
+The form will support:
 
 | Question type | Example |
 |---|---|
-| Rating | “How would you rate this session?” on a 1–5 scale |
-| NPS | “How likely are you to recommend this session?” on a 0–10 scale |
-| Choice | “Which part was most useful?” |
-| Text | “What could we improve?” |
+| Rating | “How would you rate this session?” |
+| NPS | “How likely are you to recommend this session?” |
+| Choice | “Which section was most useful?” |
+| Text | “What should we improve?” |
 
-The participant experience will be optimized for phones:
+The participant experience will include:
 
-- Large, easy-to-tap controls.
-- A minimum 48-by-48 pixel touch target for interactive controls.
-- Form input text sized to avoid unwanted mobile browser zoom.
-- Haptic feedback on rating selection where the device supports vibration.
-- Browser-based draft persistence, so an accidental refresh or dismissal does not erase answers.
-- Fast submission feedback using React 19 patterns.
-- Clear handling for inactive, missing, or unavailable sessions.
+- Large touch-friendly controls.
+- A minimum interactive touch target of 48 by 48 pixels.
+- Input font sizes that avoid mobile browser auto-zoom.
+- Haptic feedback on supported devices.
+- Local draft persistence in the browser.
+- Server-side validation.
+- Fast feedback submission confirmation.
+- Clear errors for unavailable, inactive, or unpublished sessions.
+- Privacy-aware abuse protection.
 
----
+## 2. Administrator Experience
 
-## 2. Administrator Portal
-
-The administrator side of the application will include routes such as:
+Administrators will access protected routes such as:
 
 ```text
+/admin/events
+/admin/events/new
+/admin/sessions/REACT-2026-Q3/edit
 /admin/sessions/REACT-2026-Q3
 ```
 
-Administrators will be able to:
+They will be able to:
 
-- Review total response counts.
-- View average ratings for each question.
-- View rating distributions.
-- Calculate Net Promoter Score, or **NPS**.
+- Create events and courses.
+- Create sessions.
+- Author and publish feedback forms.
+- Preview forms.
+- Download QR codes.
+- View total submissions.
+- Review average scores.
+- Review score distributions.
+- Calculate NPS.
 - Read text feedback.
-- Download a QR code for the session.
-- Export response data as a CSV file.
-- Trigger a PDF report generation job.
-- View the status and download link for completed reports.
-
-**Net Promoter Score** measures how likely people are to recommend an experience. It is calculated by grouping 0–10 answers into:
-
-- **Promoters:** scores of 9 or 10.
-- **Passives:** scores of 7 or 8.
-- **Detractors:** scores from 0 through 6.
-
-The formula is:
-
-```text
-NPS = percentage of promoters - percentage of detractors
-```
-
-The final score ranges from `-100` to `100`.
+- Export CSV files.
+- Request PDF reports.
+- Download completed PDF reports.
 
 ---
 
 ## Final System Architecture
 
-GreyMatter Feedback will use an architecture that keeps participant submissions quick while safely moving slower work into background jobs.
+GreyMatter Feedback will use a modern architecture that separates fast participant interactions from slower background work.
 
 ```text
 ┌────────────────────────────┐
 │ Participant Phone          │
 │                            │
-│ Scans session QR code      │
+│ Scans QR code              │
 └──────────────┬─────────────┘
                │
                ▼
-┌──────────────────────────────────────────────────────┐
-│ Next.js 16 Application                                │
-│                                                      │
-│ /e/[sessionId]                                       │
-│ Mobile-first participant feedback form               │
-│                                                      │
-│ /admin/*                                             │
-│ Protected analytics and reporting portal             │
-│                                                      │
-│ /api/feedback                                        │
-│ Validates and accepts feedback submission requests   │
-└──────────────┬───────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ Next.js 16 App Router                            │
+│                                                  │
+│ /e/[sessionId]                                   │
+│ Dynamic participant feedback form                │
+│                                                  │
+│ /admin/*                                         │
+│ Protected form authoring and analytics portal    │
+│                                                  │
+│ /api/feedback                                    │
+│ Secure submission endpoint                       │
+└──────────────┬───────────────────────────────────┘
                │
-               │ Sends background events
+               │ sends events
                ▼
-┌──────────────────────────────────────────────────────┐
-│ Inngest                                              │
-│                                                      │
-│ • Processes submitted feedback                       │
-│ • Handles safe retries                               │
-│ • Generates PDF reports asynchronously               │
-└──────────────┬───────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ Inngest                                          │
+│                                                  │
+│ • Process submitted feedback                     │
+│ • Retry temporary failures safely                │
+│ • Generate PDF reports asynchronously            │
+└──────────────┬───────────────────────────────────┘
                │
                ▼
-┌──────────────────────────────────────────────────────┐
-│ Neon PostgreSQL                                      │
-│                                                      │
-│ Hosted serverless PostgreSQL database                │
-│ accessed through Prisma                              │
-│                                                      │
-│ Stores events, sessions, questions, answers,         │
-│ responses, and generated report records              │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ Neon PostgreSQL + Prisma                         │
+│                                                  │
+│ Events                                           │
+│ Sessions                                         │
+│ Form versions                                    │
+│ Questions                                        │
+│ Responses                                        │
+│ Answers                                          │
+│ Reports                                          │
+└──────────────────────────────────────────────────┘
 ```
 
-Think of this system like an event venue:
+A useful analogy is an event venue:
 
-- **Next.js** is the reception desk. It welcomes participants and administrators, displays the right screens, and receives requests.
-- **Neon PostgreSQL** is the secure records room. It stores structured data reliably and durably.
-- **Prisma** is the trained clerk who translates our TypeScript code into safe database operations.
-- **Inngest** is the operations coordinator. It gives slow or heavy jobs—such as PDF generation—to the back-office workflow so participants do not have to wait.
-- **QR codes** are printed directions that take each participant directly to the correct room.
+- **Next.js** is the reception desk where participants and administrators arrive.
+- **Neon PostgreSQL** is the secure records room.
+- **Prisma** is the trained clerk who safely translates application requests into database operations.
+- **Inngest** is the operations team that takes slow tasks away from the reception desk.
+- **QR codes** are direct signs pointing participants to the right feedback room.
+- **Form versions** are archived copies of official event materials, ensuring that historical records remain accurate.
 
 ---
 
-## Why Neon?
+## Why Neon PostgreSQL?
 
-We will use **Neon** for the application database.
+GreyMatter Feedback will use **Neon** as its PostgreSQL provider.
 
-Neon is a managed, serverless PostgreSQL platform. It gives us a real PostgreSQL database without requiring us to install, update, secure, back up, and operate a database server ourselves.
+Neon is managed, serverless PostgreSQL. It gives us a real PostgreSQL database without requiring us to install, update, secure, back up, or operate a database server ourselves.
 
-For this tutorial, Neon is a strong fit because it provides:
+Neon is well suited to this project because it provides:
 
-- Hosted PostgreSQL compatible with Prisma.
-- A secure database connection string.
-- A simple developer experience.
-- Serverless-friendly connection behavior.
-- A free tier suitable for learning and early prototypes.
-- Branching capabilities that can be useful for safely testing database changes.
+- PostgreSQL compatibility.
+- Secure connection strings.
+- Serverless-friendly pooled connections.
+- A strong free tier for learning and prototypes.
+- Database branching for safe experimentation.
+- Compatibility with Prisma.
 
-Instead of running PostgreSQL in Docker, you will create a Neon project and place its connection string in an environment variable:
+The application will use environment variables for database access:
 
 ```dotenv
 DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
 ```
 
-The application will use this URL privately on the server. It will never be exposed to participant browsers.
+The pooled connection URL will be used by the running application. The direct URL will be used by Prisma migrations.
+
+Neither value will be exposed to browsers.
 
 ---
 
-## The Core Data Model
+## Core Data Model
 
-Before implementation, it is useful to understand the data GreyMatter Feedback needs to track.
+The final data model will look like this:
+
+```text
+Event or Course
+  └── Session
+        ├── Form Version
+        │     └── Questions
+        │
+        ├── Response
+        │     └── Answers
+        │
+        └── Report
+```
+
+More specifically:
 
 ```text
 Event
   └── Session
-        ├── Question
+        ├── FormVersion
+        │     └── Question
+        │
         ├── Response
+        │     ├── formVersionId
         │     └── Answer
+        │
         └── Report
 ```
 
-Each item has a clear responsibility:
-
-| Model | Responsibility |
+| Record | Responsibility |
 |---|---|
-| Event | A parent event, such as “React Summit 2026” |
-| Session | A specific workshop, talk, lesson, or meeting with its own QR code |
-| Question | A configured question shown for one session |
-| Response | One completed participant form submission |
-| Answer | A single answer within a response |
-| Report | The status and location of a generated PDF report |
-
-For example:
-
-```text
-Event
-└── React Summit 2026
-    └── Advanced React Patterns
-        ├── “How would you rate the session?”
-        ├── “How likely are you to recommend it?”
-        └── “What should we improve?”
-```
-
-When a participant submits the form, GreyMatter Feedback stores one `Response` record and several related `Answer` records.
+| Event | Parent grouping for a course, conference, program, or event |
+| Session | A specific workshop, lesson, talk, or feedback target with a QR URL |
+| FormVersion | A draft, published, or archived snapshot of a session form |
+| Question | A configured field in a single form version |
+| Response | One completed participant submission |
+| Answer | One participant answer for one question |
+| Report | A requested, processing, completed, or failed PDF report |
 
 ---
 
-## Participant Submission Flow
+## Background Processing with Inngest
 
-The participant’s journey will follow this sequence:
+Participants should never need to wait for heavy work after submitting a form.
 
-```text
-1. Scan QR code
-2. Open session URL
-3. Load session and question configuration
-4. Fill out feedback form
-5. Save drafts locally while answering
-6. Submit validated answers
-7. Receive immediate confirmation
-8. Process heavier work asynchronously
-```
-
-The important performance principle is that the phone should not wait for expensive work.
-
-For example, PDF generation could take seconds. The participant does not need to wait for that. Their submission should be acknowledged quickly, while Inngest performs related background tasks independently.
-
----
-
-## Background Job Flow
-
-When feedback is submitted, the application will send an event to Inngest:
+When a participant submits feedback, the application will create an Inngest event:
 
 ```text
 feedback/submitted
 ```
 
-An Inngest function will then process that event. It will:
+A background function will:
 
-1. Verify the submission data.
-2. Save the response and answers safely.
-3. Prevent duplicate records during retries.
-4. Prepare data for analytics.
-5. Make later reporting tasks possible.
+1. Validate and safely save the submission.
+2. Use idempotency protections to avoid duplicate responses during retries.
+3. Prepare data for later analytics and reporting.
+4. Handle temporary failures without requiring the participant to submit again.
 
-When an administrator requests a report, the application will send another event:
+When an administrator requests a PDF report, the application will create another event:
 
 ```text
 report/generate.pdf
 ```
 
-A second Inngest function will:
+A report-generation function will:
 
-1. Read session analytics from Neon.
-2. Render a PDF executive summary.
-3. Store the finished report.
-4. Update the report status.
-5. Make the download URL available in the admin portal.
+1. Fetch analytics for the selected session.
+2. Generate a PDF executive summary.
+3. Store the generated file.
+4. Update report status.
+5. Make the download URL available to administrators.
 
 ---
 
 ## Security and Privacy Principles
 
-Feedback is often sensitive. Participants should feel safe providing honest feedback, and administrators should be able to trust that the data is valid.
+GreyMatter Feedback is intended to collect honest feedback without unnecessarily collecting participant identity.
 
-GreyMatter Feedback will include the following protections:
+The application will include these protections.
 
 ### Anonymous participant access
 
-Participants will not need accounts to submit feedback. This keeps the QR flow simple and supports candid responses.
+Participants do not need accounts. A QR scan should lead directly to the relevant form.
 
-### Privacy-preserving IP handling
+### Privacy-preserving IP hashing
 
-We will not store a participant’s raw IP address.
+The system will not store raw IP addresses.
 
-Instead, we will create a daily salted SHA-256 hash. A **hash** is a one-way fingerprint of data. It can help us identify repeated requests for rate limiting without retaining the original IP address.
+Instead, it will derive a daily salted SHA-256 hash from the client IP address. A hash is a one-way fingerprint. It can help detect repeated requests without retaining the original IP address.
 
 ### Rate limiting
 
-Rate limiting controls how frequently a client can submit requests. It is like a venue rule that prevents one person from repeatedly dropping hundreds of forms into a suggestion box.
+Rate limiting prevents spam by limiting how often a client can submit a form.
 
-We will use the hashed IP value and session context to reduce spam.
+Think of it as a rule that stops one person from dropping hundreds of completed slips into a physical feedback box.
 
-### Input validation
+### Server-side validation
 
-Every browser request can be modified by a malicious or broken client. Therefore, server-side code—not browser code—will be responsible for deciding whether submitted data is valid.
-
-We will use **Zod** to validate:
-
-- Session identifiers.
-- Question identifiers.
-- Numeric score ranges.
-- Choice options.
-- Text lengths.
-- Required answers.
+The browser is helpful for user experience, but it cannot be trusted as a security boundary. The API will validate all submitted data using Zod before it is accepted.
 
 ### Protected admin access
 
-The admin portal will require authentication. We will use secure, signed sessions stored in HTTP-only cookies.
-
-An **HTTP-only cookie** is a browser cookie JavaScript cannot read. This reduces the damage that could be caused by certain cross-site scripting attacks.
+The form authoring environment, analytics dashboard, and exports will require administrator authentication through secure signed sessions.
 
 ### Idempotent background jobs
 
-Network requests and background jobs can occasionally be retried. An **idempotent** operation can run more than once without creating duplicate results.
-
-We will assign each submission a unique event ID so retrying a job does not create duplicate feedback responses.
+Background work can be retried after a temporary network or provider failure. The system will use unique event identifiers so a retry does not create duplicate responses.
 
 ---
 
 ## What You Will Learn
 
-After completing the complete tutorial series, you will understand how to:
+By the end of this tutorial series, you will know how to:
 
-1. Create a modern Next.js 16 App Router project.
-2. Use React 19 for responsive form state and optimistic interactions.
-3. Style a mobile-first interface with Tailwind CSS.
-4. Create and configure a Neon PostgreSQL database.
-5. Connect Prisma to Neon safely.
-6. Model relational data with Prisma.
-7. Create dynamic routes using `app/e/[sessionId]`.
-8. Build a configuration-driven feedback form.
-9. Save and restore form drafts with browser localStorage.
-10. Create secure API routes.
-11. Validate untrusted input with Zod.
-12. Apply privacy-aware IP hashing and rate limiting.
-13. Build a protected administrator portal.
-14. Generate QR code images.
-15. Calculate ratings and NPS metrics.
-16. Stream CSV downloads from the server.
-17. Use Inngest for reliable background work.
-18. Generate PDF reports with React PDF.
-19. Store generated report files locally during development and in S3-compatible storage in production.
-20. Add offline-aware behavior through a service worker and retry-friendly submission design.
-21. Prepare the application for deployment.
+1. Create a Next.js 16 App Router application.
+2. Configure Tailwind CSS and shared layouts.
+3. Set up Neon PostgreSQL.
+4. Connect Prisma to Neon.
+5. Design relational schemas for dynamic forms and response data.
+6. Build a form versioning and publishing workflow.
+7. Create a protected admin form authoring environment.
+8. Build dynamic participant routes using `app/e/[sessionId]`.
+9. Render different question types from stored configuration.
+10. Build mobile-first forms with React 19.
+11. Save draft answers in browser localStorage.
+12. Add haptic feedback on compatible devices.
+13. Validate submissions with Zod.
+14. Implement privacy-aware IP hashing and rate limiting.
+15. Use Inngest for reliable background processing.
+16. Calculate rating averages and NPS.
+17. Generate QR-code images.
+18. Export response data to CSV.
+19. Generate PDF reports asynchronously.
+20. Store report files locally during development and in S3-compatible storage in production.
+21. Add offline-aware behavior and retry-friendly submission flows.
+22. Prepare the application for deployment.
 
 ---
 
-## How the Series Is Organized
+## Tutorial Structure
 
-The series will move from foundation to finished product in a deliberate order.
+The series will proceed in this order.
 
 | Part | Focus |
 |---|---|
-| Part 0 | Introduction, architecture, requirements, and learning path |
-| Part 1 | Next.js setup, Neon configuration, Prisma schema, and project foundation |
-| Part 2 | Database access layer, seed data, session queries, and dynamic participant route |
-| Part 3 | Mobile-first participant form, question types, local draft persistence, and haptic feedback |
-| Part 4 | Secure feedback API, validation, IP hashing, and rate limiting |
-| Part 5 | Inngest events and reliable submission-processing workflow |
-| Part 6 | Admin authentication, dashboard layout, analytics metrics, and QR export |
-| Part 7 | CSV exports and asynchronous PDF report generation |
-| Part 8 | File storage, offline support, testing, security review, and production deployment |
+| Part 0 | Product scope, architecture, dynamic forms, authoring environment, and versioning strategy |
+| Part 1 | Next.js setup, Neon configuration, Prisma setup, and versioned database schema |
+| Part 2 | Database query layer, seed data, form lifecycle helpers, and participant session route |
+| Part 3 | Admin authentication and form authoring environment |
+| Part 4 | Participant mobile form, question rendering, draft persistence, and haptic feedback |
+| Part 5 | Secure feedback API, validation, privacy hashing, and rate limiting |
+| Part 6 | Inngest submission processing and resilient background workflows |
+| Part 7 | Admin analytics dashboard, QR exports, and CSV exports |
+| Part 8 | PDF report generation, file storage, offline support, testing, and deployment |
 
-Each technical section will contain:
+Every technical implementation step will include:
 
-1. **The Target** — exactly what we are building.
-2. **The Concept** — why it works, explained simply.
-3. **The Implementation** — complete files and commands.
-4. **The Verification** — a concrete way to prove the step worked before continuing.
+1. **The Target** — the file, feature, or configuration being built.
+2. **The Concept** — a short plain-language explanation.
+3. **The Implementation** — complete code and exact file paths.
+4. **The Verification** — commands or browser steps to prove the work succeeded.
 
 ---
 
 ## Prerequisites
 
-Before starting Part 1, make sure you have:
+Before beginning Part 1, you should have:
 
 - Node.js 20.9 or later.
-- npm, pnpm, or another Node package manager.
-- A GitHub account or email address for creating a Neon account.
-- A Neon account and project. We will create/configure this during the tutorial.
-- A code editor, such as Visual Studio Code.
+- npm, pnpm, or another Node.js package manager.
+- A code editor such as Visual Studio Code.
 - A terminal.
-- Basic familiarity with JavaScript or TypeScript syntax.
+- A Neon account.
+- Basic familiarity with JavaScript or TypeScript.
 
-You do **not** need prior experience with Prisma, Neon, Inngest, QR-code generation, or PDF generation.
+You do not need previous experience with Neon, Prisma, Inngest, QR-code generation, PDF generation, or form versioning.
 
 ---
 
-## A Note About Production Readiness
+## Production Note
 
-This tutorial will build a strong foundation suitable for real applications, including validation, error handling, privacy-aware identifiers, background job retries, protected admin access, and environment-based configuration.
+This tutorial will build a strong production-oriented foundation, including validation, versioning, error handling, privacy-aware design, authentication, and retry-safe background workflows.
 
-However, production systems always require a final review tailored to their environment. Before handling sensitive or high-volume feedback in production, you should also consider:
+Before using GreyMatter Feedback for large-scale or sensitive production data, also plan for:
 
-- Legal and privacy obligations in your jurisdiction.
-- Accessibility testing with real users.
+- A legal and privacy review.
+- Accessibility testing.
 - Monitoring and alerting.
-- Database backup and recovery policies.
-- A stronger multi-user administration and role system.
-- Email delivery configuration.
-- A managed rate-limiting provider such as Upstash Redis.
-- File storage lifecycle policies.
-- Load testing for expected event traffic.
-
-We will call out these boundaries as we build.
+- Managed rate limiting, such as Upstash Redis.
+- Backups and disaster recovery.
+- Multi-user administrator roles and permissions.
+- Email delivery for report completion notifications.
+- Load testing before major events.
+- Security review of deployment configuration.
 
 ---
 
-GreyMatter Feedback is now fully defined: a fast, QR-first participant feedback platform backed by **Next.js**, **Neon PostgreSQL**, **Prisma**, and **Inngest**.
+GreyMatter Feedback is now defined as a flexible, QR-first feedback platform with a built-in authoring environment, versioned forms, reliable reporting, and a single source of truth in Neon PostgreSQL.
